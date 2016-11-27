@@ -1,6 +1,15 @@
-# imixs-scan
+# imixs-archive
 
-The imixs-scan solution provies a docker container to import scanned documents into the imixs workflow system.
+Imixs-Archive provides a flexible open source solution to archive electronic documents which are managed by a [Imixs-Workflow system](http://www.imixs.org) (e.g. [Imixs-Office-Workflow](http://www.office-workflow.de)).
+The imixs-archive solution provies a docker container including the following features:
+
+* OCR conversion of incomming PDF and images
+* creating a new process instance based on a Imixs-Workflow model definition
+
+The Imixs-Archive systeem is typically protected from external access. This means a document can be stored into the archive but not accessed form outside the container. This is to prevent the archive from any external modification.
+
+
+
 
 ## OCR
 
