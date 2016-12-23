@@ -24,3 +24,23 @@ The imixs-archive docker container is still under development. Here is a list of
 
 * provide script to transfere the file to the Imixs-Workflow Rest API
 * implement a working directory and move processed documents into an archive
+
+
+
+
+
+# Contribute
+The source is available on [Github](https://github.com/imixs-docker/imixs-archive). Please [report any issues](https://github.com/imixs-docker/imixs-archive/issues).
+
+To build the image from the Dockerfile run: 
+
+    docker build --tag=imixs/imixs-archive .
+
+To test the image run the container
+    
+	docker run --name="imixs-archive" -d -p 8080:8080 -p 9990:9990 -e WILDFLY_PASS="admin_password" imixs/imixs-archive
+	docker exec -it imixs-archive /bin/bash	
+
+To remove the image run
+
+	docker rmi imixs-archive
