@@ -30,7 +30,7 @@ public class ChecksumGeneratorTest {
 			URL url = this.getClass().getResource(TEST_DATA);
 			b = Files.readAllBytes(new File(url.getFile()).toPath());
 			String hash=ChecksumGenerator.generateMD5(b);
-			Assert.assertEquals("397540C60D888E28C283866D5DD83E14", hash);
+			Assert.assertEquals("44B747C62444BC11A57B1B57DFFAC247", hash);
 		} catch (IOException | NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			Assert.fail();
@@ -47,7 +47,7 @@ public class ChecksumGeneratorTest {
 		try {
 			URL url = this.getClass().getResource(TEST_DATA);
 			b = Files.readAllBytes(new File(url.getFile()).toPath());
-			Assert.assertTrue(ChecksumGenerator.verifyMD5 ("397540C60D888E28C283866D5DD83E14", b));
+			Assert.assertTrue(ChecksumGenerator.verifyMD5 ("44B747C62444BC11A57B1B57DFFAC247", b));
 		} catch (IOException | NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			Assert.fail();
@@ -63,7 +63,7 @@ public class ChecksumGeneratorTest {
 		try {
 			URL url = this.getClass().getResource(TEST_DATA);
 			b = Files.readAllBytes(new File(url.getFile()).toPath());
-			Assert.assertFalse(ChecksumGenerator.verifyMD5 ("397540C60Dxxxxxxxxxx66D5DD83E14", b));
+			Assert.assertFalse(ChecksumGenerator.verifyMD5 ("44B747C6244xxxxxxxB1B57DFFAC247", b));
 		} catch (IOException | NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			Assert.fail();
