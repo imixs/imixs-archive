@@ -20,7 +20,7 @@ import javax.xml.bind.DatatypeConverter;
  *
  */
 public class ChecksumGenerator {
-
+ 
 	/**
 	 * elegant way to calculate the checksum on the fly while reading from a
 	 * stream...

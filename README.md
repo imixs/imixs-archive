@@ -21,3 +21,35 @@ The Imixs Docker Container '[imixs/archive](https://github.com/imixs-docker/arch
 
 When installing the imixs-archive as a docker container the http deamon should not be accessible form an external network. A user can request a document through the imixs-workflow instance. Imixs-Worklfow grants access to a process instance based on the ACL of the corresponding workitem. If a user is not allowed to access a process instance managed by the Imixs-Workflow system, he is not allowed to access linked content form the imixs-archive instance.
 
+# Hadoop
+
+Make sure that the hdfs is started:
+
+    /hadoop/sbin/start-dfs.sh 
+
+Make sure that JAVA_HOME is set in the hadoop-env.sh file
+
+    # The java implementation to use.
+    #export JAVA_HOME=${JAVA_HOME}
+    export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/
+
+   
+  
+See also tutorial [Hadoop Single Node Cluster](http://www.michael-noll.com/tutorials/running-hadoop-on-ubuntu-linux-single-node-cluster/)
+
+
+# Development
+
+During development the imixs/archive docker container can be used with mounting an external deployments/ folder:
+
+	docker run --name="archive" -d -p 8080:8080 -p 9990:9990 \
+         -e WILDFLY_PASS="adminadmin" \
+         -v ~/git/imixs-archive/deployments:/opt/wildfly/standalone/deployments/:rw \
+         imixs/archive
+
+Logfiles can be monitored with 
+
+	docker logs -f archive
+
+
+

@@ -29,6 +29,7 @@ package org.imixs.archive;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.file.Files;
@@ -39,15 +40,20 @@ import javax.ejb.Stateless;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Encoded;
 import javax.ws.rs.GET;
-import javax.ws.rs.Path;
+
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.imixs.workflow.ItemCollection;
 
 /**
@@ -56,7 +62,7 @@ import org.imixs.workflow.ItemCollection;
  * @author rsoika
  * 
  */
-@Path("/archive")
+@javax.ws.rs.Path("/archive")
 @Produces({ MediaType.TEXT_HTML, MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.TEXT_XML })
 @Stateless
 public class ArchiveService {
@@ -66,6 +72,48 @@ public class ArchiveService {
 
 	private static Logger logger = Logger.getLogger(ArchiveService.class.getName());
 
+	
+	@GET
+	@Produces("text/html")
+	@javax.ws.rs.Path("/help")
+	public StreamingOutput getHelpHTML() {
+
+		return new StreamingOutput() {
+			public void write(OutputStream out) throws IOException, WebApplicationException {
+
+				out.write("<html><head>".getBytes());
+				out.write("<style>".getBytes());
+				out.write("table {padding:0px;width: 100%;margin-left: -2px;margin-right: -2px;}".getBytes());
+				out.write(
+						"body,td,select,input,li {font-family: Verdana, Helvetica, Arial, sans-serif;font-size: 13px;}"
+								.getBytes());
+				out.write("table th {color: white;background-color: #bbb;text-align: left;font-weight: bold;}"
+						.getBytes());
+
+				out.write("table th,table td {font-size: 12px;}".getBytes());
+
+				out.write("table tr.a {background-color: #ddd;}".getBytes());
+
+				out.write("table tr.b {background-color: #eee;}".getBytes());
+
+				out.write("</style>".getBytes());
+				out.write("</head><body>".getBytes());
+
+				// body
+				out.write("<h1>Imixs-Archive Rest API</h1>".getBytes());
+				out.write(
+						"<p>See the <a href=\"https://github.com/imixs/imixs-archive\" target=\"_blank\">Imixs-Archive REST Service API</a> for more information about this Service.</p>"
+								.getBytes());
+
+				// end
+				out.write("</body></html>".getBytes());
+			}
+		};
+
+	}
+
+	
+	
 	/**
 	 * Returns a file attachment located in the property $file of the specified
 	 * workitem
@@ -78,10 +126,10 @@ public class ArchiveService {
 	 * @return
 	 */
 	@GET
-	@Path("/{uniqueid}/{file}")
+	@javax.ws.rs.Path("/{uniqueid}/{file}")
 	public Response getFile(@PathParam("uniqueid") String uniqueid, @PathParam("file") @Encoded String file,
 			@Context UriInfo uriInfo, @QueryParam("contenttype") String contentType) {
-
+ 
 		ItemCollection workItem;
 		// try {
 		try {
@@ -125,4 +173,64 @@ public class ArchiveService {
 		return Response.status(Response.Status.NOT_FOUND).build();
 
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	@GET
+	@javax.ws.rs.Path("/test")
+	public void testWriteBytes() throws IOException {
+		logger.info("Write Bytes ...");
+		Configuration conf = new Configuration();
+
+		conf.addResource(new org.apache.hadoop.fs.Path("/opt/hadoop/etc/hadoop/core-site.xml"));
+		conf.addResource(new org.apache.hadoop.fs.Path("/opt/hadoop/etc/hadoop/hdfs-site.xml"));
+		FSDataOutputStream out = null;
+		try {
+
+			// FileSystem fs = FileSystem.get(new URI("hdfs://localhost:54310"),
+			// conf);
+			// Path file = new Path("hdfs://localhost:54310/table.html");
+
+			FileSystem fs = FileSystem.get(conf);
+			org.apache.hadoop.fs.Path file = new org.apache.hadoop.fs.Path("byte-test-data2");
+
+			if (fs.exists(file)) {
+				System.err.println("Output already exists");
+				fs.delete(file, true);
+			}
+			// Read from and write to new file
+			out = fs.create(file);
+
+			String s = "some test data....2";
+			byte data[] = s.getBytes();
+
+			out.write(data);
+		} catch (Exception e) {
+			System.out.println("Error while copying file " + e.getMessage());
+		} finally {
+			if (out != null) {
+				out.close();
+			}
+		}
+
+		logger.info("Write Bytes successfull");
+	}
+
+
+
+
 }
