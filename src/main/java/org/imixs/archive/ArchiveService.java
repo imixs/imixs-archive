@@ -27,6 +27,7 @@
 
 package org.imixs.archive;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -34,13 +35,14 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Encoded;
 import javax.ws.rs.GET;
-
+import javax.ws.rs.PUT;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -52,8 +54,10 @@ import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.imixs.workflow.ItemCollection;
 
 /**
@@ -69,10 +73,10 @@ public class ArchiveService {
 
 	@javax.ws.rs.core.Context
 	private static HttpServletRequest servletRequest;
-
 	private static Logger logger = Logger.getLogger(ArchiveService.class.getName());
 
-	
+	private String hadoopConfDir = null;
+
 	@GET
 	@Produces("text/html")
 	@javax.ws.rs.Path("/help")
@@ -112,100 +116,107 @@ public class ArchiveService {
 
 	}
 
-	
-	
 	/**
-	 * Returns a file attachment located in the property $file of the specified
-	 * workitem
-	 * 
-	 * The file name will be encoded. With a URLDecode the filename is decoded
-	 * in different formats and searched in the file list. This is not a nice
-	 * solution.
+	 * Returns a file stored in hadoop. The method expect the uniqueid of the
+	 * file and the checksum. The later will be verified before the file is
+	 * returned. If the checksum did not match, an error is returned.
 	 * 
 	 * @param uniqueid
+	 *            - unique identifier returned form putFile()
+	 * @param checksum
+	 *            - checksum returned from putFile()
 	 * @return
+	 * @throws IOException
 	 */
 	@GET
-	@javax.ws.rs.Path("/{uniqueid}/{file}")
-	public Response getFile(@PathParam("uniqueid") String uniqueid, @PathParam("file") @Encoded String file,
-			@Context UriInfo uriInfo, @QueryParam("contenttype") String contentType) {
- 
-		ItemCollection workItem;
-		// try {
-		try {
-			String fileNameUTF8 = URLDecoder.decode(file, "UTF-8");
-
-			String fileNameISO = URLDecoder.decode(file, "ISO-8859-1");
-
-			
-				
-			
-			java.nio.file.Path path = Paths.get("/archive/"+uniqueid + "/"+file);
-
-			if (path != null) {
-				InputStream inStream = Files.newInputStream(path);
-
-				// Set content type in order of the contentType stored
-				// in the $file attribute
-				Response.ResponseBuilder builder = Response.ok(inStream, contentType);
-
-				return builder.build();
-
-			} else {
-				logger.warning("WorklfowRestService unable to open file: '" + file + "' in workitem '" + uniqueid
-						+ "' - error: Workitem not found!");
-				// workitem not found
-				return Response.status(Response.Status.NOT_FOUND).build();
-			}
-		} catch (UnsupportedEncodingException e) {
-
-			logger.severe("WorklfowRestService unable to open file: '" + file + "' in workitem '" + uniqueid
-					+ "' - error: " + e.getMessage());
-			e.printStackTrace();
-
-		} catch (IOException e) {
-			logger.severe("WorklfowRestService unable to open file: '" + file + "' in workitem '" + uniqueid
-					+ "' - error: " + e.getMessage());
-			e.printStackTrace();
-		}
-
-		logger.severe("WorklfowRestService unable to open file: '" + file + "' in workitem '" + uniqueid + "'");
-		return Response.status(Response.Status.NOT_FOUND).build();
+	@javax.ws.rs.Path("/{uniqueid}/{checksum}/{file}")
+	public void getFile(InputStream is, @PathParam("uniqueid") String uniqueid, @PathParam("uniqueid") String checksum,
+			@PathParam("file") @Encoded String file, @Context UriInfo uriInfo,
+			@QueryParam("contenttype") String contentType) throws IOException {
 
 	}
 
+	/**
+	 * Returns a file stored in hadoop. The method expect the uniqueid of the
+	 * file and the checksum. The later will be verified before the file is
+	 * returned. If the checksum did not match, an error is returned.
+	 * 
+	 * @param uniqueid
+	 *            - unique identifier returned form putFile()
+	 * @param checksum
+	 *            - checksum returned from putFile()
+	 * @return
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException 
+	 */
+	@PUT
+	@javax.ws.rs.Path("/{uniqueid}/{file}")
+	public void putFile(InputStream is, @PathParam("uniqueid") String uniqueid,
+			@PathParam("file") @Encoded String fileName, @Context UriInfo uriInfo,
+			@QueryParam("contenttype") String contentType) throws IOException, NoSuchAlgorithmException {
 
+		logger.info("put bytes....");
+		byte[] data = readFromStream(is);
 
+		if (data != null) {
+			logger.info(data.length + " bytes receifed, writing bytes....");
+			logger.info("uniqueid=" + uniqueid + " file=" + fileName);
 
+			FSDataOutputStream out = null;
+			try {
+				FileSystem fs = getFileSystem();
+				org.apache.hadoop.fs.Path file = new org.apache.hadoop.fs.Path(fileName);
 
+				if (fs.exists(file)) {
+					System.err.println(fileName + " already exists");
+					fs.delete(file, true);
+				}
+				// Read from and write to new file
+				out = fs.create(file);
 
+				out.write(data);
+			} catch (Exception e) {
+				System.out.println("Error while copying file " + e.getMessage());
+			} finally {
+				if (out != null) {
+					out.close();
+				}
+			}
+		}
+		
+		String checksum=ChecksumGenerator.generateMD5(data);
 
+		logger.info("Write Bytes successfull, checksum="+checksum);
 
+	}
 
+	private byte[] readFromStream(InputStream stream) throws IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
+		byte[] buffer = new byte[1000];
+		int wasRead = 0;
+		do {
+			wasRead = stream.read(buffer);
+			if (wasRead > 0) {
+				baos.write(buffer, 0, wasRead);
+			}
+		} while (wasRead > -1);
+		return baos.toByteArray();
+	}
 
-
-
-
-
-
-
+	/**
+	 * Writes a new file
+	 * 
+	 * @throws IOException
+	 */
 	@GET
-	@javax.ws.rs.Path("/test")
-	public void testWriteBytes() throws IOException {
+	@javax.ws.rs.Path("/write-test")
+	public String testWriteBytes() throws IOException {
 		logger.info("Write Bytes ...");
-		Configuration conf = new Configuration();
 
-		conf.addResource(new org.apache.hadoop.fs.Path("/opt/hadoop/etc/hadoop/core-site.xml"));
-		conf.addResource(new org.apache.hadoop.fs.Path("/opt/hadoop/etc/hadoop/hdfs-site.xml"));
 		FSDataOutputStream out = null;
 		try {
-
-			// FileSystem fs = FileSystem.get(new URI("hdfs://localhost:54310"),
-			// conf);
-			// Path file = new Path("hdfs://localhost:54310/table.html");
-
-			FileSystem fs = FileSystem.get(conf);
+			FileSystem fs = getFileSystem();
 			org.apache.hadoop.fs.Path file = new org.apache.hadoop.fs.Path("byte-test-data2");
 
 			if (fs.exists(file)) {
@@ -228,9 +239,84 @@ public class ArchiveService {
 		}
 
 		logger.info("Write Bytes successfull");
+
+		return "Write Bytes successfull";
 	}
 
+	/**
+	 * simple test to read bytes from hdfs
+	 * 
+	 * @throws IOException
+	 */
+	@GET
+	@javax.ws.rs.Path("/read-test")
+	public String testReadBytes() throws IOException {
 
+		FSDataOutputStream out = null;
+		try {
 
+			FileSystem fs = getFileSystem();
+			Path file = new Path("byte-test-data2");
+
+			// if the file already exists delete it.
+			if (!fs.exists(file)) {
+				logger.warning("file not found.");
+				return "file not found";
+			}
+
+			// FSInputStream to read out of the filenamePath file
+			FSDataInputStream fout = fs.open(file);
+
+			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+			int nRead;
+			byte[] data = new byte[16384];
+
+			while ((nRead = fout.read(data, 0, data.length)) != -1) {
+				buffer.write(data, 0, nRead);
+			}
+
+			buffer.flush();
+			String msgIn = buffer.toString();
+
+			logger.info("Read Bytes successfull");
+
+			return msgIn;
+
+		} catch (Exception e) {
+			logger.severe("Error while copying file " + e.getMessage());
+			return "error: " + e.getMessage();
+		} finally {
+			if (out != null) {
+				out.close();
+			}
+		}
+
+	}
+
+	/**
+	 * Returns an instance of the hadoop fileSystem
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
+	private FileSystem getFileSystem() throws IOException {
+		Configuration conf = new Configuration();
+		hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
+
+		logger.fine("getFileSystem - HADOOP_CONF_DIR=" + hadoopConfDir);
+		if (hadoopConfDir == null || hadoopConfDir.isEmpty()) {
+			logger.warning("Environment var 'HADOOP_CONF_DIR' not defined!");
+			hadoopConfDir = "/opt/hadoop/etc/hadoop";
+		}
+
+		if (!hadoopConfDir.endsWith("/")) {
+			hadoopConfDir += "/";
+		}
+
+		conf.addResource(new Path(hadoopConfDir + "core-site.xml"));
+		conf.addResource(new Path(hadoopConfDir + "hdfs-site.xml"));
+		return FileSystem.get(conf);
+	}
 
 }
