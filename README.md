@@ -24,16 +24,29 @@ script can be used for images as also for PDF files.  The text result is stored 
 
 
 # Docker
-The Imixs Docker Container '[imixs/archive](https://github.com/imixs-docker/archive)' can be used to run a Imixs-Archive on a Docker host.
+The Imixs Docker Container '[imixs/imixs-archive](https://github.com/imixs-docker/imixs-archive)' can be used to run a Imixs-Archive on a Docker host. The image is based on [imixs/wildfly](https://hub.docker.com/r/imixs/wildfly/).
 
 When installing the imixs-archive as a docker container the http deamon should not be accessible form an external network. A user can request a document through the imixs-workflow instance. Imixs-Worklfow grants access to a process instance based on the ACL of the corresponding workitem. If a user is not allowed to access a process instance managed by the Imixs-Workflow system, he is not allowed to access linked content form the imixs-archive instance.
 
 Furthermore the Imixs-Archive rest service can be protected using the JAAS framework. 
 
 
-## Development
+## 1. Build the image
 
-During development the imixs/archive docker container can be used with mounting an external deployments/ folder:
+	docker build --tag=imixs/imixs-archive .
+
+## 2. Running and stopping a container
+The container includes a start script which allows to start Wildfly with an admin password to grant access to the web admin console. You can start an instance of wildfly with the Docker run command:
+
+    docker run --name="imixs-archive" -d -p 8080:8080 -p 9990:9990 -e WILDFLY_PASS="admin_password" imixs/imixs-archive
+    
+For further details see the [imixs/wildfly docker image](https://hub.docker.com/r/imixs/wildfly/).
+
+
+
+## 3. Development
+
+During development the imixs/imixs-archive docker container can be used with mounting an external deployments/ folder:
 
 	docker run --name="archive" -d -p 8080:8080 -p 9990:9990 \
          -e WILDFLY_PASS="adminadmin" \
