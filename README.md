@@ -21,12 +21,13 @@ script can be used for images as also for PDF files.  The text result is stored 
 
 
 
+<br /><br /><br /><img src="small_h-trans.png" />
 
 
-# <img src="small_h-trans.png" />
-The Imixs Docker Container '[imixs/imixs-archive](https://github.com/imixs-docker/imixs-archive)' can be used to run a Imixs-Archive on a Docker host. The image is based on [imixs/wildfly](https://hub.docker.com/r/imixs/wildfly/).
 
-When installing the imixs-archive as a docker container the http deamon should not be accessible form an external network. A user can request a document through the imixs-workflow instance. Imixs-Worklfow grants access to a process instance based on the ACL of the corresponding workitem. If a user is not allowed to access a process instance managed by the Imixs-Workflow system, he is not allowed to access linked content form the imixs-archive instance.
+The Imixs Docker Container '[imixs/imixs-archive](https://github.com/imixs-docker/imixs-archive)' can be used to run a Imixs-Archive on a Docker host. The image is based on the docker image [imixs/wildfly](https://hub.docker.com/r/imixs/wildfly/).
+
+When running the imixs-archive as a docker container, the http deamon should not be accessible form an external network. A user can request a document through the imixs-workflow instance. Imixs-Worklfow grants access to a process instance based on the ACL of the corresponding workitem. If a user is not allowed to access a process instance managed by the Imixs-Workflow system, he is not allowed to access linked content form the imixs-archive instance.
 
 Furthermore the Imixs-Archive rest service can be protected using the JAAS framework. 
 
