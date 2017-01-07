@@ -49,7 +49,7 @@ For further details see the [imixs/wildfly docker image](https://hub.docker.com/
 During development the imixs/imixs-archive docker container can be used with mounting an external deployments/ folder:
 
 	docker run --name="imixs-archive" -d -p 8080:8080 -p 9990:9990 \
-         -e WILDFLY_PASS="adminadmin" \
+         -e WILDFLY_PASS="admin_password" \
          -v ~/git/imixs-archive/deployments:/opt/wildfly/standalone/deployments/:rw \
          imixs/imixs-archive
 

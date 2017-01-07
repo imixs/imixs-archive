@@ -24,7 +24,7 @@ public class ChecksumGenerator {
 	/**
 	 * elegant way to calculate the checksum on the fly while reading from a
 	 * stream...
-	 * 
+	 *  
 	 * works with JDK 8
 	 * 
 	 * @return
