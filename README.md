@@ -21,8 +21,7 @@ script can be used for images as also for PDF files.  The text result is stored 
 
 
 
-<br /><br /><br /><img src="small_h-trans.png" />
-
+<br /><br /><img src="small_h-trans.png" />
 
 
 The Imixs Docker Container '[imixs/imixs-archive](https://github.com/imixs-docker/imixs-archive)' can be used to run a Imixs-Archive on a Docker host. The image is based on the docker image [imixs/wildfly](https://hub.docker.com/r/imixs/wildfly/).
@@ -49,14 +48,14 @@ For further details see the [imixs/wildfly docker image](https://hub.docker.com/
 
 During development the imixs/imixs-archive docker container can be used with mounting an external deployments/ folder:
 
-	docker run --name="archive" -d -p 8080:8080 -p 9990:9990 \
+	docker run --name="imixs-archive" -d -p 8080:8080 -p 9990:9990 \
          -e WILDFLY_PASS="adminadmin" \
          -v ~/git/imixs-archive/deployments:/opt/wildfly/standalone/deployments/:rw \
-         imixs/archive
+         imixs/imixs-archive
 
 Logfiles can be monitored with 
 
-	docker logs -f archive
+	docker logs -f imixs-archive
 
 
 
