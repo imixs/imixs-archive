@@ -179,30 +179,7 @@ public class HDFSClient {
 		return resp;
 	}
 
-	@Deprecated
-	public static synchronized Token generateToken(String srvUrl, String princ, String passwd) {
-		AuthenticatedURL.Token newToken = new AuthenticatedURL.Token();
-		Authenticator authenticator = new PseudoAuthenticator2(princ);
-		try {
-
-			String spec = MessageFormat.format("/webhdfs/v1/?op=GETHOMEDIRECTORY&user.name={0}", princ);
-			HttpURLConnection conn = new AuthenticatedURL(authenticator).openConnection(new URL(new URL(srvUrl), spec),
-					newToken);
-
-			conn.connect();
-
-			conn.disconnect();
-
-		} catch (Exception ex) {
-			logger.severe(ex.getMessage());
-			logger.severe("[" + princ + ":" + passwd + "]@" + srvUrl);
-			// WARN
-			// throws MalformedURLException, IOException,
-			// AuthenticationException, InterruptedException
-		}
-
-		return newToken;
-	}
+	
 
 	/**
 	 * Returns the connection result in JSON
@@ -211,6 +188,7 @@ public class HDFSClient {
 	 * @param input
 	 * @return
 	 * @throws IOException
+	 * 
 	 */
 	private static String getJSONResult(HttpURLConnection conn, boolean input) throws IOException {
 		StringBuffer sb = new StringBuffer();
@@ -247,7 +225,7 @@ public class HDFSClient {
 		properties = new Properties();
 		try {
 			properties
-					.load(Thread.currentThread().getContextClassLoader().getResource("imixs.properties").openStream());
+					.load(Thread.currentThread().getContextClassLoader().getResource("imixs-hadoop.properties").openStream());
 		} catch (Exception e) {
 			logger.severe("PropertyService unable to find imixs-hadoop.properties in current classpath");
 			e.printStackTrace();

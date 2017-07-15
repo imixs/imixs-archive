@@ -94,7 +94,7 @@ public class HadoopTest {
 		
 		List<ItemCollection> col=new ArrayList<ItemCollection>();
 		col.add(workitem);
-		
+		 
 		
 		
 		HDFSClient hdfsClient=new HDFSClient("root");
@@ -103,7 +103,7 @@ public class HadoopTest {
 		
 		try {
 			boolean redirect=false;
-			String status=hdfsClient.putData("/2017/06/testxxxx.txt", XMLItemCollectionAdapter.putCollection(col));
+			String status=hdfsClient.putData("/2017/06/testxxxx2.txt", XMLItemCollectionAdapter.putCollection(col));
 			
 			
 			Assert.assertNotNull(status);
