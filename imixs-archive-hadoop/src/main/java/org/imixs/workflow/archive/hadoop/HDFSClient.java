@@ -5,32 +5,21 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.text.MessageFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import javax.xml.stream.XMLStreamWriter;
 
-import org.apache.hadoop.security.authentication.client.AuthenticatedURL;
-import org.apache.hadoop.security.authentication.client.AuthenticationException;
-import org.apache.hadoop.security.authentication.client.Authenticator;
-import org.apache.hadoop.security.authentication.client.AuthenticatedURL.Token;
-import org.imixs.workflow.services.rest.RestClient;
 import org.imixs.workflow.xml.DocumentCollection;
 
 /**
@@ -65,6 +54,16 @@ public class HDFSClient {
 	private String hadoopBaseUrl = null;
 	private Properties properties = null;
 
+	
+	/**
+	 * Default constructor creates a new HDFSClient with the user defined by the imixs-hadoop.properties file.
+	 * 
+	 * @param principal
+	 */
+	public HDFSClient() {
+		this(null);
+	}
+	
 	/**
 	 * Constructor for pseudo authentication. The method expects only a
 	 * pricipal, all other properties are read from the imixs-hadoop.properties
@@ -84,6 +83,7 @@ public class HDFSClient {
 		}
 
 	}
+
 
 	/**
 	 * The init method read the imixs-hadoop.properties file and set the default values
