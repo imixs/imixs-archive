@@ -14,6 +14,10 @@
 			<groupId>org.imixs.workflow</groupId>
 			<artifactId>imixs-workflow-core</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-workflow-engine</artifactId>
+		</dependency>
 
 		<!-- Java EE dependencies -->
 		<dependency>
@@ -23,7 +27,7 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Hadoop Auth -->
+		<!-- Hadoop Auth 
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-auth</artifactId>
@@ -35,7 +39,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-
+-->
 	
 
 		<!-- JUnit Tests -->
