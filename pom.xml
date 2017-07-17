@@ -8,6 +8,7 @@
 	<modules>
 		<module>imixs-archive-ocr</module>
 		<module>imixs-archive-hadoop</module>
+		<module>imixs-archive-test</module>
 	</modules>
 	
 	

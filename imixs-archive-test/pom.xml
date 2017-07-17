@@ -6,7 +6,7 @@
 		<artifactId>imixs-archive</artifactId>
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>imixs-archive-ocr</artifactId>
+	<artifactId>imixs-archive-test</artifactId>
 
 	<dependencies>
 		<dependency>
@@ -22,6 +22,20 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- Hadoop Auth -->
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-auth</artifactId>
+			<version>2.8.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>jdk.tools</groupId>
+					<artifactId>jdk.tools</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+	
 
 		<!-- JUnit Tests -->
 		<dependency>
@@ -31,5 +45,5 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	<name>Imixs-Archive OCR</name>
+	<name>Imixs-Archive Test Environment</name>
 </project>

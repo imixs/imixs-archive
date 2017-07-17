@@ -50,4 +50,5 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+	<name>Imixs-Archive Hadoop Cluster</name>
 </project>

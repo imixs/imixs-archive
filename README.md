@@ -13,10 +13,12 @@ Imixs-Archive is based on the [Hadoop technology](http://hadoop.apache.org/) and
 * [Imixs-Archive-Hadoop](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-hadoop)
 
 
-### Docker
+## Docker
 
 The [Imixs-Docker/hadoop project](https://github.com/imixs/imixs-docker/tree/master/hadoop) provides a Docker image to run Haddop in a Docker container. This container can be used to test the hadoop in combination with Imixs-Archive. **NOTE:** The Imixs-Docker/hadoop container is for test purpose only. The container should only run in a system environment protected from external access. 
 
+
+* [Imixs-Archive-Test](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-test)
 
 
 
