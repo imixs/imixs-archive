@@ -47,7 +47,7 @@ The configuration values about the hadoop cluster host name and the principal ar
  
  
 	hadoop.hdfs.defaultPrincipal=root
-	hadoop.hdfs.baseURL=http://hadoop:50070/webhdfs/v1
+	hadoop.hdfs.baseURL=http://hadoop.local:50070/webhdfs/v1
  
  
 	
