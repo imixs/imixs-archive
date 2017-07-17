@@ -48,22 +48,25 @@ public class HDFSClient {
 
 	public final static String BASE_URL = "hadoop.hdfs.baseURL";
 	public final static String DEFUALT_PRINCIPAL = "hadoop.hdfs.defaultPrincipal";
+	public final static String DEFUALT_URL = "http://localhost:50070/webhdfs/v1";
+
 	private final static Logger logger = Logger.getLogger(HDFSClient.class.getName());
 
 	private String principal = null;
 	private String hadoopBaseUrl = null;
 	private Properties properties = null;
+	private String url = null;
 
-	
 	/**
-	 * Default constructor creates a new HDFSClient with the user defined by the imixs-hadoop.properties file.
+	 * Default constructor creates a new HDFSClient with the user defined by the
+	 * imixs-hadoop.properties file.
 	 * 
 	 * @param principal
 	 */
 	public HDFSClient() {
 		this(null);
 	}
-	
+
 	/**
 	 * Constructor for pseudo authentication. The method expects only a
 	 * pricipal, all other properties are read from the imixs-hadoop.properties
@@ -73,24 +76,37 @@ public class HDFSClient {
 	 * @param principal
 	 */
 	public HDFSClient(String principal) {
-
+		// load properties
 		init();
 
-		this.principal = principal;
+		// is principal set?
 		if (principal == null || principal.isEmpty()) {
-			principal = properties.getProperty(DEFUALT_PRINCIPAL, "root");
-			logger.warning("principal not set, using default principal 'root'");
+			// try to fetch principal from properties
+			principal = properties.getProperty(DEFUALT_PRINCIPAL);
+
+			if (principal == null || principal.isEmpty()) {
+				principal = "root";
+				logger.warning("principal not set, using default principal '" + principal + "'");
+			}
 		}
 
+		this.principal = principal;
 	}
 
-
 	/**
-	 * The init method read the imixs-hadoop.properties file and set the default values
+	 * The init method read the imixs-hadoop.properties file and set the default
+	 * values for the principal an base url. The method prints a warning log
+	 * message if these values are not defined.
 	 */
 	void init() {
 		loadProperties();
-		hadoopBaseUrl = properties.getProperty(BASE_URL, "http://localhost:50070/webhdfs/v1");
+		hadoopBaseUrl = properties.getProperty(BASE_URL);
+
+		if (hadoopBaseUrl == null || hadoopBaseUrl.isEmpty()) {
+			logger.warning("base URL not set, using default URL '" + DEFUALT_URL + "'");
+			hadoopBaseUrl = DEFUALT_URL;
+		}
+
 		// if url ends with / cut the last char
 		if (hadoopBaseUrl.endsWith("/")) {
 			hadoopBaseUrl = hadoopBaseUrl.substring(0, hadoopBaseUrl.length() - 1);
@@ -135,7 +151,11 @@ public class HDFSClient {
 			path = "/" + path;
 		}
 
-		String url = hadoopBaseUrl + path + "?user.name=" + principal + "&op=CREATE";
+		if (principal == null || principal.isEmpty()) {
+			logger.warning("principal is not set!");
+		}
+
+		url = hadoopBaseUrl + path + "?user.name=" + principal + "&op=CREATE";
 		URL obj = new URL(url);
 		HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
 
@@ -179,7 +199,9 @@ public class HDFSClient {
 		return resp;
 	}
 
-	
+	public String getUrl() {
+		return url;
+	}
 
 	/**
 	 * Returns the connection result in JSON
@@ -224,8 +246,8 @@ public class HDFSClient {
 	private void loadProperties() {
 		properties = new Properties();
 		try {
-			properties
-					.load(Thread.currentThread().getContextClassLoader().getResource("imixs-hadoop.properties").openStream());
+			properties.load(
+					Thread.currentThread().getContextClassLoader().getResource("imixs-hadoop.properties").openStream());
 		} catch (Exception e) {
 			logger.severe("PropertyService unable to find imixs-hadoop.properties in current classpath");
 			e.printStackTrace();

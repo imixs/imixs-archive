@@ -62,6 +62,7 @@ public class ArchivePlugin extends AbstractPlugin {
 	@Override
 	public ItemCollection run(ItemCollection adocumentContext, ItemCollection documentActivity) throws PluginException {
 
+		HDFSClient hdfsClient =null;
 		// try to get next ProcessEntity
 		ItemCollection itemColNextProcess = null;
 		try {
@@ -72,12 +73,18 @@ public class ArchivePlugin extends AbstractPlugin {
 
 			/* 1. dummy implementation - just do archiving.... */
 
-			HDFSClient hdfsClient = new HDFSClient();
+			hdfsClient = new HDFSClient();
 
 			boolean redirect = false;
 			// create the target path form the creation date...
 
 			Date created = adocumentContext.getItemValueDate("$created");
+			if (created==null) {
+				// workitem does not yet exist (only in virtual style)
+				// in this case we can not create an achive entry!
+				logger.warning("Workitem can not be archived before created - cancel archive process!");
+				return adocumentContext;
+			}
 			LocalDateTime ldt = LocalDateTime.ofInstant(created.toInstant(), ZoneId.systemDefault());
 
 			String path = "";
@@ -104,7 +111,9 @@ public class ArchivePlugin extends AbstractPlugin {
 					"WARNING: Target Task undefinded: " + e.getMessage());
 
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+			if (hdfsClient!=null) {
+				logger.severe("Unable to connect to '" + hdfsClient.getUrl());
+			}
 			e.printStackTrace();
 			throw new PluginException(ArchivePlugin.class.getName(), "ERROR", e.getMessage());
 		}
