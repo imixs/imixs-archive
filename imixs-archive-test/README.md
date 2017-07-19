@@ -8,12 +8,11 @@ Imixs-Archive-Test provides a Docker based test environment for Imixs-Archive. T
 
 
 You need to checkout Imixs-Office-Workflow from Github. 
-This project provides the deployment unit.
 
 
 The docker-compose.yml can be used to start the test environment
 
-    cd ~/git/imixs-archive/imixs-archive-hadoop/src/main/docker
+    cd ~/git/imixs-archive/imixs-archive-test
     docker-compose up
 
     
