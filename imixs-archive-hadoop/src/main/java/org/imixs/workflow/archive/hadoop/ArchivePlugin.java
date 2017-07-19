@@ -28,6 +28,7 @@
 package org.imixs.workflow.archive.hadoop;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -37,6 +38,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 import javax.xml.bind.JAXBException;
 
 import org.imixs.workflow.ItemCollection;
@@ -98,7 +102,12 @@ public class ArchivePlugin extends AbstractPlugin {
 			col.add(adocumentContext);
 			String status = hdfsClient.putData(path, XMLItemCollectionAdapter.putCollection(col));
 
-			int httpResult = Integer.parseInt(status);
+			logger.info("Status="+status);
+
+			// extract the status code from the hdfs put call
+			JsonReader reader = Json.createReader(new StringReader(status));
+			JsonObject payloadObject = reader.readObject();
+			int httpResult = Integer.parseInt(payloadObject.getString("code","500"));
 			if (httpResult < 200 || httpResult >= 300) {
 				throw new PluginException(ArchivePlugin.class.getName(), ARCHIVE_ERROR,
 						"Archive failed - HTTP Result:" + status);
