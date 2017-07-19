@@ -1,10 +1,6 @@
 package org.imixs.workflow.archive.hadoop;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringWriter;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,7 +10,6 @@ import javax.xml.bind.Marshaller;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
-import org.imixs.workflow.services.rest.RestClient;
 import org.imixs.workflow.xml.XMLItemCollection;
 import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 import org.junit.Assert;
@@ -94,18 +89,13 @@ public class HadoopTest {
 		
 		List<ItemCollection> col=new ArrayList<ItemCollection>();
 		col.add(workitem);
-		 
-		
 		
 		HDFSClient hdfsClient=new HDFSClient("root");
-		
 		//String uri="http://my-hadoop-cluster.local:50070/webhdfs/v1/2017/06/test?op=CREATE&overwrite=true";
-		
 		try {
-			boolean redirect=false;
-			String status=hdfsClient.putData("/2017/06/testxxxx2.txt", XMLItemCollectionAdapter.putCollection(col));
+			String status=hdfsClient.putData("test/testxxxx2111abc.txt", XMLItemCollectionAdapter.putCollection(col));
 			
-			
+			System.out.println("Status=" + status);
 			Assert.assertNotNull(status);
 			
 		} catch (Exception e) {
