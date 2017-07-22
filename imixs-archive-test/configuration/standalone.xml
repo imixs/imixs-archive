@@ -330,7 +330,9 @@
             <http-connector name="http-remoting-connector" connector-ref="default" security-realm="ApplicationRealm"/>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:resource-adapters:4.0">
+        	 <!-- 
         	 <resource-adapters>
+        	 
 		        <resource-adapter id="imixs.hadoop">
 		            <archive>
 		               imixs-archive-hadoop-jca-1.0.0-SNAPSHOT.rar
@@ -350,6 +352,7 @@
 		            </connection-definitions>
 		        </resource-adapter>
     		</resource-adapters>
+		        -->
 	    </subsystem>
     
         <subsystem xmlns="urn:jboss:domain:request-controller:1.0"/>

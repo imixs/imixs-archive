@@ -31,13 +31,16 @@ import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
 import javax.annotation.security.RolesAllowed;
 import javax.annotation.security.RunAs;
+import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 
+import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnectionFactory;
+import org.imixs.workflow.engine.DocumentService;
 
+//import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnectionFactory;
 
- 
 /**
  * The Marty Config Service can be used to store and access configuration values
  * stored in a configuration entity (type='CONFIGURATION).
@@ -75,9 +78,18 @@ public class HadoopService {
 	//@Resource(mappedName = "java:/jca/HadoopFactory")
 	//@Resource(mappedName = "/jca/HadoopFactory")
 	//@Resource(mappedName = "jca/HadoopFactory")
-	@Resource(lookup = "java:/jca/HadoopFactory")
-	private org.imixs.workflow.archive.hadoop.jca.DataSource dataSource;
+	//@Resource(lookup = "java:/jca/HadoopFactory")
+	//private org.imixs.workflow.archive.hadoop.jca.DataSource dataSource;
 
+	
+	 
+	@Resource(mappedName = "java:/eis/HelloWorld")
+	 private HelloWorldConnectionFactory connectionFactory;
+	 
+	@EJB
+	private DocumentService documentService;
+
+	 
 	@Resource
 	private SessionContext context;
 

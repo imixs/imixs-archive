@@ -6,8 +6,8 @@
 		<artifactId>imixs-archive</artifactId>
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
-	
 	<artifactId>imixs-archive-hadoop</artifactId>
+	<name>Imixs-Archive Hadoop Cluster</name>
 
 	<dependencies>
 		<dependency>
@@ -35,21 +35,14 @@
 			<scope>provided</scope>
 		</dependency>
 
-
-		<!-- Hadoop Auth 
+		<!-- Hadoop JCA -->
 		<dependency>
-			<groupId>org.apache.hadoop</groupId>
-			<artifactId>hadoop-auth</artifactId>
-			<version>2.8.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>jdk.tools</groupId>
-					<artifactId>jdk.tools</artifactId>
-				</exclusion>
-			</exclusions>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-archive-hadoop-jca</artifactId>
+			<version>${project.version}</version>
 		</dependency>
--->
-	
+
+
 
 		<!-- JUnit Tests -->
 		<dependency>
@@ -59,5 +52,5 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	<name>Imixs-Archive Hadoop Cluster</name>
+	
 </project>
