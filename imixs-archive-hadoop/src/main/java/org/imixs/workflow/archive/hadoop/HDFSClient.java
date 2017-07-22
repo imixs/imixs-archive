@@ -19,7 +19,9 @@ import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 
+import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.xml.DocumentCollection;
 
 /**
@@ -199,6 +201,101 @@ public class HDFSClient {
 		return resp;
 	}
 
+	
+	
+	/**
+	 * This method reads the data from the hadoop file
+	 * system by using the <b>OPEN</b> method from the WebHDFS API.
+	 * 
+	 * To returns the DocumentCollection.
+	 * 
+	 * 2 requests are needed:
+	 * 
+	 * 1.) request the datanode post URL
+	 * 
+	 * curl -i -X PUT -T test.txt
+	 * "http://localhost:50070/webhdfs/v1/test.txt?user.name=root&op=OPEN"
+	 * 
+	 * 2.) transfere the file
+	 * 
+	 * curl -i -X PUT -T /home/rsoika/Downloads/test.txt
+	 * "http://my-hadoop-cluster.local:50075/webhdfs/v1/test.txt?op=OPEN&user.name=root&namenoderpcaddress=...
+	 * 
+	 * 
+	 * 
+	 * @param path
+	 * @param is
+	 * @return
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 * @throws JAXBException
+	 * @throws AuthenticationException
+	 */
+	public DocumentCollection readData(String path)
+			throws MalformedURLException, IOException, JAXBException {
+		String encoding = "UTF-8";
+		String resp = null;
+
+		String redirectUrl = null;
+		DocumentCollection documentCollection=null;
+
+		if (!path.startsWith("/")) {
+			path = "/" + path;
+		}
+
+		if (principal == null || principal.isEmpty()) {
+			logger.warning("principal is not set!");
+		}
+
+		url = hadoopBaseUrl + path + "?user.name=" + principal + "&op=OPEN";
+		URL obj = new URL(url);
+		HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
+
+		conn.setRequestMethod("GET");
+		conn.setInstanceFollowRedirects(false);
+		conn.connect();
+		logger.info("Location:" + conn.getHeaderField("Location"));
+		resp = getJSONResult(conn, true);
+		if (conn.getResponseCode() == 307) {
+			redirectUrl = conn.getHeaderField("Location");
+			conn.disconnect();
+
+			// open connection on new location...
+			conn = (HttpURLConnection) new URL(redirectUrl).openConnection();
+
+			conn.setRequestMethod("GET");
+			conn.setDoOutput(true);
+			conn.setDoInput(true);
+			conn.setUseCaches(false);
+			conn.setRequestProperty("Content-Type", "application/octet-stream");
+
+			
+			
+			
+			
+		      
+		       // extract item collections from request stream.....
+		       JAXBContext context = JAXBContext.newInstance(DocumentCollection.class);
+		       Unmarshaller u = context.createUnmarshaller();
+		       documentCollection= (DocumentCollection) u.unmarshal(conn.getInputStream());
+			
+			
+			
+			String sHTTPResponse = conn.getHeaderField(0);
+
+			resp = getJSONResult(conn, false);
+			conn.disconnect();
+		}
+
+		return documentCollection;
+	}
+
+	
+	
+	
+	
+	
+	
 	public String getUrl() {
 		return url;
 	}

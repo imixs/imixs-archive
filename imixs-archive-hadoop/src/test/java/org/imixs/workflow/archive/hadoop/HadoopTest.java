@@ -10,6 +10,7 @@ import javax.xml.bind.Marshaller;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
+import org.imixs.workflow.xml.DocumentCollection;
 import org.imixs.workflow.xml.XMLItemCollection;
 import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 import org.junit.Assert;
@@ -78,7 +79,7 @@ public class HadoopTest {
                     [&permission=<OCTAL>][&buffersize=<INT>]"
 	 */
 	@Test
-	public void testWebHDFS() {
+	public void postTestWebHDFS() {
 		ItemCollection workitem = new ItemCollection();
 
 		workitem.replaceItemValue(WorkflowKernel.MODELVERSION, "1.0.0");
@@ -106,6 +107,37 @@ public class HadoopTest {
 	}
 	
 	
+	/**
+	 * Testing the read performance.
+	 */
+	@Test
+	public void readTestWebHDFS() {
+		ItemCollection workitem =null;
+
+		long l=System.currentTimeMillis();
+		List<ItemCollection> col=new ArrayList<ItemCollection>();
+		col.add(workitem);
+		
+		HDFSClient hdfsClient=new HDFSClient("root");
+		//String uri="http://my-hadoop-cluster.local:50070/webhdfs/v1/2017/06/test?op=CREATE&overwrite=true";
+		try {
+			DocumentCollection doc = hdfsClient.readData("test/testxxxx2111abc.txt");
+			
+			 List<ItemCollection> rescol = XMLItemCollectionAdapter.getCollection(doc);
+			 workitem=rescol.get(0);
+			 
+			Assert.assertNotNull(workitem);
+			System.out.println("Status=OK" );
+
+			System.out.println("Read in " + (System.currentTimeMillis()-l) + " ms" );
+
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			Assert.fail();
+		}
+		
+	}
 	
 	
 	
