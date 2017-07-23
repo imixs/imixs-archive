@@ -10,8 +10,8 @@ The goal of this project is to provide a open and transparent technology for lon
 
 Imixs-Archive is based on the [Hadoop technology](http://hadoop.apache.org/) and provides  submodules to plugin hadoop into the Imixs-Workflow engine.
 
-* [Imixs-Archive-Hadoop-JCA](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-hadoop-JCA)
-* [Imixs-Archive-Hadoop-Client](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-hadoop-Client)
+* [Imixs-Archive-Hadoop-JCA](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-hadoop-jca)
+* [Imixs-Archive-Hadoop-Client](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-hadoop-client)
 
 
 ## Docker
