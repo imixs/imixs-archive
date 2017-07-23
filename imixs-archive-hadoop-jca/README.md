@@ -63,3 +63,8 @@ https://github.com/dlee0113/java_ee_patterns_and_best_practices/tree/master/Gene
 ### xadisk Example on GitHub:
 
 https://github.com/maroph/xadisk
+
+
+### Discussion
+
+https://developer.jboss.org/message/974110
