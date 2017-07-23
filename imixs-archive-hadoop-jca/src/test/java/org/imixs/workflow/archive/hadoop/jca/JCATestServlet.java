@@ -18,6 +18,9 @@ import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnectionFactory;
  * This is a simple test Servlet Class to verify the connection via the JCA
  * HelloWorldConnectionFactory
  * 
+ * NOTE: This WebServlet must be deployed into a web module - this is only an
+ * example code!
+ * 
  * @author rsoika
  *
  */

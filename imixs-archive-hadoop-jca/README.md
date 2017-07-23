@@ -41,6 +41,15 @@ Deploment Strategy: https://docs.jboss.org/author/display/WFLY8/Developer+Guide#
 
 
 
+## Testing
+
+To verify the JCA adapter, the WebServlet '*org.imixs.workflow.archive.hadoop.jca.JCATestServlet*' located under /src/test/java/
+can be used as an example code for test cases.
+
+**NOTE:** This WebServlet must be deployed into a web module - this is only an
+ * example code!
+
+
 # Tutorials
 
 ### Wildfly 10 Tutorial:
