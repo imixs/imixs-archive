@@ -2,6 +2,6 @@
   <connection-definitions>
     <connection-definition
      class-name="org.imixs.workflow.archive.hadoop.jca.HelloWorldManagedConnectionFactory"
-     jndi-name="java:/eis/HelloWorld"/>
+     jndi-name="java:/jca/org.imixs.workflow.hadoop"/>
   </connection-definitions>
 </ironjacamar>

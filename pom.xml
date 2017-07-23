@@ -8,7 +8,7 @@
 	<modules>
 		<module>imixs-archive-ocr</module>
 		<module>imixs-archive-hadoop-jca</module>
-		<module>imixs-archive-hadoop</module>
+		<module>imixs-archive-hadoop-client</module>
 		<module>imixs-archive-test</module>
 		
 	</modules>
@@ -80,12 +80,19 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<org.imixs.workflow.version>4.1.4-SNAPSHOT</org.imixs.workflow.version>
-
-       
 	</properties>
-	<!-- Imixs Repo -->
+	
+	
+	
 	<repositories>
-		<repository>
+	   	<!-- Sonatype Snapshot repository -->
+      	<repository>
+            <id>sonatype-snaptshots</id>
+            <name>Sonatype Snapshot repository</name>
+            <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+      	</repository>   
+      	<!-- Imixs Repo --> 
+    	<repository>
 			<id>imixs-mvn-repo</id>
 			<url>https://raw.githubusercontent.com/imixs/imixs-mvn-repo/master/</url>
 			<snapshots>
