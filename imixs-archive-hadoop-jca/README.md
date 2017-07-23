@@ -6,6 +6,8 @@ The JCA module is based on the scaffolder shown in this tutorial:
 
 http://www.mastertheboss.com/jboss-frameworks/ironjacamar/create-your-first-jca-connector-tutorial
 
+**NOTE: THIS WORK IS JUST IN PROGESS AND NOT PRODUCTION READY!**
+
 
 # Build
 
