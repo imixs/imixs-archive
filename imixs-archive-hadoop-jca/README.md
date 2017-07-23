@@ -1,14 +1,15 @@
 # Imixs-Archive-Hadoop JCA 
 
-Imixs-Archive-Hadoop-JCA provides a JCA connector.
-Work is based on Adam Biens GenericJCA example:
+The goal of the Imixs-Archive-Hadoop-JCA project is a JCA connector to simplify the communication with a Hadoop Cluster from a EJB. One reason for deciding to implement a JCA module is the synchronization with the transaction context when running in a stateless session EJB. In case the EJB or other EJB running in the same transaction throwing a runtime exception, the hadoop data written during the pre-commit-phase must be restored. 
 
-https://github.com/dlee0113/java_ee_patterns_and_best_practices/tree/master/GenericJCA
+The JCA module is based on the scaffolder shown in this tutorial:  
+
+http://www.mastertheboss.com/jboss-frameworks/ironjacamar/create-your-first-jca-connector-tutorial
 
 
 # Build
 
-The Maven project defines the profile 'wildfly' which includes the 'maven-rar-plugin' to generate the rar file. 
+Imixs-Archive-Hadoop-JCA is provided as a Maven project. The project defines the profile 'wildfly' which includes the 'maven-rar-plugin' to generate the rar file. 
 
 To build the rar file run the maven command:
 
@@ -22,18 +23,32 @@ To build the rar file with the autodeployment option sfor wildfly run the maven 
 
 # Installation
 
-See: https://docs.jboss.org/author/display/WFLY10/Resource+adapters
+To install the .rar file just move it into the folder /standalone/deploymentens/ 
+or use the Wildfly Web console for deployment. 
+
+After the installation was successfull, the module should be visible in the Wildfy JDNI Viewer:
+
+<br /><br /><img src="deployment-wildfly-01.png" />
+
+
+
+See also : https://docs.jboss.org/author/display/WFLY10/Resource+adapters
 
 
 Deploment Strategy: https://docs.jboss.org/author/display/WFLY8/Developer+Guide#DeveloperGuide-DeploymentModuleNames
 
 
 
-# Tutorial for Wildfly 10
+# Tutorials
+
+### Wildfly 10 Tutorial:
 
 see: http://www.mastertheboss.com/jboss-frameworks/ironjacamar/create-your-first-jca-connector-tutorial
 
+### Adam Bien GenericJCA example:
 
-## Example 
+https://github.com/dlee0113/java_ee_patterns_and_best_practices/tree/master/GenericJCA
+
+### xadisk Example on GitHub:
 
 https://github.com/maroph/xadisk
