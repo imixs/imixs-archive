@@ -35,23 +35,15 @@ import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.resource.ResourceException;
 
+import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnection;
 import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnectionFactory;
 import org.imixs.workflow.engine.DocumentService;
 
-//import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnectionFactory;
 
 /**
- * The Marty Config Service can be used to store and access configuration values
- * stored in a configuration entity (type='CONFIGURATION).
- * 
- * The ConfigService EJB provides access to named Config Entities stored in the
- * database. A configuration Entity is identified by its name (property
- * txtName). So different configuration Entities can be managed in one
- * application.
- * 
- * The ConfigService ejb is implemented as a sigelton and uses an internal cache
- * to cache config entities.
+ * The Service can be used to store data into hadoop
  * 
  * 
  * @author rsoika
@@ -84,7 +76,7 @@ public class HadoopService {
 	
 	 
 	@Resource(mappedName = "java:/eis/HelloWorld")
-	 private HelloWorldConnectionFactory connectionFactory;
+	private HelloWorldConnectionFactory connectionFactory;
 	 
 	@EJB
 	private DocumentService documentService;
@@ -95,15 +87,26 @@ public class HadoopService {
 
 
 	/**
-	 * creates a new configuration object for a specified name
+	 * just for testing...
 	 * 
 	 * @return
 	 */
-	public boolean createConfiguration(String content) throws Exception {
-//		Connection connection = dataSource.getConnection();
-//		connection.write(content);
-//		connection.close();
-		return true;
+	public String createConfiguration(String content) throws Exception {
+		String result = null;
+		 HelloWorldConnection connection = null;
+         try {
+              connection = connectionFactory.getConnection();               
+              result = connection.helloWorld();
+             
+         } catch (ResourceException e) {
+             // TODO Auto-generated catch block
+             e.printStackTrace();
+         }
+
+
+      return result;
+      
+      
 	}
 
 	
