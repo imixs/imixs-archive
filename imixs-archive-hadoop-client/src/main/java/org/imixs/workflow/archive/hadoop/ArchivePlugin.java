@@ -37,6 +37,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
+import javax.annotation.Resource;
+import javax.ejb.EJB;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
@@ -47,6 +49,8 @@ import javax.xml.bind.JAXBException;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowContext;
+import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnectionFactory;
+import org.imixs.workflow.engine.ReportService;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
@@ -66,24 +70,32 @@ public class ArchivePlugin extends AbstractPlugin {
 	static final String ARCHIVE_ERROR = "ARCHIVE_ERROR";
 
 	private static Logger logger = Logger.getLogger(ArchivePlugin.class.getName());
-	HadoopService hadoopService = null;
+	//HadoopService hadoopService = null;
+	
+	@EJB
+	ReportService reportService;
+	
+	@Resource(mappedName = "java:/jca/org.imixs.workflow.hadoop")
+	private HelloWorldConnectionFactory connectionFactory;
+
 	
 	@Override
 	public void init(WorkflowContext actx) throws PluginException {
 
+		
+		
 		super.init(actx);
 
-		// lookup profile service EJB
-		String jndiName = "ejb/HadoopService";
-		InitialContext ictx;
-		try {
-			ictx = new InitialContext();
-			Context ctx = (Context) ictx.lookup("java:comp/env");
-			hadoopService = (HadoopService) ctx.lookup(jndiName);
-		} catch (NamingException e) {
-
-			logger.warning("hat nicht geklappt");
+		
+		if (reportService!=null) {
+			logger.info("alles suuper cool");
 		}
+		
+		if(connectionFactory!=null) {
+			logger.info("alles suuper edel cool");
+		}
+		
+		
 
 	}
 
@@ -92,14 +104,8 @@ public class ArchivePlugin extends AbstractPlugin {
 	@Override
 	public ItemCollection run(ItemCollection adocumentContext, ItemCollection documentActivity) throws PluginException {
 
-		if (hadoopService!=null) {
-			try {
-				hadoopService.createConfiguration("asdfds");
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+		if (1==1)
+			return adocumentContext;
 		
 		HDFSClient hdfsClient = null;
 		// try to get next ProcessEntity

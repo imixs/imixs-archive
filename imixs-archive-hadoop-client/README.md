@@ -1,6 +1,13 @@
-# Imixs-Archive-Hadoop
+# Imixs-Archive-Hadoop-Client
 
-The Imixs-Archive-Hadoop provides a API to store workitems into a Hadoop Cluster. Imixs-Archive uses the [WebHDFS Rest API](https://hadoop.apache.org/docs/r2.8.0/hadoop-project-dist/hadoop-hdfs/WebHDFS.html) to connect to a hadoop cluster.
+The Imixs-Archive-Hadoop-Client provides a API to store workitems into a Hadoop Cluster. Imixs-Archive uses the [WebHDFS Rest API](https://hadoop.apache.org/docs/r2.8.0/hadoop-project-dist/hadoop-hdfs/WebHDFS.html) to connect to a hadoop cluster.
+
+
+## CDI Support
+
+The HadoopService and the Archive Plugin support CDI. A bean.xml is located in the META-INF folder. Make sure that the client library is visible to your EJB modules. See the section 'Using shared libraries' in the [Imixs Deployment Guide](http://www.imixs.org/doc/deployment/deployment_guide.html). 
+
+
 
 ## HDFSWebClient
 

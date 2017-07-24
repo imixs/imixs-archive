@@ -59,6 +59,7 @@ see: http://www.mastertheboss.com/jboss-frameworks/ironjacamar/create-your-first
 ### Adam Bien GenericJCA example:
 
 https://github.com/dlee0113/java_ee_patterns_and_best_practices/tree/master/GenericJCA
+http://www.adam-bien.com/roller/abien/entry/a_simple_transactional_file_jca
 
 ### xadisk Example on GitHub:
 

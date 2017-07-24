@@ -35,10 +35,7 @@ import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
-import javax.resource.ResourceException;
 
-import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnection;
-import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnectionFactory;
 import org.imixs.workflow.engine.DocumentService;
 
 
@@ -75,8 +72,8 @@ public class HadoopService {
 
 	
 	 
-	@Resource(mappedName = "java:/eis/HelloWorld")
-	private HelloWorldConnectionFactory connectionFactory;
+	//@Resource(mappedName = "java:/eis/HelloWorld")
+	//private HelloWorldConnectionFactory connectionFactory;
 	 
 	@EJB
 	private DocumentService documentService;
@@ -93,15 +90,15 @@ public class HadoopService {
 	 */
 	public String createConfiguration(String content) throws Exception {
 		String result = null;
-		 HelloWorldConnection connection = null;
-         try {
-              connection = connectionFactory.getConnection();               
-              result = connection.helloWorld();
-             
-         } catch (ResourceException e) {
-             // TODO Auto-generated catch block
-             e.printStackTrace();
-         }
+		// HelloWorldConnection connection = null;
+//         try {
+////              connection = connectionFactory.getConnection();               
+////              result = connection.helloWorld();
+//             
+//         } catch (ResourceException e) {
+//             // TODO Auto-generated catch block
+//             e.printStackTrace();
+//         }
 
 
       return result;
