@@ -68,4 +68,4 @@ https://github.com/maroph/xadisk
 
 ### Discussion
 
-https://developer.jboss.org/message/974110
+https://developer.jboss.org/thread/275564
