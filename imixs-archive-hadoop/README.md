@@ -1,6 +1,8 @@
-# Imixs-Archive-Hadoop-Client
+# Imixs-Archive-Hadoop
 
-The Imixs-Archive-Hadoop-Client provides a API to store workitems into a Hadoop Cluster. Imixs-Archive uses the [WebHDFS Rest API](https://hadoop.apache.org/docs/r2.8.0/hadoop-project-dist/hadoop-hdfs/WebHDFS.html) to connect to a hadoop cluster.
+The Imixs-Archive-Hadoop project provides a API to store workitems into a Hadoop Cluster. Imixs-Archive-Hadoop uses the [Imixs-JCA-Hadoop Connector](https://github.com/imixs/imixs-jca/tree/master/imixs-jca-hadoop)
+
+Imixs-Archive-Hadoop is communicating with a hadoop cluster via the [WebHDFS Rest API](https://hadoop.apache.org/docs/r2.8.0/hadoop-project-dist/hadoop-hdfs/WebHDFS.html). 
 
 
 ## CDI Support

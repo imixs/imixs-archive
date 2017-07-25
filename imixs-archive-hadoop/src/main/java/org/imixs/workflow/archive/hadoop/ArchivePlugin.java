@@ -42,18 +42,15 @@ import javax.ejb.EJB;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import javax.xml.bind.JAXBException;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowContext;
-import org.imixs.workflow.archive.hadoop.jca.HelloWorldConnectionFactory;
 import org.imixs.workflow.engine.ReportService;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
+import org.imixs.workflow.hadoop.jca.BucketStore;
 import org.imixs.workflow.xml.DocumentCollection;
 import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 
@@ -70,13 +67,12 @@ public class ArchivePlugin extends AbstractPlugin {
 	static final String ARCHIVE_ERROR = "ARCHIVE_ERROR";
 
 	private static Logger logger = Logger.getLogger(ArchivePlugin.class.getName());
-	//HadoopService hadoopService = null;
-	
+	 
 	@EJB
 	ReportService reportService;
 	
 	@Resource(mappedName = "java:/jca/org.imixs.workflow.hadoop")
-	private HelloWorldConnectionFactory connectionFactory;
+	BucketStore bucketStore;
 
 	
 	@Override
@@ -91,7 +87,7 @@ public class ArchivePlugin extends AbstractPlugin {
 			logger.info("alles suuper cool");
 		}
 		
-		if(connectionFactory!=null) {
+		if(bucketStore!=null) {
 			logger.info("alles suuper edel cool");
 		}
 		

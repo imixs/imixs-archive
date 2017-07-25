@@ -330,15 +330,12 @@
             <http-connector name="http-remoting-connector" connector-ref="default" security-realm="ApplicationRealm"/>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:resource-adapters:4.0">
-        
 	         <resource-adapters>
-	             <resource-adapter id="imixs-archive-hadoop-genericjca-1.0.0-SNAPSHOT.rar">
-	                    <archive>
-	                        imixs-archive-hadoop-genericjca-1.0.0-SNAPSHOT.rar
-	                    </archive>
+	             <resource-adapter id="imixs-jca-hadoop">
+	                    <archive>imixs-jca-hadoop.rar</archive>
 	                    <transaction-support>LocalTransaction</transaction-support>
 	                    <connection-definitions>
-	                        <connection-definition class-name="org.connectorz.files.store.GenericManagedConnectionFactory" jndi-name="java:/jca/org.imixs.workflow.hadoop.generic" enabled="true" use-java-context="true" pool-name="Bucket" use-ccm="true">
+	                        <connection-definition class-name="org.imixs.workflow.hadoop.jca.store.GenericManagedConnectionFactory" jndi-name="java:/jca/org.imixs.workflow.hadoop" enabled="true" use-java-context="true" pool-name="hadoop" use-ccm="true">
 	                            <config-property name="rootDirectory">
 	                                ./store/
 	                            </config-property>
@@ -356,32 +353,7 @@
 	                    </connection-definitions>
 	                </resource-adapter>
 	            </resource-adapters>
-        
-        	 <!-- 
-        	 <resource-adapters>
-        	 
-		        <resource-adapter id="imixs.hadoop">
-		            <archive>
-		               imixs-archive-hadoop-jca-1.0.0-SNAPSHOT.rar
-		            </archive>
-		            <transaction-support>LocalTransaction</transaction-support>
-		            <connection-definitions>
-		                <connection-definition class-name="org.imixs.workflow.archive.hadoop.jca.spi.HadoopManagedConnection"
-		                                       jndi-name="java:jca/HadoopFactory" enabled="true" use-java-context="true"
-		                                       pool-name="HadoopFactory1">
-		                   
-		                </connection-definition>
-		                <connection-definition class-name="org.imixs.workflow.archive.hadoop.jca.spi.HadoopManagedConnection"
-		                                       jndi-name="java:/jca/HadoopFactory2" enabled="true" use-java-context="true"
-		                                       pool-name="HadoopFactory2">
-		                   
-		                </connection-definition>
-		            </connection-definitions>
-		        </resource-adapter>
-    		</resource-adapters>
-		        -->
 	    </subsystem>
-    
         <subsystem xmlns="urn:jboss:domain:request-controller:1.0"/>
         <subsystem xmlns="urn:jboss:domain:sar:1.0"/>
         <subsystem xmlns="urn:jboss:domain:security-manager:1.0">

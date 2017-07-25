@@ -6,8 +6,8 @@
 		<artifactId>imixs-archive</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
-	<artifactId>imixs-archive-hadoop-client</artifactId>
-	<name>Imixs-Archive Hadoop Client Module</name>
+	<artifactId>imixs-archive-hadoop</artifactId>
+	<name>Imixs-Archive Hadoop Module</name>
 
 	<dependencies>
 		<dependency>
@@ -38,8 +38,8 @@
 		<!-- Hadoop JCA -->
 		<dependency>
 			<groupId>org.imixs.workflow</groupId>
-			<artifactId>imixs-archive-hadoop-jca</artifactId>
-			<version>${project.version}</version>
+			<artifactId>imixs-jca-hadoop</artifactId>
+			<version>${imixs.jca.version}</version>
 		</dependency>
 
 
