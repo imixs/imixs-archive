@@ -2,12 +2,12 @@ package org.imixs.workflow.archive.hadoop;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -16,13 +16,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
 
-import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.xml.DocumentCollection;
 
 /**
  * This client class can be used to access the Hadoop WebHDFS Rest API. The
@@ -70,9 +65,8 @@ public class HDFSClient {
 	}
 
 	/**
-	 * Constructor for pseudo authentication. The method expects only a
-	 * pricipal, all other properties are read from the imixs-hadoop.properties
-	 * file
+	 * Constructor for pseudo authentication. The method expects only a pricipal,
+	 * all other properties are read from the imixs-hadoop.properties file
 	 * 
 	 * @param httpfsUrl
 	 * @param principal
@@ -97,8 +91,8 @@ public class HDFSClient {
 
 	/**
 	 * The init method read the imixs-hadoop.properties file and set the default
-	 * values for the principal an base url. The method prints a warning log
-	 * message if these values are not defined.
+	 * values for the principal an base url. The method prints a warning log message
+	 * if these values are not defined.
 	 */
 	void init() {
 		loadProperties();
@@ -117,8 +111,8 @@ public class HDFSClient {
 	}
 
 	/**
-	 * This method transfers the data of an input stream to the hadoop file
-	 * system by using the <b>CREATE</b> method from the WebHDFS API.
+	 * This method transfers the data of an input stream to the hadoop file system
+	 * by using the <b>CREATE</b> method from the WebHDFS API.
 	 * 
 	 * To create a new file, 2 requests are needed:
 	 * 
@@ -135,15 +129,15 @@ public class HDFSClient {
 	 * 
 	 * 
 	 * @param path
-	 * @param is
+	 * @param content
+	 *            - file data
 	 * @return
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 * @throws JAXBException
 	 * @throws AuthenticationException
 	 */
-	public String putData(String path, DocumentCollection aEntityCol)
-			throws MalformedURLException, IOException, JAXBException {
+	public String putData(String path, byte[] content) throws MalformedURLException, IOException, JAXBException {
 		String encoding = "UTF-8";
 		String resp = null;
 
@@ -179,20 +173,14 @@ public class HDFSClient {
 			conn.setUseCaches(false);
 			conn.setRequestProperty("Content-Type", "application/octet-stream");
 
-			StringWriter writer = new StringWriter();
-			JAXBContext context = JAXBContext.newInstance(DocumentCollection.class);
-			Marshaller m = context.createMarshaller();
-			m.marshal(aEntityCol, writer);
-
 			// compute length
-			conn.setRequestProperty("Content-Length", "" + Integer.valueOf(writer.toString().getBytes().length));
+			conn.setRequestProperty("Content-Length", "" + Integer.valueOf(content.length));
 
 			PrintWriter printWriter = new PrintWriter(
 					new BufferedWriter(new OutputStreamWriter(conn.getOutputStream(), encoding)));
 
-			printWriter.write(writer.toString());
+			printWriter.write(content.toString());
 			printWriter.close();
-			String sHTTPResponse = conn.getHeaderField(0);
 
 			resp = getJSONResult(conn, false);
 			conn.disconnect();
@@ -201,11 +189,9 @@ public class HDFSClient {
 		return resp;
 	}
 
-	
-	
 	/**
-	 * This method reads the data from the hadoop file
-	 * system by using the <b>OPEN</b> method from the WebHDFS API.
+	 * This method reads the data from the hadoop file system by using the
+	 * <b>OPEN</b> method from the WebHDFS API.
 	 * 
 	 * To returns the DocumentCollection.
 	 * 
@@ -231,14 +217,11 @@ public class HDFSClient {
 	 * @throws JAXBException
 	 * @throws AuthenticationException
 	 */
-	public DocumentCollection readData(String path)
-			throws MalformedURLException, IOException, JAXBException {
-		String encoding = "UTF-8";
-		String resp = null;
-
+	public byte[] readData(String path) throws MalformedURLException, IOException, JAXBException {
+		
+		ByteArrayOutputStream baos = null;
 		String redirectUrl = null;
-		DocumentCollection documentCollection=null;
-
+	
 		if (!path.startsWith("/")) {
 			path = "/" + path;
 		}
@@ -255,7 +238,7 @@ public class HDFSClient {
 		conn.setInstanceFollowRedirects(false);
 		conn.connect();
 		logger.info("Location:" + conn.getHeaderField("Location"));
-		resp = getJSONResult(conn, true);
+		// String resp = getJSONResult(conn, true);
 		if (conn.getResponseCode() == 307) {
 			redirectUrl = conn.getHeaderField("Location");
 			conn.disconnect();
@@ -269,33 +252,36 @@ public class HDFSClient {
 			conn.setUseCaches(false);
 			conn.setRequestProperty("Content-Type", "application/octet-stream");
 
-			
-			
-			
-			
-		      
-		       // extract item collections from request stream.....
-		       JAXBContext context = JAXBContext.newInstance(DocumentCollection.class);
-		       Unmarshaller u = context.createUnmarshaller();
-		       documentCollection= (DocumentCollection) u.unmarshal(conn.getInputStream());
-			
-			
-			
-			String sHTTPResponse = conn.getHeaderField(0);
+			baos = new ByteArrayOutputStream();
+			InputStream is = null;
+			try {
+				is = conn.getInputStream();
+				byte[] byteChunk = new byte[4096]; // Or whatever size you want to read in at a time.
+				int n;
 
-			resp = getJSONResult(conn, false);
+				while ((n = is.read(byteChunk)) > 0) {
+					baos.write(byteChunk, 0, n);
+				}
+			} catch (IOException e) {
+				System.err.printf("Failed while reading bytes from %s: %s", e.getMessage());
+				e.printStackTrace();
+				// Perform any other exception handling that's appropriate.
+			} finally {
+				if (is != null) {
+					is.close();
+				}
+			}
+
 			conn.disconnect();
 		}
+		if (baos != null) {
+			return baos.toByteArray();
+		} else {
+			return null;
+		}
 
-		return documentCollection;
 	}
 
-	
-	
-	
-	
-	
-	
 	public String getUrl() {
 		return url;
 	}
@@ -330,7 +316,7 @@ public class HDFSClient {
 		//
 		// Convert a Map into JSON string.
 		//
-		return HadoopUtil.getJSON(result);
+		return getJSON(result);
 
 	}
 
@@ -351,6 +337,34 @@ public class HDFSClient {
 			properties = new Properties();
 		}
 
+	}
+	
+	
+	public static String getJSON(Map<String, Object> map) {
+
+		StringBuffer sb = new StringBuffer();
+
+		sb.append("{");
+		int size = map.size();
+		int count = 0;
+		for (Map.Entry<String, Object> entry : map.entrySet()) {
+			String key = entry.getKey();
+			sb.append("\"" + key + "\":\"");
+
+			Object value = entry.getValue();
+			if (value != null) {
+				sb.append(entry.getValue().toString());
+			}
+			sb.append("\"");
+
+			count++;
+			if (count < size) {
+				sb.append(",");
+			}
+
+		}
+		sb.append("}");
+		return sb.toString();
 	}
 
 }

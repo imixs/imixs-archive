@@ -27,35 +27,29 @@
 
 package org.imixs.workflow.archive.hadoop;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.net.MalformedURLException;
+import java.io.StringWriter;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.logging.Logger;
 
-import javax.annotation.Resource;
 import javax.ejb.EJB;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
+import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowContext;
-import org.imixs.workflow.engine.ReportService;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
-import org.imixs.workflow.hadoop.jca.HadoopConnector;
-import org.imixs.workflow.xml.DocumentCollection;
+import org.imixs.workflow.xml.XMLItemCollection;
 import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 
 /**
- * This plugin archives the current workitem into a hadoop cluster.
+ * This plugin archives the current workitem into a hadoop cluster. The plugin
+ * delegates the hadoop operation to the ArchiveService which provides a
+ * transactional access service to hadoop.
  * 
  * 
  * @author rsoika
@@ -64,134 +58,71 @@ import org.imixs.workflow.xml.XMLItemCollectionAdapter;
  */
 public class ArchivePlugin extends AbstractPlugin {
 	static final String INVALID_TARGET_TASK = "INVALID_TARGET_TASK";
-	static final String ARCHIVE_ERROR = "ARCHIVE_ERROR";
 
 	private static Logger logger = Logger.getLogger(ArchivePlugin.class.getName());
-	
-	
+
 	@EJB
 	ArchiveService archiveService;
-	
-	@Override
-	public void init(WorkflowContext actx) throws PluginException {
 
-		
-		
-		super.init(actx);
-
-		
-		if(archiveService!=null) {
-			logger.info("alles suuper edel cool");
-		}
-		
-		
-
-	}
-
-	
-	
 	@Override
 	public ItemCollection run(ItemCollection adocumentContext, ItemCollection documentActivity) throws PluginException {
 
-		if (1==1) {
-			
-			archiveService.doArchive("somefile.txt","some content".getBytes());
-			
+		// compute the target path
+
+		Date created = adocumentContext.getItemValueDate("$created");
+		if (created == null) {
+			// workitem does not yet exist (only in virtual style)
+			// in this case we can not create an achive entry!
+			logger.warning("Workitem can not be archived before created - cancel archive process!");
 			return adocumentContext;
 		}
-		HDFSClient hdfsClient = null;
-		// try to get next ProcessEntity
-		ItemCollection itemColNextProcess = null;
+		LocalDateTime ldt = LocalDateTime.ofInstant(created.toInstant(), ZoneId.systemDefault());
+
+		String path = "";
+		path += ldt.getYear() + "/" + ldt.getMonthValue() + "/";
+
+		path += adocumentContext.getUniqueID() + ".xml";
+
+		StringWriter writer = new StringWriter();
+		JAXBContext context;
 		try {
-			// now get the next ProcessEntity from ctx
-			itemColNextProcess = this.getNextTask(adocumentContext, documentActivity);
-
-			// TODO evaluate archive status of nextTask
-
-			/* 1. dummy implementation - just do archiving.... */
-
-			hdfsClient = new HDFSClient();
-
-			boolean redirect = false;
-			// create the target path form the creation date...
-
-			Date created = adocumentContext.getItemValueDate("$created");
-			if (created == null) {
-				// workitem does not yet exist (only in virtual style)
-				// in this case we can not create an achive entry!
-				logger.warning("Workitem can not be archived before created - cancel archive process!");
-				return adocumentContext;
-			}
-			LocalDateTime ldt = LocalDateTime.ofInstant(created.toInstant(), ZoneId.systemDefault());
-
-			String path = "";
-			path += ldt.getYear() + "/" + ldt.getMonthValue() + "/";
-
-			path += adocumentContext.getUniqueID() + ".xml";
-
-			List<ItemCollection> col = new ArrayList<ItemCollection>();
-			// we simply put only the current workitem and no childs into
-			// the item col
-			col.add(adocumentContext);
-			String status = hdfsClient.putData(path, XMLItemCollectionAdapter.putCollection(col));
-
-			logger.info("Status=" + status);
-
-			// extract the status code from the hdfs put call
-			JsonReader reader = Json.createReader(new StringReader(status));
-			JsonObject payloadObject = reader.readObject();
-			int httpResult = Integer.parseInt(payloadObject.getString("code", "500"));
-			if (httpResult < 200 || httpResult >= 300) {
-				throw new PluginException(ArchivePlugin.class.getName(), ARCHIVE_ERROR,
-						"Archive failed - HTTP Result:" + status);
-			} else {
-				logger.info("Archive successful -HTTP Result: " + status);
-			}
-
 			
-			testPerformance(hdfsClient,"6ba6f6af-d129-4346-8f7a-5d48f05ef4cf");
-			testPerformance(hdfsClient,"871c89ef-25dd-4170-9ce7-8d682437cf59");
-			testPerformance(hdfsClient,"4ba7e95e-9d5f-4ad7-bf31-c46d4e3141cd");
+			
+			
+			// convert the ItemCollection into a XMLItemcollection...
+			XMLItemCollection xmlItemCollection= XMLItemCollectionAdapter.putItemCollection(adocumentContext);
 
-		} catch (ModelException e) {
-			throw new PluginException(ArchivePlugin.class.getName(), INVALID_TARGET_TASK,
-					"WARNING: Target Task undefinded: " + e.getMessage());
+			// marshal the Object into an XML Stream....
+		
+		 context = JAXBContext.newInstance(XMLItemCollection.class);
+			Marshaller m=context.createMarshaller();
+			m.marshal(xmlItemCollection,writer);
+			System.out.println(writer.toString());
+			
+			
+		
 
-		} catch (Exception e) {
-			if (hdfsClient != null) {
-				logger.severe("Unable to connect to '" + hdfsClient.getUrl());
-			}
+			byte[] content = writer.toString().getBytes();
+
+		} catch (JAXBException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
-			throw new PluginException(ArchivePlugin.class.getName(), "ERROR", e.getMessage());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+
+		archiveService.doArchive(path, adocumentContext);
 
 		return adocumentContext;
 	}
 
-	
-	
-	
-	
-	
-	
 	@Override
 	public void close(boolean rollbackTransaction) throws PluginException {
-		// TODO Auto-generated method stub
+		if (rollbackTransaction) {
+			logger.warning("DO ROLLBACK! - Missing implementation");
+		}
 		super.close(rollbackTransaction);
-	}
-
-
-
-	private void testPerformance(HDFSClient hdfsClient, String id) throws MalformedURLException, IOException, JAXBException {
-		// some performance tests:
-		long l = System.currentTimeMillis();
-		DocumentCollection doc = null;
-		doc = hdfsClient.readData("2017/7/" + id + ".xml");
-		logger.info("hadoop read doc '" + id + "' in " + (System.currentTimeMillis() - l) + "ms");
-		l = System.currentTimeMillis();
-		ItemCollection itemcol = this.getWorkflowService().getWorkItem(id);
-		logger.info("sql read doc '" + id + "' in " + (System.currentTimeMillis() - l) + "ms");
-
 	}
 
 }

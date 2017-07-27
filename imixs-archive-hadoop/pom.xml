@@ -35,15 +35,6 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Hadoop JCA -->
-		<dependency>
-			<groupId>org.imixs.workflow</groupId>
-			<artifactId>imixs-jca-hadoop</artifactId>
-			<version>${imixs.jca.version}</version>
-		</dependency>
-
-
-
 		<!-- JUnit Tests -->
 		<dependency>
 			<groupId>junit</groupId>

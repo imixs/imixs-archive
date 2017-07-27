@@ -330,29 +330,6 @@
             <http-connector name="http-remoting-connector" connector-ref="default" security-realm="ApplicationRealm"/>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:resource-adapters:4.0">
-	         <resource-adapters>
-	             <resource-adapter id="imixs-jca-hadoop">
-	                    <archive>imixs-jca-hadoop.rar</archive>
-	                    <transaction-support>LocalTransaction</transaction-support>
-	                    <connection-definitions>
-	                        <connection-definition class-name="org.imixs.workflow.hadoop.jca.store.HadoopManagedConnectionFactory" jndi-name="java:/jca/org.imixs.workflow.hadoop" enabled="true" use-java-context="true" pool-name="hadoop" use-ccm="true">
-	                            <config-property name="rootDirectory">
-	                                ./store/
-	                            </config-property>
-	                            <pool>
-	                                <min-pool-size>0</min-pool-size>
-	                                <max-pool-size>10</max-pool-size>
-	                                <prefill>false</prefill>
-	                                <use-strict-min>false</use-strict-min>
-	                                <flush-strategy>FailingConnectionOnly</flush-strategy>
-	                            </pool>
-	                            <security>
-	                                <application/>
-	                            </security>
-	                        </connection-definition>
-	                    </connection-definitions>
-	                </resource-adapter>
-	            </resource-adapters>
 	    </subsystem>
         <subsystem xmlns="urn:jboss:domain:request-controller:1.0"/>
         <subsystem xmlns="urn:jboss:domain:sar:1.0"/>

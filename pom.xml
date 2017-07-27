@@ -79,7 +79,6 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<org.imixs.workflow.version>4.1.4-SNAPSHOT</org.imixs.workflow.version>
-		<imixs.jca.version>0.0.1-SNAPSHOT</imixs.jca.version>
 	</properties>
 	
 	
@@ -235,14 +234,7 @@
 				<version>${org.imixs.marty.version}</version>
 				<scope>provided</scope>
 			</dependency>
-			
-			<!-- Hadoop JCA -->
-			<dependency>
-				<groupId>org.imixs.workflow</groupId>
-				<artifactId>imixs-jca-hadoop</artifactId>
-				<version>${imixs.jca.version}</version>
-				<scope>provided</scope>
-			</dependency>
+		
 				
 		</dependencies>
 	</dependencyManagement>
