@@ -39,6 +39,7 @@
       <imixs:value><![CDATA[org.imixs.marty.plugins.MailPlugin]]></imixs:value>
       <imixs:value><![CDATA[org.imixs.workflow.engine.plugins.IntervalPlugin]]></imixs:value>
       <imixs:value><![CDATA[org.imixs.workflow.archive.hadoop.ArchivePlugin]]></imixs:value>
+      <imixs:value><![CDATA[org.imixs.workflow.archive.hadoop.CircuitBreakerPlugin]]></imixs:value>
     </imixs:item>
   </bpmn2:extensionElements>
   <bpmn2:process id="rechnungseingang" name="Rechnungseingang" isExecutable="false">

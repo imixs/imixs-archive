@@ -32,8 +32,8 @@
 
     <system-properties>
         <property name="eclipselink.archive.factory" value="org.jipijapa.eclipselink.JBossArchiveFactoryImpl"/>
+       <!--  <property name="com.arjuna.ats.arjuna.allowMultipleLastResources" value="true"/>   -->
     </system-properties>
-
 
     <management>
         <security-realms>
@@ -335,7 +335,7 @@
 	                    <archive>imixs-jca-hadoop.rar</archive>
 	                    <transaction-support>LocalTransaction</transaction-support>
 	                    <connection-definitions>
-	                        <connection-definition class-name="org.imixs.workflow.hadoop.jca.store.GenericManagedConnectionFactory" jndi-name="java:/jca/org.imixs.workflow.hadoop" enabled="true" use-java-context="true" pool-name="hadoop" use-ccm="true">
+	                        <connection-definition class-name="org.imixs.workflow.hadoop.jca.store.HadoopManagedConnectionFactory" jndi-name="java:/jca/org.imixs.workflow.hadoop" enabled="true" use-java-context="true" pool-name="hadoop" use-ccm="true">
 	                            <config-property name="rootDirectory">
 	                                ./store/
 	                            </config-property>

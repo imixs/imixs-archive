@@ -50,7 +50,7 @@ import org.imixs.workflow.engine.ReportService;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
-import org.imixs.workflow.hadoop.jca.BucketStore;
+import org.imixs.workflow.hadoop.jca.HadoopConnector;
 import org.imixs.workflow.xml.DocumentCollection;
 import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 
@@ -67,13 +67,10 @@ public class ArchivePlugin extends AbstractPlugin {
 	static final String ARCHIVE_ERROR = "ARCHIVE_ERROR";
 
 	private static Logger logger = Logger.getLogger(ArchivePlugin.class.getName());
-	 
-	@EJB
-	ReportService reportService;
 	
-	@Resource(mappedName = "java:/jca/org.imixs.workflow.hadoop")
-	BucketStore bucketStore;
-
+	
+	@EJB
+	ArchiveService archiveService;
 	
 	@Override
 	public void init(WorkflowContext actx) throws PluginException {
@@ -83,11 +80,7 @@ public class ArchivePlugin extends AbstractPlugin {
 		super.init(actx);
 
 		
-		if (reportService!=null) {
-			logger.info("alles suuper cool");
-		}
-		
-		if(bucketStore!=null) {
+		if(archiveService!=null) {
 			logger.info("alles suuper edel cool");
 		}
 		
@@ -100,9 +93,12 @@ public class ArchivePlugin extends AbstractPlugin {
 	@Override
 	public ItemCollection run(ItemCollection adocumentContext, ItemCollection documentActivity) throws PluginException {
 
-		if (1==1)
+		if (1==1) {
+			
+			archiveService.doArchive("somefile.txt","some content".getBytes());
+			
 			return adocumentContext;
-		
+		}
 		HDFSClient hdfsClient = null;
 		// try to get next ProcessEntity
 		ItemCollection itemColNextProcess = null;
@@ -171,6 +167,20 @@ public class ArchivePlugin extends AbstractPlugin {
 
 		return adocumentContext;
 	}
+
+	
+	
+	
+	
+	
+	
+	@Override
+	public void close(boolean rollbackTransaction) throws PluginException {
+		// TODO Auto-generated method stub
+		super.close(rollbackTransaction);
+	}
+
+
 
 	private void testPerformance(HDFSClient hdfsClient, String id) throws MalformedURLException, IOException, JAXBException {
 		// some performance tests:

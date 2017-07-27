@@ -35,8 +35,11 @@ import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 
 import org.imixs.workflow.engine.DocumentService;
+import org.imixs.workflow.hadoop.jca.HadoopConnector;
 
 
 /**
@@ -55,32 +58,12 @@ import org.imixs.workflow.engine.DocumentService;
 @Stateless
 @LocalBean
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
-public class HadoopService {
-
-	
-	// works!
-	//@Resource(lookup = "java:/jdbc/office")
-    //private javax.sql.DataSource dataSource;
+public class ArchiveService {
 
 
-	
-	//@Resource(mappedName = "java:/jca/HadoopFactory")
-	//@Resource(mappedName = "/jca/HadoopFactory")
-	//@Resource(mappedName = "jca/HadoopFactory")
-	//@Resource(lookup = "java:/jca/HadoopFactory")
-	//private org.imixs.workflow.archive.hadoop.jca.DataSource dataSource;
+	@Resource(mappedName = "java:/jca/org.imixs.workflow.hadoop")
+	HadoopConnector bucketStore;
 
-	
-	 
-	//@Resource(mappedName = "java:/eis/HelloWorld")
-	//private HelloWorldConnectionFactory connectionFactory;
-	 
-	@EJB
-	private DocumentService documentService;
-
-	 
-	@Resource
-	private SessionContext context;
 
 
 	/**
@@ -88,19 +71,12 @@ public class HadoopService {
 	 * 
 	 * @return
 	 */
-	public String createConfiguration(String content) throws Exception {
+	// @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+	public String doArchive(String file,byte[] content)  {
 		String result = null;
-		// HelloWorldConnection connection = null;
-//         try {
-////              connection = connectionFactory.getConnection();               
-////              result = connection.helloWorld();
-//             
-//         } catch (ResourceException e) {
-//             // TODO Auto-generated catch block
-//             e.printStackTrace();
-//         }
-
-
+	
+		bucketStore.getConnection().write(file, content);
+		
       return result;
       
       
