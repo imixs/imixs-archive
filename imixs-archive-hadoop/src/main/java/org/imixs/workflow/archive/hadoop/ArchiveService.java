@@ -108,7 +108,7 @@ public class ArchiveService implements SessionSynchronization {
 				throw new PluginException(ArchivePlugin.class.getName(), ARCHIVE_TRANSACTION_ERROR,
 						"creating transaction file failed!");
 			}
-			logger.info("renamed successful");
+			logger.fine("renamed successful");
 
 			StringWriter writer = new StringWriter();
 
@@ -157,13 +157,13 @@ public class ArchiveService implements SessionSynchronization {
 	 */
 	@Override
 	public void afterCompletion(boolean committed) throws EJBException, RemoteException {
-		logger.info("after completion... committed=" + committed);
+		logger.fine("after completion... committed=" + committed);
 		HDFSClient hdfsClient = new HDFSClient();
 
 		// Rollback...
 		if (committed == false) {
 			// role back
-			logger.info("Rollback transaction...");
+			logger.fine("Rollback transaction...");
 			for (String path : transactionCache) {
 				int i = path.lastIndexOf("_");
 				String target = path.substring(0, i);
@@ -183,9 +183,9 @@ public class ArchiveService implements SessionSynchronization {
 			}
 		} else {
 			// commit ok - remove transaction files
-			logger.info("clean transactioncache...");
+			logger.fine("clean transactioncache...");
 			for (String path : transactionCache) {
-				logger.info("delete " + path);
+				logger.fine("delete " + path);
 				try {
 					hdfsClient.deleteData(path);
 					if (hdfsClient.getHadoopResponse().isError()) {
@@ -196,7 +196,7 @@ public class ArchiveService implements SessionSynchronization {
 					throw new EJBException(ARCHIVE_ROLBACK_ERROR + ":" + e.getMessage(), e);
 				}
 			}
-			logger.info("transaction completed");
+			logger.fine("transaction completed");
 
 		}
 
