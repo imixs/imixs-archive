@@ -27,29 +27,23 @@
 
 package org.imixs.workflow.archive.hadoop;
 
-import java.io.StringWriter;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.WorkflowContext;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
-import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
-import org.imixs.workflow.xml.XMLItemCollection;
-import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 
 /**
  * This plugin archives the current workitem into a hadoop cluster. The plugin
  * delegates the hadoop operation to the ArchiveService which provides a
  * transactional access service to hadoop.
+ * 
+ * A document can only be archive if the $creation attribute exists. 
  * 
  * 
  * @author rsoika
@@ -72,56 +66,29 @@ public class ArchivePlugin extends AbstractPlugin {
 		Date created = adocumentContext.getItemValueDate("$created");
 		if (created == null) {
 			// workitem does not yet exist (only in virtual style)
-			// in this case we can not create an achive entry!
-			logger.warning("Workitem can not be archived before created - cancel archive process!");
+			// in this case we can not create an archive entry!
+			logger.warning("Workitem can not be archived before created; archive process cancled!");
 			return adocumentContext;
 		}
-		LocalDateTime ldt = LocalDateTime.ofInstant(created.toInstant(), ZoneId.systemDefault());
 
+		// compute path by $created
+		LocalDateTime ldt = LocalDateTime.ofInstant(created.toInstant(), ZoneId.systemDefault());
 		String path = "";
 		path += ldt.getYear() + "/" + ldt.getMonthValue() + "/";
-
 		path += adocumentContext.getUniqueID() + ".xml";
 
-		StringWriter writer = new StringWriter();
-		JAXBContext context;
-		try {
-			
-			
-			
-			// convert the ItemCollection into a XMLItemcollection...
-			XMLItemCollection xmlItemCollection= XMLItemCollectionAdapter.putItemCollection(adocumentContext);
-
-			// marshal the Object into an XML Stream....
-		
-		 context = JAXBContext.newInstance(XMLItemCollection.class);
-			Marshaller m=context.createMarshaller();
-			m.marshal(xmlItemCollection,writer);
-			System.out.println(writer.toString());
-			
-			
-		
-
-			byte[] content = writer.toString().getBytes();
-
-		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		// archive document
 		archiveService.doArchive(path, adocumentContext);
 
 		return adocumentContext;
 	}
 
+	/**
+	 * Rolback transaction is handled by the archiveService EJB. So no action is
+	 * necessary in the close method
+	 */
 	@Override
 	public void close(boolean rollbackTransaction) throws PluginException {
-		if (rollbackTransaction) {
-			logger.warning("DO ROLLBACK! - Missing implementation");
-		}
 		super.close(rollbackTransaction);
 	}
 

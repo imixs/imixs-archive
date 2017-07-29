@@ -27,9 +27,12 @@
 
 package org.imixs.workflow.archive.hadoop;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.ejb.EJBException;
@@ -40,6 +43,7 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 
 import org.imixs.workflow.ItemCollection;
@@ -47,13 +51,14 @@ import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.xml.XMLItemCollection;
 import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 
-
 /**
- * The Service can be used to store data into hadoop.
- * The bean has SessionSynchronization to rollback failed transactions. The bean is used by the ArchivePlugin.
+ * The Service can be used to store data into hadoop. The bean has
+ * SessionSynchronization to rollback failed transactions. The bean is used by
+ * the ArchivePlugin.
  * 
- * The method write(path, data) can be used to store data into the hadoop cluster. 
- * The bean synchronizes the transaction state and rollback any changes to hadoop made in on transaction.
+ * The method write(path, data) can be used to store data into the hadoop
+ * cluster. The bean synchronizes the transaction state and rollback any changes
+ * to hadoop made in on transaction.
  * 
  * 
  * 
@@ -63,75 +68,141 @@ import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 @Stateful
 @LocalBean
 public class ArchiveService implements SessionSynchronization {
-	
-	static final String ARCHIVE_ERROR = "ARCHIVE_ERROR";
+
+	static final String ARCHIVE_CONNECTION_ERROR = "ARCHIVE_CONNECTION_ERROR";
+	static final String ARCHIVE_DATA_ERROR = "ARCHIVE_DATA_ERROR";
+	static final String ARCHIVE_ROLBACK_ERROR = "ARCHIVE_ROLBACK_ERROR";
 	private static Logger logger = Logger.getLogger(ArchiveService.class.getName());
 
+	List<String> transactionCache;
+
 	/**
-	 * This method write data to the hadoop archive.
+	 * This method writes the data of a Imixs ItemCollection to the hadoop archive.
+	 * 
+	 * An existing file will be overwritten (overwrite=true)
+	 * 
+	 * To support the current transaction, an existing version of the file is
+	 * written under a temp filename. If the transaction completes successful, the
+	 * temp file will be removed. If the transaction failed the origin file will be
+	 * restored.
 	 * 
 	 * @param file
 	 * @param content
 	 * @return
 	 */
-	public String doArchive(String path,ItemCollection document) throws PluginException {
-		
+	public String doArchive(String path, ItemCollection document) throws PluginException {
+
+		if (transactionCache == null) {
+			logger.info("init transactioncache...");
+			transactionCache = new ArrayList<String>();
+		}
+
 		HDFSClient hdfsClient = null;
 		try {
-		
+
 			hdfsClient = new HDFSClient();
 
+			// first rename existing file
+			int i=path.lastIndexOf("/");
+			String tmpFileName = path.substring(0,i) + "/transaction" + path.substring(i);
+			transactionCache.add(tmpFileName);
+			// move current file into the transaction store
+			int res = hdfsClient.renameData(path, tmpFileName);
+			logger.info("renamed - result=" + res);
+
 			StringWriter writer = new StringWriter();
-			
-			
+
 			// convert the ItemCollection into a XMLItemcollection...
-			XMLItemCollection xmlItemCollection= XMLItemCollectionAdapter.putItemCollection(document);
+			XMLItemCollection xmlItemCollection = XMLItemCollectionAdapter.putItemCollection(document);
 
 			// marshal the Object into an XML Stream....
-		
+
 			JAXBContext context = JAXBContext.newInstance(XMLItemCollection.class);
-			Marshaller m=context.createMarshaller();
-			m.marshal(xmlItemCollection,writer);
-			
-			byte[] content=writer.toString().getBytes();
+			Marshaller m = context.createMarshaller();
+			m.marshal(xmlItemCollection, writer);
 
-			String status = hdfsClient.putData(path, content);
+			byte[] content = writer.toString().getBytes();
 
-			logger.info("Status=" + status);
+			// write data to cluster (overwrite = true)
+			String status = hdfsClient.putData(path, content, true);
+
+			logger.fine("Status=" + status);
 
 			// extract the status code from the hdfs put call
 			JsonReader reader = Json.createReader(new StringReader(status));
 			JsonObject payloadObject = reader.readObject();
 			int httpResult = Integer.parseInt(payloadObject.getString("code", "500"));
 			if (httpResult < 200 || httpResult >= 300) {
-				throw new PluginException(ArchivePlugin.class.getName(), ARCHIVE_ERROR,
-						"Archive failed - HTTP Result:" + status);
-			} else {
-				logger.info("Archive successful -HTTP Result: " + status);
+				throw new PluginException(ArchivePlugin.class.getName(), ARCHIVE_CONNECTION_ERROR,
+						"connection failed - HTTP Result:" + status);
 			}
 
-			
-		
-		} catch (Exception e) {
+			// succeeded
+			logger.info("Archive process completed -HTTP Result: " + status);
+			return status;
+
+		} catch (JAXBException e) {
 			if (hdfsClient != null) {
-				logger.severe("Unable to connect to '" + hdfsClient.getUrl());
+				logger.severe("Unable to connect to '" + hdfsClient.getUrl() + "'");
 			}
-			e.printStackTrace();
-			throw new PluginException(ArchivePlugin.class.getName(), "ERROR", e.getMessage());
+			// throw plugin exception
+			throw new PluginException(ArchivePlugin.class.getName(), ARCHIVE_DATA_ERROR, e.getMessage(), e);
+		} catch (IOException e) {
+			if (hdfsClient != null) {
+				logger.severe("connection failed to: '" + hdfsClient.getUrl() + "'");
+			}
+			// throw plugin exception
+			throw new PluginException(ArchivePlugin.class.getName(), ARCHIVE_CONNECTION_ERROR, e.getMessage(), e);
 		}
-
-		
-		
-		return null;
 	}
+
 	@Override
 	public void afterBegin() throws EJBException, RemoteException {
 		System.out.println("after begin....");
 	}
+
+	/**
+	 * clean transaction log...
+	 */
 	@Override
-	public void afterCompletion(boolean arg0) throws EJBException, RemoteException {
-		System.out.println("after completion... status="+arg0);
+	public void afterCompletion(boolean committed) throws EJBException, RemoteException {
+		logger.info("after completion... committed=" + committed);
+		HDFSClient hdfsClient = new HDFSClient();
+
+		// Rollback...
+		if (committed == false) {
+			// role back
+			logger.info("Rollback transaction...");
+			for (String path : transactionCache) {
+				int i = path.lastIndexOf("_");
+				String target = path.replace("/transaction/", "/");
+
+				logger.info("restore " + path);
+
+				try {
+					int result = hdfsClient.renameData(path, target);
+					logger.info("restore result=" + result + " for: " + path);
+				} catch (IOException | JAXBException e) {
+					throw new EJBException(ARCHIVE_ROLBACK_ERROR + ":" + e.getMessage(), e);
+				}
+			}
+		} else {
+			// commit ok - remove transaction files
+			logger.info("clean transactioncache...");
+			for (String path : transactionCache) {
+				logger.info("delete " + path);
+				try {
+					int result = hdfsClient.deleteData(path);
+					logger.info("delete result=" + result + " for: " + path);
+				} catch (IOException | JAXBException e) {
+					throw new EJBException(ARCHIVE_ROLBACK_ERROR + ":" + e.getMessage(), e);
+				}
+			}
+
+		}
+
 	}
+
 	@Override
 	public void beforeCompletion() throws EJBException, RemoteException {
 		System.out.println("before comple...");
