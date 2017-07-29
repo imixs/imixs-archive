@@ -1,18 +1,12 @@
 package org.imixs.workflow.archive.hadoop;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -31,6 +25,9 @@ import javax.xml.bind.JAXBException;
  * <li>hadoop.hdfs.baseURL</li>
  * <li>hadoop.hdfs.defaultPrincipal</li>
  * </ul>
+ * 
+ * The Client provide the object HadoopResponse holding the response information
+ * from the last operation.
  * 
  * In the first version the client supports only the pseudo authentication.
  * Kerberos authentication will be implemented in version 2.0
@@ -52,6 +49,7 @@ public class HDFSClient {
 	private String hadoopBaseUrl = null;
 	private Properties properties = null;
 	private String url = null;
+	private HadoopResponse hadoopResponse = null;
 
 	/**
 	 * Default constructor creates a new HDFSClient with the user defined by the
@@ -61,6 +59,14 @@ public class HDFSClient {
 	 */
 	public HDFSClient() {
 		this(null);
+	}
+
+	public HadoopResponse getHadoopResponse() {
+		return hadoopResponse;
+	}
+
+	public void setHadoopResponse(HadoopResponse hadoopResponse) {
+		this.hadoopResponse = hadoopResponse;
 	}
 
 	/**
@@ -130,17 +136,13 @@ public class HDFSClient {
 	 * @param path
 	 * @param content
 	 *            - file data
-	 * @return
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 * @throws JAXBException
 	 * @throws AuthenticationException
 	 */
-	public String putData(String path, byte[] content, boolean overwrite)
+	public void putData(String path, byte[] content, boolean overwrite)
 			throws MalformedURLException, IOException, JAXBException {
-		String encoding = "UTF-8";
-		String resp = null;
-
 		String redirectUrl = null;
 
 		if (!path.startsWith("/")) {
@@ -159,34 +161,32 @@ public class HDFSClient {
 		conn.setInstanceFollowRedirects(false);
 		conn.connect();
 		logger.fine("Location:" + conn.getHeaderField("Location"));
-		resp = getJSONResult(conn, true);
+
 		if (conn.getResponseCode() == 307) {
 			redirectUrl = conn.getHeaderField("Location");
 			conn.disconnect();
 
 			// open connection on new location...
 			conn = (HttpURLConnection) new URL(redirectUrl).openConnection();
-
 			conn.setRequestMethod("PUT");
 			conn.setDoOutput(true);
 			conn.setDoInput(true);
 			conn.setUseCaches(false);
-			conn.setRequestProperty("Content-Type", "application/octet-stream");
 
-			// compute length
+			// write XML data
+			conn.setRequestProperty("Content-type", "text/xml");
 			conn.setRequestProperty("Content-Length", "" + Integer.valueOf(content.length));
+			conn.setDoOutput(true);
+			OutputStream outs = conn.getOutputStream();
+			outs.write(content);
+			outs.flush();
+			outs.close();
 
-			PrintWriter printWriter = new PrintWriter(
-					new BufferedWriter(new OutputStreamWriter(conn.getOutputStream(), encoding)));
-
-			printWriter.write(content.toString());
-			printWriter.close();
-
-			resp = getJSONResult(conn, false);
+			// set response object
+			setHadoopResponse(new HadoopResponse(conn));
 			conn.disconnect();
+			logger.info("putData:" + path + "- responeCode=" + getHadoopResponse().getCode());
 		}
-
-		return resp;
 	}
 
 	/**
@@ -218,7 +218,6 @@ public class HDFSClient {
 	 * @throws AuthenticationException
 	 */
 	public byte[] readData(String path) throws MalformedURLException, IOException, JAXBException {
-
 		ByteArrayOutputStream baos = null;
 		String redirectUrl = null;
 
@@ -238,23 +237,22 @@ public class HDFSClient {
 		conn.setInstanceFollowRedirects(false);
 		conn.connect();
 		logger.fine("Location:" + conn.getHeaderField("Location"));
-		// String resp = getJSONResult(conn, true);
 		if (conn.getResponseCode() == 307) {
 			redirectUrl = conn.getHeaderField("Location");
 			conn.disconnect();
-
-			// open connection on new location...
-			conn = (HttpURLConnection) new URL(redirectUrl).openConnection();
-
-			conn.setRequestMethod("GET");
-			conn.setDoOutput(true);
-			conn.setDoInput(true);
-			conn.setUseCaches(false);
-			conn.setRequestProperty("Content-Type", "application/octet-stream");
-
-			baos = new ByteArrayOutputStream();
 			InputStream is = null;
 			try {
+				// open connection on new location...
+				conn = (HttpURLConnection) new URL(redirectUrl).openConnection();
+
+				conn.setRequestMethod("GET");
+				conn.setDoOutput(true);
+				conn.setDoInput(true);
+				conn.setUseCaches(false);
+				conn.setRequestProperty("Content-Type", "application/octet-stream");
+
+				baos = new ByteArrayOutputStream();
+
 				is = conn.getInputStream();
 				byte[] byteChunk = new byte[4096]; // Or whatever size you want to read in at a time.
 				int n;
@@ -264,16 +262,19 @@ public class HDFSClient {
 				}
 			} catch (IOException e) {
 				System.err.printf("Failed while reading bytes from %s: %s", e.getMessage());
-				e.printStackTrace();
-				// Perform any other exception handling that's appropriate.
+				throw e;
 			} finally {
 				if (is != null) {
 					is.close();
 				}
+				if (conn != null) {
+					conn.disconnect();
+				}
 			}
 
-			conn.disconnect();
 		}
+
+		// return byte array
 		if (baos != null) {
 			return baos.toByteArray();
 		} else {
@@ -283,21 +284,21 @@ public class HDFSClient {
 	}
 
 	/**
-	 * This method renames a existing file . 
-	 * The method returns the http result code.
+	 * This method renames a existing file . The method returns the http result
+	 * code.
 	 * 
 	 * 
 	 * 
 	 * @param path
-	 * @param destination - target
+	 * @param destination
+	 *            - target
 	 * @return
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 * @throws JAXBException
 	 * @throws AuthenticationException
 	 */
-	public int renameData(String path, String destination) throws MalformedURLException, IOException, JAXBException {
-		int result;
+	public void renameData(String path, String destination) throws MalformedURLException, IOException, JAXBException {
 		if (!path.startsWith("/")) {
 			path = "/" + path;
 		}
@@ -309,43 +310,38 @@ public class HDFSClient {
 			logger.warning("principal is not set!");
 		}
 
-		url = hadoopBaseUrl + path + "?user.name=" + principal + "&op=RENAME&destination=" + destination;
+		url = hadoopBaseUrl + path + "?user.name=" + principal + "&overwrite=true&op=RENAME&destination=" + destination;
 		URL obj = new URL(url);
 		HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
 
 		conn.setRequestMethod("PUT");
 		conn.setInstanceFollowRedirects(false);
 		conn.connect();
-		result = conn.getResponseCode();
-		logger.info("Location:" + conn.getHeaderField("Location") + "- responeCode=" + result);
-
+		setHadoopResponse(new HadoopResponse(conn));
 		conn.disconnect();
-
-		return result;
+		logger.info("renameData:" + path + "- responeCode=" + getHadoopResponse().getCode());
 	}
 
-	
-	
 	/**
-	 * This method deletes a existing file . 
-	 * The method returns the http result code.
+	 * This method deletes a existing file . The method returns the http result
+	 * code.
 	 * 
 	 * 
 	 * 
 	 * @param path
-	 * @param destination - target
+	 * @param destination
+	 *            - target
 	 * @return
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 * @throws JAXBException
 	 * @throws AuthenticationException
 	 */
-	public int deleteData(String path) throws MalformedURLException, IOException, JAXBException {
-		int result;
+	public void deleteData(String path) throws MalformedURLException, IOException, JAXBException {
 		if (!path.startsWith("/")) {
 			path = "/" + path;
 		}
-		
+
 		if (principal == null || principal.isEmpty()) {
 			logger.warning("principal is not set!");
 		}
@@ -353,56 +349,16 @@ public class HDFSClient {
 		url = hadoopBaseUrl + path + "?user.name=" + principal + "&op=DELETE";
 		URL obj = new URL(url);
 		HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
-
 		conn.setRequestMethod("DELETE");
 		conn.setInstanceFollowRedirects(false);
 		conn.connect();
-		result = conn.getResponseCode();
-		logger.info("Location:" + conn.getHeaderField("Location") + "- responeCode=" + result);
-
+		setHadoopResponse(new HadoopResponse(conn));
 		conn.disconnect();
-
-		return result;
+		logger.info("deleteData:" + path + "- responeCode=" + getHadoopResponse().getCode());
 	}
 
-	
-	
 	public String getUrl() {
 		return url;
-	}
-
-	/**
-	 * Returns the connection result in JSON
-	 * 
-	 * @param conn
-	 * @param input
-	 * @return
-	 * @throws IOException
-	 * 
-	 */
-	private static String getJSONResult(HttpURLConnection conn, boolean input) throws IOException {
-		StringBuffer sb = new StringBuffer();
-		if (input) {
-			InputStream is = conn.getInputStream();
-			BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-			String line = null;
-
-			while ((line = reader.readLine()) != null) {
-				sb.append(line);
-			}
-			reader.close();
-			is.close();
-		}
-		Map<String, Object> result = new HashMap<String, Object>();
-		result.put("code", conn.getResponseCode());
-		result.put("mesg", conn.getResponseMessage());
-		result.put("type", conn.getContentType());
-		result.put("data", sb);
-		//
-		// Convert a Map into JSON string.
-		//
-		return getJSON(result);
-
 	}
 
 	/**
@@ -422,33 +378,6 @@ public class HDFSClient {
 			properties = new Properties();
 		}
 
-	}
-
-	public static String getJSON(Map<String, Object> map) {
-
-		StringBuffer sb = new StringBuffer();
-
-		sb.append("{");
-		int size = map.size();
-		int count = 0;
-		for (Map.Entry<String, Object> entry : map.entrySet()) {
-			String key = entry.getKey();
-			sb.append("\"" + key + "\":\"");
-
-			Object value = entry.getValue();
-			if (value != null) {
-				sb.append(entry.getValue().toString());
-			}
-			sb.append("\"");
-
-			count++;
-			if (count < size) {
-				sb.append(",");
-			}
-
-		}
-		sb.append("}");
-		return sb.toString();
 	}
 
 }

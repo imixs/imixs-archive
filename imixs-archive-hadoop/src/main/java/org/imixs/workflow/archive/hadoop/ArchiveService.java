@@ -28,7 +28,6 @@
 package org.imixs.workflow.archive.hadoop;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.io.StringWriter;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
@@ -39,9 +38,6 @@ import javax.ejb.EJBException;
 import javax.ejb.LocalBean;
 import javax.ejb.SessionSynchronization;
 import javax.ejb.Stateful;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -72,6 +68,7 @@ public class ArchiveService implements SessionSynchronization {
 	static final String ARCHIVE_CONNECTION_ERROR = "ARCHIVE_CONNECTION_ERROR";
 	static final String ARCHIVE_DATA_ERROR = "ARCHIVE_DATA_ERROR";
 	static final String ARCHIVE_ROLBACK_ERROR = "ARCHIVE_ROLBACK_ERROR";
+	static final String ARCHIVE_TRANSACTION_ERROR = "ARCHIVE_TRANSACTION_ERROR";
 	private static Logger logger = Logger.getLogger(ArchiveService.class.getName());
 
 	List<String> transactionCache;
@@ -90,8 +87,8 @@ public class ArchiveService implements SessionSynchronization {
 	 * @param content
 	 * @return
 	 */
-	public String doArchive(String path, ItemCollection document) throws PluginException {
-
+	public void doArchive(String path, ItemCollection document) throws PluginException {
+		long l = System.currentTimeMillis();
 		if (transactionCache == null) {
 			logger.info("init transactioncache...");
 			transactionCache = new ArrayList<String>();
@@ -103,12 +100,15 @@ public class ArchiveService implements SessionSynchronization {
 			hdfsClient = new HDFSClient();
 
 			// first rename existing file
-			int i=path.lastIndexOf("/");
-			String tmpFileName = path.substring(0,i) + "/transaction" + path.substring(i);
+			String tmpFileName = path + "_" + System.nanoTime();
 			transactionCache.add(tmpFileName);
 			// move current file into the transaction store
-			int res = hdfsClient.renameData(path, tmpFileName);
-			logger.info("renamed - result=" + res);
+			hdfsClient.renameData(path, tmpFileName);
+			if (hdfsClient.getHadoopResponse().isError()) {
+				throw new PluginException(ArchivePlugin.class.getName(), ARCHIVE_TRANSACTION_ERROR,
+						"creating transaction file failed!");
+			}
+			logger.info("renamed successful");
 
 			StringWriter writer = new StringWriter();
 
@@ -123,23 +123,14 @@ public class ArchiveService implements SessionSynchronization {
 
 			byte[] content = writer.toString().getBytes();
 
-			// write data to cluster (overwrite = true)
-			String status = hdfsClient.putData(path, content, true);
-
-			logger.fine("Status=" + status);
-
-			// extract the status code from the hdfs put call
-			JsonReader reader = Json.createReader(new StringReader(status));
-			JsonObject payloadObject = reader.readObject();
-			int httpResult = Integer.parseInt(payloadObject.getString("code", "500"));
-			if (httpResult < 200 || httpResult >= 300) {
+			hdfsClient.putData(path, content, true);
+			if (hdfsClient.getHadoopResponse().isError()) {
 				throw new PluginException(ArchivePlugin.class.getName(), ARCHIVE_CONNECTION_ERROR,
-						"connection failed - HTTP Result:" + status);
+						"connection failed - HTTP Result:" + hdfsClient.getHadoopResponse().getCode());
 			}
 
 			// succeeded
-			logger.info("Archive process completed -HTTP Result: " + status);
-			return status;
+			logger.info("Archive process completed in " + (System.currentTimeMillis() - l) + "ms");
 
 		} catch (JAXBException e) {
 			if (hdfsClient != null) {
@@ -158,7 +149,7 @@ public class ArchiveService implements SessionSynchronization {
 
 	@Override
 	public void afterBegin() throws EJBException, RemoteException {
-		System.out.println("after begin....");
+		logger.finest("after begin....");
 	}
 
 	/**
@@ -175,13 +166,17 @@ public class ArchiveService implements SessionSynchronization {
 			logger.info("Rollback transaction...");
 			for (String path : transactionCache) {
 				int i = path.lastIndexOf("_");
-				String target = path.replace("/transaction/", "/");
-
+				String target = path.substring(0, i);
 				logger.info("restore " + path);
-
 				try {
-					int result = hdfsClient.renameData(path, target);
-					logger.info("restore result=" + result + " for: " + path);
+					hdfsClient.deleteData(target);
+					if (hdfsClient.getHadoopResponse().isError()) {
+						throw new EJBException(ARCHIVE_ROLBACK_ERROR + ": Failed to rename transaction file");
+					}
+					hdfsClient.renameData(path, target);
+					if (hdfsClient.getHadoopResponse().isError()) {
+						throw new EJBException(ARCHIVE_ROLBACK_ERROR + ": Failed to rename transaction file");
+					}
 				} catch (IOException | JAXBException e) {
 					throw new EJBException(ARCHIVE_ROLBACK_ERROR + ":" + e.getMessage(), e);
 				}
@@ -192,12 +187,16 @@ public class ArchiveService implements SessionSynchronization {
 			for (String path : transactionCache) {
 				logger.info("delete " + path);
 				try {
-					int result = hdfsClient.deleteData(path);
-					logger.info("delete result=" + result + " for: " + path);
+					hdfsClient.deleteData(path);
+					if (hdfsClient.getHadoopResponse().isError()) {
+						throw new EJBException(ARCHIVE_ROLBACK_ERROR + ": Failed to rename transaction file");
+					}
+
 				} catch (IOException | JAXBException e) {
 					throw new EJBException(ARCHIVE_ROLBACK_ERROR + ":" + e.getMessage(), e);
 				}
 			}
+			logger.info("transaction completed");
 
 		}
 
@@ -205,7 +204,7 @@ public class ArchiveService implements SessionSynchronization {
 
 	@Override
 	public void beforeCompletion() throws EJBException, RemoteException {
-		System.out.println("before comple...");
+		logger.finest("before comple...");
 	}
 
 }
