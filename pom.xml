@@ -14,7 +14,7 @@
 	
 	
 	<name>Imixs-Archive</name>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<description>Imixs Workflow Archive </description>
 	<url>https://github.com/imixs-docker/imixs-archive</url>
 	<organization>
