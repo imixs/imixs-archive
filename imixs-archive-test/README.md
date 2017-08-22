@@ -22,6 +22,12 @@ To build the docker image run
 	docker build --tag=imixs/imixs-office-workflow .
 
 
+
+### JMS 
+
+We use the standalone-full.xml configuration profile to activate JMS!
+
+
 ### JCA Hadoop Connector
 
 Imixs Archive uses a JCA connector to communicate with the Hadoop Cluster. To install the connector follow the installation guide on 

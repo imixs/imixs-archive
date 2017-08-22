@@ -32,12 +32,6 @@
         <extension module="org.wildfly.extension.undertow"/>
         <extension module="org.wildfly.iiop-openjdk"/>
     </extensions>
-
-    <system-properties>
-        <property name="eclipselink.archive.factory" value="org.jipijapa.eclipselink.JBossArchiveFactoryImpl"/>
-       <!--  <property name="com.arjuna.ats.arjuna.allowMultipleLastResources" value="true"/>   -->
-    </system-properties>
-
     <management>
         <security-realms>
             <security-realm name="ManagementRealm">
@@ -90,7 +84,7 @@
     <profile>
         <subsystem xmlns="urn:jboss:domain:logging:3.0">
             <console-handler name="CONSOLE">
-                <level name="FINE"/>
+                <level name="INFO"/>
                 <formatter>
                     <named-formatter name="COLOR-PATTERN"/>
                 </formatter>
@@ -140,7 +134,6 @@
         <subsystem xmlns="urn:jboss:domain:bean-validation:1.0"/>
         <subsystem xmlns="urn:jboss:domain:datasources:4.0">
             <datasources>
-           
                 <datasource jndi-name="java:jboss/datasources/ExampleDS" pool-name="ExampleDS" enabled="true" use-java-context="true">
                     <connection-url>jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE</connection-url>
                     <driver>h2</driver>
@@ -149,33 +142,10 @@
                         <password>sa</password>
                     </security>
                 </datasource>
-              
-              
-              	<!-- imixs-workflow datasource -->
-                <datasource jta="true" jndi-name="java:/jdbc/office" pool-name="office" enabled="true" use-ccm="true">
-                    <connection-url>jdbc:postgresql://postgres/office</connection-url>
-                    <driver-class>org.postgresql.Driver</driver-class>
-                    <driver>postgresql</driver>
-                    <security>
-                        <user-name>postgres</user-name>
-                        <password>adminadmin</password>
-                    </security>
-                     <validation>
-                        <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker"/>
-                        <validate-on-match>true</validate-on-match>
-                        <background-validation>false</background-validation>
-                    </validation>                
-                    <statement>
-                        <share-prepared-statements>false</share-prepared-statements>
-                    </statement>
-                </datasource>                
                 <drivers>
                     <driver name="h2" module="com.h2database.h2">
                         <xa-datasource-class>org.h2.jdbcx.JdbcDataSource</xa-datasource-class>
                     </driver>
-                    <driver name="postgresql" module="org.postgresql">
-                		<driver-class>org.postgresql.Driver</driver-class>
-            		</driver>
                 </drivers>
             </datasources>
         </subsystem>
@@ -330,9 +300,6 @@
             <mail-session name="default" jndi-name="java:jboss/mail/Default">
                 <smtp-server outbound-socket-binding-ref="mail-smtp"/>
             </mail-session>
-            <mail-session name="java:/mail/org.imixs.workflow.mail" jndi-name="java:/mail/org.imixs.workflow.mail" debug="true">
-            	<smtp-server outbound-socket-binding-ref="mail-smtp"/>
-            </mail-session>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:messaging-activemq:1.0">
             <server name="default">
@@ -356,10 +323,6 @@
                 <connection-factory name="InVmConnectionFactory" connectors="in-vm" entries="java:/ConnectionFactory"/>
                 <connection-factory name="RemoteConnectionFactory" connectors="http-connector" entries="java:jboss/exported/jms/RemoteConnectionFactory"/>
                 <pooled-connection-factory name="activemq-ra" transaction="xa" connectors="in-vm" entries="java:/JmsXA java:jboss/DefaultJMSConnectionFactory"/>
-                
-                
-                <jms-queue name="testQueue"  entries="jms/queue/test java:jboss/exported/jms/queue/test" />
-    			<jms-topic name="testTopic" entries="jms/topic/test java:jboss/exported/jms/topic/test" />
             </server>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:naming:2.0">
@@ -402,8 +365,6 @@
                         <policy-module code="Delegating" flag="required"/>
                     </authorization>
                 </security-domain>
-                
-               
                 <security-domain name="jaspitest" cache-type="default">
                     <authentication-jaspi>
                         <login-module-stack name="dummy">
@@ -411,39 +372,6 @@
                         </login-module-stack>
                         <auth-module code="Dummy"/>
                     </authentication-jaspi>
-                </security-domain>
-               
-                <security-domain name="imixsrealm">
-                    <authentication>
-                        <login-module code="Database" flag="required">
-                            <module-option name="dsJndiName" value="java:/jdbc/office"/>
-                            <module-option name="hashAlgorithm" value="SHA-256"/>
-                            <module-option name="hashEncoding" value="hex"/>
-                            <module-option name="principalsQuery" value="select PASSWORD from USERID where ID=?"/>
-                            <module-option name="rolesQuery" value="select GROUP_ID,'Roles' from USERID_USERGROUP where ID=?"/>
-                            <module-option name="unauthenticatedIdentity" value="anonymous"/>
-                        </login-module>
-                        <login-module code="RoleMapping" flag="required">
-                            <module-option name="rolesProperties" value="file:${jboss.server.config.dir}/imixsrealm.properties"/>
-                            <module-option name="replaceRole" value="false"/>
-                        </login-module>
-                    </authentication>
-                </security-domain>
-         
-                <security-domain name="office" cache-type="default">
-                    <authentication>
-                        <login-module code="Database" flag="required">
-                            <module-option name="dsJndiName" value="java:/jdbc/office"/>
-                            <module-option name="hashAlgorithm" value="SHA-256"/>
-                            <module-option name="hashEncoding" value="hex"/>
-                            <module-option name="principalsQuery" value="select PASSWORD from USERID where ID=?"/>
-                            <module-option name="rolesQuery" value="select GROUP_ID,'Roles' from USERID_USERGROUP where ID=?"/>
-                        </login-module>
-                        <login-module code="RoleMapping" flag="required">
-                            <module-option name="rolesProperties" value="file:${jboss.server.config.dir}/imixsrealm.properties"/>
-                            <module-option name="replaceRole" value="false"/>
-                        </login-module>
-                    </authentication>
                 </security-domain>
             </security-domains>
         </subsystem>
@@ -511,7 +439,7 @@
         <socket-binding name="txn-recovery-environment" port="4712"/>
         <socket-binding name="txn-status-manager" port="4713"/>
         <outbound-socket-binding name="mail-smtp">
-            <remote-destination host="smarthost" port="25"/>
+            <remote-destination host="localhost" port="25"/>
         </outbound-socket-binding>
     </socket-binding-group>
 </server>
