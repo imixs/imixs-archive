@@ -1,4 +1,4 @@
-# imixs-archive Test Environment
+# Imixs-Archive-Test Environment
 
 Imixs-Archive-Test provides a Docker based test environment for Imixs-Archive. The Test Environment consists of the following docker containers:
 
@@ -28,40 +28,6 @@ To build the docker image run
 We use the standalone-full.xml configuration profile to activate JMS!
 
 
-### JCA Hadoop Connector
-
-Imixs Archive uses a JCA connector to communicate with the Hadoop Cluster. To install the connector follow the installation guide on 
-[Imixs-JCA-Hadoop](https://github.com/imixs/imixs-jca/tree/master/imixs-jca-hadoop)
-
-The configuration for the connector is part of the wildfly standalone.xml:
-
-	<subsystem xmlns="urn:jboss:domain:resource-adapters:4.0">
-	         <resource-adapters>
-	             <resource-adapter id="imixs-jca-hadoop">
-	                    <archive>imixs-jca-hadoop.rar</archive>
-	                    <transaction-support>LocalTransaction</transaction-support>
-	                    <connection-definitions>
-	                        <connection-definition class-name="org.imixs.workflow.hadoop.jca.store.GenericManagedConnectionFactory" jndi-name="java:/jca/org.imixs.workflow.hadoop" enabled="true" use-java-context="true" pool-name="hadoop" use-ccm="true">
-	                            <config-property name="rootDirectory">
-	                                ./store/
-	                            </config-property>
-	                            <pool>
-	                                <min-pool-size>0</min-pool-size>
-	                                <max-pool-size>10</max-pool-size>
-	                                <prefill>false</prefill>
-	                                <use-strict-min>false</use-strict-min>
-	                                <flush-strategy>FailingConnectionOnly</flush-strategy>
-	                            </pool>
-	                            <security>
-	                                <application/>
-	                            </security>
-	                        </connection-definition>
-	                    </connection-definitions>
-	                </resource-adapter>
-	            </resource-adapters>
-	    </subsystem>
-
-    
 ## Workflow Models
 
 The folder /workflow/ contains BPMN Model for testing.

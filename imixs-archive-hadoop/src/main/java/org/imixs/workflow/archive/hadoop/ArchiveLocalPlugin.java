@@ -27,21 +27,26 @@ import org.imixs.workflow.exceptions.QueryException;
  * The snapshot process includes the following stages:
  * 
  * <ol>
- * <li>create a copy of the current workitem
- * <li>compute a snapshot $uniqueId containing a timestamp
- * <li>change the type with the prefix 'archive-'
+ * <li>create a copy of the origin workitem instance
+ * <li>compute a snapshot $uniqueId based on the origin workitem suffixed with a timestamp
+ * <li>change the type of the snapshot-workitem with the prefix 'archive-'
  * <li>If an old snapshot already exists, Files are compared to the current $
  * files and, if necessary, stored in the Snapshot applied
- * <li>remove file content form the origin-workitem
- * <li>store the snapshot uniqeId into the origin-workitem ($snapshotID)
+ * <li>remove the file content form the origin-workitem
+ * <li>store the snapshot uniqeId into the origin-workitem as a reference ($snapshotID)
  * <li>remove deprecated snapshots
  * </ol>
  * 
- * The Plugin implements the ObserverPlugin interface
+ * A snapshot workitem holds a reference to the origin workitem by its own $uniqueId which is 
+ * always the $uniqueId from the origin workitem suffixed with a timestamp. 
+ * During the snapshot creation the snapshot-uniquId is stored into the origin workitem. 
+ * 
+ * The ArchiveLocalPlugin implements the ObserverPlugin interface
  * 
  * <p>
- * Note: The ArchiveLocalPlugin replaces the DMSPlugin from the imixs-marty
- * project and provides a migration mechanism for old BlobWorkitems. The old
+ * Note: The ArchiveLocalPlugin replaces the BlobWorkitems mechanism which was earlier
+ * part of the DMSPlugin from the imixs-marty project. The plugin provides a 
+ * migration mechanism for old BlobWorkitems. The old
  * BlobWorkitems will not be deleted.
  * 
  * @version 1.0
