@@ -1,9 +1,13 @@
-package org.imixs.workflow.archive.hadoop;
+package org.imixs.archive.api.test;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
 import org.imixs.workflow.exceptions.PluginException;
-
+/**
+ * Plugin class to simulate a rolleback scenario. 
+ * @author rsoika
+ *
+ */
 public class CircuitBreakerPlugin extends AbstractPlugin {
 	static final String ERROR = "ERROR";
 	

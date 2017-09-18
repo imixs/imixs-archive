@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.hadoop;
+package org.imixs.archive.api;
 
 import java.util.Collection;
 import java.util.List;
@@ -20,7 +20,7 @@ import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.QueryException;
 
 /**
- * This ArchiveLocalPlugin provides a mechanism to archive the content of a
+ * This SnapshotPlugin provides a mechanism to transfere the content of a
  * workitem into a snapshot workitem. Attached files will be linked from the
  * snapshot-workitem to the origin-workitem.
  * 
@@ -41,10 +41,10 @@ import org.imixs.workflow.exceptions.QueryException;
  * always the $uniqueId from the origin workitem suffixed with a timestamp. 
  * During the snapshot creation the snapshot-uniquId is stored into the origin workitem. 
  * 
- * The ArchiveLocalPlugin implements the ObserverPlugin interface
+ * The SnapshotPlugin implements the ObserverPlugin interface
  * 
  * <p>
- * Note: The ArchiveLocalPlugin replaces the BlobWorkitems mechanism which was earlier
+ * Note: The SnapshotPlugin replaces the BlobWorkitems mechanism which was earlier
  * part of the DMSPlugin from the imixs-marty project. The plugin provides a 
  * migration mechanism for old BlobWorkitems. The old
  * BlobWorkitems will not be deleted.
@@ -52,7 +52,7 @@ import org.imixs.workflow.exceptions.QueryException;
  * @version 1.0
  * @author rsoika
  */
-public class ArchiveLocalPlugin extends AbstractPlugin implements ObserverPlugin {
+public class SnapshotPlugin extends AbstractPlugin implements ObserverPlugin {
 
 	@EJB
 	DocumentService documentService;
@@ -60,7 +60,7 @@ public class ArchiveLocalPlugin extends AbstractPlugin implements ObserverPlugin
 	@Resource
 	SessionContext ejbCtx;
 
-	private static Logger logger = Logger.getLogger(ArchiveLocalPlugin.class.getName());
+	private static Logger logger = Logger.getLogger(SnapshotPlugin.class.getName());
 
 	/**
 	 * The run method
