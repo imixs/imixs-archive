@@ -24,6 +24,8 @@ import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.bpmn.BPMNModel;
 import org.imixs.workflow.bpmn.BPMNParser;
 import org.imixs.workflow.engine.DocumentService;
+import org.imixs.workflow.engine.ModelService;
+import org.imixs.workflow.engine.WorkflowService;
 import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
@@ -58,8 +60,8 @@ import org.xml.sax.SAXException;
  * @see AbstractPluginTest, TestWorkflowService, ModelPluginMock
  * @author rsoika
  */
-public class WorkflowMockEnvironment {
-	private final static Logger logger = Logger.getLogger(WorkflowMockEnvironment.class.getName());
+public class WorkflowArchiveMockEnvironment {
+	private final static Logger logger = Logger.getLogger(WorkflowArchiveMockEnvironment.class.getName());
 	public static final String DEFAULT_MODEL_VERSION = "1.0.0";
 
 	Map<String, ItemCollection> database = null;
@@ -166,6 +168,7 @@ public class WorkflowMockEnvironment {
 		// Mock WorkflowService
 		workflowService = Mockito.mock(WorkflowService.class);
 		workflowService.documentService = documentService;
+		when(workflowService.getDocumentService()).thenReturn(documentService);
 		workflowService.ctx = ctx;
 
 		workflowService.modelService = modelService;
@@ -248,7 +251,7 @@ public class WorkflowMockEnvironment {
 	 */
 	public void loadModel() {
 		if (this.modelPath != null) {
-			InputStream inputStream = WorkflowMockEnvironment.class.getResourceAsStream(this.modelPath);
+			InputStream inputStream = WorkflowArchiveMockEnvironment.class.getResourceAsStream(this.modelPath);
 			try {
 				logger.info("loading model: " + this.modelPath + "....");
 				model = BPMNParser.parseModel(inputStream, "UTF-8");

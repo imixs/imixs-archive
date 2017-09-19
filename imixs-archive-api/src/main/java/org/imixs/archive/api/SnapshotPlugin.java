@@ -28,40 +28,41 @@ import org.imixs.workflow.exceptions.QueryException;
  * 
  * <ol>
  * <li>create a copy of the origin workitem instance
- * <li>compute a snapshot $uniqueId based on the origin workitem suffixed with a timestamp
+ * <li>compute a snapshot $uniqueId based on the origin workitem suffixed with a
+ * timestamp
  * <li>change the type of the snapshot-workitem with the prefix 'archive-'
  * <li>If an old snapshot already exists, Files are compared to the current $
  * files and, if necessary, stored in the Snapshot applied
  * <li>remove the file content form the origin-workitem
- * <li>store the snapshot uniqeId into the origin-workitem as a reference ($snapshotID)
+ * <li>store the snapshot uniqeId into the origin-workitem as a reference
+ * ($snapshotID)
  * <li>remove deprecated snapshots
  * </ol>
  * 
- * A snapshot workitem holds a reference to the origin workitem by its own $uniqueId which is 
- * always the $uniqueId from the origin workitem suffixed with a timestamp. 
- * During the snapshot creation the snapshot-uniquId is stored into the origin workitem. 
+ * A snapshot workitem holds a reference to the origin workitem by its own
+ * $uniqueId which is always the $uniqueId from the origin workitem suffixed
+ * with a timestamp. During the snapshot creation the snapshot-uniquId is stored
+ * into the origin workitem.
  * 
  * The SnapshotPlugin implements the ObserverPlugin interface
  * 
  * <p>
- * Note: The SnapshotPlugin replaces the BlobWorkitems mechanism which was earlier
- * part of the DMSPlugin from the imixs-marty project. The plugin provides a 
- * migration mechanism for old BlobWorkitems. The old
- * BlobWorkitems will not be deleted.
+ * Note: The SnapshotPlugin replaces the BlobWorkitems mechanism which was
+ * earlier part of the DMSPlugin from the imixs-marty project. The plugin
+ * provides a migration mechanism for old BlobWorkitems. The old BlobWorkitems
+ * will not be deleted.
  * 
  * @version 1.0
  * @author rsoika
  */
 public class SnapshotPlugin extends AbstractPlugin implements ObserverPlugin {
 
-	@EJB
-	DocumentService documentService;
-
 	@Resource
 	SessionContext ejbCtx;
 
 	private static Logger logger = Logger.getLogger(SnapshotPlugin.class.getName());
 
+	public static String SNAPSHOTID="$snapshotID";
 	/**
 	 * The run method
 	 * 
@@ -124,30 +125,32 @@ public class SnapshotPlugin extends AbstractPlugin implements ObserverPlugin {
 
 		// 5. remove file content form the origin-workitem
 		Map<String, List<Object>> files = snapshot.getFiles();
-		// empty data...
-		byte[] empty = { 0 };
-		for (Entry<String, List<Object>> entry : files.entrySet()) {
-			String aFilename = entry.getKey();
-			List<?> file = entry.getValue();
-			// remove content....
-			String contentType = (String) file.get(0);
-			byte[] fileContent = (byte[]) file.get(1);
-			if (fileContent != null && fileContent.length > 1) {
-				// add the file name (with empty data)
-				logger.info("drop content for file '" + aFilename + "'");
-				workitem.addFile(empty, aFilename, contentType);
+		if (files != null) {
+			// empty data...
+			byte[] empty = { 0 };
+			for (Entry<String, List<Object>> entry : files.entrySet()) {
+				String aFilename = entry.getKey();
+				List<?> file = entry.getValue();
+				// remove content....
+				String contentType = (String) file.get(0);
+				byte[] fileContent = (byte[]) file.get(1);
+				if (fileContent != null && fileContent.length > 1) {
+					// add the file name (with empty data)
+					logger.info("drop content for file '" + aFilename + "'");
+					workitem.addFile(empty, aFilename, contentType);
+				}
 			}
 		}
 
 		// 6. store the snapshot uniqeId into the origin-workitem ($snapshotID)
-		workitem.replaceItemValue("$snapshotID", snapshot.getUniqueID());
+		workitem.replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
 
 		// 7. remove deprecated snapshots - note: this method should not be called in
 		// HadoopArchivePlugin!
 		removeDeprecatedSnaphosts(snapshot.getUniqueID());
 
 		// save the snapshot....
-		documentService.save(snapshot);
+		getWorkflowService().getDocumentService().save(snapshot);
 
 		return workitem;
 	}
@@ -167,8 +170,7 @@ public class SnapshotPlugin extends AbstractPlugin implements ObserverPlugin {
 		String query = "SELECT document FROM Document AS document ";
 		query += " WHERE document.id > '" + uniqueid + "-'";
 		query += " ORDER BY document.created DESC";
-		List<ItemCollection> result = documentService.getDocumentsByQuery(query, 1);
-
+		List<ItemCollection> result = getWorkflowService().getDocumentService().getDocumentsByQuery(query, 1);
 		if (result.size() >= 1) {
 			return result.get(0);
 		} else {
@@ -188,13 +190,13 @@ public class SnapshotPlugin extends AbstractPlugin implements ObserverPlugin {
 		String snapshtIDPfafix = snapshotID.substring(0, snapshotID.lastIndexOf('-'));
 		String query = "SELECT document FROM Document AS document ";
 		query += " WHERE document.id > '" + snapshtIDPfafix + "-' AND document.id < '" + snapshotID + "'";
-		List<ItemCollection> result = documentService.getDocumentsByQuery(query);
+		List<ItemCollection> result = getWorkflowService().getDocumentService().getDocumentsByQuery(query);
 
 		if (result.size() > 0) {
 			logger.info("remove deprecated snapshots before snapshot: '" + snapshotID + "'....");
 			for (ItemCollection oldSnapshot : result) {
 				logger.info("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
-				documentService.remove(oldSnapshot);
+				getWorkflowService().getDocumentService().remove(oldSnapshot);
 			}
 		}
 
@@ -214,21 +216,23 @@ public class SnapshotPlugin extends AbstractPlugin implements ObserverPlugin {
 	private boolean copyFilesFromItemCollection(ItemCollection source, ItemCollection target) {
 		boolean missingContent = false;
 		Map<String, List<Object>> files = target.getFiles();
-		for (Map.Entry<String, List<Object>> entry : files.entrySet()) {
-			String fileName = entry.getKey();
-			List<Object> file = entry.getValue();
-			// test if the content of the file is empty. In this case it makes sense to copy
-			// the already archived conent from the last snapshot
-			byte[] content = (byte[]) file.get(1);
-			if (content.length <= 1) {
-				// fetch the old content from the last snapshot...
-				List<Object> oldFile = source.getFile(fileName);
-				if (oldFile != null) {
-					logger.info("copy file content from last snapshot: " + source.getUniqueID());
-					target.addFile((byte[]) oldFile.get(1), fileName, (String) oldFile.get(0));
-				} else {
-					missingContent = true;
-					logger.warning("Missing file content!");
+		if (files != null) {
+			for (Map.Entry<String, List<Object>> entry : files.entrySet()) {
+				String fileName = entry.getKey();
+				List<Object> file = entry.getValue();
+				// test if the content of the file is empty. In this case it makes sense to copy
+				// the already archived conent from the last snapshot
+				byte[] content = (byte[]) file.get(1);
+				if (content.length <= 1) {
+					// fetch the old content from the last snapshot...
+					List<Object> oldFile = source.getFile(fileName);
+					if (oldFile != null) {
+						logger.info("copy file content from last snapshot: " + source.getUniqueID());
+						target.addFile((byte[]) oldFile.get(1), fileName, (String) oldFile.get(0));
+					} else {
+						missingContent = true;
+						logger.warning("Missing file content!");
+					}
 				}
 			}
 		}
