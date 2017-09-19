@@ -8,17 +8,28 @@ Imixs-Archive provides an API for a transparent data exchange with any kind of a
 
 ## The API
 
-The sub-module Imixs-Archive-API provides the core functionality and interfaces to generate, store and retrieve business data into an archive system. This api is platform independent and based on the Imixs-Workflow API.  
+The [sub-module Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api) provides the core functionality and interfaces to generate, store and retrieve business data into an archive system. This api is platform independent and based on the Imixs-Workflow API.  
 
 ## Hadoop 
 
-The sub-module Imixs-Archive-Hadoop provides an adapter for the [Apache Hadoop Filesystem (hdfs)](http://hadoop.apache.org/). The adapter is based on HttpFS which can be used to transfer data between different versions of Hadoop clusters. HttpFS allows to access data in clusterd HDFS behind of a firewall which enables a restricted and secured archive architecture. 
+The [sub-module Imixs-Archive-Hadoop](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-hadoop) provides an adapter for the [Apache Hadoop Filesystem (hdfs)](http://hadoop.apache.org/). The adapter is based on HttpFS which can be used to transfer data between different versions of Hadoop clusters. HttpFS allows to access data in clusterd HDFS behind of a firewall which enables a restricted and secured archive architecture. 
 As HttpFS is based on REST, this component does not have any additional hadoop libraries. In addition HttpFS has built-in security supporting Hadoop pseudo authentication, HTTP SPNEGO Kerberos and other pluggable authentication mechanisms to be used depending on the target architecture. 
 
 
-## Docker
+## OCR
 
-The [Imixs-Docker/hadoop project](https://github.com/imixs/imixs-docker/tree/master/hadoop) provides a Docker image to run Haddop in a Docker container. This container can be used to test Imixs-Archive in combination with a Hadoop single-node-cluster.
-**NOTE:** The Imixs-Docker/hadoop container is for test purpose only. The container should only run in a system environment protected from external access. 
+The [sub-module Imixs-Archive-OCR](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ocr) provides a solution for OCR scans on documents which are part of Imxis-Archive. Imixs-Archive-OCR includes a fulltext search based on [Apache Lucene](http://lucene.apache.org/). This module can be combined with any Imixs-Workflow business application as also with standalone applications. 
+
+
+## The Test Environment
+
+Imixs-Archive provides a test environment based on Docker. 
+[Imixs-Archive-Test](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-test) is a Docker based test environment for Imixs-Archive. The Test Environment consists of the following docker containers:
+
+- PostgreSQL Database
+- Hadoop Single Node Cluster
+- Imixs-Office-Workflow
+
+The Imixs-Archive Test Environment is for test purpose only. The Docker containers should only run in a system environment protected from external access. 
 
 
