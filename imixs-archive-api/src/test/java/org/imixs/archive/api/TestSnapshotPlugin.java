@@ -21,7 +21,8 @@ import org.mockito.Mockito;
 import junit.framework.Assert;
 
 /**
- * Test the Snapshot plug-in
+ * Test the Snapshot plug-in. The WorkflowArchiveMockEnvironment provides a
+ * workflowService and Database mock.
  * 
  * @author rsoika
  * 
@@ -34,13 +35,13 @@ public class TestSnapshotPlugin {
 	ItemCollection documentContext;
 	ItemCollection documentActivity, documentProcess;
 
+	WorkflowArchiveMockEnvironment workflowMockEnvironment;
+
 	/**
-	 * We use the provided test workflow model form the AbstractWorkflowServiceTest
+	 * Load test model and mock SnapshotPlugin
 	 * 
 	 * @throws ModelException
 	 */
-	WorkflowArchiveMockEnvironment workflowMockEnvironment;
-
 	@Before
 	public void setup() throws PluginException, ModelException {
 
@@ -58,7 +59,7 @@ public class TestSnapshotPlugin {
 
 			e.printStackTrace();
 		}
-		
+
 		// prepare test workitem
 		documentContext = new ItemCollection();
 		logger.info("setup test data...");
@@ -67,19 +68,17 @@ public class TestSnapshotPlugin {
 		list.add("anna");
 		documentContext.replaceItemValue("namTeam", list);
 		documentContext.replaceItemValue("namCreator", "ronny");
-		documentContext.replaceItemValue(WorkflowKernel.MODELVERSION, WorkflowArchiveMockEnvironment.DEFAULT_MODEL_VERSION);
+		documentContext.replaceItemValue(WorkflowKernel.MODELVERSION,
+				WorkflowArchiveMockEnvironment.DEFAULT_MODEL_VERSION);
 		documentContext.replaceItemValue(WorkflowKernel.PROCESSID, 100);
 		documentContext.replaceItemValue(WorkflowKernel.UNIQUEID, WorkflowKernel.generateUniqueID());
 		workflowMockEnvironment.getDocumentService().save(documentContext);
 
 	}
 
-	
 	/**
-	 * This test simulates a workflowService process call by mocking the entity and
-	 * model service.
-	 * 
-	 * This is just a simple simulation...
+	 * This test simulates a simple workflow process which generates a new
+	 * Snapshot-Workitem.
 	 * 
 	 * @throws ProcessingErrorException
 	 * @throws AccessDeniedException
@@ -98,20 +97,17 @@ public class TestSnapshotPlugin {
 
 		Assert.assertEquals("1.0.0", workitem.getItemValueString("$ModelVersion"));
 
-		
 		// test the $snapshotID
 		Assert.assertTrue(workitem.hasItem(SnapshotPlugin.SNAPSHOTID));
-		String snapshotID=workitem.getItemValueString(SnapshotPlugin.SNAPSHOTID);
+		String snapshotID = workitem.getItemValueString(SnapshotPlugin.SNAPSHOTID);
 		Assert.assertFalse(snapshotID.isEmpty());
-		logger.info("$snapshotid="  + snapshotID);
+		logger.info("$snapshotid=" + snapshotID);
 		Assert.assertTrue(snapshotID.startsWith("W0000-00001"));
-		
-		// load snapshot workitem
-		ItemCollection snapshotworkitem= workflowMockEnvironment.getDatabase().get(snapshotID);
+
+		// load the snapshot workitem
+		ItemCollection snapshotworkitem = workflowMockEnvironment.getDatabase().get(snapshotID);
 		Assert.assertNotNull(snapshotworkitem);
-		
+
 	}
-	
-	
 
 }
