@@ -10,12 +10,8 @@ Imixs-Archive is mainly based on the 'Workflow Push' strategy where the archive 
 
 ### The Snapshot-Architecture
 
-Imixs-Workflow provides a build-in snapshot mechanism to archive the content of a workitem into a snapshot-workitem. 
-A snapshot workitem is a copy of the current workitem (origin-workitem) including all the file content of attached files. The origin-workitem only holds a reference ($snapshotID) to the snapshot-workitem to load attached file data. 
-See the Snapshot-Concept for further details. 
-
-
-Attached files will be linked from the snapshot-workitem to the origin-workitem.
+The Imixs-Archive API provides a plugin to archive the content of a workitem during the processing life cycle into a _snapshot-workitem_.
+A _snapshot workitem_ is a copy of the current workitem (origin-workitem) including all the file content of attached files. The origin-workitem only holds a reference ($snapshotID) to the snapshot-workitem to load attached file data. Attached files will be linked from the snapshot-workitem to the origin-workitem.
 
 The snapshot process includes the following stages:
 
@@ -35,8 +31,8 @@ The ArchiveLocalPlugin implements the ObserverPlugin interface and is tied to th
  
 
 
-### The Access Control
-The access to archive data, written into the Imixs-Archive, is controlled completely by the [Imixs-Workflow engine](http://www.imixs.org). Imixs-Workflow supports a multiple-level security model, that offers a great space of flexibility while controlling the access to all parts of a workitem. 
+### The Access Control (ACL)
+The access to archive data, written into the Imixs-Archive, is controlled completely by the [Imixs-Workflow engine ACL](http://www.imixs.org/doc/engine/acl.html). Imixs-Workflow supports a multiple-level security model, that offers a great space of flexibility while controlling the access to all parts of a workitem. 
 
 
 

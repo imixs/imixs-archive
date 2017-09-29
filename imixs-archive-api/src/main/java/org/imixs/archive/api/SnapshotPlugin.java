@@ -7,7 +7,6 @@ import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
-import javax.ejb.EJB;
 import javax.ejb.SessionContext;
 
 import org.imixs.workflow.ItemCollection;
@@ -62,7 +61,8 @@ public class SnapshotPlugin extends AbstractPlugin implements ObserverPlugin {
 
 	private static Logger logger = Logger.getLogger(SnapshotPlugin.class.getName());
 
-	public static String SNAPSHOTID="$snapshotID";
+	public static String SNAPSHOTID = "$snapshotID";
+
 	/**
 	 * The run method
 	 * 
@@ -168,7 +168,7 @@ public class SnapshotPlugin extends AbstractPlugin implements ObserverPlugin {
 		}
 
 		String query = "SELECT document FROM Document AS document ";
-		query += " WHERE document.id > '" + uniqueid + "-'";
+		query += " WHERE document.id > '" + uniqueid + "-' AND document.id < '\" + uniqueid + \"-9999999999999'";
 		query += " ORDER BY document.created DESC";
 		List<ItemCollection> result = getWorkflowService().getDocumentService().getDocumentsByQuery(query, 1);
 		if (result.size() >= 1) {

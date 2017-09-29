@@ -2,10 +2,8 @@ package org.imixs.archive.api;
 
 import static org.mockito.Mockito.when;
 
-import java.util.List;
 import java.util.Vector;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
