@@ -117,7 +117,7 @@ public class SnapshotPlugin extends AbstractPlugin implements ObserverPlugin {
 		if (missingContent) {
 			// we did not found all the content of files in the last snapshot, so we need to
 			// lookup the deprecated BlobWorkitem
-			ItemCollection blobWorkitem = loadBlobWorkitem(snapshot);
+			ItemCollection blobWorkitem = loadBlobWorkitem(workitem);
 			if (blobWorkitem != null) {
 				copyFilesFromItemCollection(blobWorkitem, snapshot);
 			}
