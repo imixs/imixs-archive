@@ -7,16 +7,15 @@ import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
+import javax.ejb.EJB;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
-import javax.inject.Named;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
 import org.imixs.workflow.engine.DocumentService;
-import org.imixs.workflow.engine.plugins.AbstractPlugin;
 import org.imixs.workflow.exceptions.InvalidAccessException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.QueryException;
@@ -58,28 +57,20 @@ import org.imixs.workflow.exceptions.QueryException;
  * @author rsoika
  */
 @Stateless
-public class SnapshotPlugin extends AbstractPlugin {
+public class ArchiveService  {
 
 	@Resource
 	SessionContext ejbCtx;
+	
+	@EJB
+	DocumentService documentService;
 
-	private static Logger logger = Logger.getLogger(SnapshotPlugin.class.getName());
+
+	private static Logger logger = Logger.getLogger(ArchiveService.class.getName());
 
 	public static String SNAPSHOTID = "$snapshotID";
 
-	/**
-	 * The run method
-	 * 
-	 * @param ctx
-	 * @return
-	 * @throws Exception
-	 */
-	@Override
-	public ItemCollection run(ItemCollection document, ItemCollection event) throws PluginException {
-		// default
-		logger.info("default run.... ");
-		return document;
-	}
+	
 
 
 
@@ -88,8 +79,7 @@ public class SnapshotPlugin extends AbstractPlugin {
 	 * and before the workitem is saved.
 	 */
 	public void beforeSave(@Observes DocumentEvent documentEvent) throws PluginException {
-		
-		logger.info("Plugin is drin !!");
+
 		
 		String type=documentEvent.getDocument().getType();
 		
@@ -102,6 +92,64 @@ public class SnapshotPlugin extends AbstractPlugin {
 			return;
 		}
 		
+		
+		// 1.) create a copy of the current workitem
+		logger.info("create snapshot-workitem.... ");
+		ItemCollection snapshot = (ItemCollection) documentEvent.getDocument().clone();
+
+		// 2.) compute a snapshot $uniqueId containing a timestamp
+		String snapshotUniqueID = documentEvent.getDocument().getUniqueID() + "-" + System.currentTimeMillis();
+		logger.info("snapshot-uniqueid=" + snapshotUniqueID);
+		snapshot.replaceItemValue(WorkflowKernel.UNIQUEID, snapshotUniqueID);
+
+		// 3. change the type with the prefix 'archive-'
+		type = "archive-" + documentEvent.getDocument().getType();
+		logger.info("snapshot-type=" + type);
+		snapshot.replaceItemValue(WorkflowKernel.TYPE, type);
+
+		// 4. If an old snapshot already exists, Files are compared to the current
+		// $files and, if necessary, stored in the Snapshot applied
+		ItemCollection lastSnapshot = findLastSnapshot(documentEvent.getDocument().getUniqueID());
+		boolean missingContent = copyFilesFromItemCollection(lastSnapshot, snapshot);
+		if (missingContent) {
+			// we did not found all the content of files in the last snapshot, so we need to
+			// lookup the deprecated BlobWorkitem
+			ItemCollection blobWorkitem = loadBlobWorkitem(documentEvent.getDocument());
+			if (blobWorkitem != null) {
+				copyFilesFromItemCollection(blobWorkitem, snapshot);
+			}
+		}
+
+		// 5. remove file content form the origin-workitem
+		Map<String, List<Object>> files = snapshot.getFiles();
+		if (files != null) {
+			// empty data...
+			byte[] empty = { 0 };
+			for (Entry<String, List<Object>> entry : files.entrySet()) {
+				String aFilename = entry.getKey();
+				List<?> file = entry.getValue();
+				// remove content....
+				String contentType = (String) file.get(0);
+				byte[] fileContent = (byte[]) file.get(1);
+				if (fileContent != null && fileContent.length > 1) {
+					// add the file name (with empty data)
+					logger.info("drop content for file '" + aFilename + "'");
+					documentEvent.getDocument().addFile(empty, aFilename, contentType);
+				}
+			}
+		}
+
+		// 6. store the snapshot uniqeId into the origin-workitem ($snapshotID)
+		documentEvent.getDocument().replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
+
+		// 7. remove deprecated snapshots - note: this method should not be called in
+		// HadoopArchivePlugin!
+		removeDeprecatedSnaphosts(snapshot.getUniqueID());
+
+		// save the snapshot....
+		documentService.save(snapshot);
+
+		//return workitem;
 	}
 
 	/**
@@ -119,7 +167,7 @@ public class SnapshotPlugin extends AbstractPlugin {
 		String query = "SELECT document FROM Document AS document ";
 		query += " WHERE document.id > '" + uniqueid + "-' AND document.id < '\" + uniqueid + \"-9999999999999'";
 		query += " ORDER BY document.created DESC";
-		List<ItemCollection> result = getWorkflowService().getDocumentService().getDocumentsByQuery(query, 1);
+		List<ItemCollection> result = documentService.getDocumentsByQuery(query, 1);
 		if (result.size() >= 1) {
 			return result.get(0);
 		} else {
@@ -139,13 +187,13 @@ public class SnapshotPlugin extends AbstractPlugin {
 		String snapshtIDPfafix = snapshotID.substring(0, snapshotID.lastIndexOf('-'));
 		String query = "SELECT document FROM Document AS document ";
 		query += " WHERE document.id > '" + snapshtIDPfafix + "-' AND document.id < '" + snapshotID + "'";
-		List<ItemCollection> result = getWorkflowService().getDocumentService().getDocumentsByQuery(query);
+		List<ItemCollection> result = documentService.getDocumentsByQuery(query);
 
 		if (result.size() > 0) {
 			logger.info("remove deprecated snapshots before snapshot: '" + snapshotID + "'....");
 			for (ItemCollection oldSnapshot : result) {
 				logger.info("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
-				getWorkflowService().getDocumentService().remove(oldSnapshot);
+				documentService.remove(oldSnapshot);
 			}
 		}
 
@@ -217,7 +265,7 @@ public class SnapshotPlugin extends AbstractPlugin {
 
 			Collection<ItemCollection> itemcol = null;
 			try {
-				itemcol = getWorkflowService().getDocumentService().find(sQuery, 1, 0);
+				itemcol = documentService.find(sQuery, 1, 0);
 			} catch (QueryException e) {
 				logger.severe("loadBlobWorkitem - invalid query: " + e.getMessage());
 			}
