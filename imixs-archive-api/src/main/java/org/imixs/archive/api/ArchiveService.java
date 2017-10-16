@@ -57,42 +57,36 @@ import org.imixs.workflow.exceptions.QueryException;
  * @author rsoika
  */
 @Stateless
-public class ArchiveService  {
+public class ArchiveService {
 
 	@Resource
 	SessionContext ejbCtx;
-	
+
 	@EJB
 	DocumentService documentService;
-
 
 	private static Logger logger = Logger.getLogger(ArchiveService.class.getName());
 
 	public static String SNAPSHOTID = "$snapshotID";
-
-	
-
-
+	private static String TYPE_PRAFIX = "snapshot-";
 
 	/**
 	 * The snapshot-workitem is created immediately after the workitem was processed
 	 * and before the workitem is saved.
 	 */
-	public void beforeSave(@Observes DocumentEvent documentEvent) throws PluginException {
+	public void onSave(@Observes DocumentEvent documentEvent) throws PluginException {
 
-		
-		String type=documentEvent.getDocument().getType();
-		
-		if (documentEvent.getEventType()!=DocumentEvent.ON_DOCUMENT_SAVE ) {
+		String type = documentEvent.getDocument().getType();
+
+		if (documentEvent.getEventType() != DocumentEvent.ON_DOCUMENT_SAVE) {
 			// skip
 			return;
 		}
-		if (type.startsWith("archive") ) {
+		if (type.startsWith(TYPE_PRAFIX)) {
 			// skip recursive call
 			return;
 		}
-		
-		
+
 		// 1.) create a copy of the current workitem
 		logger.info("create snapshot-workitem.... ");
 		ItemCollection snapshot = (ItemCollection) documentEvent.getDocument().clone();
@@ -102,9 +96,9 @@ public class ArchiveService  {
 		logger.info("snapshot-uniqueid=" + snapshotUniqueID);
 		snapshot.replaceItemValue(WorkflowKernel.UNIQUEID, snapshotUniqueID);
 
-		// 3. change the type with the prefix 'archive-'
-		type = "archive-" + documentEvent.getDocument().getType();
-		logger.info("snapshot-type=" + type);
+		// 3. change the type with the prefix 'snapshot-'
+		type = TYPE_PRAFIX + documentEvent.getDocument().getType();
+		logger.info("type=" + type);
 		snapshot.replaceItemValue(WorkflowKernel.TYPE, type);
 
 		// 4. If an old snapshot already exists, Files are compared to the current
@@ -146,10 +140,9 @@ public class ArchiveService  {
 		// HadoopArchivePlugin!
 		removeDeprecatedSnaphosts(snapshot.getUniqueID());
 
-		// save the snapshot....
+		// save the snapshot without indexing....
+		snapshot.replaceItemValue(DocumentService.LUCENEIGNORE, true);
 		documentService.save(snapshot);
-
-		//return workitem;
 	}
 
 	/**
