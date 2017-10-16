@@ -1,0 +1,35 @@
+@startuml
+autonumber
+
+box "Imixs-Workflow" #LightBlue
+participant WorkflowService
+participant DocumentService
+participant SnapshotService
+end box
+
+box "Archive-System" #EEEEEE
+participant Archive
+end box
+
+
+activate WorkflowService #EEEEEE
+
+WorkflowService --> WorkflowService : process process instance
+WorkflowService -> DocumentService: save process instance
+activate DocumentService
+
+DocumentService -> SnapshotService : send notification event
+activate SnapshotService
+SnapshotService --> SnapshotService: create snapshot-workitem
+SnapshotService -> DocumentService: save snapshot-workitem
+
+SnapshotService --> Archive: archive snapshot-workitem
+
+deactivate SnapshotService
+
+
+DocumentService -> WorkflowService: return new process instance
+deactivate DocumentService
+
+deactivate WorkflowService
+@enduml
