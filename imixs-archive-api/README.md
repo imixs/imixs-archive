@@ -13,7 +13,7 @@ Imixs-Archive is mainly based on the 'Workflow Push' strategy where the archive 
 The Imixs-Archive API provides a mechanism to archive the content of a workitem during the processing life cycle into a _snapshot-workitem_.
 A _snapshot workitem_ is an immutable copy of a workitem (origin-workitem) including all the business data and file content of attached files. A A _snapshot workitem_ can be stored in the workflow data storge or in an external archive storage (e.g. Hadoop).
 
-<br /><br /><img src="uml/small_h-trans.png" />
+<br /><br /><img src="src/uml/small_h-trans.png" />
 
 
 The snapshot process includes the following stages:
