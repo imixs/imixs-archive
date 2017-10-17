@@ -9,16 +9,15 @@ Audit-proof archiving means that documents or business information can be search
 The Imixs-Archive API combines these aspects together with the [Imixs-Workflow engine](http://www.imixs.org)  into a powerful and flexible business process management platform.
  
 ### Searching Information
-Imixs Workflow provides the foundation for creating, editing, and searching business data  on intelligible defined process descriptions. Each process instance controlled by the Imixs-Workflow engine  can be searched through a Lucene full-text index. A query can be structured according to predefined  attributes as well as search terms in a full-text search.
+Imixs-Workflow provides the foundation for creating, editing, and searching business data  on intelligible defined process descriptions. Each process instance, controlled by the Imixs-Workflow engine, can be searched through a full-text index. A query can be structured - according to predefined attributes, as well as unstructured - based on search terms in a full-text search.
 
 
-### Tracing Back Information to their Origin
-Any information controlled by Imixs-Workflow contains a detailed and consistently log from its creation to its archiving.  This protocol can be read by both IT systems and people. Business information can be stored in an open XML format which is independent from technical platform and storage solutions.  
+### Tracing Back Information to its Origin
+Any information controlled by Imixs-Workflow contains a detailed and consistently log from its creation to its archiving.  This protocol can be read by both, IT systems and humans. Business information can be stored in an open XML format which is independent from technical platform and storage solutions.  
  
-### Secure Information against Tampering
-Based on a BPMN 2.0 process model, business data can be protected from changes at any time in a business process.
-Imixs workflow supports a fine grained access control at the level of a single process instance.
-In addition, Imixs-Archive supports a snapshot concept that automatically stores business data protected from any manipulation within this system.
+### Protecting Information from Tampering
+Based on a BPMN 2.0 process model, business data can be protected from changes at any time within a business process.
+Imixs-Workflow supports a fine grained access control on the level of a single process instance. This concept allows protecting data from tampering. In addition, Imixs-Archive supports a snapshot concept that automatically stores business data protected from any further manipulation.
  
  
  
