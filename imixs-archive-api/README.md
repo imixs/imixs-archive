@@ -1,14 +1,28 @@
 # Imixs-Archive API
 
-The sub-module Imixs-Archive-API provides the core functionality and interfaces to generate, store and retrieve business data into an archive system. This api is platform independent and based on the Imixs-Workflow API.  
+The sub-module Imixs-Archive-API provides the core functionality and interfaces to generate, store and retrieve business data into an audit-proof archive system. This api is platform independent and based on the Imixs-Workflow API.  
 
 
-## Concepts
+## What Audit-Proof Archiving Means
+Audit-proof archiving means that documents or business information can be searched, traced back to their origin, and stored securely against tampering. From an organizational perspective, a procedure for audit-proof archiving must be transparent for outsiders .
 
-Imixs-Archive is mainly based on the 'Workflow Push' strategy where the archive process is directly coupled to the workflow process. This means that the archive process can be controlled by the workflow model. 
+The Imixs-Archive API combines these aspects together with the [Imixs-Workflow engine](http://www.imixs.org)  into a powerful and flexible business process management platform.
+ 
+### Searching Information
+Imixs Workflow provides the foundation for creating, editing, and searching business data  on intelligible defined process descriptions. Each process instance controlled by the Imixs-Workflow engine  can be searched through a Lucene full-text index. A query can be structured according to predefined  attributes as well as search terms in a full-text search.
 
 
-### The Snapshot-Architecture
+### Tracing Back Information to their Origin
+Any information controlled by Imixs-Workflow contains a detailed and consistently log from its creation to its archiving.  This protocol can be read by both IT systems and people. Business information can be stored in an open XML format which is independent from technical platform and storage solutions.  
+ 
+### Secure Information against Tampering
+Based on a BPMN 2.0 process model, business data can be protected from changes at any time in a business process.
+Imixs workflow supports a fine grained access control at the level of a single process instance.
+In addition, Imixs-Archive supports a snapshot concept that automatically stores business data protected from any manipulation within this system.
+ 
+ 
+ 
+## The Imixs-Snapshot-Architecture
 
 The Imixs-Archive API provides a mechanism to archive the content of a workitem during the processing life cycle into a _snapshot-workitem_.
 A _snapshot workitem_ is an immutable copy of a workitem (origin-workitem) including all the business data and file content of attached files. A A _snapshot workitem_ can be stored in the workflow data storge or in an external archive storage (e.g. Hadoop).
