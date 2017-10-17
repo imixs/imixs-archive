@@ -17,11 +17,10 @@ import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
 import org.imixs.workflow.engine.DocumentService;
 import org.imixs.workflow.exceptions.InvalidAccessException;
-import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.QueryException;
 
 /**
- * This SnapshotPlugin provides a mechanism to transfer the content of a
+ * This service component provides a mechanism to transfer the content of a
  * workitem into a snapshot workitem. Attached files will be linked from the
  * snapshot-workitem to the origin-workitem.
  * 
@@ -45,11 +44,11 @@ import org.imixs.workflow.exceptions.QueryException;
  * with a timestamp. During the snapshot creation the snapshot-uniquId is stored
  * into the origin workitem.
  * 
- * The SnapshotPlugin implements the ObserverPlugin interface
+ * The SnapshotService implements the CDI Observer pattern provided from the DocumentService.
  * 
  * <p>
- * Note: The SnapshotPlugin replaces the BlobWorkitems mechanism which was
- * earlier part of the DMSPlugin from the imixs-marty project. The plugin
+ * Note: The SnapshotService replaces the BlobWorkitems mechanism which was
+ * earlier part of the DMSPlugin from the imixs-marty project. The SnapshotService
  * provides a migration mechanism for old BlobWorkitems. The old BlobWorkitems
  * will not be deleted.
  * 
@@ -57,7 +56,7 @@ import org.imixs.workflow.exceptions.QueryException;
  * @author rsoika
  */
 @Stateless
-public class ArchiveService {
+public class SnapshotService {
 
 	@Resource
 	SessionContext ejbCtx;
@@ -65,7 +64,7 @@ public class ArchiveService {
 	@EJB
 	DocumentService documentService;
 
-	private static Logger logger = Logger.getLogger(ArchiveService.class.getName());
+	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
 	public static String SNAPSHOTID = "$snapshotID";
 	private static String TYPE_PRAFIX = "snapshot-";
@@ -74,7 +73,7 @@ public class ArchiveService {
 	 * The snapshot-workitem is created immediately after the workitem was processed
 	 * and before the workitem is saved.
 	 */
-	public void onSave(@Observes DocumentEvent documentEvent) throws PluginException {
+	public void onSave(@Observes DocumentEvent documentEvent) {
 
 		String type = documentEvent.getDocument().getType();
 
@@ -140,8 +139,9 @@ public class ArchiveService {
 		// HadoopArchivePlugin!
 		removeDeprecatedSnaphosts(snapshot.getUniqueID());
 
-		// save the snapshot without indexing....
+		// save the snapshot immutable without indexing....
 		snapshot.replaceItemValue(DocumentService.LUCENEIGNORE, true);
+		snapshot.replaceItemValue(DocumentService.IMMUTABLE, true);
 		documentService.save(snapshot);
 	}
 
