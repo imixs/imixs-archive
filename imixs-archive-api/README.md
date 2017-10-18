@@ -37,8 +37,8 @@ The snapshot process includes the following stages:
 3. The DocumentService sends a notification of the new or updated process instance to the SnapshotService. 
 4. The SnapshotService creates a immutable copy of the process instance - called snapshot-workitem.
 5. The snapshot workitem is stored into the local workflow storage
-6. An external archive system receives the new snapshot-workitem and stores it into a archive storage. 
-7. The origin process instance is returned to the application
+6. The origin process instance is returned to the application
+7. An external archive system receives the new snapshot-workitem and stores it into a archive storage. 
 
  
 A snapshot-workitem holds a reference to the origin-workitem by its own $UniqueID which is 

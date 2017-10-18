@@ -140,7 +140,7 @@ public class SnapshotService {
 		removeDeprecatedSnaphosts(snapshot.getUniqueID());
 
 		// save the snapshot immutable without indexing....
-		snapshot.replaceItemValue(DocumentService.LUCENEIGNORE, true);
+		snapshot.replaceItemValue(DocumentService.NOINDEX, true);
 		snapshot.replaceItemValue(DocumentService.IMMUTABLE, true);
 		documentService.save(snapshot);
 	}

@@ -22,14 +22,11 @@ DocumentService -> SnapshotService : send notification event
 activate SnapshotService
 SnapshotService --> SnapshotService: create snapshot-workitem
 SnapshotService -> DocumentService: save snapshot-workitem
-
-SnapshotService --> Archive: archive snapshot-workitem
-
 deactivate SnapshotService
-
-
 DocumentService -> WorkflowService: return new process instance
 deactivate DocumentService
-
 deactivate WorkflowService
+
+Archive --> SnapshotService : archive snapshot-workitem
+
 @enduml
