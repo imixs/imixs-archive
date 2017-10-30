@@ -204,6 +204,6 @@ that these ejbs are accessable from the workflow engine:
 	
 # Testing
 
-The imixs-archive-core module includes jUnit tests. The jUnit test class _TestSnaptshotService_ mocks the SnapshotService and simulates a processing a workitem with the WorkflowMockEnvironment. The test BPMN model '_TestSnapshotService.bpmn_' is used to simulate a workflow. 
+The imixs-archive-api module includes jUnit tests. The jUnit test class _org.imixs.archive.api.TestSnaptshotService_ mocks the EJB _SnapshotService_ and simulates the processing of a workitem within the [Imixs WorkflowMockEnvironment](http://www.imixs.org/doc/testing.html#WorkflowMockEnvironment). The test BPMN model '_TestSnapshotService.bpmn_' is used to simulate a workflow. 
 
  
