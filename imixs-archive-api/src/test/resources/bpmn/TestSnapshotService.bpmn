@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- origin at X=0.0 Y=0.0 -->
-<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:ext="http://org.eclipse.bpmn2/ext" xmlns:imixs="http://www.imixs.org/bpmn2" xmlns:xs="http://www.w3.org/2001/XMLSchema" id="Definitions_1" exporter="org.eclipse.bpmn2.modeler.core" exporterVersion="1.4.2.RC1-v20170915-1830-B1" targetNamespace="http://www.imixs.org/bpmn2">
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:ext="http://org.eclipse.bpmn2/ext" xmlns:imixs="http://www.imixs.org/bpmn2" xmlns:xs="http://www.w3.org/2001/XMLSchema" id="Definitions_1" exporter="org.eclipse.bpmn2.modeler.core" exporterVersion="1.4.2.SNAPSHOT-v20171016-1942-B1" targetNamespace="http://www.imixs.org/bpmn2">
   <bpmn2:extensionElements>
     <imixs:item name="txtfieldmapping" type="xs:string">
       <imixs:value><![CDATA[Manager|namManager]]></imixs:value>
@@ -10,9 +10,7 @@
     <imixs:item name="txttimefieldmapping" type="xs:string">
       <imixs:value><![CDATA[Date|datDate]]></imixs:value>
     </imixs:item>
-    <imixs:item name="txtplugins" type="xs:string">
-      <imixs:value><![CDATA[org.imixs.archive.api.SnapshotPlugin]]></imixs:value>
-    </imixs:item>
+    <imixs:item name="txtplugins" type="xs:string"/>
     <imixs:item name="txtworkflowmodelversion" type="xs:string">
       <imixs:value><![CDATA[1.0.0]]></imixs:value>
     </imixs:item>
@@ -141,13 +139,13 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_IntermediateCatchEvent_3" bpmnElement="IntermediateCatchEvent_3">
         <dc:Bounds height="36.0" width="36.0" x="187.0" y="197.0"/>
-        <bpmndi:BPMNLabel id="BPMNLabel_6">
+        <bpmndi:BPMNLabel id="BPMNLabel_6" labelStyle="BPMNLabelStyle_1">
           <dc:Bounds height="14.0" width="27.0" x="191.0" y="233.0"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_IntermediateCatchEvent_9" bpmnElement="IntermediateCatchEvent_9">
         <dc:Bounds height="36.0" width="36.0" x="330.0" y="97.0"/>
-        <bpmndi:BPMNLabel id="BPMNLabel_31">
+        <bpmndi:BPMNLabel id="BPMNLabel_31" labelStyle="BPMNLabelStyle_1">
           <dc:Bounds height="14.0" width="39.0" x="329.0" y="133.0"/>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>

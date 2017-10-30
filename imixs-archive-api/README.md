@@ -97,3 +97,113 @@ Imixs-Archive generates a snapshot-workitem in each processing step. So the tota
 Thus, in this exmple a system processing 1 million process instances per year can claim a data volume of 1.2 TB each year.
 
 
+
+# Deployment
+
+To deploy imixs-archive into Imixs-Office-Workflow the following maven configuration is needed:
+
+ 1) Add the following artifact versions into the master pom.xml
+
+
+		<!-- Imixs-Archive -->
+		<org.imixs.archive.version>0.0.2-SNAPSHOT</org.imixs.archive.version>
+		<apache.poi.version>3.17</apache.poi.version>
+		<apache.pdfbox.version>2.0.7</apache.pdfbox.version>
+
+ 2) Add the following dependencies into the section dependencyManagement of the master pom.xml:
+
+
+		<!-- Imixs-Archive -->
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-archive-api</artifactId>
+			<version>${org.imixs.archive.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>${apache.poi.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>${apache.poi.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-scratchpad</artifactId>
+			<version>${apache.poi.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.pdfbox</groupId>
+		    <artifactId>pdfbox</artifactId>
+		    <version>${apache.pdfbox.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		
+
+ 3) Add the following dependencies into the pom.xml of the ear module (optional web module if no ear is used.
+
+		<!-- Imixs-Archive -->
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-archive-api</artifactId>
+			 <scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-scratchpad</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.pdfbox</groupId>
+		    <artifactId>pdfbox</artifactId>
+		    <scope>compile</scope>
+		</dependency>
+		
+These dependencies will add the necessary libraries into the /lib folder of the ear module (optional the web module).
+The imixs-archive-api should be added directly as a jar module together with the Imixs EJB module (engine, marty), so
+that these ejbs are accessable from the workflow engine:
+
+
+	...
+	<plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-ear-plugin</artifactId>
+		<version>2.6</version>
+		<configuration>
+			.....
+			<modules>	
+				....
+				<JarModule>
+					<groupId>org.imixs.workflow</groupId>
+					<artifactId>imixs-archive-api</artifactId>
+					<bundleDir>/</bundleDir>
+				</JarModule>  
+				...
+			</modules>
+			...
+		</configuration>
+	</plugin>
+	...
+
+	
+# Testing
+
+The imixs-archive-core module includes jUnit tests. The jUnit test class _TestSnaptshotService_ mocks the SnapshotService and simulates a processing a workitem with the WorkflowMockEnvironment. The test BPMN model '_TestSnapshotService.bpmn_' is used to simulate a workflow. 
+
+ 
