@@ -98,6 +98,14 @@ Thus, in this exmple a system processing 1 million process instances per year ca
 
 
 
+# Document Fulltext Search 
+
+The EJB _LuceneDocumentService_ provides method to index the content of attachments of the type .pdf, .doc, .xls and .ppt in a Lucene Fulltext Serach index. The service uses the libraries of [Apache POI](http://poi.apache.org/) and [Apache PDFBox](https://pdfbox.apache.org/) to extract the content of those documents. 
+
+The indexing process is controlled by a timer servcie class called 'LuceneDocumentScheduler'.  
+
+
+
 # Deployment
 
 To deploy imixs-archive into Imixs-Office-Workflow the following maven configuration is needed:
