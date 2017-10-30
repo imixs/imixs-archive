@@ -13,7 +13,13 @@ The [sub-module Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/m
 
 [Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api)
   
+## The UI
 
+The [sub-module Imixs-Archive-UI](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ui) provides ui functionality to be integrated into enterprise application (see the Imixs-Office-Workflow project).
+
+[Imixs-Archive-UI](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ui)
+  
+  
 ## Hadoop 
 
 The [sub-module Imixs-Archive-Hadoop](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-hadoop) provides an adapter for the [Apache Hadoop Filesystem (hdfs)](http://hadoop.apache.org/). The adapter is based on the HttpFS Rest API. HttpFS can be used to transfer data in a restfull way between different versions of Hadoop clusters. HttpFS allows to access data in clustered HDFS behind of a firewall which enables a restricted and secured archive architecture. 

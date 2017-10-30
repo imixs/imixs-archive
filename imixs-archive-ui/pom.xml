@@ -67,7 +67,8 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.imixs.workflow</groupId>
-			<artifactId>imixs-archive-ui</artifactId>
+			<artifactId>imixs-archive-api</artifactId>
+			<version>${project.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
