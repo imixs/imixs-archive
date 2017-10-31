@@ -14,7 +14,7 @@ imixs-archive-postgres:
 #    - "50075:50075"
     
 imixs-archive-office:
-  image: imixs/imixs-office-workflow
+  image: imixs/imixs-archive-office
   environment:
     WILDFLY_PASS: adminadmin
     DEBUG: "true"

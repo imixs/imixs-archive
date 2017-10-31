@@ -19,7 +19,7 @@ The docker-compose.yml can be used to start the test environment
 ### Build the docker image
 To build the docker image run
 
-	docker build --tag=imixs/imixs-office-workflow .
+	docker build --tag=imixs/imixs-archive-office .
 
 
 

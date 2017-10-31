@@ -112,6 +112,10 @@
             <logger category="sun.rmi">
                 <level name="WARN"/>
             </logger>
+ 			<logger category="org.imixs.archive">
+                <level name="FINE"/>
+            </logger>
+
             <root-logger>
                 <level name="INFO"/>
                 <handlers>
