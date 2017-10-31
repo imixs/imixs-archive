@@ -12,6 +12,7 @@ import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 
+import org.imixs.archive.lucene.FileParserService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
@@ -44,13 +45,20 @@ import org.imixs.workflow.exceptions.QueryException;
  * with a timestamp. During the snapshot creation the snapshot-uniquId is stored
  * into the origin workitem.
  * 
- * The SnapshotService implements the CDI Observer pattern provided from the DocumentService.
+ * The SnapshotService implements the CDI Observer pattern provided from the
+ * DocumentService.
+ * 
+ * 
+ * <p>
+ * Model entries are not part of the snapshot concept
  * 
  * <p>
  * Note: The SnapshotService replaces the BlobWorkitems mechanism which was
- * earlier part of the DMSPlugin from the imixs-marty project. The SnapshotService
- * provides a migration mechanism for old BlobWorkitems. The old BlobWorkitems
- * will not be deleted.
+ * earlier part of the DMSPlugin from the imixs-marty project. The
+ * SnapshotService provides a migration mechanism for old BlobWorkitems. The old
+ * BlobWorkitems will not be deleted. If the DMSPlugin is still active and
+ * documents from the type 'workitemlob' will be saved, the SnapshotService
+ * throws a SnapshotException.
  * 
  * @version 1.0
  * @author rsoika
@@ -63,6 +71,9 @@ public class SnapshotService {
 
 	@EJB
 	DocumentService documentService;
+
+	@EJB
+	FileParserService fileParserService;
 
 	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
@@ -86,18 +97,29 @@ public class SnapshotService {
 			return;
 		}
 
+		if ("model".equals(type)) {
+			// skip models
+			return;
+		}
+
+		// throw SnapshotException if a deprecated workitemlob is saved....
+		if ("workitemlob".equals(type)) {
+			throw new SnapshotException(SnapshotException.INVALID_DATA,
+					"deprecated workitemlob - verifiy models for DMSPlugin");
+		}
+
 		// 1.) create a copy of the current workitem
-		logger.info("create snapshot-workitem.... ");
+		logger.fine("creating new snapshot-workitem.... ");
 		ItemCollection snapshot = (ItemCollection) documentEvent.getDocument().clone();
 
 		// 2.) compute a snapshot $uniqueId containing a timestamp
 		String snapshotUniqueID = documentEvent.getDocument().getUniqueID() + "-" + System.currentTimeMillis();
-		logger.info("snapshot-uniqueid=" + snapshotUniqueID);
+		logger.fine("snapshot-uniqueid=" + snapshotUniqueID);
 		snapshot.replaceItemValue(WorkflowKernel.UNIQUEID, snapshotUniqueID);
 
 		// 3. change the type with the prefix 'snapshot-'
 		type = TYPE_PRAFIX + documentEvent.getDocument().getType();
-		logger.info("type=" + type);
+		logger.fine("type=" + type);
 		snapshot.replaceItemValue(WorkflowKernel.TYPE, type);
 
 		// 4. If an old snapshot already exists, Files are compared to the current
@@ -126,7 +148,7 @@ public class SnapshotService {
 				byte[] fileContent = (byte[]) file.get(1);
 				if (fileContent != null && fileContent.length > 1) {
 					// add the file name (with empty data)
-					logger.info("drop content for file '" + aFilename + "'");
+					logger.fine("drop content for file '" + aFilename + "'");
 					documentEvent.getDocument().addFile(empty, aFilename, contentType);
 				}
 			}
@@ -142,12 +164,22 @@ public class SnapshotService {
 		// save the snapshot immutable without indexing....
 		snapshot.replaceItemValue(DocumentService.NOINDEX, true);
 		snapshot.replaceItemValue(DocumentService.IMMUTABLE, true);
+
+		// lucene: indexing file content... (experimental)
+		// fileParserService.parse(snapshot);
+
+		// so nochmal ein kleiner test ob wir überhaupt daten haben.....
+		// Map<String, List<Object>> testfiles = snapshot.getFiles();
+
 		documentService.save(snapshot);
 	}
 
 	/**
 	 * This method returns the latest Snapshot-workitem for a given $UNIQUEID, or
 	 * null if no snapshot-workitem exists.
+	 * 
+	 * The method queries the possible snapshot id-range for a given $UniqueId sorted
+	 * by creation date descending and returns the first match.
 	 * 
 	 * @param uniqueid
 	 * @return
@@ -158,7 +190,7 @@ public class SnapshotService {
 		}
 
 		String query = "SELECT document FROM Document AS document ";
-		query += " WHERE document.id > '" + uniqueid + "-' AND document.id < '\" + uniqueid + \"-9999999999999'";
+		query += " WHERE document.id > '" + uniqueid + "-' AND document.id < '" + uniqueid + "-9999999999999'";
 		query += " ORDER BY document.created DESC";
 		List<ItemCollection> result = documentService.getDocumentsByQuery(query, 1);
 		if (result.size() >= 1) {
@@ -183,9 +215,9 @@ public class SnapshotService {
 		List<ItemCollection> result = documentService.getDocumentsByQuery(query);
 
 		if (result.size() > 0) {
-			logger.info("remove deprecated snapshots before snapshot: '" + snapshotID + "'....");
+			logger.fine("remove deprecated snapshots before snapshot: '" + snapshotID + "'....");
 			for (ItemCollection oldSnapshot : result) {
-				logger.info("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
+				logger.fine("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
 				documentService.remove(oldSnapshot);
 			}
 		}
@@ -217,7 +249,7 @@ public class SnapshotService {
 					// fetch the old content from the last snapshot...
 					List<Object> oldFile = source.getFile(fileName);
 					if (oldFile != null) {
-						logger.info("copy file content from last snapshot: " + source.getUniqueID());
+						logger.fine("copy file content from last snapshot: " + source.getUniqueID());
 						target.addFile((byte[]) oldFile.get(1), fileName, (String) oldFile.get(0));
 					} else {
 						missingContent = true;
