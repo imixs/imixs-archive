@@ -26,13 +26,11 @@ import junit.framework.Assert;
  * 
  */
 public class TestSnapshotService {
-
 	private final static Logger logger = Logger.getLogger(TestSnapshotService.class.getName());
 
-	
-	@Spy 
+	@Spy
 	SnapshotService snapshotService;
-	
+
 	ItemCollection documentContext;
 	ItemCollection documentActivity, documentProcess;
 
@@ -48,12 +46,11 @@ public class TestSnapshotService {
 
 		workflowMockEnvironment = new WorkflowMockEnvironment();
 		workflowMockEnvironment.setModelPath("/bpmn/TestSnapshotService.bpmn");
-
 		workflowMockEnvironment.setup();
 
 		MockitoAnnotations.initMocks(this);
 
-		snapshotService.documentService=workflowMockEnvironment.getDocumentService();
+		snapshotService.documentService = workflowMockEnvironment.getDocumentService();
 	}
 
 	/**
@@ -66,18 +63,17 @@ public class TestSnapshotService {
 	 * 
 	 */
 	@Test
-	public void testOnSave()
-			throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
+	public void testOnSave() throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
 		// load test workitem
 		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
 		workitem.replaceItemValue(WorkflowKernel.MODELVERSION, WorkflowMockEnvironment.DEFAULT_MODEL_VERSION);
 		workitem.replaceItemValue(WorkflowKernel.PROCESSID, 1000);
 		workitem.replaceItemValue(WorkflowKernel.ACTIVITYID, 10);
-		
-		DocumentEvent documentEvent=new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
-		
+
+		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
+
 		snapshotService.onSave(documentEvent);
-			
+
 		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
 
 		Assert.assertEquals("1.0.0", workitem.getItemValueString("$ModelVersion"));

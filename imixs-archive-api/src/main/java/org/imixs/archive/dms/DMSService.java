@@ -1,5 +1,6 @@
 package org.imixs.archive.dms;
 
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -12,7 +13,6 @@ import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
-import javax.ejb.EJB;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
@@ -31,9 +31,9 @@ import org.imixs.workflow.engine.ProcessingEvent;
  * The service runs on the CDI event ProcessingEvent.BEFORE_PROCESS.
  * 
  * <p>
- * The service parses the content of .pdf and ms-doc documents and store the information into 
- * the dms field. This information can be used by plugins to analyze the textual content of 
- * a document. 
+ * The service parses the content of .pdf and ms-doc documents and store the
+ * information into the dms field. This information can be used by plugins to
+ * analyze the textual content of a document.
  * 
  * @version 1.0
  * @author rsoika
@@ -42,13 +42,12 @@ import org.imixs.workflow.engine.ProcessingEvent;
 public class DMSService {
 
 	public final static String DMS_ITEM = "dms";
+	public final static String DMS_FILE_NAMES = "dms_names"; // list of files
+	public final static String DMS_FILE_COUNT = "dms_count"; // count of files
 	public final static String CHECKSUM_ERROR = "CHECKSUM_ERROR";
 
 	@Resource
 	SessionContext ctx;
-
-	@EJB
-	FileParserService fileParserService;
 
 	private static Logger logger = Logger.getLogger(DMSService.class.getName());
 
@@ -59,16 +58,9 @@ public class DMSService {
 	public void onProcess(@Observes ProcessingEvent processingEvent) {
 
 		if (processingEvent.getEventType() == ProcessingEvent.BEFORE_PROCESS) {
-
-			// update the dms list - e.g. if another plugin had added a file....
-			// the blob workitem will only be saved in case any changes were
-			// performed...
+			// update the dms meta data
 			try {
-
-				updateDmsList(processingEvent.getDocument());
-				
-			
-
+				updateDMSMetaData(processingEvent.getDocument());
 			} catch (NoSuchAlgorithmException e) {
 				logger.severe("failed to compute MD5 checksum: " + processingEvent.getDocument().getUniqueID() + " - "
 						+ e.getMessage());
@@ -79,105 +71,6 @@ public class DMSService {
 			}
 		}
 
-	}
-
-	/**
-	 * This method updates the property 'dms' of the current workitem with the meta
-	 * data of attached files or links.
-	 * 
-	 * This method creates new empty DMS entries in the current workitem for new
-	 * uploaded files which are still not contained in the dms item list. The
-	 * workitem will only hold a empty byte array for files.
-	 * 
-	 * If a new file content was added, the MD5 checksum will be generated.
-	 * 
-	 * 
-	 * @param aWorkitem
-	 * @param dmsList
-	 *            - map with meta information for each file entry
-	 * @param defaultUsername
-	 *            - default username for new dms entries
-	 * @return true if the dms item was changed
-	 * @throws NoSuchAlgorithmException
-	 * 
-	 */
-	private boolean updateDmsList(ItemCollection aWorkitem) throws NoSuchAlgorithmException {
-
-		boolean updateBlob = false;
-
-		String username = ctx.getCallerPrincipal().getName();
-
-		List<ItemCollection> currentDmsList = getDmsList(aWorkitem);
-		List<String> fileNames = aWorkitem.getFileNames();
-		Map<String, List<Object>> files = aWorkitem.getFiles();
-
-		// first we remove all DMS entries which did not have a matching
-		// $File-Entry and are not from type link
-		if (fileNames == null) {
-			fileNames = new ArrayList<String>();
-		}
-		for (Iterator<ItemCollection> iterator = currentDmsList.iterator(); iterator.hasNext();) {
-			ItemCollection dmsEntry = iterator.next();
-			String sName = dmsEntry.getItemValueString("txtName");
-			String sURL = dmsEntry.getItemValueString("url");
-			if (sURL.isEmpty() && !fileNames.contains(sName)) {
-				// Remove the current element from the iterator and the list.
-				logger.fine("remove dms entry '" + sName + "'");
-				iterator.remove();
-				// update = true;
-			}
-		}
-
-		// now we test for each file entry if a dms meta data entry
-		// exists. If not we create a new one...
-		if (files != null) {
-			for (Entry<String, List<Object>> entry : files.entrySet()) {
-				String fileName = entry.getKey();
-				List<?> fileData = entry.getValue();
-
-				ItemCollection dmsEntry = findDMSEntry(fileName, currentDmsList);
-				if (dmsEntry == null) {
-					// no meta data exists.... create a new meta object
-					dmsEntry = new ItemCollection();
-					dmsEntry.replaceItemValue("txtname", fileName);
-
-					dmsEntry.replaceItemValue("$created", new Date());
-					dmsEntry.replaceItemValue("namCreator", username);// deprecated
-					dmsEntry.replaceItemValue("$Creator", username);
-					dmsEntry.replaceItemValue("txtcomment", "");
-
-					// compute md5 checksum
-					byte[] fileContent = (byte[]) fileData.get(1);
-					dmsEntry.replaceItemValue("md5Checksum", generateMD5(fileContent));
-					
-					// parse content...
-					String searchContent=fileParserService.parse(fileName, fileData);
-					dmsEntry.replaceItemValue("content", searchContent);
-					
-					
-					currentDmsList.add(dmsEntry);
-				} else {
-					// dms entry exists. We update if new file content was added
-					byte[] fileContent = (byte[]) fileData.get(1);
-					if (fileContent != null && fileContent.length > 1) {
-						dmsEntry.replaceItemValue("md5Checksum", generateMD5(fileContent));
-						dmsEntry.replaceItemValue("$modified", new Date());
-						dmsEntry.replaceItemValue("$editor", username);
-						// parse content...
-						String searchContent=fileParserService.parse(fileName, fileData);
-						dmsEntry.replaceItemValue("content", searchContent);
-						
-					}
-
-				}
-
-			}
-		}
-
-		// finally update the modified dms list....
-		putDmsList(aWorkitem, currentDmsList);
-
-		return updateBlob;
 	}
 
 	/**
@@ -239,6 +132,118 @@ public class DMSService {
 		}
 		// update the workitem
 		workitem.replaceItemValue(DMS_ITEM, vDMSnew);
+	}
+
+	/**
+	 * This method updates the property 'dms' of the current workitem with the meta
+	 * data of attached files or links.
+	 * 
+	 * This method creates new empty DMS entries in the current workitem for new
+	 * uploaded files which are still not contained in the dms item list. The
+	 * workitem will only hold a empty byte array for files.
+	 * 
+	 * If a new file content was added, the MD5 checksum will be generated.
+	 * 
+	 * 
+	 * @param aWorkitem
+	 * @param dmsList
+	 *            - map with meta information for each file entry
+	 * @param defaultUsername
+	 *            - default username for new dms entries
+	 * @return true if the dms item was changed
+	 * @throws NoSuchAlgorithmException
+	 * 
+	 */
+	private boolean updateDMSMetaData(ItemCollection aWorkitem) throws NoSuchAlgorithmException {
+		boolean updateBlob = false;
+
+		String username = ctx.getCallerPrincipal().getName();
+
+		List<ItemCollection> currentDmsList = getDmsList(aWorkitem);
+		List<String> fileNames = aWorkitem.getFileNames();
+		Map<String, List<Object>> files = aWorkitem.getFiles();
+
+		// first we remove all DMS entries which did not have a matching
+		// $File-Entry and are not from type link
+		if (fileNames == null) {
+			fileNames = new ArrayList<String>();
+		}
+		for (Iterator<ItemCollection> iterator = currentDmsList.iterator(); iterator.hasNext();) {
+			ItemCollection dmsEntry = iterator.next();
+			String sName = dmsEntry.getItemValueString("txtName");
+			String sURL = dmsEntry.getItemValueString("url");
+			if (sURL.isEmpty() && !fileNames.contains(sName)) {
+				// Remove the current element from the iterator and the list.
+				logger.fine("remove dms entry '" + sName + "'");
+				iterator.remove();
+				// update = true;
+			}
+		}
+
+		// now we test for each file entry if a dms meta data entry
+		// exists. If not we create a new one...
+		if (files != null) {
+			for (Entry<String, List<Object>> entry : files.entrySet()) {
+				String fileName = entry.getKey();
+				List<?> fileData = entry.getValue();
+
+				ItemCollection dmsEntry = findDMSEntry(fileName, currentDmsList);
+				if (dmsEntry == null) {
+					// no meta data exists.... create a new meta object
+					dmsEntry = new ItemCollection();
+					dmsEntry.replaceItemValue("txtname", fileName);
+
+					dmsEntry.replaceItemValue("$created", new Date());
+					dmsEntry.replaceItemValue("namCreator", username);// deprecated
+					dmsEntry.replaceItemValue("$Creator", username);
+					dmsEntry.replaceItemValue("txtcomment", "");
+
+					// compute md5 checksum
+					byte[] fileContent = (byte[]) fileData.get(1);
+					dmsEntry.replaceItemValue("md5Checksum", generateMD5(fileContent));
+
+					// parse content...
+					String searchContent;
+					try {
+						searchContent = DocumentParser.parse(fileName, fileData);
+						dmsEntry.replaceItemValue("content", searchContent);
+					} catch (IOException e) {
+						logger.warning("Unable to parse attached document " + fileName + " : " + e.getMessage());
+						e.printStackTrace();
+					}
+
+					currentDmsList.add(dmsEntry);
+				} else {
+					// dms entry exists. We update if new file content was added
+					byte[] fileContent = (byte[]) fileData.get(1);
+					if (fileContent != null && fileContent.length > 1) {
+						dmsEntry.replaceItemValue("md5Checksum", generateMD5(fileContent));
+						dmsEntry.replaceItemValue("$modified", new Date());
+						dmsEntry.replaceItemValue("$editor", username);
+						// parse content...
+						try {
+							String searchContent = DocumentParser.parse(fileName, fileData);
+							dmsEntry.replaceItemValue("content", searchContent);
+						} catch (IOException e) {
+							logger.warning("Unable to parse attached document " + fileName + " : " + e.getMessage());
+							e.printStackTrace();
+						}
+					}
+
+				}
+
+			}
+		}
+
+		// finally update the modified dms list....
+		putDmsList(aWorkitem, currentDmsList);
+
+		// add $filecount
+		aWorkitem.replaceItemValue(DMS_FILE_COUNT, aWorkitem.getFileNames().size());
+		// add $filenames
+		aWorkitem.replaceItemValue(DMS_FILE_NAMES, aWorkitem.getFileNames());
+
+		return updateBlob;
 	}
 
 	/**

@@ -12,7 +12,7 @@ import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 
-import org.imixs.archive.dms.FileParserService;
+import org.imixs.archive.dms.DocumentParser;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
@@ -72,7 +72,7 @@ public class SnapshotService {
 	DocumentService documentService;
 
 	@EJB
-	FileParserService fileParserService;
+	DocumentParser fileParserService;
 
 	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
@@ -130,6 +130,7 @@ public class SnapshotService {
 			// lookup the deprecated BlobWorkitem
 			ItemCollection blobWorkitem = loadBlobWorkitem(documentEvent.getDocument());
 			if (blobWorkitem != null) {
+				logger.info("migrating file content from blobWorkitem '" + blobWorkitem.getUniqueID() + "' ....");
 				copyFilesFromItemCollection(blobWorkitem, snapshot);
 			}
 		}
@@ -138,7 +139,7 @@ public class SnapshotService {
 		Map<String, List<Object>> files = documentEvent.getDocument().getFiles();
 		if (files != null) {
 			// empty data...
-			byte[] empty = { };
+			byte[] empty = {};
 			for (Entry<String, List<Object>> entry : files.entrySet()) {
 				String aFilename = entry.getKey();
 				List<?> file = entry.getValue();
@@ -164,8 +165,6 @@ public class SnapshotService {
 		snapshot.replaceItemValue(DocumentService.NOINDEX, true);
 		snapshot.replaceItemValue(DocumentService.IMMUTABLE, true);
 
-	
-		
 		documentService.save(snapshot);
 	}
 
@@ -221,7 +220,7 @@ public class SnapshotService {
 
 	/**
 	 * This helper method transfers the $files content from a source workitem into a
-	 * target workitem if no content for the same file exists in the source
+	 * target workitem if no content for the same file exists in the target
 	 * workitem.
 	 * 
 	 * The method returns true if a content was missin in the source workitem.
@@ -232,27 +231,33 @@ public class SnapshotService {
 	 */
 	private boolean copyFilesFromItemCollection(ItemCollection source, ItemCollection target) {
 		boolean missingContent = false;
+
 		Map<String, List<Object>> files = target.getFiles();
 		if (files != null) {
 			for (Map.Entry<String, List<Object>> entry : files.entrySet()) {
 				String fileName = entry.getKey();
 				List<Object> file = entry.getValue();
 				// test if the content of the file is empty. In this case it makes sense to copy
-				// the already archived conent from the last snapshot
+				// the already archived content from the source
 				byte[] content = (byte[]) file.get(1);
-				if (content.length == 0) {
-					// fetch the old content from the last snapshot...
-					List<Object> oldFile = source.getFile(fileName);
-					if (oldFile != null) {
-						logger.fine("copy file content '" + fileName +"' from snapshot: " + source.getUniqueID());
-						target.addFile((byte[]) oldFile.get(1), fileName, (String) oldFile.get(0));
+				if (content.length == 0 || content.length <= 2 ) { // <= 2 migration issue (can be 1 byte)
+					// fetch the old content from source...
+					if (source != null) {
+						List<Object> oldFile = source.getFile(fileName);
+						if (oldFile != null) {
+							logger.fine("copy file content '" + fileName + "' from: " + source.getUniqueID());
+							target.addFile((byte[]) oldFile.get(1), fileName, (String) oldFile.get(0));
+						} else {
+							missingContent = true;
+							logger.warning("Missing file content!");
+						}
 					} else {
 						missingContent = true;
 						logger.warning("Missing file content!");
 					}
 				}
 			}
-		}
+		} 
 		return missingContent;
 
 	}

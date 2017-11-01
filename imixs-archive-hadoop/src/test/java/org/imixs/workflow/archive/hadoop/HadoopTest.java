@@ -94,7 +94,7 @@ public class HadoopTest {
 		HDFSClient hdfsClient=new HDFSClient("root");
 		//String uri="http://my-hadoop-cluster.local:50070/webhdfs/v1/2017/06/test?op=CREATE&overwrite=true";
 		try {
-			String status=hdfsClient.putData("test/testxxxx2111abc.txt", XMLItemCollectionAdapter.putCollection(col));
+			String status=null; //hdfsClient.putData("test/testxxxx2111abc.txt", XMLItemCollectionAdapter.putCollection(col));
 			
 			System.out.println("Status=" + status);
 			Assert.assertNotNull(status);
@@ -121,7 +121,7 @@ public class HadoopTest {
 		HDFSClient hdfsClient=new HDFSClient("root");
 		//String uri="http://my-hadoop-cluster.local:50070/webhdfs/v1/2017/06/test?op=CREATE&overwrite=true";
 		try {
-			DocumentCollection doc = hdfsClient.readData("test/testxxxx2111abc.txt");
+			DocumentCollection doc = null; //hdfsClient.readData("test/testxxxx2111abc.txt");
 			
 			 List<ItemCollection> rescol = XMLItemCollectionAdapter.getCollection(doc);
 			 workitem=rescol.get(0);
