@@ -1,8 +1,9 @@
 @startuml
 autonumber
 
-box "Imixs-Workflow" #LightBlue
+box "Imixs-Archive" #LightBlue
 participant WorkflowService
+participant DMSService
 participant DocumentService
 participant SnapshotService
 end box
@@ -12,21 +13,38 @@ participant Archive
 end box
 
 
+== Processing Life-Cycle ==
+
 activate WorkflowService #EEEEEE
 
-WorkflowService --> WorkflowService : process process instance
+WorkflowService --> WorkflowService : processing workitem
+
+WorkflowService -> DMSService: send notification
+activate DMSService
+DMSService --> DMSService: collect DMS meta data
+DMSService -> WorkflowService
+deactivate DMSService
+
 WorkflowService -> DocumentService: save process instance
 activate DocumentService
 
-DocumentService -> SnapshotService : send notification event
+DocumentService -> SnapshotService : send notification
 activate SnapshotService
 SnapshotService --> SnapshotService: create snapshot-workitem
+
+SnapshotService --> DocumentService: detach files
+
 SnapshotService -> DocumentService: save snapshot-workitem
 deactivate SnapshotService
 DocumentService -> WorkflowService: return new process instance
 deactivate DocumentService
 deactivate WorkflowService
 
-Archive --> SnapshotService : archive snapshot-workitem
+== Archive Process ==
+
+Archive --> SnapshotService : poll snapshot
+activate Archive
+SnapshotService --> Archive : archive snapshot
+deactivate Archive
 
 @enduml
