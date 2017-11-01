@@ -1,4 +1,4 @@
-package org.imixs.archive.api;
+package org.imixs.archive.core;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,12 +12,11 @@ import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 
-import org.imixs.archive.lucene.FileParserService;
+import org.imixs.archive.dms.FileParserService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
 import org.imixs.workflow.engine.DocumentService;
-import org.imixs.workflow.exceptions.InvalidAccessException;
 import org.imixs.workflow.exceptions.QueryException;
 
 /**
@@ -78,7 +77,7 @@ public class SnapshotService {
 	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
 	public static String SNAPSHOTID = "$snapshotID";
-	private static String TYPE_PRAFIX = "snapshot-";
+	public static String TYPE_PRAFIX = "snapshot-";
 
 	/**
 	 * The snapshot-workitem is created immediately after the workitem was processed
@@ -136,18 +135,18 @@ public class SnapshotService {
 		}
 
 		// 5. remove file content form the origin-workitem
-		Map<String, List<Object>> files = snapshot.getFiles();
+		Map<String, List<Object>> files = documentEvent.getDocument().getFiles();
 		if (files != null) {
 			// empty data...
-			byte[] empty = { 0 };
+			byte[] empty = { };
 			for (Entry<String, List<Object>> entry : files.entrySet()) {
 				String aFilename = entry.getKey();
 				List<?> file = entry.getValue();
-				// remove content....
+				// remove content if size > 1....
 				String contentType = (String) file.get(0);
 				byte[] fileContent = (byte[]) file.get(1);
-				if (fileContent != null && fileContent.length > 1) {
-					// add the file name (with empty data)
+				if (fileContent != null && fileContent.length > 0) {
+					// update the file name with empty data
 					logger.fine("drop content for file '" + aFilename + "'");
 					documentEvent.getDocument().addFile(empty, aFilename, contentType);
 				}
@@ -165,12 +164,8 @@ public class SnapshotService {
 		snapshot.replaceItemValue(DocumentService.NOINDEX, true);
 		snapshot.replaceItemValue(DocumentService.IMMUTABLE, true);
 
-		// lucene: indexing file content... (experimental)
-		// fileParserService.parse(snapshot);
-
-		// so nochmal ein kleiner test ob wir überhaupt daten haben.....
-		// Map<String, List<Object>> testfiles = snapshot.getFiles();
-
+	
+		
 		documentService.save(snapshot);
 	}
 
@@ -178,15 +173,15 @@ public class SnapshotService {
 	 * This method returns the latest Snapshot-workitem for a given $UNIQUEID, or
 	 * null if no snapshot-workitem exists.
 	 * 
-	 * The method queries the possible snapshot id-range for a given $UniqueId sorted
-	 * by creation date descending and returns the first match.
+	 * The method queries the possible snapshot id-range for a given $UniqueId
+	 * sorted by creation date descending and returns the first match.
 	 * 
 	 * @param uniqueid
 	 * @return
 	 */
 	ItemCollection findLastSnapshot(String uniqueid) {
 		if (uniqueid == null || uniqueid.isEmpty()) {
-			throw new InvalidAccessException(DocumentService.INVALID_UNIQUEID, "undefined $uniqueid");
+			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "undefined $uniqueid");
 		}
 
 		String query = "SELECT document FROM Document AS document ";
@@ -206,7 +201,7 @@ public class SnapshotService {
 	void removeDeprecatedSnaphosts(String snapshotID) {
 
 		if (snapshotID == null || snapshotID.isEmpty()) {
-			throw new InvalidAccessException(DocumentService.INVALID_UNIQUEID, "undefined $snapshotID");
+			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "undefined $snapshotID");
 		}
 
 		String snapshtIDPfafix = snapshotID.substring(0, snapshotID.lastIndexOf('-'));
@@ -215,7 +210,7 @@ public class SnapshotService {
 		List<ItemCollection> result = documentService.getDocumentsByQuery(query);
 
 		if (result.size() > 0) {
-			logger.fine("remove deprecated snapshots before snapshot: '" + snapshotID + "'....");
+			logger.fine("searching deprecated snapshots before snapshot: '" + snapshotID + "'....");
 			for (ItemCollection oldSnapshot : result) {
 				logger.fine("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
 				documentService.remove(oldSnapshot);
@@ -245,11 +240,11 @@ public class SnapshotService {
 				// test if the content of the file is empty. In this case it makes sense to copy
 				// the already archived conent from the last snapshot
 				byte[] content = (byte[]) file.get(1);
-				if (content.length <= 1) {
+				if (content.length == 0) {
 					// fetch the old content from the last snapshot...
 					List<Object> oldFile = source.getFile(fileName);
 					if (oldFile != null) {
-						logger.fine("copy file content from last snapshot: " + source.getUniqueID());
+						logger.fine("copy file content '" + fileName +"' from snapshot: " + source.getUniqueID());
 						target.addFile((byte[]) oldFile.get(1), fileName, (String) oldFile.get(0));
 					} else {
 						missingContent = true;

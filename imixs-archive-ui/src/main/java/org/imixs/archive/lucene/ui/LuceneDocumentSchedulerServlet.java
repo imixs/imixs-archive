@@ -7,7 +7,7 @@ import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 
-import org.imixs.archive.lucene.LuceneDocumentSchedulerService;
+import org.imixs.archive.experimental.LuceneDocumentSchedulerService;
 import org.imixs.workflow.ItemCollection;
 
 /**

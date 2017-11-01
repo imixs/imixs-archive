@@ -1,4 +1,4 @@
-package org.imixs.archive.lucene;
+package org.imixs.archive.experimental;
 
 import java.io.File;
 import java.io.FileInputStream;

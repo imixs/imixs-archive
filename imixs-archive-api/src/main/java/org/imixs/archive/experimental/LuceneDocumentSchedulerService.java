@@ -1,4 +1,4 @@
-package org.imixs.archive.lucene;
+package org.imixs.archive.experimental;
 
 /*******************************************************************************
  *  Imixs Workflow 
@@ -52,6 +52,7 @@ import javax.ejb.TimerConfig;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 
+import org.imixs.archive.lucene.LuceneDocumentService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentService;

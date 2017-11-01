@@ -112,6 +112,9 @@ public class LuceneDocumentService {
 		// read configuration
 		properties = propertyService.getProperties();
 		indexDirectoryPath = properties.getProperty("lucence.indexDir", DEFAULT_INDEX_DIRECTORY);
+		// add path sufix
+		indexDirectoryPath=indexDirectoryPath+"-documents";
+		
 		// luceneLockFactory = properties.getProperty("lucence.lockFactory");
 		// get Analyzer Class -
 		// default=org.apache.lucene.analysis.standard.ClassicAnalyzer
@@ -131,7 +134,7 @@ public class LuceneDocumentService {
 		try {
 			long start = System.currentTimeMillis();
 			
-			logger.info("starting indexing " + documents.size() + " documents...");
+			logger.fine("starting indexing " + documents.size() + " documents...");
 			
 			createIndexWriter();
 //			checkFileValidity();

@@ -25,13 +25,13 @@
  *  	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.archive.api;
+package org.imixs.archive.core;
 
 /**
  * An SnapshotException is a runtime exception which is thrown by a
  * SnapshotService if data is not read or writable. 
  * 
- * @see org.imixs.archive.api.SnapshotService
+ * @see org.imixs.archive.core.SnapshotService
  * @author rsoika
  * 
  */

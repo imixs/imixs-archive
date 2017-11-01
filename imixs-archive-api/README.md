@@ -213,3 +213,16 @@ that these ejbs are accessable from the workflow engine:
 # Testing
 
 The imixs-archive-api module includes jUnit tests. The jUnit test class _org.imixs.archive.api.TestSnaptshotService_ mocks the EJB _SnapshotService_ and simulates the processing of a workitem within the [Imixs WorkflowMockEnvironment](http://www.imixs.org/doc/testing.html#WorkflowMockEnvironment). The test BPMN model '_TestSnapshotService.bpmn_' is used to simulate a workflow. 
+
+
+# Migration
+
+The SnapshotService replaces the now deprecated DMSPlugin. For a migration only the DMSPlugin need to be removed from the Models.
+No further migration step is necessary.
+
+The Item 'dms' with the file meta information will be handled by the SnapshotService. 
+
+
+
+
+
