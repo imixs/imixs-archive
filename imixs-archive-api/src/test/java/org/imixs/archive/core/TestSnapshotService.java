@@ -1,7 +1,8 @@
-package org.imixs.archive.api;
+package org.imixs.archive.core;
 
 import java.util.logging.Logger;
 
+import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
