@@ -82,8 +82,6 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<org.imixs.workflow.version>4.2.1</org.imixs.workflow.version>
 		<lucene.version>6.6.1</lucene.version>
-		<apache.poi.version>3.17</apache.poi.version>
-		<apache.pdfbox.version>2.0.7</apache.pdfbox.version>
 	</properties>
 	
 	

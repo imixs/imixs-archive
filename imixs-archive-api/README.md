@@ -33,17 +33,14 @@ A _snapshot workitem_ is an immutable copy of a workitem (origin-workitem) inclu
 The snapshot process includes the following stages:
 
 1. A workitem is processed by the Imixs-Workflow engine based on a BPMN 2.0 model. 
-2. The WorkflowService sends a notification event.
-3. The DMS Service collects the DMS meta data.
-4. The DMS meta data is stored into the process instance.
-5. After processing is completed, the process instance is persisted into the local workflow storage by the DocumentService.
-6. The DocumentService sends a notification event. 
-7. The SnapshotService creates a immutable copy of the process instance - called snapshot-workitem.
-8. The SnapshotService detaches the file content form the workitem. 
-9. The snapshot workitem is stored into the local workflow storage
-10. The origin process instance is returned to the application
-11. An external archive system polls new snapshot-workitems
-12. An external archive system stores the snapshot-workitems into a archive storage. 
+2. After processing is completed, the process instance is persisted into the local workflow storage by the DocumentService.
+3. The DocumentService sends a notification event. 
+4. The SnapshotService creates a immutable copy of the process instance - called snapshot-workitem.
+5. The SnapshotService detaches the file content form the workitem. 
+6. The snapshot workitem is stored into the local workflow storage
+7. The origin process instance is returned to the application
+8. An external archive system polls new snapshot-workitems
+9. An external archive system stores the snapshot-workitems into a archive storage. 
 
 
  
@@ -57,6 +54,9 @@ The _DMSService_ collects meta data from attached documents during the processin
 
 The _DMSService_ is parsing the the content of attachments from the type .pdf, .doc, .xls and .ppt. The service uses the libraries of [Apache POI](http://poi.apache.org/) and [Apache PDFBox](https://pdfbox.apache.org/) to extract the content of those documents. 
 
+The parsing process, which is activated per default, can be disabled by the imixs property setting: 
+
+	dms.parse=false
 
 
 ### CDI Events
@@ -205,7 +205,7 @@ The imixs-archive-api module includes jUnit tests. The jUnit test class _org.imi
 The SnapshotService replaces the now deprecated DMSPlugin. For a migration only the DMSPlugin need to be removed from the Models.
 No further migration step is necessary.
 
-The Item 'dms' with the file meta information will be handled by the SnapshotService. 
+The Item 'dms' with the file meta information will be handled by the DMSService. 
 
 
 

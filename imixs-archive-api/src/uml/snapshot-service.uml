@@ -3,7 +3,6 @@ autonumber
 
 box "Imixs-Archive" #LightBlue
 participant WorkflowService
-participant DMSService
 participant DocumentService
 participant SnapshotService
 end box
@@ -18,12 +17,6 @@ end box
 activate WorkflowService #EEEEEE
 
 WorkflowService --> WorkflowService : processing workitem
-
-WorkflowService -> DMSService: send notification
-activate DMSService
-DMSService --> DMSService: collect DMS meta data
-DMSService -> WorkflowService
-deactivate DMSService
 
 WorkflowService -> DocumentService: save process instance
 activate DocumentService

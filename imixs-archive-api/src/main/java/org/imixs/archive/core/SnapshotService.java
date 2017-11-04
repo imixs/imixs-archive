@@ -12,7 +12,6 @@ import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 
-import org.imixs.archive.dms.DocumentParser;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
@@ -71,9 +70,7 @@ public class SnapshotService {
 	@EJB
 	DocumentService documentService;
 
-	@EJB
-	DocumentParser fileParserService;
-
+	
 	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
 	public static String SNAPSHOTID = "$snapshotID";
