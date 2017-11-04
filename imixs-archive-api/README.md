@@ -48,21 +48,12 @@ A snapshot-workitem holds a reference to the origin-workitem by its own $UniqueI
 always the $UniqueID from the origin-workitem suffixed with a timestamp. 
 During the snapshot creation the snapshot $UniqueID is stored into the origin-workitem. 
 
-### The DMS Service
-
-The _DMSService_ collects meta data from attached documents during the processing phase. This meta data contains also extracted text information added into the lucene full-text-index. The DMS meta data is stored into the item '_dms_'.
-
-The _DMSService_ is parsing the the content of attachments from the type .pdf, .doc, .xls and .ppt. The service uses the libraries of [Apache POI](http://poi.apache.org/) and [Apache PDFBox](https://pdfbox.apache.org/) to extract the content of those documents. 
-
-The parsing process, which is activated per default, can be disabled by the imixs property setting: 
-
-	dms.parse=false
 
 
 ### CDI Events
 
 The communication between the service layers is implemented by the CDI Observer pattern. The CDI Events are tied to the transaction context of the imixs-workflow engine. 
-See the [DocumentService](http://www.imixs.org/doc/engine/documentservice.html#CDI_Events) and [WorkflowService](http://www.imixs.org/doc/engine/workflowservice.html#CDI_Events) for further information. 
+See the [DocumentService](http://www.imixs.org/doc/engine/documentservice.html#CDI_Events) for further information. 
 
 ### The Access Control (ACL)
 The access to archive data, written into the Imixs-Archive, is controlled completely by the [Imixs-Workflow engine ACL](http://www.imixs.org/doc/engine/acl.html). Imixs-Workflow supports a multiple-level security model, that offers a great space of flexibility while controlling the access to all parts of a workitem. 
@@ -100,8 +91,6 @@ To deploy imixs-archive into Imixs-Office-Workflow the following maven configura
 
 		<!-- Imixs-Archive -->
 		<org.imixs.archive.version>0.0.2-SNAPSHOT</org.imixs.archive.version>
-		<apache.poi.version>3.17</apache.poi.version>
-		<apache.pdfbox.version>2.0.7</apache.pdfbox.version>
 
  2) Add the following dependencies into the section dependencyManagement of the master pom.xml:
 
@@ -113,30 +102,7 @@ To deploy imixs-archive into Imixs-Office-Workflow the following maven configura
 			<version>${org.imixs.archive.version}</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi</artifactId>
-			<version>${apache.poi.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-ooxml</artifactId>
-			<version>${apache.poi.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-scratchpad</artifactId>
-			<version>${apache.poi.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-		    <groupId>org.apache.pdfbox</groupId>
-		    <artifactId>pdfbox</artifactId>
-		    <version>${apache.pdfbox.version}</version>
-			<scope>provided</scope>
-		</dependency>
+
 		
 
  3) Add the following dependencies into the pom.xml of the ear module (optional web module if no ear is used.
@@ -147,26 +113,7 @@ To deploy imixs-archive into Imixs-Office-Workflow the following maven configura
 			<artifactId>imixs-archive-api</artifactId>
 			 <scope>compile</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi</artifactId>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-ooxml</artifactId>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-scratchpad</artifactId>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-		    <groupId>org.apache.pdfbox</groupId>
-		    <artifactId>pdfbox</artifactId>
-		    <scope>compile</scope>
-		</dependency>
+		
 		
 These dependencies will add the necessary libraries into the /lib folder of the ear module (optional the web module).
 The imixs-archive-api should be added directly as a jar module together with the Imixs EJB module (engine, marty), so
@@ -202,10 +149,11 @@ The imixs-archive-api module includes jUnit tests. The jUnit test class _org.imi
 
 # Migration
 
-The SnapshotService replaces the now deprecated DMSPlugin. For a migration only the DMSPlugin need to be removed from the Models.
+The SnapshotService replaces the now deprecated BlobWorkitem functionality from the DMSPlugin. For a migration only the SnapshotService need to be added. The SnapshotService automatically migrates the deprecated blob-workitems. 
+
 No further migration step is necessary.
 
-The Item 'dms' with the file meta information will be handled by the DMSService. 
+The Item 'dms' with the file meta information will still be handled by the DMSPlugin. 
 
 
 
