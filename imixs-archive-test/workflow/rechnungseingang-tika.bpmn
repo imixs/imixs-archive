@@ -24,7 +24,7 @@
     </imixs:item>
     <imixs:item name="txtplugins" type="xs:string">
       <imixs:value><![CDATA[org.imixs.marty.plugins.DMSPlugin]]></imixs:value>
-      <imixs:value><![CDATA[org.imixs.workflow.documents.DocumentCoreParserPlugin]]></imixs:value>
+      <imixs:value><![CDATA[org.imixs.workflow.documents.DocumentTikaParserPlugin]]></imixs:value>
       <imixs:value><![CDATA[org.imixs.workflow.engine.plugins.ResultPlugin]]></imixs:value>
       <imixs:value><![CDATA[org.imixs.workflow.engine.plugins.RulePlugin]]></imixs:value>
       <imixs:value><![CDATA[org.imixs.marty.plugins.ProfilePlugin]]></imixs:value>

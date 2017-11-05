@@ -29,7 +29,7 @@ import org.imixs.workflow.exceptions.QueryException;
  * <li>create a copy of the origin workitem instance
  * <li>compute a snapshot $uniqueId based on the origin workitem suffixed with a
  * timestamp
- * <li>change the type of the snapshot-workitem with the prefix 'archive-'
+ * <li>change the type of the snapshot-workitem with the prefix 'snapshot-'
  * <li>If an old snapshot already exists, Files are compared to the current $
  * files and, if necessary, stored in the Snapshot applied
  * <li>remove the file content form the origin-workitem
@@ -40,8 +40,15 @@ import org.imixs.workflow.exceptions.QueryException;
  * 
  * A snapshot workitem holds a reference to the origin workitem by its own
  * $uniqueId which is always the $uniqueId from the origin workitem suffixed
- * with a timestamp. During the snapshot creation the snapshot-uniquId is stored
- * into the origin workitem.
+ * with a timestamp.
+ * <p>
+ * 
+ * <pre>
+ * 7009e427-7078-4492-af78-0a1145a736df-[SNAPSHOT TIMESTAMP]
+ * </pre>
+ * <p>
+ * During the snapshot creation the snapshot-uniquId is stored into the origin
+ * workitem.
  * 
  * The SnapshotService implements the CDI Observer pattern provided from the
  * DocumentService.
@@ -70,10 +77,9 @@ public class SnapshotService {
 	@EJB
 	DocumentService documentService;
 
-	
 	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
-	public static String SNAPSHOTID = "$snapshotID";
+	public static String SNAPSHOTID = "$snapshotid";
 	public static String TYPE_PRAFIX = "snapshot-";
 
 	/**
@@ -101,7 +107,7 @@ public class SnapshotService {
 		// throw SnapshotException if a deprecated workitemlob is saved....
 		if ("workitemlob".equals(type)) {
 			throw new SnapshotException(SnapshotException.INVALID_DATA,
-					"deprecated workitemlob - verifiy models for DMSPlugin");
+					"deprecated workitemlob - SnapshotService can not be combined with deprecated version of marty (3.1).");
 		}
 
 		// 1.) create a copy of the current workitem
@@ -115,21 +121,27 @@ public class SnapshotService {
 
 		// 3. change the type with the prefix 'snapshot-'
 		type = TYPE_PRAFIX + documentEvent.getDocument().getType();
-		logger.fine("type=" + type);
+		logger.fine("new document type = " + type);
 		snapshot.replaceItemValue(WorkflowKernel.TYPE, type);
 
 		// 4. If an old snapshot already exists, Files are compared to the current
 		// $files and, if necessary, stored in the Snapshot applied
 		ItemCollection lastSnapshot = findLastSnapshot(documentEvent.getDocument().getUniqueID());
-		boolean missingContent = copyFilesFromItemCollection(lastSnapshot, snapshot);
+		boolean missingContent = false;
+		if (lastSnapshot == null) {
+			missingContent = true;
+		} else {
+			missingContent = copyFilesFromItemCollection(lastSnapshot, snapshot);
+		}
 		if (missingContent) {
 			// we did not found all the content of files in the last snapshot, so we need to
 			// lookup the deprecated BlobWorkitem
 			ItemCollection blobWorkitem = loadBlobWorkitem(documentEvent.getDocument());
 			if (blobWorkitem != null) {
-				logger.info("migrating file content from blobWorkitem '" + blobWorkitem.getUniqueID() + "' ....");
+				logger.info("migrating file content from blobWorkitem for document '"
+						+ documentEvent.getDocument().getUniqueID() + "' ....");
 				copyFilesFromItemCollection(blobWorkitem, snapshot);
-			}
+			} 
 		}
 
 		// 5. remove file content form the origin-workitem
@@ -155,10 +167,10 @@ public class SnapshotService {
 		documentEvent.getDocument().replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
 
 		// 7. remove deprecated snapshots - note: this method should not be called in
-		// HadoopArchivePlugin!
+		// Hadoop mode!
 		removeDeprecatedSnaphosts(snapshot.getUniqueID());
 
-		// save the snapshot immutable without indexing....
+		// save the snapshot immutable and without indexing....
 		snapshot.replaceItemValue(DocumentService.NOINDEX, true);
 		snapshot.replaceItemValue(DocumentService.IMMUTABLE, true);
 
@@ -180,9 +192,8 @@ public class SnapshotService {
 			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "undefined $uniqueid");
 		}
 
-		String query = "SELECT document FROM Document AS document ";
-		query += " WHERE document.id > '" + uniqueid + "-' AND document.id < '" + uniqueid + "-9999999999999'";
-		query += " ORDER BY document.created DESC";
+		String query = "SELECT document FROM Document AS document WHERE document.id > '" + uniqueid
+				+ "-' AND document.id < '" + uniqueid + "-9999999999999' ORDER BY document.id DESC";
 		List<ItemCollection> result = documentService.getDocumentsByQuery(query, 1);
 		if (result.size() >= 1) {
 			return result.get(0);
@@ -201,8 +212,8 @@ public class SnapshotService {
 		}
 
 		String snapshtIDPfafix = snapshotID.substring(0, snapshotID.lastIndexOf('-'));
-		String query = "SELECT document FROM Document AS document ";
-		query += " WHERE document.id > '" + snapshtIDPfafix + "-' AND document.id < '" + snapshotID + "'";
+		String query = "SELECT document FROM Document AS document WHERE document.id > '" + snapshtIDPfafix
+				+ "-' AND document.id < '" + snapshotID + "'";
 		List<ItemCollection> result = documentService.getDocumentsByQuery(query);
 
 		if (result.size() > 0) {
@@ -220,7 +231,7 @@ public class SnapshotService {
 	 * target workitem if no content for the same file exists in the target
 	 * workitem.
 	 * 
-	 * The method returns true if a content was missin in the source workitem.
+	 * The method returns true if a content was missing in the source workitem.
 	 * 
 	 * @param source
 	 * @param target
@@ -237,7 +248,8 @@ public class SnapshotService {
 				// test if the content of the file is empty. In this case it makes sense to copy
 				// the already archived content from the source
 				byte[] content = (byte[]) file.get(1);
-				if (content.length == 0 || content.length <= 2 ) { // <= 2 migration issue (can be 1 byte)
+				if (content.length == 0 || content.length <= 2) { // <= 2 migration issue from blob-workitem (size can
+																	// be 1 byte)
 					// fetch the old content from source...
 					if (source != null) {
 						List<Object> oldFile = source.getFile(fileName);
@@ -254,7 +266,7 @@ public class SnapshotService {
 					}
 				}
 			}
-		} 
+		}
 		return missingContent;
 
 	}
