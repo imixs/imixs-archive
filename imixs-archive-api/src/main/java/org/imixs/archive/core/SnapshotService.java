@@ -16,6 +16,7 @@ import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
 import org.imixs.workflow.engine.DocumentService;
+import org.imixs.workflow.engine.PropertyService;
 import org.imixs.workflow.exceptions.QueryException;
 
 /**
@@ -77,10 +78,14 @@ public class SnapshotService {
 	@EJB
 	DocumentService documentService;
 
+	@EJB
+	PropertyService propertyService;
+
 	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
 	public static String SNAPSHOTID = "$snapshotid";
 	public static String TYPE_PRAFIX = "snapshot-";
+	public static String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
 
 	/**
 	 * The snapshot-workitem is created immediately after the workitem was processed
@@ -141,7 +146,7 @@ public class SnapshotService {
 				logger.info("migrating file content from blobWorkitem for document '"
 						+ documentEvent.getDocument().getUniqueID() + "' ....");
 				copyFilesFromItemCollection(blobWorkitem, snapshot);
-			} 
+			}
 		}
 
 		// 5. remove file content form the origin-workitem
@@ -166,15 +171,15 @@ public class SnapshotService {
 		// 6. store the snapshot uniqeId into the origin-workitem ($snapshotID)
 		documentEvent.getDocument().replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
 
-		// 7. remove deprecated snapshots - note: this method should not be called in
-		// Hadoop mode!
-		removeDeprecatedSnaphosts(snapshot.getUniqueID());
-
-		// save the snapshot immutable and without indexing....
+		// 7. save the snapshot immutable and without indexing....
 		snapshot.replaceItemValue(DocumentService.NOINDEX, true);
 		snapshot.replaceItemValue(DocumentService.IMMUTABLE, true);
 
 		documentService.save(snapshot);
+
+		// 8. remove deprecated snapshots 
+		cleanSnaphostHistory(snapshot.getUniqueID());
+
 	}
 
 	/**
@@ -203,27 +208,45 @@ public class SnapshotService {
 	}
 
 	/**
-	 * This method removes all snapshots older than the given current snapshot id
+	 * This method removes all snapshots older than the defined by the imixs
+	 * property 'snapshot.hystory'. If the snapshot.history is set to '0' no
+	 * snapshot-workitems will be removed.
 	 */
-	void removeDeprecatedSnaphosts(String snapshotID) {
+	void cleanSnaphostHistory(String snapshotID) {
 
 		if (snapshotID == null || snapshotID.isEmpty()) {
-			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "undefined $snapshotID");
+			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "invalid " + SNAPSHOTID);
 		}
 
+		// get snapshot-history
+		int iSnapshotHistory = 1;
+		try {
+			iSnapshotHistory = Integer
+					.parseInt(propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_HISTORY, "1"));
+		} catch (NumberFormatException nfe) {
+			throw new SnapshotException(DocumentService.INVALID_PARAMETER,
+					"imixs.properties '" + PROPERTY_SNAPSHOT_HISTORY + "' must be a integer value.");
+		}
+
+		logger.fine(PROPERTY_SNAPSHOT_HISTORY + " = " + iSnapshotHistory);
+
+		// skip if history = 0
+		if (iSnapshotHistory == 0) {
+			return;
+		}
+
+		logger.fine("cleanSnaphostHistory for $snapshotid: " + snapshotID);
 		String snapshtIDPfafix = snapshotID.substring(0, snapshotID.lastIndexOf('-'));
 		String query = "SELECT document FROM Document AS document WHERE document.id > '" + snapshtIDPfafix
-				+ "-' AND document.id < '" + snapshotID + "'";
+				+ "-' AND document.id < '" + snapshotID + "' ORDER BY document.id ASC";
+
 		List<ItemCollection> result = documentService.getDocumentsByQuery(query);
-
-		if (result.size() > 0) {
-			logger.fine("searching deprecated snapshots before snapshot: '" + snapshotID + "'....");
-			for (ItemCollection oldSnapshot : result) {
-				logger.fine("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
-				documentService.remove(oldSnapshot);
-			}
+		while (result.size() >= iSnapshotHistory) {
+			ItemCollection oldSnapshot = result.get(0);
+			logger.fine("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
+			documentService.remove(oldSnapshot);
+			result.remove(0);
 		}
-
 	}
 
 	/**

@@ -49,6 +49,17 @@ always the $UniqueID from the origin-workitem suffixed with a timestamp.
 During the snapshot creation the snapshot $UniqueID is stored into the origin-workitem. 
 
 
+### Snapshot History
+
+The snapshot-service will hold a snapshot history.  The snaphsot history can be configured by the imixs property
+
+	snapshot.history=1 
+	
+The _snapshot.history_ defines how many snapshots will be stored into the local database. The default setting is '1' which means that only the latest snapshot will be stored.  A setting of '10' will store the latest 10 snaphsot-workitems. 
+When the history is set to '0', no snapshot-workitems will be removed by the service. This setting is used for external archive systems.  
+
+
+
 
 ### CDI Events
 
