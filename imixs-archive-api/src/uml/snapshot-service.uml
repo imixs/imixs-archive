@@ -26,6 +26,7 @@ activate SnapshotService
 SnapshotService --> SnapshotService: create snapshot-workitem
 
 SnapshotService --> DocumentService: detach files
+SnapshotService --> DocumentService: update dms information
 
 SnapshotService -> DocumentService: save snapshot-workitem
 deactivate SnapshotService

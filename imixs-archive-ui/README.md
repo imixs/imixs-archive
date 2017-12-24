@@ -34,4 +34,3 @@ To deploy imixs-archive-ui into Imixs-Office-Workflow the following maven config
 			<scope>runtime</scope>
 		</dependency>
 
-This will add the startup servlet for the luceine indexing service. 

@@ -34,13 +34,14 @@ The snapshot process includes the following stages:
 
 1. A workitem is processed by the Imixs-Workflow engine based on a BPMN 2.0 model. 
 2. After processing is completed, the process instance is persisted into the local workflow storage by the DocumentService.
-3. The DocumentService sends a notification event. 
+3. The DocumentService sends a notification event to the SnapshotService. 
 4. The SnapshotService creates a immutable copy of the process instance - called snapshot-workitem.
-5. The SnapshotService detaches the file content form the workitem. 
-6. The snapshot workitem is stored into the local workflow storage
-7. The origin process instance is returned to the application
-8. An external archive system polls new snapshot-workitems
-9. An external archive system stores the snapshot-workitems into a archive storage. 
+5. The SnapshotService detaches the file content form the origin workitem. 
+6. The SnapshotService updates the DMS file location of the origin workitem. 
+7. The snapshot workitem is stored into the local workflow storage
+8. The origin process instance is returned to the application
+9. An external archive system polls new snapshot-workitems
+10. An external archive system stores the snapshot-workitems into a archive storage. 
 
 
  
@@ -86,10 +87,11 @@ The size for Imixs-Archive is calculated in the following example:
  2. The metadata of a single process instance is between  8KB and 16KB 
  3. The file content  of a single process instance  is between 0,5 MB  and 1 MB
 
-Imixs-Archive generates a snapshot-workitem in each processing step. So the total size of all snapshot-workitems of a single process instance in this example can be up to  1.2 MB. This is an average value that can vary depending on the use case.
+Imixs-Archive generates a snapshot-workitem in each processing step. So the total size of all snapshot-workitems of a single process instance in this example can be up to  12 MB. This is an average value that can vary depending on the use case.
 
-Thus, in this exmple a system processing 1 million process instances per year can claim a data volume of 1.2 TB each year.
+Thus, in this example a system processing 1 million process instances per year can claim a data volume of 12 TB each year.
 
+**Note:** In this example calculation all snapshots are exported into an external archive system. So the size of the local database will not be affected and does not grow on each processing step!s
 
 
 
