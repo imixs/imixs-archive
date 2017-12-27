@@ -225,6 +225,14 @@
 
 			<dependency>
 				<groupId>org.imixs.workflow</groupId>
+				<artifactId>imixs-workflow-jax-rs</artifactId>
+				<version>${org.imixs.workflow.version}</version>
+				<scope>provided</scope>
+				<!-- excluded from manifest classpath, and excluded from WEB-INF/lib -->
+			</dependency>
+
+			<dependency>
+				<groupId>org.imixs.workflow</groupId>
 				<artifactId>imixs-workflow-faces</artifactId>
 				<version>${org.imixs.workflow.version}</version>
 				<scope>provided</scope>
