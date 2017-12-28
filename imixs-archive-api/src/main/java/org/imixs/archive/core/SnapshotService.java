@@ -1,5 +1,6 @@
 package org.imixs.archive.core;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +87,7 @@ public class SnapshotService {
 	public static String SNAPSHOTID = "$snapshotid";
 	public static String TYPE_PRAFIX = "snapshot-";
 	public static String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
+	public static String PROPERTY_SNAPSHOT_PROTECTFILECONTENT = "snapshot.protectFileContent";
 
 	/**
 	 * The snapshot-workitem is created immediately after the workitem was processed
@@ -115,6 +117,14 @@ public class SnapshotService {
 					"deprecated workitemlob - SnapshotService can not be combined with deprecated version of marty (3.1).");
 		}
 
+		// 0.) update the dms information
+		try {
+			DMSHandler.updateDMSMetaData(documentEvent.getDocument(), ejbCtx.getCallerPrincipal().getName());
+		} catch (NoSuchAlgorithmException | IllegalStateException e) {
+			throw new SnapshotException(SnapshotException.INVALID_DATA,
+					"Update DMS Meta Data failed: " + e.getMessage(), e);
+		}
+
 		// 1.) create a copy of the current workitem
 		logger.fine("creating new snapshot-workitem.... ");
 		ItemCollection snapshot = (ItemCollection) documentEvent.getDocument().clone();
@@ -129,6 +139,9 @@ public class SnapshotService {
 		logger.fine("new document type = " + type);
 		snapshot.replaceItemValue(WorkflowKernel.TYPE, type);
 
+		boolean protectContent = Boolean.parseBoolean(
+				propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_PROTECTFILECONTENT, "false"));
+
 		// 4. If an old snapshot already exists, Files are compared to the current
 		// $files and, if necessary, stored in the Snapshot applied
 		ItemCollection lastSnapshot = findLastSnapshot(documentEvent.getDocument().getUniqueID());
@@ -136,7 +149,8 @@ public class SnapshotService {
 		if (lastSnapshot == null) {
 			missingContent = true;
 		} else {
-			missingContent = copyFilesFromItemCollection(lastSnapshot, snapshot);
+			missingContent = copyFilesFromItemCollection(lastSnapshot, snapshot, documentEvent.getDocument(),
+					protectContent);
 		}
 		if (missingContent) {
 			// we did not found all the content of files in the last snapshot, so we need to
@@ -145,7 +159,7 @@ public class SnapshotService {
 			if (blobWorkitem != null) {
 				logger.info("migrating file content from blobWorkitem for document '"
 						+ documentEvent.getDocument().getUniqueID() + "' ....");
-				copyFilesFromItemCollection(blobWorkitem, snapshot);
+				copyFilesFromItemCollection(blobWorkitem, snapshot, documentEvent.getDocument(), protectContent);
 			}
 		}
 
@@ -177,7 +191,7 @@ public class SnapshotService {
 
 		documentService.save(snapshot);
 
-		// 8. remove deprecated snapshots 
+		// 8. remove deprecated snapshots
 		cleanSnaphostHistory(snapshot.getUniqueID());
 
 	}
@@ -256,11 +270,18 @@ public class SnapshotService {
 	 * 
 	 * The method returns true if a content was missing in the source workitem.
 	 * 
+	 * 
+	 * If 'protectContent' is set to 'true' than in case a file with the same name
+	 * already exits, will be 'archived' with a time-stamp-sufix
+	 * 
+	 * e.g.: 'ejb_obj.gif' => 'ejb_obj-1514410113556.gif'
+	 * 
 	 * @param source
 	 * @param target
 	 * @return
 	 */
-	private boolean copyFilesFromItemCollection(ItemCollection source, ItemCollection target) {
+	private boolean copyFilesFromItemCollection(ItemCollection source, ItemCollection target, ItemCollection origin,
+			boolean protectContent) {
 		boolean missingContent = false;
 
 		Map<String, List<Object>> files = target.getFiles();
@@ -268,8 +289,8 @@ public class SnapshotService {
 			for (Map.Entry<String, List<Object>> entry : files.entrySet()) {
 				String fileName = entry.getKey();
 				List<Object> file = entry.getValue();
-				// test if the content of the file is empty. In this case it makes sense to copy
-				// the already archived content from the source
+				// test if the content of the file is empty. In this case we copy
+				// the content from the last snapshot (source)
 				byte[] content = (byte[]) file.get(1);
 				if (content.length == 0 || content.length <= 2) { // <= 2 migration issue from blob-workitem (size can
 																	// be 1 byte)
@@ -286,6 +307,43 @@ public class SnapshotService {
 					} else {
 						missingContent = true;
 						logger.warning("Missing file content!");
+					}
+				} else {
+					// in case 'protect content' is set to 'true' we protect existing content of
+					// files with the same name, but extend the name of the old file with a sufix
+					if (protectContent) {
+						List<Object> oldFile = source.getFile(fileName);
+						if (oldFile != null) {
+							// we need to sufix the last file with the same name here to protect the
+							// content.
+
+							// compare MD5Checksum
+							ItemCollection dmsColOrigin = DMSHandler.getDMSEntry(fileName, origin);
+							ItemCollection dmsColSource = DMSHandler.getDMSEntry(fileName, source);
+							if (!dmsColOrigin.getItemValueString("md5checksum")
+									.equals(dmsColSource.getItemValueString("md5checksum"))) {
+
+								String protectedFileName = null;
+								int iFileDot = fileName.lastIndexOf('.');
+								if (iFileDot > 0) {
+									// create a unique filename...
+									protectedFileName = fileName.substring(0, iFileDot) + "-"
+											+ System.currentTimeMillis() + fileName.substring(iFileDot);
+								} else {
+									protectedFileName = fileName + "-" + System.currentTimeMillis();
+								}
+								target.addFile((byte[]) oldFile.get(1), protectedFileName, (String) oldFile.get(0));
+
+								// add filename with empty data to origin
+								byte[] empty = {};
+								origin.addFile(empty, protectedFileName, (String) oldFile.get(0));
+								// update the DMS entry
+								dmsColSource.replaceItemValue("txtname", protectedFileName);
+								//dmsColOrigin.replaceItemValue("md5checksum"
+								DMSHandler.putDMSEntry(dmsColSource, target);
+								DMSHandler.putDMSEntry(dmsColSource, origin);
+							}
+						}
 					}
 				}
 			}
