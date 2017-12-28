@@ -1,10 +1,14 @@
 package org.imixs.archive.core;
 
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
@@ -87,7 +91,7 @@ public class SnapshotService {
 	public static String SNAPSHOTID = "$snapshotid";
 	public static String TYPE_PRAFIX = "snapshot-";
 	public static String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
-	public static String PROPERTY_SNAPSHOT_PROTECTFILECONTENT = "snapshot.protectFileContent";
+	public static String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
 
 	/**
 	 * The snapshot-workitem is created immediately after the workitem was processed
@@ -139,8 +143,8 @@ public class SnapshotService {
 		logger.fine("new document type = " + type);
 		snapshot.replaceItemValue(WorkflowKernel.TYPE, type);
 
-		boolean protectContent = Boolean.parseBoolean(
-				propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_PROTECTFILECONTENT, "false"));
+		boolean overwriteFileContent = Boolean.parseBoolean(
+				propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT, "false"));
 
 		// 4. If an old snapshot already exists, Files are compared to the current
 		// $files and, if necessary, stored in the Snapshot applied
@@ -150,7 +154,7 @@ public class SnapshotService {
 			missingContent = true;
 		} else {
 			missingContent = copyFilesFromItemCollection(lastSnapshot, snapshot, documentEvent.getDocument(),
-					protectContent);
+					overwriteFileContent);
 		}
 		if (missingContent) {
 			// we did not found all the content of files in the last snapshot, so we need to
@@ -159,7 +163,7 @@ public class SnapshotService {
 			if (blobWorkitem != null) {
 				logger.info("migrating file content from blobWorkitem for document '"
 						+ documentEvent.getDocument().getUniqueID() + "' ....");
-				copyFilesFromItemCollection(blobWorkitem, snapshot, documentEvent.getDocument(), protectContent);
+				copyFilesFromItemCollection(blobWorkitem, snapshot, documentEvent.getDocument(), overwriteFileContent);
 			}
 		}
 
@@ -281,7 +285,7 @@ public class SnapshotService {
 	 * @return
 	 */
 	private boolean copyFilesFromItemCollection(ItemCollection source, ItemCollection target, ItemCollection origin,
-			boolean protectContent) {
+			boolean overwriteFileContent) {
 		boolean missingContent = false;
 
 		Map<String, List<Object>> files = target.getFiles();
@@ -311,7 +315,7 @@ public class SnapshotService {
 				} else {
 					// in case 'protect content' is set to 'true' we protect existing content of
 					// files with the same name, but extend the name of the old file with a sufix
-					if (protectContent) {
+					if (!overwriteFileContent) {
 						List<Object> oldFile = source.getFile(fileName);
 						if (oldFile != null) {
 							// we need to sufix the last file with the same name here to protect the
@@ -323,14 +327,24 @@ public class SnapshotService {
 							if (!dmsColOrigin.getItemValueString("md5checksum")
 									.equals(dmsColSource.getItemValueString("md5checksum"))) {
 
+								Date fileDate=dmsColSource.getItemValueDate("$created");
+								if (fileDate==null) {
+									fileDate=new Date();
+								}
+								
+								TimeZone tz = TimeZone.getTimeZone("UTC");
+								DateFormat df = new SimpleDateFormat("[yyyy-MM-dd'T'HH:mm:ss.SSS'Z']"); // Quoted "Z" to indicate UTC, no timezone offset
+								df.setTimeZone(tz);
+								String sTimeStamp=df.format(fileDate);
+								
 								String protectedFileName = null;
 								int iFileDot = fileName.lastIndexOf('.');
 								if (iFileDot > 0) {
 									// create a unique filename...
 									protectedFileName = fileName.substring(0, iFileDot) + "-"
-											+ System.currentTimeMillis() + fileName.substring(iFileDot);
+											+sTimeStamp + fileName.substring(iFileDot);
 								} else {
-									protectedFileName = fileName + "-" + System.currentTimeMillis();
+									protectedFileName = fileName + "-" + sTimeStamp;
 								}
 								target.addFile((byte[]) oldFile.get(1), protectedFileName, (String) oldFile.get(0));
 
