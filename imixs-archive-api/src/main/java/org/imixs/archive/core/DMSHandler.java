@@ -2,8 +2,6 @@ package org.imixs.archive.core;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -15,7 +13,6 @@ import java.util.logging.Logger;
 import javax.xml.bind.DatatypeConverter;
 
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.ItemCollectionComparator;
 
 /**
  * The DMSHandler handles the item 'dms' which is holding meta information about
@@ -99,15 +96,10 @@ public class DMSHandler {
 			}
 		}
 
-		// finally update the modified dms list....
-		// putDmsList(aWorkitem, currentDmsList);
-
 		// add $filecount
 		workitem.replaceItemValue(DMS_FILE_COUNT, workitem.getFileNames().size());
 		// add $filenames
 		workitem.replaceItemValue(DMS_FILE_NAMES, workitem.getFileNames());
-
-		// return updateBlob;
 	}
 
 	/**
