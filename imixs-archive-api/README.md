@@ -44,10 +44,9 @@ The snapshot process includes the following stages:
 10. An external archive system stores the snapshot-workitems into a archive storage. 
 
 
- 
 A snapshot-workitem holds a reference to the origin-workitem by its own $UniqueID which is 
 always the $UniqueID from the origin-workitem suffixed with a timestamp. 
-During the snapshot creation the snapshot $UniqueID is stored into the origin-workitem. 
+During the snapshot creation the snapshot $UniqueID is stored into the origin-workitem attribute '_$snapshotid_'. 
 
 
 ### Snapshot History
@@ -60,16 +59,37 @@ The _snapshot.history_ defines how many snapshots will be stored into the local 
 When the history is set to '0', no snapshot-workitems will be removed by the service. This setting is used for external archive systems.  
 
 
+### DMS 
 
+The Imixs-Snapshot-Architecture includes a feature to store metadata about file attachments (documents) in an item named '_dms_'. 
+Each document attached to an Imixs Workitem is automatically stored in the latest snapshot-workitem and removed from the origin workitem.  
+This reduces the data size and significantly increases the performance when accessing business data. The '_dms_' attribute holds a set of attributes for each attachment:
+
+ * $created - creation date
+ * $creator - userId who added the document
+ * md5checksum - MD5 checksum
+ * txtcomment - optional comment field
+ * content - optional textual representation (see the [Imixs-Adapter-Documents Project](https://github.com/imixs/imixs-adapters/tree/master/imixs-adapters-documents))
+ 
+The MD5 checksum allows the verification of the data consistency. In addition an application can add optional attributes as well. 
+ 
+The _SnapshotRestService_ guarantees the transparent access to the archived documents.
+
+	http://localhost:8080/office-workflow/rest-service/snapshot/[$UNIQUEID]/file/[FILENAME]
+
+To access the metadata the class DMSHandler can be used to extract metadata for a specific document:
+
+	ItemCollection dmsEntry = DMSHandler.getDMSEntry(fileName,workitem);
+
+### The Access Control (ACL)
+The access to archive data, written into the Imixs-Archive, is controlled completely by the [Imixs-Workflow engine ACL](http://www.imixs.org/doc/engine/acl.html). Imixs-Workflow supports a multiple-level security model, that offers a great space of flexibility while controlling the access to all parts of a workitem. 
+
+Each snapshot-workitem is flagged as '_$immutable=true_' and '_$noindex=true_'. This guarantees that the snapshot can not be changed subsequently by the workflow system or is searchable through the lucene index. 
 
 ### CDI Events
 
 The communication between the service layers is implemented by the CDI Observer pattern. The CDI Events are tied to the transaction context of the imixs-workflow engine. 
 See the [DocumentService](http://www.imixs.org/doc/engine/documentservice.html#CDI_Events) for further information. 
-
-### The Access Control (ACL)
-The access to archive data, written into the Imixs-Archive, is controlled completely by the [Imixs-Workflow engine ACL](http://www.imixs.org/doc/engine/acl.html). Imixs-Workflow supports a multiple-level security model, that offers a great space of flexibility while controlling the access to all parts of a workitem. 
-
 
 
 # How to Calculate the Size of a Imixs-Archive System?
