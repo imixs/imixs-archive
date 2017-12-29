@@ -7,18 +7,12 @@ Imixs-Archive consists of independent modules which allow the transparent integr
 One of the big data platforms supported by Imixs-Archive is [Apache Hadoop](http://hadoop.apache.org/).
 
 
-## The API
+## The Core API
 
 The [sub-module Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api) provides core functionality and interfaces to exchange business data with any kind of archive or big data platform. This API is platform independent and based on the Imixs-Workflow API.
 
 [Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api)
-  
-## The UI
 
-The [sub-module Imixs-Archive-UI](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ui) provides ui functionality to be integrated into enterprise application (see the Imixs-Office-Workflow project).
-
-[Imixs-Archive-UI](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ui)
-  
   
 ## Hadoop 
 
