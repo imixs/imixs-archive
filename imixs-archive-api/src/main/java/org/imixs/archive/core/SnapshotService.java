@@ -3,7 +3,6 @@ package org.imixs.archive.core;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +21,6 @@ import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
 import org.imixs.workflow.engine.DocumentService;
 import org.imixs.workflow.engine.PropertyService;
-import org.imixs.workflow.exceptions.QueryException;
 
 /**
  * This service component provides a mechanism to transfer the content of a
@@ -146,25 +144,41 @@ public class SnapshotService {
 		boolean overwriteFileContent = Boolean.parseBoolean(
 				propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT, "false"));
 
-		// 4. If an old snapshot already exists, Files are compared to the current
-		// $files and, if necessary, stored in the Snapshot applied
-		ItemCollection lastSnapshot = findLastSnapshot(documentEvent.getDocument().getUniqueID());
-		boolean missingContent = false;
-		if (lastSnapshot == null) {
-			missingContent = true;
-		} else {
-			missingContent = copyFilesFromItemCollection(lastSnapshot, snapshot, documentEvent.getDocument(),
-					overwriteFileContent);
+		// 4. If an old snapshot already exists, File content is taken from the last
+		// snapshot.
+		// It is important here, that we fetch the last snapshot by the property
+		// "snapshotID". This is because in case that in one transaction multiple saves
+		// are performed on the same workitem, a SQL query in JPA does not work and
+		// returns an empty result as long as the transaction is not closed. But the
+		// method docmentService.load() does fetch a newly saved document by its primary
+		// key within the same transaction.
+		ItemCollection lastSnapshot = documentService.load(documentEvent.getDocument().getItemValueString(SNAPSHOTID));
+
+		// in case that we have no snapshot but a UNIQUEIDSOURCE we can lookup here the
+		// snapshot from the origin version
+		if (lastSnapshot == null
+				&& !documentEvent.getDocument().getItemValueString(WorkflowKernel.UNIQUEIDSOURCE).isEmpty()) {
+			logger.fine("lookup last snapshot from origin version: '"
+					+ documentEvent.getDocument().getItemValueString(WorkflowKernel.UNIQUEIDSOURCE) + "'");
+			lastSnapshot = documentService.load(documentEvent.getDocument().getItemValueString(SNAPSHOTID));
 		}
-		if (missingContent) {
-			// we did not found all the content of files in the last snapshot, so we need to
-			// lookup the deprecated BlobWorkitem
-			ItemCollection blobWorkitem = loadBlobWorkitem(documentEvent.getDocument());
-			if (blobWorkitem != null) {
-				logger.info("migrating file content from blobWorkitem for document '"
+
+		// in case that we have still no snapshot but a UNIQUEIDSOURCE we can lookup
+		// here the snapshot from the origin version
+		if (lastSnapshot == null && !documentEvent.getDocument().getItemValueString("$blobworkitem").isEmpty()) {
+			logger.fine("lookup last blobworkitem: '" + documentEvent.getDocument().getItemValueString("$blobworkitem")
+					+ "'");
+			// try to load the blobWorkitem
+			lastSnapshot = documentService.load(documentEvent.getDocument().getItemValueString("$blobworkitem"));
+			if (lastSnapshot != null) {
+				logger.info("migrating file content from deprecated blobWorkitem '"
 						+ documentEvent.getDocument().getUniqueID() + "' ....");
-				copyFilesFromItemCollection(blobWorkitem, snapshot, documentEvent.getDocument(), overwriteFileContent);
 			}
+		}
+
+		if (lastSnapshot != null) {
+			// copy content from the last found snapshot....
+			copyFilesFromItemCollection(lastSnapshot, snapshot, documentEvent.getDocument(), overwriteFileContent);
 		}
 
 		// 5. remove file content form the origin-workitem
@@ -201,28 +215,21 @@ public class SnapshotService {
 	}
 
 	/**
-	 * This method returns the latest Snapshot-workitem for a given $UNIQUEID, or
-	 * null if no snapshot-workitem exists.
+	 * This method returns all existing Snapshot-workitems for a given $UNIQUEID.
 	 * 
 	 * The method queries the possible snapshot id-range for a given $UniqueId
-	 * sorted by creation date descending and returns the first match.
+	 * sorted by creation date descending.
 	 * 
 	 * @param uniqueid
 	 * @return
 	 */
-	ItemCollection findLastSnapshot(String uniqueid) {
+	public List<ItemCollection> findAllSnapshots(String uniqueid) {
 		if (uniqueid == null || uniqueid.isEmpty()) {
 			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "undefined $uniqueid");
 		}
-
 		String query = "SELECT document FROM Document AS document WHERE document.id > '" + uniqueid
 				+ "-' AND document.id < '" + uniqueid + "-9999999999999' ORDER BY document.id DESC";
-		List<ItemCollection> result = documentService.getDocumentsByQuery(query, 1);
-		if (result.size() >= 1) {
-			return result.get(0);
-		} else {
-			return null;
-		}
+		return documentService.getDocumentsByQuery(query, 999);
 	}
 
 	/**
@@ -231,11 +238,9 @@ public class SnapshotService {
 	 * snapshot-workitems will be removed.
 	 */
 	void cleanSnaphostHistory(String snapshotID) {
-
 		if (snapshotID == null || snapshotID.isEmpty()) {
 			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "invalid " + SNAPSHOTID);
 		}
-
 		// get snapshot-history
 		int iSnapshotHistory = 1;
 		try {
@@ -327,22 +332,25 @@ public class SnapshotService {
 							if (!dmsColOrigin.getItemValueString("md5checksum")
 									.equals(dmsColSource.getItemValueString("md5checksum"))) {
 
-								Date fileDate=dmsColSource.getItemValueDate("$created");
-								if (fileDate==null) {
-									fileDate=new Date();
+								Date fileDate = dmsColSource.getItemValueDate("$created");
+								if (fileDate == null) {
+									fileDate = new Date();
 								}
-								
+
 								TimeZone tz = TimeZone.getTimeZone("UTC");
-								DateFormat df = new SimpleDateFormat("[yyyy-MM-dd'T'HH:mm:ss.SSS'Z']"); // Quoted "Z" to indicate UTC, no timezone offset
+								DateFormat df = new SimpleDateFormat("[yyyy-MM-dd'T'HH:mm:ss.SSS'Z']"); // Quoted "Z" to
+																										// indicate UTC,
+																										// no timezone
+																										// offset
 								df.setTimeZone(tz);
-								String sTimeStamp=df.format(fileDate);
-								
+								String sTimeStamp = df.format(fileDate);
+
 								String protectedFileName = null;
 								int iFileDot = fileName.lastIndexOf('.');
 								if (iFileDot > 0) {
 									// create a unique filename...
-									protectedFileName = fileName.substring(0, iFileDot) + "-"
-											+sTimeStamp + fileName.substring(iFileDot);
+									protectedFileName = fileName.substring(0, iFileDot) + "-" + sTimeStamp
+											+ fileName.substring(iFileDot);
 								} else {
 									protectedFileName = fileName + "-" + sTimeStamp;
 								}
@@ -353,7 +361,7 @@ public class SnapshotService {
 								origin.addFile(empty, protectedFileName, (String) oldFile.get(0));
 								// update the DMS entry
 								dmsColSource.replaceItemValue("txtname", protectedFileName);
-								//dmsColOrigin.replaceItemValue("md5checksum"
+								// dmsColOrigin.replaceItemValue("md5checksum"
 								DMSHandler.putDMSEntry(dmsColSource, target);
 								DMSHandler.putDMSEntry(dmsColSource, origin);
 							}
@@ -363,53 +371,6 @@ public class SnapshotService {
 			}
 		}
 		return missingContent;
-
-	}
-
-	/**
-	 * This method loads the BlobWorkitem for a given parent WorkItem. The
-	 * BlobWorkitem is identified by the $unqiueidRef.
-	 * <p>
-	 * Note: This method is only used to migrate deprecated blobworkitems.
-	 * 
-	 * @param parentWorkitem
-	 *            - the corresponding parent workitem, or null if not blobworkitem
-	 *            is found
-	 * @version 1.0
-	 */
-	@Deprecated
-	private ItemCollection loadBlobWorkitem(ItemCollection parentWorkitem) {
-
-		// is parentWorkitem defined?
-		if (parentWorkitem == null) {
-			logger.warning("Unable to load blobWorkitem from parent workitem == null!");
-			return null;
-		}
-
-		// try to load the blobWorkitem with the parentWorktiem reference....
-		String sUniqueID = parentWorkitem.getUniqueID();
-		if (!"".equals(sUniqueID)) {
-			// search entity...
-			String sQuery = "(type:\"workitemlob\" AND $uniqueidref:\"" + sUniqueID + "\")";
-
-			Collection<ItemCollection> itemcol = null;
-			try {
-				itemcol = documentService.find(sQuery, 1, 0);
-			} catch (QueryException e) {
-				logger.severe("loadBlobWorkitem - invalid query: " + e.getMessage());
-			}
-			// if blobWorkItem was found return...
-			if (itemcol != null && itemcol.size() > 0) {
-				return itemcol.iterator().next();
-			} else {
-				// no blobworkitem found!
-				return null;
-			}
-
-		} else {
-			// no blobworkitem defined!
-			return null;
-		}
 
 	}
 
