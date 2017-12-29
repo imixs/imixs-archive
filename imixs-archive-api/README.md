@@ -1,30 +1,6 @@
-# Imixs-Archive API
+# The Imixs-Snapshot-Architecture
 
-The sub-module Imixs-Archive-API provides the core functionality and interfaces to generate, store and retrieve business data into an audit-proof archive system. This api is platform independent and based on the Imixs-Workflow API.  
-
-
-## What Audit-Proof Archiving Means
-Audit-proof archiving means that documents or business information can be searched, traced back to their origin, and stored securely against tampering. From an organizational perspective, a procedure for audit-proof archiving must be transparent for 
-all members within an organization.
-
-The Imixs-Archive API combines these aspects together with the [Imixs-Workflow engine](http://www.imixs.org)  into a powerful and flexible business process management platform.
- 
-### Searching Information
-Imixs-Workflow provides the foundation for creating, editing, and searching business data  on intelligible defined process descriptions. Each process instance, controlled by the Imixs-Workflow engine, can be searched through a full-text index. A query can be structured - according to predefined attributes, as well as unstructured - based on search terms in a full-text search.
-
-
-### Tracing Back Information to its Origin
-Any information controlled by Imixs-Workflow contains a detailed and consistently log from its creation to its archiving.  This protocol can be read by both, IT systems and humans. Business information can be stored in an open XML format which is independent from technical platform and storage solutions.  
- 
-### Protecting Information from Tampering
-Based on a BPMN 2.0 process model, business data can be protected from changes at any time within a business process.
-Imixs-Workflow supports a fine grained access control on the level of a single process instance. This concept allows protecting data from tampering. In addition, Imixs-Archive supports a snapshot concept that automatically stores business data protected from any further manipulation.
- 
- 
- 
-## The Imixs-Snapshot-Architecture
-
-The Imixs-Archive API provides a mechanism to archive the content of a workitem during the processing life cycle into a _snapshot-workitem_.
+The sub-module Imixs-Archive-API provides the core functionality and interfaces to archive the content of a workitem during the processing life cycle into a _snapshot-workitem_.
 A _snapshot workitem_ is an immutable copy of a workitem (origin-workitem) including all the business data and file content of attached files. A _snapshot workitem_ can be stored in the workflow data storge or in an external archive storage (e.g. Hadoop).
 
 <br /><br /><img src="src/uml/snapshot-service.png" />
@@ -49,7 +25,7 @@ always the $UniqueID from the origin-workitem suffixed with a timestamp.
 During the snapshot creation the snapshot $UniqueID is stored into the origin-workitem attribute '_$snapshotid_'. 
 
 
-### Snapshot History
+## Snapshot History
 
 The snapshot-service will hold a snapshot history.  The snaphsot history can be configured by the imixs property
 
@@ -59,7 +35,7 @@ The _snapshot.history_ defines how many snapshots will be stored into the local 
 When the history is set to '0', no snapshot-workitems will be removed by the service. This setting is used for external archive systems.  
 
 
-### DMS 
+## DMS 
 
 The Imixs-Snapshot-Architecture includes a feature to store metadata about file attachments (documents) in an item named '_dms_'. 
 Each document attached to an Imixs Workitem is automatically stored in the latest snapshot-workitem and removed from the origin workitem.  
@@ -81,12 +57,12 @@ To access the metadata the class DMSHandler can be used to extract metadata for 
 
 	ItemCollection dmsEntry = DMSHandler.getDMSEntry(fileName,workitem);
 
-### The Access Control (ACL)
+## The Access Control (ACL)
 The access to archive data, written into the Imixs-Archive, is controlled completely by the [Imixs-Workflow engine ACL](http://www.imixs.org/doc/engine/acl.html). Imixs-Workflow supports a multiple-level security model, that offers a great space of flexibility while controlling the access to all parts of a workitem. 
 
 Each snapshot-workitem is flagged as '_$immutable=true_' and '_$noindex=true_'. This guarantees that the snapshot can not be changed subsequently by the workflow system or is searchable through the lucene index. 
 
-### CDI Events
+## CDI Events
 
 The communication between the service layers is implemented by the CDI Observer pattern. The CDI Events are tied to the transaction context of the imixs-workflow engine. 
 See the [DocumentService](http://www.imixs.org/doc/engine/documentservice.html#CDI_Events) for further information. 
@@ -186,7 +162,7 @@ The SnapshotService replaces the now deprecated BlobWorkitem functionality from 
 
 No further migration step is necessary.
 
-The Item 'dms' with the file meta information will still be handled by the DMSPlugin. 
+The Item 'dms' with the file meta information is handled by the SnapshotService EJB. The DMSPlugin is deprecated. 
 
 
 

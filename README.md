@@ -1,7 +1,23 @@
 # Imixs-Archive
 
-Imixs-Archive is an open source project designed to provide a transparent and sustaining solution for long-term archiving of business data. In this context, business data means not only documents but also the comprehensible documentation of business processes.
+Imixs-Archive is an open source project designed to provide a transparent and sustaining solution for long-term audit-proof archiving of business data. In this context, business data means not only documents but also the comprehensible documentation of business processes.
 Imixs-Archive is a sub-project of the Human-Centric Workflow engine [Imixs-Workflow](http://www.imixs.org), which provides a powerful platform for the description and execution of business processes.
+
+
+## What is audit-proof archiving?
+Audit-proof archiving means that documents or business information can be searched, traced back to their origin, and stored securely against tampering. From an organizational perspective, a procedure for audit-proof archiving must be transparent for 
+all members within an organization. The Imixs-Archive API combines these aspects together with the [Imixs-Workflow engine](http://www.imixs.org)  into a powerful and flexible business process management platform.
+ 
+### Searching Information
+Imixs-Workflow provides the foundation for creating, editing, and searching business data  on intelligible defined process descriptions. Each process instance, controlled by the Imixs-Workflow engine, can be searched through a full-text index. A query can be structured - according to predefined attributes, as well as unstructured - based on search terms in a full-text search.
+
+### Tracing Back Information to its Origin
+Any information controlled by Imixs-Workflow contains a detailed and consistently log from its creation to its archiving.  This protocol can be read by both, IT systems and humans. Business information can be stored in an open XML format which is independent from technical platform and storage solutions.  
+ 
+### Protecting Information from Tampering
+Based on a BPMN 2.0 process model, business data can be protected from changes at any time by well defined business rules within a business process.
+Imixs-Workflow supports a fine grained access control on the level of a single process instance. This concept allows protecting data from tampering. In addition, Imixs-Archive supports a [snapshot concept](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api) that automatically stores immutable business data protected from any further manipulation.
+
 
 Imixs-Archive consists of independent modules which allow the transparent integration of any kind of archive or big data platform. 
 One of the big data platforms supported by Imixs-Archive is [Apache Hadoop](http://hadoop.apache.org/).
