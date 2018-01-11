@@ -115,6 +115,7 @@ public class SnapshotService {
 
 	public static String SNAPSHOTID = "$snapshotid";
 	public static String TYPE_PRAFIX = "snapshot-";
+	public static String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
 	public static String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
 	public static String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
 
@@ -142,6 +143,16 @@ public class SnapshotService {
 
 		// throw SnapshotException if a deprecated workitemlob is saved....
 		if ("workitemlob".equals(type)) {
+			// in case of snapshot.workitemlob_suport=true
+			// we allow saving those workitems. This is need in migration mode only
+			Boolean allowWorkitemLob = Boolean.parseBoolean(
+					propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT, "false"));
+			if (allowWorkitemLob==true) {
+				// needed only for migration
+				// issue #16
+				return;
+			}
+			// otherwise we throw a exception !
 			throw new SnapshotException(SnapshotException.INVALID_DATA,
 					"deprecated workitemlob - SnapshotService can not be combined with deprecated version of marty (3.1).");
 		}
