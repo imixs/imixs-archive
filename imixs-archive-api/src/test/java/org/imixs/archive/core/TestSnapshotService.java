@@ -1,11 +1,18 @@
 package org.imixs.archive.core;
 
+import static org.mockito.Mockito.when;
+
+import java.security.Principal;
+import java.util.Properties;
 import java.util.logging.Logger;
+
+import javax.ejb.SessionContext;
 
 import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
+import org.imixs.workflow.engine.PropertyService;
 import org.imixs.workflow.engine.WorkflowMockEnvironment;
 import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.ModelException;
@@ -13,6 +20,7 @@ import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
@@ -30,6 +38,11 @@ public class TestSnapshotService {
 
 	@Spy
 	SnapshotService snapshotService;
+	
+	@Spy 
+	PropertyService propertyService;
+
+	SessionContext ctx;
 
 	ItemCollection documentContext;
 	ItemCollection documentActivity, documentProcess;
@@ -47,10 +60,23 @@ public class TestSnapshotService {
 		workflowMockEnvironment = new WorkflowMockEnvironment();
 		workflowMockEnvironment.setModelPath("/bpmn/TestSnapshotService.bpmn");
 		workflowMockEnvironment.setup();
-
+		
 		MockitoAnnotations.initMocks(this);
 
+		// mock session context
+		ctx = Mockito.mock(SessionContext.class);
+		snapshotService.ejbCtx = ctx;
+		// simulate SessionContext ctx.getCallerPrincipal().getName()
+		Principal principal = Mockito.mock(Principal.class);
+		when(principal.getName()).thenReturn("manfred");
+		when(ctx.getCallerPrincipal()).thenReturn(principal);
+
 		snapshotService.documentService = workflowMockEnvironment.getDocumentService();
+
+		// mock property service
+		snapshotService.propertyService = propertyService;
+		Properties emptyProperties=new Properties();
+		when (propertyService.getProperties()).thenReturn(emptyProperties);
 	}
 
 	/**
