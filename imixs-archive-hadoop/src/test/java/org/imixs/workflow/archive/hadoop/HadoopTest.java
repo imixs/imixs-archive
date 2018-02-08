@@ -14,6 +14,7 @@ import org.imixs.workflow.xml.DocumentCollection;
 import org.imixs.workflow.xml.XMLItemCollection;
 import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -79,6 +80,7 @@ public class HadoopTest {
                     [&permission=<OCTAL>][&buffersize=<INT>]"
 	 */
 	@Test
+	@Ignore
 	public void postTestWebHDFS() {
 		ItemCollection workitem = new ItemCollection();
 
@@ -111,6 +113,7 @@ public class HadoopTest {
 	 * Testing the read performance.
 	 */
 	@Test
+	@Ignore
 	public void readTestWebHDFS() {
 		ItemCollection workitem =null;
 
