@@ -147,7 +147,7 @@ public class SnapshotService {
 			// we allow saving those workitems. This is need in migration mode only
 			Boolean allowWorkitemLob = Boolean.parseBoolean(
 					propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT, "false"));
-			if (allowWorkitemLob==true) {
+			if (allowWorkitemLob == true) {
 				// needed only for migration
 				// issue #16
 				return;
@@ -271,9 +271,13 @@ public class SnapshotService {
 	}
 
 	/**
-	 * This method removes all snapshots older than the defined by the imixs
-	 * property 'snapshot.hystory'. If the snapshot.history is set to '0' no
+	 * This method removes all snapshots older than defined by the imixs property
+	 * 'snapshot.hystory'. If the snapshot.history is set to '0' no
 	 * snapshot-workitems will be removed.
+	 * 
+	 * This method protects snapshots from a split-event which are assigned to the
+	 * current workitem but belong to the origin version!
+	 * 
 	 */
 	void cleanSnaphostHistory(String snapshotID) {
 		if (snapshotID == null || snapshotID.isEmpty()) {
@@ -296,6 +300,8 @@ public class SnapshotService {
 			return;
 		}
 
+		// we do not want to delete snapshots which belong to the origin workitem of a
+		// spit event. With the following query thus snapshots will not be selected.
 		logger.fine("cleanSnaphostHistory for $snapshotid: " + snapshotID);
 		String snapshtIDPfafix = snapshotID.substring(0, snapshotID.lastIndexOf('-'));
 		String query = "SELECT document FROM Document AS document WHERE document.id > '" + snapshtIDPfafix
