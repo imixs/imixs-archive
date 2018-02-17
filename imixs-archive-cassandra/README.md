@@ -1,34 +1,27 @@
-# Imixs-Archive-Hadoop
-
-The Imixs-Archive-Hadoop project provides an API to ingest Imixs-Workflow data into a Hadoop Cluster. The Imixs-Hadoop Scheduler Service automatically transfers the so-called snapshot-workitems into a Hadoop cluster. 
-A snapshot-workitem is a core concept of the Imixs-Workflow engine and can be configured through the Imixs-Workflow Plug-In API. 
+# Imixs-Archive-Cassandra
+The Imixs-Archive-Cassandra project provides an adapter for a Apache Cassandra Big Data Platform.
 
 
 
+## Test Environment
 
-## HDFS Schema Design
-The Hadoops's 'Schema-on-Read' model does not impose any requirements when loading data into hadoop. Nevertheless the Imixs-Archive-Hadoop provides a structured and organized data repository. All workflow data ingested into hadoop is partitioned by the creation YEAR and MONTH component of the process instance into a directory hirrarchie
+For local dev tests a test environment can be setup with Docker. 
 
-    /data/[workflow-instance]/YEAR/MONTH/[SNAPSHOT-UNIQUEID].xml
+Starting a Cassandra Docker container:
 
-See the following example 
+	$ docker run --name cassandra-dev -it -p 9042:9042 cassandra:latest
 
-    /data/company/2017/01/333444.1111.2222-21555122.xml
-    
-All data is stored in a semistructured XML format based on the Imixs-XML Schema.
-With this schema design it is 
+This container can now be used for junit tests as provided in the project. 
 
+### cqlsh
 
+To run a cqlsh (Cassandra Query Language Shell) against your Cassandra Dev container run:
 
-## Hadoop Rest API
-The ingestion mechanism is based on the Hadoop Rest API 'HttpFS'.
-
-
-
-
-
-
-
+	$ docker exec -it cassandra-dev cqlsh
+	Connected to Test Cluster at 127.0.0.1:9042.
+	[cqlsh 5.0.1 | Cassandra 3.11.1 | CQL spec 3.4.4 | Native protocol v4]
+	Use HELP for help.
+	cqlsh>
 
 
 
