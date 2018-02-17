@@ -7,6 +7,7 @@
 	<modules>
 		<module>imixs-archive-api</module>
 		<module>imixs-archive-ocr</module>
+		<module>imixs-archive-cassandra</module>
 		<module>imixs-archive-hadoop</module>
 		<module>imixs-archive-test</module>
 		
