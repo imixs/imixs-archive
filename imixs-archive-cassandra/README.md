@@ -1,5 +1,5 @@
 # Imixs-Archive-Cassandra
-The Imixs-Archive-Cassandra project provides an adapter for a Apache Cassandra Big Data Platform.
+The Imixs-Archive-Cassandra project provides an adapter for [Apache Cassandra](http://cassandra.apache.org/) Big Data Platform.
 
 
 
@@ -24,4 +24,14 @@ To run a cqlsh (Cassandra Query Language Shell) against your Cassandra Dev conta
 	cqlsh>
 
 
+### Create a dev keyspace with cqlsh
+
+	cqlsh> CREATE KEYSPACE imixs_dev WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+	
+
+
+
+	   
+	   
+	   
 
