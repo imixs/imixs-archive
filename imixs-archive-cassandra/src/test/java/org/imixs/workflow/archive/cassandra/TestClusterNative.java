@@ -64,18 +64,20 @@ public class TestClusterNative {
 	@Test
 	public void createTable() {
 		Session session = connect();
-		String statement = "CREATE TABLE IF NOT EXISTS imixs_test (id uuid PRIMARY KEY, title text, subject text);";
+//		String statement = "CREATE TABLE IF NOT EXISTS imixs_test (id uuid PRIMARY KEY, title text, subject text);";
+		String statement = "CREATE TABLE IF NOT EXISTS document (id text PRIMARY KEY, type text, created timestamp, modified timestamp, data text);";
+
 		session.execute(statement);
 
-		ResultSet result = session.execute("SELECT * FROM imixs_dev.imixs_test;");
+		ResultSet result = session.execute("SELECT * FROM imixs_dev.document;");
 
 		List<String> columnNames = result.getColumnDefinitions().asList().stream().map(cl -> cl.getName())
 				.collect(Collectors.toList());
 
-		assertEquals(columnNames.size(), 3);
+		assertEquals(columnNames.size(), 5);
 		assertTrue(columnNames.contains("id"));
-		assertTrue(columnNames.contains("title"));
-		assertTrue(columnNames.contains("subject"));
+		assertTrue(columnNames.contains("type"));
+		assertTrue(columnNames.contains("data"));
 	}
 
 	/**

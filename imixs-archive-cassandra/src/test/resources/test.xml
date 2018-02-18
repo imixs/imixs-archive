@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<document xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<item name="$created">
+		<value xsi:type="xs:dateTime">2018-02-18T18:18:55.415+01:00</value>
+	</item>
+	<item name="$modified">
+		<value xsi:type="xs:dateTime">2018-02-18T18:18:55.415+01:00</value>
+	</item>
+	<item name="$uniqueid">
+		<value xsi:type="xs:string">67431692-511d-48a7-b25e-c3c41aa881a1</value>
+	</item>
+	<item name="type">
+		<value xsi:type="xs:string">workitem</value>
+	</item>
+</document> 
