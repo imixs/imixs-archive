@@ -5,7 +5,7 @@ The Imixs-Archive-Cassandra project provides an adapter for [Apache Cassandra](h
 
 ## Test Environment
 
-For local dev tests a test environment can be setup with Docker. 
+For local dev tests an Apache Cassandra test environment can be setup with Docker. 
 
 Starting a Cassandra Docker container:
 
@@ -22,6 +22,20 @@ To run a cqlsh (Cassandra Query Language Shell) against your Cassandra Dev conta
 	[cqlsh 5.0.1 | Cassandra 3.11.1 | CQL spec 3.4.4 | Native protocol v4]
 	Use HELP for help.
 	cqlsh>
+
+
+### Docker Compose
+
+The project includes a test environment based on a docker stack including the following components:
+
+* Imixs-Office-Workflow
+* PostrgreSQL Database
+* Imixs-Archive-Cassandra
+
+To start the test environment run:
+
+	docker-compose up
+
 
 
 ### Create a dev keyspace with cqlsh
