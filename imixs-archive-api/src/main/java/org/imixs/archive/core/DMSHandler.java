@@ -218,6 +218,7 @@ public class DMSHandler {
 	 * 
 	 * @return
 	 */
+	@SuppressWarnings({ "unchecked", "unused" })
 	private static String getStringValueFromMap(Map<String, List<Object>> hash, String aName) {
 
 		List<Object> v = null;
@@ -226,27 +227,40 @@ public class DMSHandler {
 			return null;
 		}
 		aName = aName.toLowerCase().trim();
-		List<Object> oList = hash.get(aName);
-		if (oList == null)
-			v = new Vector<Object>();
-		else {
-			v = oList;
-			// scan vector for null values
-			for (int i = 0; i < v.size(); i++) {
-				if (v.get(i) == null)
-					v.remove(i);
-			}
-		}
 
-		if (v.size() == 0)
+		Object obj = hash.get(aName);
+		if (obj==null) {
 			return "";
-		else {
-			// verify if value is null
-			Object o = v.get(0);
-			if (o == null)
+		}
+		
+		if (obj instanceof List) {
+
+			List<Object> oList = (List<Object>)obj;
+			if (oList == null)
+				v = new Vector<Object>();
+			else {
+				v = oList;
+				// scan vector for null values
+				for (int i = 0; i < v.size(); i++) {
+					if (v.get(i) == null)
+						v.remove(i);
+				}
+			}
+
+			if (v.size() == 0)
 				return "";
-			else
-				return o.toString();
+			else {
+				// verify if value is null
+				Object o = v.get(0);
+				if (o == null)
+					return "";
+				else
+					return o.toString();
+			}
+		} else {
+			//Value is not a list!
+			logger.warning("getStringValueFromMap - wrong value object found '" + aName +"'");
+			return obj.toString();
 		}
 	}
 
