@@ -21,6 +21,7 @@ This allows to read and extracted the data in a technology-neutral way.
 **Note:** The size of an XML representation of a Imixs document is only slightly different in size from the serialized map object. This is the reason why we do not store the document map in a serialized object format.  
 
 
+The Imixs-Archive-Cassandra is connected with a Imixs-Workflow instance via the Imixs-Rest API and runs as a single microservice. 
 
 
 ## Test Environment

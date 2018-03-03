@@ -2,10 +2,12 @@ package org.imixs.workflow.archive.cassandra;
 
 import static org.mockito.Mockito.when;
 
+import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.io.StringWriter;
 import java.security.Principal;
 import java.util.Date;
@@ -119,6 +121,14 @@ public class TestClusterService {
 		itemCol.replaceItemValue("$modified", new Date());
 		itemCol.replaceItemValue("someData", "Let’s understand this by examining the data of an ItemCollection");
 
+		
+		Color color=new Color(5, 5, 5);
+		
+		if (color instanceof Serializable) {
+			logger.info("OK");
+		}
+		
+		itemCol.replaceItemValue("color", color);
 		Session session = clusterService.connect();
 
 		try {

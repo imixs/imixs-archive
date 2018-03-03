@@ -8,7 +8,7 @@ services:
       POSTGRES_DB: office
 
   imixsofficeworkflow:
-    image: imixs/imixs-office-workflow:3.2.0-SNAPSHOT
+    image: imixs/imixs-office-workflow:3.2.1-SNAPSHOT
     environment:
       WILDFLY_PASS: adminadmin
       DEBUG: "true"

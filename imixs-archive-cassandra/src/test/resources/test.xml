@@ -2,15 +2,20 @@
 <document xmlns:xs="http://www.w3.org/2001/XMLSchema"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<item name="$created">
-		<value xsi:type="xs:dateTime">2018-02-18T18:18:55.415+01:00</value>
+		<value xsi:type="xs:dateTime">2018-02-18T22:36:25.072+01:00</value>
 	</item>
 	<item name="$modified">
-		<value xsi:type="xs:dateTime">2018-02-18T18:18:55.415+01:00</value>
+		<value xsi:type="xs:dateTime">2018-02-18T22:36:25.072+01:00</value>
 	</item>
 	<item name="$uniqueid">
-		<value xsi:type="xs:string">67431692-511d-48a7-b25e-c3c41aa881a1</value>
+		<value xsi:type="xs:string">270e3a6d-a0e4-4875-89f1-3b418859abe5</value>
+	</item>
+	<item name="color" />
+	<item name="somedata">
+		<value xsi:type="xs:string">Let’s understand this by examining the data of
+			an ItemCollection</value>
 	</item>
 	<item name="type">
 		<value xsi:type="xs:string">workitem</value>
 	</item>
-</document> 
+</document>
