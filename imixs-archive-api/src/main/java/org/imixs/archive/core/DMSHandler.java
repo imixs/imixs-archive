@@ -112,6 +112,7 @@ public class DMSHandler {
 						String checksum = generateMD5(fileContent);
 						if (!checksum.equals(dmsEntry.getItemValueString("md5checksum"))) {
 							dmsEntry.replaceItemValue("md5checksum", checksum);
+							dmsEntry.replaceItemValue("size", fileContent.length);
 							dmsEntry.replaceItemValue("$created", new Date());
 							dmsEntry.replaceItemValue("$editor", username);
 							putDMSEntry(dmsEntry, workitem);
@@ -195,7 +196,7 @@ public class DMSHandler {
 		// compute md5 checksum
 		byte[] fileContent = (byte[]) fileData.get(1);
 		dmsEntry.replaceItemValue("md5checksum", generateMD5(fileContent));
-
+		dmsEntry.replaceItemValue("size", fileContent.length);
 		return dmsEntry;
 	}
 
