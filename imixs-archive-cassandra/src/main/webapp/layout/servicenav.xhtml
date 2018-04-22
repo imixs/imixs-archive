@@ -1,0 +1,107 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:a="http://xmlns.jcp.org/jsf/passthrough">
+
+	<f:view>
+		<h:form>
+			<!-- Branding -->
+			<h:panelGroup layout="block" styleClass="toolbar branding">
+				<h:commandLink actionListener="#{workflowController.reset}"
+					immediate="true" title="home" action="notes">
+					<span>#{app.application_title}</span>
+				</h:commandLink>
+			</h:panelGroup>
+
+
+
+			<!-- settings -->
+			<h:panelGroup layout="block" styleClass="toolbar settings"
+				rendered="#{loginController.authenticated}">
+				<h:commandLink actionListener="#{workflowController.reset}"
+					immediate="true" title="home" action="notes">
+					<span class="typcn typcn-home"></span>
+				</h:commandLink>
+			</h:panelGroup>
+
+
+			<!-- Login -->
+			<h:panelGroup layout="block" styleClass="toolbar login"
+				rendered="#{loginController.authenticated}">
+
+				<span class="login-name"> <h:outputText
+						value="#{message.signed_in}: " /> <h:outputText
+						rendered="#{! empty userController.workitem.item['txtUserName']}"
+						value="#{userController.workitem.item['txtUserName']}" /> <h:outputText
+						rendered="#{empty userController.workitem.item['txtUserName']}"
+						value="#{userController.workitem.item['txtName']}" />
+				</span>
+				<h:link outcome="/pages/profile/settings"
+					title="#{message['nav.my_settings']}"><span class="typcn typcn-cog"></span>
+				</h:link>
+				<h:commandLink action="logout" immediate="true"
+					title="#{message['nav.logout']}"
+					actionListener="#{loginController.doLogout}"><span class="typcn typcn-power"></span>
+				</h:commandLink>
+			</h:panelGroup>
+
+
+			<!-- Search -->
+			<c:if test="#{loginController.authenticated}">
+
+				<h:panelGroup layout="block" styleClass="toolbar search">
+					<h:inputText style="margin-right: 10px;"
+						a:placeholder="#{message.search}..."
+						value="#{searchController.searchFilter.item['txtSearch']}"
+						onfocus="this.value='';" />
+					<h:commandLink actionListener="#{searchController.doResetFilter}"
+						action="search" title="#{message.search}"><span class="typcn typcn-zoom-outline"></span>
+					</h:commandLink>
+
+					<!-- dummy botton to hit enter -->
+					<h:commandButton
+						style="visibility:hidden;display: none;width:1px;height:1px;"
+						actionListener="#{searchController.doResetFilter}" action="search">
+					</h:commandButton>
+				</h:panelGroup>
+
+
+				<h:panelGroup layout="block" styleClass="toolbar">
+					<!-- board -->
+					<h:commandLink action="notes_board" immediate="true" 
+						actionListener="#{boardController.reset}"><span class="typcn typcn-th-large-outline"></span>
+						<f:setPropertyActionListener
+								target="#{boardController.title}"	value="#{message['worklist.owner']}" />
+					</h:commandLink>
+				</h:panelGroup>
+				
+				<!-- DMS Search -->
+				<h:panelGroup layout="block" styleClass="toolbar"
+					rendered="#{propertyController.getProperty('dms.search') eq 'true'}">
+
+					<h:commandLink actionListener="#{searchController.doResetFilter}"
+						action="search_dms" title="#{message['nav.search_documents']}">
+						<span class="typcn typcn-archive"></span>
+
+						<f:setPropertyActionListener
+							target="#{searchController.searchFilter.item['dms_search']}"
+							value="#{true}" />
+					</h:commandLink>
+				</h:panelGroup>
+
+
+				<!-- Custom Section -->
+				<ui:include src="servicenav_custom.xhtml" />
+			</c:if>
+
+
+			<!-- About Section -->
+			<ui:include src="servicenav_about.xhtml" />
+
+		</h:form>
+	</f:view>
+</ui:composition>
+
+

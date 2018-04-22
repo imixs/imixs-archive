@@ -1,0 +1,9 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html">
+
+	Build: <h:panelGroup rendered="#{! empty app.application_office_build}"> Imixs-Office-Workflow-#{app.application_office_build} | </h:panelGroup>
+	<span>Imixs-Workflow-#{app.application_workflow_build}</span>
+
+</ui:composition>

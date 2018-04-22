@@ -113,6 +113,17 @@ Select from document table:
 
 
 
+# Docker Support
+
+To run the web UI locally with docker run:
+
+
+	docker build --tag=imixs/imixs-archive-cassandra .
+
+
+	docker-compose up
+
+
 ### Docker Compose
 
 The project includes a test environment based on a docker stack including the following components:
