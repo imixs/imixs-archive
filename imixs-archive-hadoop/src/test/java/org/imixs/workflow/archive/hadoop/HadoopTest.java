@@ -35,6 +35,7 @@ public class HadoopTest {
 	/**
 	 * Test the conversion of a workitem into XML 
 	 */
+	@Ignore
 	@Test
 	public void testXML() {
 

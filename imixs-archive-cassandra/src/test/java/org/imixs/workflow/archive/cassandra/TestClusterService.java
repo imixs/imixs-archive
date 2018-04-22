@@ -29,6 +29,7 @@ import org.imixs.workflow.xml.XMLItemCollection;
 import org.imixs.workflow.xml.XMLItemCollectionAdapter;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -102,6 +103,7 @@ public class TestClusterService {
 	/**
 	 * Test the local connection
 	 */
+	@Ignore
 	@Test
 	public void testCluster() {
 
@@ -111,6 +113,7 @@ public class TestClusterService {
 	/**
 	 * Test save method
 	 */
+	@Ignore
 	@Test
 	public void testSaveDocument() {
 
@@ -143,6 +146,7 @@ public class TestClusterService {
 	/**
 	 * Test save 10 documents...
 	 */
+	@Ignore
 	@Test
 	public void testSaveBatch() {
 
@@ -178,6 +182,7 @@ public class TestClusterService {
 	 * This is just a simple test to show that serialized hash map is * only
 	 * slightly different in size from a XML representation object.
 	 */
+	@Ignore
 	@Test
 	public void testXMLvsSerializeable() {
 		int xmlSize = 0;

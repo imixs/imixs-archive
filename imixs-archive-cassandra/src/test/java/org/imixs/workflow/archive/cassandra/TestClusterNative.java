@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.datastax.driver.core.Cluster;
@@ -29,6 +30,7 @@ public class TestClusterNative {
 	/**
 	 * Test the local connection
 	 */
+	@Ignore
 	@Test
 	public void testCluster() {
 
@@ -46,6 +48,7 @@ public class TestClusterNative {
 	/**
 	 * Test createKeyspace if not exists...
 	 */
+	@Ignore
 	@Test
 	public void createKeyspace() {
 		Cluster cluster = Cluster.builder().addContactPoint(CONNACT_POINT).build();
@@ -61,6 +64,7 @@ public class TestClusterNative {
 	/**
 	 * Test createKeyspace if not exists...
 	 */
+	@Ignore
 	@Test
 	public void createTable() {
 		Session session = connect();
