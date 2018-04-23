@@ -7,9 +7,32 @@
 
 
 	<ui:define name="content">
-		
 
-		<h1>Welcome</h1>
+
+		<div class="imixs-form">
+			<div class="imixs-header">
+				<h1>Welcome</h1>
+			</div>
+			<div class="imixs-body">
+				<div class="imixs-form-panel">
+					<h2>Cassandra Cluster Status:</h2>
+					<div class="imixs-form-section">
+						<dl>
+							<dt>Contact Point:</dt>
+							<dd>#{setupController.contactPoints}</dd>
+							
+						</dl>
+						<dl>
+							<dt>Key Space:</dt>
+							<dd>#{setupController.keySpace}</dd>
+						</dl>
+
+					</div>
+				</div>
+			</div>
+		</div>
+
+
 
 	</ui:define>
 </ui:composition>

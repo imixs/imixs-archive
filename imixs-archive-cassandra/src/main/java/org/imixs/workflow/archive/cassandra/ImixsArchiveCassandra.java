@@ -29,10 +29,13 @@ package org.imixs.workflow.archive.cassandra;
 
 import java.util.logging.Logger;
 
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
 import org.imixs.workflow.WorkflowKernel;
+import org.imixs.workflow.archive.cassandra.controllers.SetupController;
 
 /**
  * The Imixs-Archive-Cassandra application setup
@@ -43,23 +46,16 @@ import org.imixs.workflow.WorkflowKernel;
 
 @ApplicationPath("getting-started")
 public class ImixsArchiveCassandra extends Application {
-	public static String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT = "archive.cluster.contactpoint";
-	public static String PROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
+
+	@Inject
+	SetupController setupController;
 
 	private static Logger logger = Logger.getLogger(WorkflowKernel.class.getName());
 
-	
 	public ImixsArchiveCassandra() {
-		super();
-		
-		String contactPoint = System.getenv(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
-		String keySpace = System.getenv(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
 
-		
-		logger.info(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT +"="+contactPoint);
-		logger.info(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE +"="+keySpace);
-		
+		super();
+
 	}
 
-	
 }

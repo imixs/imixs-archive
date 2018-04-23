@@ -6,12 +6,14 @@ services:
     environment:
       WILDFLY_PASS: adminadmin
       DEBUG: "true"
-      archive.cluster.contactpoint: "cassandra"
+      archive.cluster.contactpoints: "cassandra"
       archive.cluster.keyspace: "imixs-dev"
     ports:
       - "8080:8080"
       - "9990:9990"
       - "8787:8787"
+    volumes:
+        - ~/git/imixs-archive/imixs-archive-cassandra/src/docker/deployments:/opt/wildfly/standalone/deployments/
 
   cassandra:
      image: cassandra:3.11
