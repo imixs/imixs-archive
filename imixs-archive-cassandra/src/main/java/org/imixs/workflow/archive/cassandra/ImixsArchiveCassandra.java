@@ -44,7 +44,7 @@ import org.imixs.workflow.archive.cassandra.controllers.SetupController;
  * 
  */
 
-@ApplicationPath("getting-started")
+@ApplicationPath("archive")
 public class ImixsArchiveCassandra extends Application {
 
 	@Inject

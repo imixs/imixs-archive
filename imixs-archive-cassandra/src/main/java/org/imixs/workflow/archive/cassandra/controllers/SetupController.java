@@ -67,6 +67,8 @@ public class SetupController implements Serializable {
 
 	private static Logger logger = Logger.getLogger(SetupController.class.getName());
 
+	
+	Properties configurationProperties=null;
 	private String contactPoints;
 	private String keySpace;
 
@@ -84,16 +86,29 @@ public class SetupController implements Serializable {
 	@PostConstruct
 	public void init() {
 		logger.info("Initial setup: reading environment....");
+		
+		
+		 configurationProperties = new Properties();
+		try {
+			// load confiugration file 'imixs.properties'
+			configurationProperties
+					.load(Thread.currentThread().getContextClassLoader().getResource("imixs.properties").openStream());
+		} catch (Exception e) {
+			logger.warning("LDAPLookupService unable to find imixs.properties in current classpath");
+			e.printStackTrace();
+		}
+
+		// skip if no configuration
+		if (configurationProperties == null) {
+			logger.severe("Missing imixs.properties!");
+			return;
+		}
+		
+		
 		// load environment setup..
-		contactPoints = System.getenv(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
-		keySpace = System.getenv(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
-		contactPoints=System.getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
+		contactPoints = configurationProperties.getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
+		keySpace = configurationProperties.getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
 		
-		
-		Map<String, String> dinger = System.getenv();
-		
-		
-		Properties andereDinge = System.getProperties();
 		
 			
 		logger.info(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT +"="+contactPoints);

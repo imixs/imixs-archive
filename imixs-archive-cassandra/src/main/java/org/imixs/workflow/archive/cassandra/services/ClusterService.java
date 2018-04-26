@@ -1,5 +1,6 @@
-package org.imixs.workflow.archive.cassandra;
+package org.imixs.workflow.archive.cassandra.services;
 
+import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.xml.bind.JAXBException;
 
@@ -24,17 +25,13 @@ import com.datastax.driver.core.Session;
 @Stateless
 public class ClusterService {
 
-	public static String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT = "archive.cluster.contactpoint";
-	public static String PROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
+	public static final String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT = "archive.cluster.contactpoints";
+	public static final String PROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
 
-//	@Resource
-//	SessionContext ejbCtx;
-//
-//	@EJB
-//	DocumentService documentService;
-//
-//	@EJB
-//	PropertyService propertyService;
+	
+	@EJB
+	PropertyService propertyService;
+
 
 	/**
 	 * Test the local connection
@@ -47,9 +44,9 @@ public class ClusterService {
 	 * Helper method to get a session for the configured keyspace
 	 */
 	public Session connect() {
-
-		String contactPoint = System.getenv(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
-		String keySpace = System.getenv(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
+		
+		String contactPoint =propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
+		String keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
 
 		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();

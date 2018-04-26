@@ -25,21 +25,18 @@
  *  	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.workflow.archive.cassandra;
+package org.imixs.workflow.archive.cassandra.rest;
 
 import java.io.InputStream;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
-import javax.inject.Inject;
-import javax.mvc.annotation.Controller;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import javax.xml.registry.infomodel.User;
 
 /**
  * The WorkflowService Handler supports methods to manage user accounts to
@@ -73,8 +70,7 @@ public class PingRestService {
 		logger.finest("......Ping....");
 
 		java.time.LocalDate localDate = java.time.LocalDate.now();
-
-		return "" + localDate;
+		return "Ping: " + localDate;
 
 	}
 
