@@ -27,10 +27,12 @@
 
 package org.imixs.workflow.archive.cassandra;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+import javax.mvc.engine.ViewEngine;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
@@ -44,7 +46,7 @@ import org.imixs.workflow.archive.cassandra.controllers.SetupController;
  * 
  */
 
-@ApplicationPath("archive")
+@ApplicationPath("app")
 public class ImixsArchiveCassandra extends Application {
 
 	@Inject
@@ -57,5 +59,12 @@ public class ImixsArchiveCassandra extends Application {
 		super();
 
 	}
+
+//	@Override
+//	public Map<String, Object> getProperties() {
+//		final Map<String, Object> map = new HashMap<>();
+//	//	map.put(ViewEngine.VIEW_FOLDER, "/"); // overrides default /WEB-INF/
+//		return map;
+//	}
 
 }

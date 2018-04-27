@@ -50,8 +50,9 @@ public class ClusterService {
 
 		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
-		Session session = cluster.connect(keySpace);
-		return session;
+	//	Session session = cluster.connect(keySpace);
+	//	return session;
+		return null;
 	}
 
 	public void save(ItemCollection itemCol, Session session) throws JAXBException {

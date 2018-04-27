@@ -6,6 +6,6 @@
     <title>Getting started</title>
   </head>
   <body>
-    <h1>hello ${message}</h1>
+    <h1>hello  dumme JSP in /jsp/index.jsp</h1>
   </body>
 </html>

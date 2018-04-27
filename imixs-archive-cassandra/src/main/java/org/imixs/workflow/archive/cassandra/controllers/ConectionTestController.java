@@ -16,21 +16,24 @@ import org.imixs.workflow.archive.cassandra.services.ClusterService;
  *
  */
 @Controller
-@Path("test")
+@Path("status")
 public class ConectionTestController {
 	private static Logger logger = Logger.getLogger(ConectionTestController.class.getName());
 
 	@EJB
 	ClusterService clusterService;
 
+	@Path("/conntection")
 	@GET
 	public String sayHello() {
 
+			
+		
 		logger.info("connecting...");
-		clusterService.connect();
+	//	clusterService.connect();
 
-		logger.info("connection ok");
+		logger.info("connection ok2");
 
-		return "/index.jsf";
+		return "status.xhtml";
 	}
 }
