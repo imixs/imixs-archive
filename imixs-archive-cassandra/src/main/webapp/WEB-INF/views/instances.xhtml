@@ -8,6 +8,44 @@
 
 	<ui:define name="content">
 
+		<script type="text/javascript">
+			/*<![CDATA[*/
+			           
+			// The following code is used to layout the tables with the jquery datatable plugin.
+			$(document).ready(function() {
+				updateTableLayout();
+			});
+
+			
+			function updateTable(e) {
+				if (e.status == 'success') {
+					$('.imixsdatatable').layoutImixsTable()
+				}
+			} 
+			
+			
+			function updateTableLayout() {
+			
+				$('[id$=imixsdatatable]').each(function() {
+					// with the following line we test if the jsf datatable realy contains data 
+					// in cases with empty rows on default column is displayed.
+					if ($('tbody tr:nth-child(1) td', $(this)).length > 1)
+						$(this).dataTable({
+							"bRetrieve" : true,
+							"iDisplayLength" : 30,
+							"bLengthChange" : false,
+							"bSortable" : false,
+							"bJQueryUI" : true,
+							'aaSorting' : [] // no inital sorting 						
+						}
+						);
+				});
+				
+				
+			}
+			/*]]>*/
+		</script>
+		
 
 		<div class="imixs-form">
 			<div class="imixs-header">
@@ -20,7 +58,7 @@
 						
 						
 						
-						<h:dataTable id="view_body"
+						<h:dataTable id="imixsdatatable"
 							value="#{workflowInstanceController.instances}" var="record"
 							styleClass="imixsdatatable">
 							<h:column>
