@@ -17,7 +17,7 @@ body.loading .imixs-wait {
 }
 
 button, html input[type="button"], input[type="reset"], input[type="submit"]
-	{
+	{ 
 	font-weight: bold;
 }
 

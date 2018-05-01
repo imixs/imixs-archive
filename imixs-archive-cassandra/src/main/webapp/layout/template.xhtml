@@ -36,40 +36,18 @@
 		charset="UTF-8" type="text/css" rel="stylesheet" />
 
 	<!-- imixs-office-workflow css -->
+	
 	<link
-		href="#{facesContext.externalContext.requestContextPath}/marty/imixs-marty.css?build=#{app.application_build_timestamp}"
+		href="#{facesContext.externalContext.requestContextPath}/layout/css/imixs-archive.css?build=#{app.application_build_timestamp}"
 		charset="UTF-8" type="text/css" rel="stylesheet" />
-	<link
-		href="#{facesContext.externalContext.requestContextPath}/layout/css/office-theme.css?build=#{app.application_build_timestamp}"
-		charset="UTF-8" type="text/css" rel="stylesheet" />
-	<!-- custom css -->
-	<link
-		href="#{facesContext.externalContext.requestContextPath}/layout/css/custom.css?build=#{app.application_build_timestamp}"
-		charset="UTF-8" type="text/css" rel="stylesheet" />
+	
 
-
-	<!-- *** MS IE Support *** -->
-
-	<!-- IE 7 support -->
-	<h:outputText
-		value="&lt;!--[if IE 7]&gt;&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;#{facesContext.externalContext.requestContextPath}/layout/css/ie-support.css&quot; /&gt;&lt;![endif]--&gt;"
-		escape="false" />
-	<!-- IE 8 support -->
-	<h:outputText
-		value="&lt;!--[if IE 8]&gt;&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;#{facesContext.externalContext.requestContextPath}/layout/css/ie-support.css&quot; /&gt;&lt;![endif]--&gt;"
-		escape="false" />
-	<!-- IE 9 support -->
-	<h:outputText
-		value="&lt;!--[if IE 9]&gt;&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;#{facesContext.externalContext.requestContextPath}/layout/css/ie-support.css&quot; /&gt;&lt;![endif]--&gt;"
-		escape="false" />
-	<!-- IE 10 support -->
-	<h:outputText
-		value="&lt;!--[if IE 10]&gt;&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;#{facesContext.externalContext.requestContextPath}/layout/css/ie-support.css&quot; /&gt;&lt;![endif]--&gt;"
-		escape="false" />
 		
 
 	<!-- *** SCRIPTS *** -->
 
+	<script type="text/javascript"
+		src="#{facesContext.externalContext.requestContextPath}/js/jquery-2.1.4.min.js?build=#{app.application_build_timestamp}"></script>
 
 	<!-- datepicker regional -->
 	<script type="text/javascript"
@@ -157,8 +135,6 @@
 			
 			// init layout
 			imixsOfficeWorkflow.initLayout();
-			
-			layoutOfficeEditor();
 			
 			// translate fileupload widgets....
 			$('.imixsFileUpload #imixsFileUpload_button .ui-button-text').text(

@@ -3,6 +3,7 @@ package org.imixs.workflow.archive.cassandra.controllers;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
+import javax.inject.Named;
 import javax.mvc.annotation.Controller;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -17,6 +18,7 @@ import org.imixs.workflow.archive.cassandra.services.ClusterService;
  */
 @Controller
 @Path("status")
+@Named
 public class ConectionTestController {
 	private static Logger logger = Logger.getLogger(ConectionTestController.class.getName());
 
