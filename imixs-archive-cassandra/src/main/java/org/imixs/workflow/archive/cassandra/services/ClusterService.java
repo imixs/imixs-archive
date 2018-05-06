@@ -1,5 +1,7 @@
 package org.imixs.workflow.archive.cassandra.services;
 
+import java.util.logging.Logger;
+
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.xml.bind.JAXBException;
@@ -10,6 +12,7 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.InvalidQueryException;
 
 /**
  * Service to persist the content of a Imixs Document into a Cassandra keystore.
@@ -27,11 +30,13 @@ public class ClusterService {
 
 	public static final String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT = "archive.cluster.contactpoints";
 	public static final String PROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
+	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "archive.cluster.replication_factor";
+	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_CLASS = "archive.cluster.replication_class";
 
-	
+	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
+
 	@EJB
 	PropertyService propertyService;
-
 
 	/**
 	 * Test the local connection
@@ -44,15 +49,36 @@ public class ClusterService {
 	 * Helper method to get a session for the configured keyspace
 	 */
 	public Session connect() {
-		
-		String contactPoint =propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
+
+		String contactPoint = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
 		String keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
 
+		
+		if (1==1)
+			return null;
+		
+		logger.info("......cluster conecting...");
 		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
-	//	Session session = cluster.connect(keySpace);
-	//	return session;
-		return null;
+
+		
+		logger.info("......cluster conection status = OK");
+
+		// try to open keySpace
+		logger.info("......conecting keyspace '" + keySpace + "'...");
+
+		Session session = null;
+		try {
+			session = cluster.connect(keySpace);
+		} catch (InvalidQueryException e) {
+			logger.warning("......conecting keyspace '" + keySpace + "' failed: " + e.getMessage());
+			// create keyspace...
+			session = createKeSpace(cluster, keySpace);
+		}
+		if (session != null) {
+			logger.info("......keyspace conection status = OK");
+		}
+		return session;
 	}
 
 	public void save(ItemCollection itemCol, Session session) throws JAXBException {
@@ -65,6 +91,33 @@ public class ClusterService {
 				.setTimestamp("modified", itemCol.getItemValueDate("$modified")).setString("data", getXML(itemCol));
 
 		session.execute(bound);
+	}
+
+	/**
+	 * This method creates a keypace
+	 * 
+	 * @param cluster
+	 */
+	private Session createKeSpace(Cluster cluster, String keySpace) {
+		logger.info("......creating new keyspace '" + keySpace + "'...");
+
+		Session session = cluster.connect();
+
+		String repFactor = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_REPLICATION_FACTOR,
+				"1");
+		String repClass = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_REPLICATION_CLASS,
+				"SimpleStrategy");
+
+		String statement = "CREATE KEYSPACE " + keySpace + " WITH replication = {'class': '" + repClass
+				+ "', 'replication_factor': " + repFactor + "};";
+		logger.info("......keyspace created...");
+		session.execute(statement);
+		// try to connect again to keyspace...
+		session = cluster.connect(keySpace);
+		if (session != null) {
+			logger.info("......keyspace conection status = OK");
+		}
+		return session;
 	}
 
 	/**
@@ -85,16 +138,17 @@ public class ClusterService {
 	 */
 	private String getXML(ItemCollection itemCol) throws JAXBException {
 		String result = null;
-//		// convert the ItemCollection into a XMLItemcollection...
-//		XMLItemCollection xmlItemCollection = XMLItemCollectionAdapter.putItemCollection(itemCol);
-//
-//		// marshal the Object into an XML Stream....
-//		StringWriter writer = new StringWriter();
-//		JAXBContext context = JAXBContext.newInstance(XMLItemCollection.class);
-//		Marshaller m = context.createMarshaller();
-//		m.marshal(xmlItemCollection, writer);
-//
-//		result = writer.toString();
+		// // convert the ItemCollection into a XMLItemcollection...
+		// XMLItemCollection xmlItemCollection =
+		// XMLItemCollectionAdapter.putItemCollection(itemCol);
+		//
+		// // marshal the Object into an XML Stream....
+		// StringWriter writer = new StringWriter();
+		// JAXBContext context = JAXBContext.newInstance(XMLItemCollection.class);
+		// Marshaller m = context.createMarshaller();
+		// m.marshal(xmlItemCollection, writer);
+		//
+		// result = writer.toString();
 		return result;
 
 	}

@@ -27,17 +27,16 @@
 
 package org.imixs.workflow.archive.cassandra;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.inject.Inject;
-import javax.mvc.engine.ViewEngine;
+import javax.annotation.PostConstruct;
+import javax.ejb.EJB;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
-import org.imixs.workflow.WorkflowKernel;
-import org.imixs.workflow.archive.cassandra.controllers.SetupController;
+import org.imixs.workflow.archive.cassandra.services.ClusterService;
+
+import com.datastax.driver.core.Session;
 
 /**
  * The Imixs-Archive-Cassandra application setup
@@ -49,22 +48,34 @@ import org.imixs.workflow.archive.cassandra.controllers.SetupController;
 @ApplicationPath("app")
 public class ImixsArchiveCassandra extends Application {
 
-	@Inject
-	SetupController setupController;
+	@EJB
+	ClusterService clusterService;
 
-	private static Logger logger = Logger.getLogger(WorkflowKernel.class.getName());
+	public static final String CLUSTER_STATUS = "cluster.status";
+	public static final String KEYSPACE_STATUS = "keyspace.status";
+
+	private static Logger logger = Logger.getLogger(ImixsArchiveCassandra.class.getName());
 
 	public ImixsArchiveCassandra() {
-
 		super();
-
 	}
 
-//	@Override
-//	public Map<String, Object> getProperties() {
-//		final Map<String, Object> map = new HashMap<>();
-//	//	map.put(ViewEngine.VIEW_FOLDER, "/"); // overrides default /WEB-INF/
-//		return map;
-//	}
+	/**
+	 * Initialize the web application
+	 */
+	@PostConstruct
+	public void initialize() {
+		logger.info("......postconstruct ejb!=null : " + (clusterService != null));
+
+		if (clusterService != null) {
+			logger.info("......testing cluster status...");
+			Session session = clusterService.connect();
+			if (session != null) {
+				this.getProperties().put(CLUSTER_STATUS,"OK");
+				this.getProperties().put(KEYSPACE_STATUS,"OK");
+				logger.info("......cluster status = OK");
+			}
+		}
+	}
 
 }
