@@ -52,9 +52,9 @@ public class SplitAndJoinPlugin extends org.imixs.workflow.engine.plugins.SplitA
 	/**
 	 * This Method copies the fields defined in 'items' into the targetWorkitem.
 	 * 
-	 * The method overrides the behavior of the origin method and copies also the
-	 * file content of files stored in the item "$file" form the corresponding
-	 * snapshotItem.
+	 * The method overrides the behavior of the origin method and copies also
+	 * the file content of files stored in the item "$file" form the
+	 * corresponding snapshotItem.
 	 * 
 	 */
 	@Override
@@ -68,13 +68,14 @@ public class SplitAndJoinPlugin extends org.imixs.workflow.engine.plugins.SplitA
 
 				logger.finest("......copy $file content fromsnapshot...");
 				// load source snapshot
-				String snapshotID=source.getItemValueString(SnapshotService.SNAPSHOTID);
-				ItemCollection sourceSnapshot = this.getWorkflowService()
-						.getWorkItem(snapshotID);
+				String snapshotID = source.getItemValueString(SnapshotService.SNAPSHOTID);
+				ItemCollection sourceSnapshot = this.getWorkflowService().getWorkItem(snapshotID);
 				if (sourceSnapshot != null) {
 					Map<String, List<Object>> files = sourceSnapshot.getFiles();
-					for (String filename : files.keySet()) {
-						target.addFileData(sourceSnapshot.getFileData(filename));
+					if (files != null) {
+						for (String filename : files.keySet()) {
+							target.addFileData(sourceSnapshot.getFileData(filename));
+						}
 					}
 				} else {
 					logger.warning("unable to load snapshot workitem '" + snapshotID + "'. Can't copy $file content!");
