@@ -171,6 +171,9 @@ public class DMSHandler {
 		}
 		// add new
 		vDMS.add(dmsEntry.getAllItems());
+		
+		// update dms_item - see issue #23
+		workitem.replaceItemValue(DMS_ITEM, vDMS);
 	}
 
 	/**
