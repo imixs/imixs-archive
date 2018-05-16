@@ -171,9 +171,19 @@ public class DMSHandler {
 		}
 		// add new
 		vDMS.add(dmsEntry.getAllItems());
-		
-		// update dms_item - see issue #23
+		// update dms_item - see fix issue #23
 		workitem.replaceItemValue(DMS_ITEM, vDMS);
+	}
+
+	/**
+	 * Validates a given MD5 checksum
+	 * 
+	 * @return true if equal
+	 * @throws NoSuchAlgorithmException
+	 */
+	public static boolean validateMD5(String checksum, byte[] b) throws NoSuchAlgorithmException {
+		String testChecksum = generateMD5(b);
+		return (testChecksum.equals(checksum));
 	}
 
 	/**
@@ -233,13 +243,13 @@ public class DMSHandler {
 		aName = aName.toLowerCase().trim();
 
 		Object obj = hash.get(aName);
-		if (obj==null) {
+		if (obj == null) {
 			return "";
 		}
-		
+
 		if (obj instanceof List) {
 
-			List<Object> oList = (List<Object>)obj;
+			List<Object> oList = (List<Object>) obj;
 			if (oList == null)
 				v = new Vector<Object>();
 			else {
@@ -262,8 +272,8 @@ public class DMSHandler {
 					return o.toString();
 			}
 		} else {
-			//Value is not a list!
-			logger.warning("getStringValueFromMap - wrong value object found '" + aName +"'");
+			// Value is not a list!
+			logger.warning("getStringValueFromMap - wrong value object found '" + aName + "'");
 			return obj.toString();
 		}
 	}

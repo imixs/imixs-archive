@@ -2,6 +2,7 @@ package org.imixs.archive.core;
 
 import static org.mockito.Mockito.when;
 
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Properties;
@@ -10,6 +11,7 @@ import java.util.logging.Logger;
 import javax.ejb.SessionContext;
 
 import org.imixs.archive.core.SnapshotService;
+import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
@@ -210,6 +212,75 @@ public class TestSnapshotService {
 		byte[] contentVersion = (byte[]) fileDataVersion.get(1);
 		Assert.assertEquals("This is a test", new String(contentVersion));
 
+	}
+
+	/**
+	 * This test simulates a simple workflow process which generates a new
+	 * Snapshot-Workitem.
+	 * 
+	 * The method adds a file and tests the fileData of the workitem and the
+	 * snapshot as also the dms item
+	 * 
+	 * @throws ProcessingErrorException
+	 * @throws AccessDeniedException
+	 * @throws ModelException
+	 * 
+	 */
+	@Test
+	public void testFileDataAndDMSEntries()
+			throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
+		// load test workitem
+		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
+		workitem.replaceItemValue(WorkflowKernel.MODELVERSION, WorkflowMockEnvironment.DEFAULT_MODEL_VERSION);
+		workitem.replaceItemValue(WorkflowKernel.PROCESSID, 1000);
+		workitem.replaceItemValue(WorkflowKernel.ACTIVITYID, 10);
+
+		// add file...
+		byte[] dummyContent = { 1, 2, 3 };
+		FileData filedata = new FileData("test.txt", dummyContent, "text");
+		workitem.addFileData(filedata);
+
+		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
+
+		snapshotService.onSave(documentEvent);
+
+		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
+
+		Assert.assertEquals("1.0.0", workitem.getItemValueString("$ModelVersion"));
+
+		// test the $snapshotID
+		Assert.assertTrue(workitem.hasItem(SnapshotService.SNAPSHOTID));
+		String snapshotID = workitem.getItemValueString(SnapshotService.SNAPSHOTID);
+		Assert.assertFalse(snapshotID.isEmpty());
+		logger.info("$snapshotid=" + snapshotID);
+		Assert.assertTrue(snapshotID.startsWith("W0000-00001"));
+
+		// load the snapshot workitem
+		ItemCollection snapshotworkitem = workflowMockEnvironment.getDatabase().get(snapshotID);
+		Assert.assertNotNull(snapshotworkitem);
+
+		// test the file data of workitem
+		FileData testfiledata = workitem.getFileData("test.txt");
+		Assert.assertEquals(filedata.getName(), testfiledata.getName());
+		Assert.assertEquals(filedata.getContentType(), testfiledata.getContentType());
+		Assert.assertTrue(testfiledata.getContent().length == 0);
+
+		// test the file data of snapshot
+		testfiledata = snapshotworkitem.getFileData("test.txt");
+		Assert.assertEquals(filedata.getName(), testfiledata.getName());
+		Assert.assertEquals(filedata.getContentType(), testfiledata.getContentType());
+		Assert.assertTrue(testfiledata.getContent().length == 3);
+
+		// now test the DMS item
+		ItemCollection dmsItemCol = DMSHandler.getDMSEntry("test.txt", workitem);
+		Assert.assertNotNull(dmsItemCol);
+		Assert.assertEquals(3, dmsItemCol.getItemValueInteger("size"));
+		try {
+			Assert.assertTrue(DMSHandler.validateMD5(dmsItemCol.getItemValueString("md5checksum"), dummyContent));
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			Assert.fail();
+		}
 	}
 
 }
