@@ -14,7 +14,6 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<org.imixs.workflow.version>4.3.0-SNAPSHOT</org.imixs.workflow.version>
 		<custom.webResources>src/main/webapp</custom.webResources>
 		<imixs-archive.applicationname>Imixs-Workflow-Archive</imixs-archive.applicationname>
 	</properties>

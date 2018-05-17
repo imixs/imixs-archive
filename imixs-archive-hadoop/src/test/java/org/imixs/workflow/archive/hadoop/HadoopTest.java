@@ -10,9 +10,10 @@ import javax.xml.bind.Marshaller;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
-import org.imixs.workflow.xml.DocumentCollection;
-import org.imixs.workflow.xml.XMLItemCollection;
-import org.imixs.workflow.xml.XMLItemCollectionAdapter;
+import org.imixs.workflow.xml.XMLDataCollection;
+import org.imixs.workflow.xml.XMLDataCollectionAdapter;
+import org.imixs.workflow.xml.XMLDocument;
+import org.imixs.workflow.xml.XMLDocumentAdapter;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -49,11 +50,11 @@ public class HadoopTest {
 		try {
 
 			// convert the ItemCollection into a XMLItemcollection...
-			XMLItemCollection xmlItemCollection = XMLItemCollectionAdapter.putItemCollection(workitem);
+			XMLDocument xmlItemCollection = XMLDocumentAdapter.getDocument(workitem);
 
 			// marshal the Object into an XML Stream....
 			StringWriter writer = new StringWriter();
-			JAXBContext context = JAXBContext.newInstance(XMLItemCollection.class);
+			JAXBContext context = JAXBContext.newInstance(XMLDocument.class);
 			Marshaller m = context.createMarshaller();
 			m.marshal(xmlItemCollection, writer);
 			String xmlData=writer.toString();
@@ -125,9 +126,9 @@ public class HadoopTest {
 		HDFSClient hdfsClient=new HDFSClient("root");
 		//String uri="http://my-hadoop-cluster.local:50070/webhdfs/v1/2017/06/test?op=CREATE&overwrite=true";
 		try {
-			DocumentCollection doc = null; //hdfsClient.readData("test/testxxxx2111abc.txt");
+			XMLDataCollection doc = null; //hdfsClient.readData("test/testxxxx2111abc.txt");
 			
-			 List<ItemCollection> rescol = XMLItemCollectionAdapter.getCollection(doc);
+			 List<ItemCollection> rescol = XMLDataCollectionAdapter.putDataCollection(doc);
 			 workitem=rescol.get(0);
 			 
 			Assert.assertNotNull(workitem);
