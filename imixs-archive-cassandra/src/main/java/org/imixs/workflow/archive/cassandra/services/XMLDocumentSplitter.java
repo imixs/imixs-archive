@@ -5,6 +5,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
@@ -159,4 +161,24 @@ public class XMLDocumentSplitter {
 		is.close();
 		return buffer.toByteArray();
 	}
+
+	/**
+	 * Computes the SHA-1 hash of the given byte array
+	 * 
+	 * @param data
+	 *            byte[]
+	 * @return String
+	 */
+	public static String SHAsum(byte[] data) throws NoSuchAlgorithmException {
+		MessageDigest md = MessageDigest.getInstance("SHA-1");
+		byte[] shaSum = md.digest(data);
+		// create hex string form shaSum
+		StringBuffer stringBuffer = new StringBuffer();
+		for (int i = 0; i < shaSum.length; i++) {
+			stringBuffer.append(Integer.toString((shaSum[i] & 0xff) + 0x100, 16).substring(1));
+		}
+		// return hash
+		return stringBuffer.toString();
+	}
+
 }

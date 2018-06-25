@@ -1,5 +1,7 @@
 package org.imixs.workflow.archive.cassandra;
 
+import java.security.NoSuchAlgorithmException;
+import java.util.Calendar;
 import java.util.zip.DataFormatException;
 
 import javax.xml.bind.JAXBException;
@@ -141,5 +143,50 @@ public class TestXMLDocumentSplitter {
 		Assert.assertEquals(1024 * 1024, fileData.getContent().length);
 
 	}
+	
+	
+	
+	/**
+	 * Test compression
+	 * 
+	 * @throws JAXBException
+	 * @throws NoSuchAlgorithmException 
+	 */
+	@Test
+	public void testSH1Hash() throws JAXBException, NoSuchAlgorithmException {
+
+		// create a static workitem
+		ItemCollection workitem=new ItemCollection();
+		Calendar cal = Calendar.getInstance();
+		cal.set(Calendar.YEAR,2018);
+		cal.set(Calendar.MONTH,7);
+		cal.set(Calendar.DATE,30);
+		cal.set(Calendar.MILLISECOND,0);
+		cal.set(Calendar.SECOND,0);
+		cal.set(Calendar.MINUTE,0);
+		cal.set(Calendar.HOUR,0);
+
+		workitem.replaceItemValue("$created",cal.getTime());
+		workitem.replaceItemValue("$modified",cal.getTime());
+		
+		workitem.replaceItemValue("_some_text","Hello World");
+		workitem.replaceItemValue("_some_amount",47);
+		
+		workitem.replaceItemValue("_extra_data", "some extra data to be hashed");
+
+		Assert.assertNotNull(workitem);
+		XMLDocument xmlWorkitem = XMLDocumentAdapter.getDocument(workitem);
+		Assert.assertNotNull(xmlWorkitem);
+
+		XMLDocumentSplitter splitter = new XMLDocumentSplitter(xmlWorkitem);
+		// create byte array
+		byte[] byteResult = splitter.getBytes();
+		
+		String hash=XMLDocumentSplitter.SHAsum(byteResult);
+
+		System.out.println("hash=" + hash);
+		Assert.assertEquals("596a727217b3da25241110bc233bb20cd4591c59", hash);
+	}
+
 
 }

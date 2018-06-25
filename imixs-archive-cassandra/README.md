@@ -52,15 +52,22 @@ To run a cqlsh (Cassandra Query Language Shell) against your Cassandra Dev conta
 	
 ### Create the Data Schema
 
-
-	cqlsh> CREATE TABLE documents (
-	   id text,
-	   created text,
-	   data text,
-	   PRIMARY KEY (id)
-	);
+	CREATE TABLE documents (
+	document_id text,
+	chunk_order int,
+	chunk_id text,
+	PRIMARY KEY (document_id, chunk_order))
 	
-	cqlsh> CREATE INDEX ON imixs_dev.documents (created);
+	CREATE TABLE documents_data (
+	chunk_id text, 
+	chunk blob,
+	PRIMARY KEY(chunk_id))
+	
+	CREATE TABLE documents_meta (
+	modified date,
+	document_id text,
+	document_hash text,
+	PRIMARY KEY(modified, document_id));
 	
 	
 Select from document table:
@@ -77,24 +84,20 @@ Select from document table:
 
 # Docker Support
 
-To run the web UI locally with docker run:
-
-
-	docker build --tag=imixs/imixs-archive-cassandra .
-
-
-	docker-compose up
-
-
-### Docker Compose
-
 The project includes a test environment based on a docker stack including the following components:
 
-* Imixs-Office-Workflow
-* PostrgreSQL Database
-* Imixs-Archive-Cassandra
+* Imixs-Archive-Cassandra - Web Front-End
+* Cassandra - local cluster
 
-To start the test environment run:
 
-	docker-compose up
+## Build
+
+To build the environment run the maven command:
+
+	$ mvn clean install -Pdocker-build
+
+To start the environment run:
+	
+	$ docker-compose up
+
 
