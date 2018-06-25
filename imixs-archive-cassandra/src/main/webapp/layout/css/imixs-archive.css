@@ -16,8 +16,6 @@ body, html {
 	box-sizing: inherit
 }
 
-
-
 .title-bar {
 	background-color: #145267;
 	min-height: 120px;
@@ -29,14 +27,12 @@ body, html {
 
 .title-bar h1 {
 	line-height: 36px;
-	font-size:36px;
-	
+	font-size: 36px;
 }
 
 .title-bar h4 {
 	margin: 0;
 }
-
 
 .nav-sidebar  ul {
 	padding: 0;
@@ -64,6 +60,7 @@ body, html {
 .nav-sidebar .title-bar {
 	min-height: 120px;
 }
+
 .nav-sidebar a {
 	color: inherit;
 }
@@ -80,25 +77,25 @@ body, html {
 	padding: 10px;
 }
 
-
 #imixs-footer {
-    position: fixed;
-    left: 0px;
-    bottom: 0;
-    width: 100%;
-    background-color: #fff;
-       padding: 10px 30px 10px 210px;
-    text-align: right;
+	position: fixed;
+	left: 0px;
+	bottom: 0;
+	width: 100%;
+	background-color: #fff;
+	padding: 10px 30px 10px 210px;
+	text-align: right;
 }
 
+#imixs-footer a {
+	color: inherit;
+}
 
 .header {
 	background-image: url(background.png);
 	background-repeat: no-repeat;
 	background-position: right 10px top 16px;
 }
-
-
 
 .nav-item {
 	font-weight: 200;
@@ -167,12 +164,9 @@ th {
 	color: #cb2431;
 }
 
-
 /* Responsive */
-
 @media screen and (max-width: 1200px) {
 	.header {
 		background-image: none;
 	}
-
 }
