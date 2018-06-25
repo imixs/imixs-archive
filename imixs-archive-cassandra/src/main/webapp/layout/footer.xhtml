@@ -3,23 +3,11 @@
 	xmlns:f="http://java.sun.com/jsf/core"
 	xmlns:h="http://java.sun.com/jsf/html">
 
-	<h:form>
-
-		<ul>
-
-			<li>Version: #{app.application_build}</li>
-		
-			<li><h:commandLink immediate="true" action="/contact">
-					<h:outputText value="Help" />
-				</h:commandLink></li>
-
-			<li><a href="http://www.imixs.com/impressum" target="_blank">Impressum</a></li>
-
-			<li><a href="http://www.imixs.com/agb" target="_blank">AGBs</a></li>
-
-		</ul>
-
-	</h:form>
+<hr />
+	<span>#{message.application_title} | v#{message.application_build}</span>
+	 | 
+	 <a href="https://github.com/imixs/imixs-mvc-example" target="_blank"
+				class="pull-right"><span class="typcn typcn-social-github" style="font-size:1.3em"></span> Github</a>
 </ui:composition>
 
 
