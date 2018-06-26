@@ -28,6 +28,7 @@ body, html {
 .title-bar h1 {
 	line-height: 36px;
 	font-size: 36px;
+	font-weight: 600;
 }
 
 .title-bar h4 {
@@ -74,7 +75,7 @@ body, html {
 }
 
 .main-container {
-	padding: 10px;
+	padding: 16px 20px;
 }
 
 #imixs-footer {
@@ -120,18 +121,8 @@ body, html {
 	color: #fff;
 }
 
-button, input[type="button"], input[type="submit"], .button, a.button,
-	.imixs-button {
-	background: #145267;
-	border: 1px solid #FCB802;
-	margin-right: 10px;
-}
 
-button, input[type="button"]:hover, input[type="submit"]:hover, .button:hover,
-	a.button:hover, .imixs-button:hover {
-	background-color: orange;
-	color: #fff;
-}
+
 
 input[type="text"]:focus, input[type="password"]:focus, textarea:focus,
 	select:focus {

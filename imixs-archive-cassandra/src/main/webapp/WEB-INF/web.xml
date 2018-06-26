@@ -5,12 +5,11 @@
          version="3.1">
 
 	<display-name>${imixs-archive.applicationname}</display-name>
-	<!--  
 	<welcome-file-list>
 		<welcome-file>index.xhtml</welcome-file>
 	</welcome-file-list>
--->
-
+	
+	
 	<!-- Login Modul - Formular-Login  
 	 <login-config> 
 	 	<auth-method>FORM</auth-method> 

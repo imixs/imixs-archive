@@ -32,12 +32,16 @@
 	<link rel="stylesheet"
 		href="#{facesContext.externalContext.requestContextPath}/layout/css/imixs-archive.css" />
 
-	<!-- jquery
+	<!-- jquery 
     ================================================== -->
+    <link rel="stylesheet"
+		href="#{facesContext.externalContext.requestContextPath}/layout/js/jquery-ui/jquery-ui.min.css" />
 	<script type="text/javascript"
-		src="#{facesContext.externalContext.requestContextPath}/layout/js/jquery-2.1.4.min.js"></script>
+		src="#{facesContext.externalContext.requestContextPath}/layout/js/jquery/jquery-2.1.4.min.js"></script>
 	<script type="text/javascript"
-		src="#{facesContext.externalContext.requestContextPath}/layout/js/jquery-ui.min.js"></script>
+		src="#{facesContext.externalContext.requestContextPath}/layout/js/jquery-ui/jquery-ui.min.js"></script>
+	<script type="text/javascript"
+		src="#{facesContext.externalContext.requestContextPath}/layout/js/imixs-faces.js"></script>
 
 </h:head>
 <h:body>
@@ -54,7 +58,7 @@
 
 			<ul>
 				<li class="nav-item"><a
-					href="#{facesContext.externalContext.requestContextPath}/imixsadmin"><span
+					href="#{facesContext.externalContext.requestContextPath}/imixsarchive/connection/action/create"><span
 						class="typcn typcn-plug"></span>Connect</a></li>
 			</ul>
 			<hr />
@@ -68,8 +72,8 @@
 					href="#{facesContext.externalContext.requestContextPath}/imixsadmin/backup"><span
 						class="typcn typcn-cloud-storage-outline"></span>Restore</a></li>
 
-				<li class="nav-item"><a href="#"><span
-						class="typcn typcn-spanner-outline"></span>AdminP</a></li>
+				<li class="nav-item"><a href="#{facesContext.externalContext.requestContextPath}/imixsarchive/connection"><span
+						class="typcn typcn-database"></span>Connections</a></li>
 
 
 				<li class="nav-item"><a
@@ -91,7 +95,7 @@
 			</div>
 
 
-			<div class="main-container">
+			<div  id="imixs-content" class="main-container">
 				<ui:insert name="content">
 					<h2>Default Content</h2>
 				</ui:insert>
@@ -119,6 +123,25 @@
 
 	<script type="text/javascript">
 		/*<![CDATA[*/
+		           
+		
+
+		$(document)
+				.ready(
+						function() {
+							
+							
+								//setDateFormat('#{cc.attrs.dateformat}');
+								// $(this).imixsInitFileUpload();
+							
+								$('a.imixs-button').button();
+								$(this).imixsLayout();
+								
+							
+								$("span.imixs-tooltip").layoutImixsTooltip();
+	
+							
+						});
 
 		/*]]>*/
 	</script>

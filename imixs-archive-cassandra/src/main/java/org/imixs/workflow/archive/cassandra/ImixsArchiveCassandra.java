@@ -45,7 +45,7 @@ import com.datastax.driver.core.Session;
  * 
  */
 
-@ApplicationPath("app")
+@ApplicationPath("imixsarchive")
 public class ImixsArchiveCassandra extends Application {
 
 	@EJB
