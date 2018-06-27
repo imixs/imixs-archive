@@ -1,7 +1,7 @@
 # The Imixs-Snapshot-Architecture
 
-The sub-module Imixs-Archive-API provides the core functionality and interfaces to archive the content of a workitem during the processing life cycle into a _snapshot-workitem_.
-A _snapshot workitem_ is an immutable copy of a workitem (origin-workitem) including all the business data and file content of attached files. A _snapshot workitem_ can be stored in the workflow data storge or in an external archive storage (e.g. Hadoop).
+The sub-module Imixs-Archive-API provides the core functionality and interfaces to archive the content of a running process instance during its processing life cycle into a so called _snapshot-workitem_.
+A _snapshot workitem_ is an immutable copy of a workitem (origin-workitem) including all the business data and file content of attached files. A _snapshot workitem_ can be stored in the workflow data storge or in an external archive storage (e.g. Apache-Cassandra or Hadoop).
 
 <br /><br /><img src="src/uml/snapshot-service.png" />
 
@@ -164,6 +164,15 @@ No further migration step is necessary.
 
 The Item 'dms' with the file meta information is handled by the SnapshotService EJB. The DMSPlugin is deprecated. 
 
+## How Restore Deprecated workitemlob Data
+
+In case of a data migration via the backup/resource functionality, supported by the DocumentService, it is necessary to set the imixs.porperty
+
+	snapshot.workitemlob_suport=true
+
+This setting allows that deprecated workitemlob entities can be restored without an exception.
+
+To restore old data it is recommended first to import the workitemlob data and later import the regular workitem data.
 
 
 
