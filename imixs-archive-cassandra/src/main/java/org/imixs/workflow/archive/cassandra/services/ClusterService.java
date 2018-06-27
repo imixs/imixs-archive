@@ -54,9 +54,6 @@ public class ClusterService {
 		String keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
 
 		
-		if (1==1)
-			return null;
-		
 		logger.info("......cluster conecting...");
 		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();

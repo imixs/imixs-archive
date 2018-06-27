@@ -1,0 +1,56 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	template="/layout/template.xhtml">
+
+
+	<ui:define name="content">
+
+
+		<div class="imixs-form">
+			<div class="imixs-header">
+				<h1>
+					<span class="typcn typcn-chart-bar-outline"></span>Monitor
+				</h1>
+			</div>
+
+
+
+			<table>
+
+				<tr>
+					<td>Contact Points:</td>
+					<td>#{configDataController.contactPoints}</td>
+				</tr>
+
+				<tr>
+					<td>Central KeySpace:</td>
+					<td>#{configDataController.keySpace}</td>
+				</tr>
+
+				<tr>
+					<td>Connecton Status:x</td>
+					<td>
+						<ui:fragment rendered="#{configDataController.connected}">
+							OK <span class="typcn typcn-media-record"
+								style="font-size: 1.3em; color: green;"></span>
+						</ui:fragment> <ui:fragment rendered="#{!configDataController.connected}">
+							Failed <span class="typcn typcn-media-record"
+								style="font-size: 1.3em; color: red;"></span>
+						</ui:fragment>
+					</td>
+				</tr>
+
+			</table>
+
+
+
+
+		</div>
+
+
+
+	</ui:define>
+</ui:composition>

@@ -122,7 +122,26 @@ body, html {
 }
 
 
+button, input[type="button"], input[type="submit"], .button, a.button,
+	.imixs-button {
+	background: #2284a5;
+	color: #fff !important;
+	font-weight: normal !important;
+}
 
+button, input[type="button"]:hover, input[type="submit"]:hover, .button:hover,
+	a.button:hover, .imixs-button:hover {
+	background: #31b1dc;
+	color: #ddd !important;
+}
+
+
+#imixs-content a.imixs-button {
+	color: inherit;
+}
+#imixs-content a.imixs-button:hover {
+	color: #fff;
+}
 
 input[type="text"]:focus, input[type="password"]:focus, textarea:focus,
 	select:focus {

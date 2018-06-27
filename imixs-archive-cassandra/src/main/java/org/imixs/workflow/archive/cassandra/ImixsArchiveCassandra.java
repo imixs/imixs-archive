@@ -27,16 +27,8 @@
 
 package org.imixs.workflow.archive.cassandra;
 
-import java.util.logging.Logger;
-
-import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
-
-import org.imixs.workflow.archive.cassandra.services.ClusterService;
-
-import com.datastax.driver.core.Session;
 
 /**
  * The Imixs-Archive-Cassandra application setup
@@ -48,34 +40,8 @@ import com.datastax.driver.core.Session;
 @ApplicationPath("imixsarchive")
 public class ImixsArchiveCassandra extends Application {
 
-	@EJB
-	ClusterService clusterService;
-
-	public static final String CLUSTER_STATUS = "cluster.status";
-	public static final String KEYSPACE_STATUS = "keyspace.status";
-
-	private static Logger logger = Logger.getLogger(ImixsArchiveCassandra.class.getName());
-
 	public ImixsArchiveCassandra() {
 		super();
-	}
-
-	/**
-	 * Initialize the web application
-	 */
-	@PostConstruct
-	public void initialize() {
-		logger.info("......postconstruct ejb!=null : " + (clusterService != null));
-
-		if (clusterService != null) {
-			logger.info("......testing cluster status...");
-			Session session = clusterService.connect();
-			if (session != null) {
-				this.getProperties().put(CLUSTER_STATUS,"OK");
-				this.getProperties().put(KEYSPACE_STATUS,"OK");
-				logger.info("......cluster status = OK");
-			}
-		}
 	}
 
 }
