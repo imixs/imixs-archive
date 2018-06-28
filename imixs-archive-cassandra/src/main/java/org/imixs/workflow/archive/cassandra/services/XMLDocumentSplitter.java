@@ -32,6 +32,8 @@ import org.imixs.workflow.xml.XMLDocument;
  */
 public class XMLDocumentSplitter implements Iterable<byte[]> {
 
+	public int CHUNK_SIZE = 2097152; // 2mb
+	
 	XMLDocument xmlDocument = null;
 
 	private static Logger logger = Logger.getLogger(XMLDocumentSplitter.class.getName());
@@ -186,6 +188,9 @@ public class XMLDocumentSplitter implements Iterable<byte[]> {
 		return stringBuffer.toString();
 	}
 
+	/**
+	 * Iterator interface to read the byte data in 2mb chunks
+	 */
 	@Override
 	public Iterator<byte[]> iterator() {
 		try {
@@ -197,11 +202,10 @@ public class XMLDocumentSplitter implements Iterable<byte[]> {
 		}
 	}
 
-	// Inner class example
+	// Inner class to iterate the bytes in 2mb chunks
 	private class ChunkIterator implements Iterator<byte[]> {
 		private int cursor;
 		private byte[] data;
-		private int CHUNK_SIZE = 2097152; // 2mb
 
 		public ChunkIterator() throws JAXBException {
 			this.cursor = 0;
@@ -216,19 +220,15 @@ public class XMLDocumentSplitter implements Iterable<byte[]> {
 		public byte[] next() {
 			if (this.hasNext()) {
 				byte[] chunk;
-				// check length of byte from cursor...
+				// check byte count from cursor...
 				if (data.length > cursor + CHUNK_SIZE) {
-					chunk = Arrays.copyOfRange(data, cursor,  cursor + CHUNK_SIZE);
+					chunk = Arrays.copyOfRange(data, cursor, cursor + CHUNK_SIZE);
 					cursor = cursor + CHUNK_SIZE;
 				} else {
-					// last junk
-					chunk = Arrays.copyOfRange(data, cursor,  data.length);
+					// read last junk
+					chunk = Arrays.copyOfRange(data, cursor, data.length);
 					cursor = data.length;
 				}
-
-				//logger.info("Read junk from " + cursor + " to " + chunkEnd);
-				//byte[] chunk = Arrays.copyOfRange(data, cursor, chunkEnd);
-				//cursor = cursor + chunkEnd;
 				return chunk;
 			}
 			throw new NoSuchElementException();

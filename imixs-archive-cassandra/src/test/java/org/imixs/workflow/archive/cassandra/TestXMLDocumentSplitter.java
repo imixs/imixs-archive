@@ -2,7 +2,6 @@ package org.imixs.workflow.archive.cassandra;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -195,12 +194,14 @@ public class TestXMLDocumentSplitter {
 	 * 
 	 * This test verifies if a itemCollection is correctly chunked and returned by
 	 * the iterator interface
-	 * @throws NoSuchAlgorithmException 
+	 * 
+	 * @throws NoSuchAlgorithmException
 	 * 
 	 */
 	@Test
 	public void testIterator1mb() throws NoSuchAlgorithmException {
 		// frist create a big itemColection
+		System.out.println("1st XMLDocumentSplitter.iterator test....");
 		ItemCollection workitem = WorkitemFactory.createWorkitem();
 		workitem.replaceItemValue("_subject", "The Interator test");
 		WorkitemFactory.addFile(workitem, "file1.dat", 1024);
@@ -217,23 +218,23 @@ public class TestXMLDocumentSplitter {
 		} catch (JAXBException e) {
 			Assert.fail();
 		}
-		System.out.println("total data size = " + totalData.length+ " => hash: "+XMLDocumentSplitter.SHAsum(totalData));
+		System.out.println(
+				"total data size = " + totalData.length + " => hash: " + XMLDocumentSplitter.SHAsum(totalData));
 
 		// Long way
 		Iterator<byte[]> it = splitter.iterator();
-		System.out.println("1st test....");
+
 		while (it.hasNext()) {
 			byte[] cunk = it.next();
-			System.out.println("chunk size=" + cunk.length + " => hash: "+XMLDocumentSplitter.SHAsum(cunk));
+			System.out.println("chunk size=" + cunk.length + " => hash: " + XMLDocumentSplitter.SHAsum(cunk));
 		}
 
 		// Shorter, nicer way:
 
 		ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
 
-		System.out.println("2nd test....");
 		for (byte[] cunk : splitter) {
-			System.out.println("chunk size=" + cunk.length + " => hash: "+XMLDocumentSplitter.SHAsum(cunk));
+			System.out.println("chunk size=" + cunk.length + " => hash: " + XMLDocumentSplitter.SHAsum(cunk));
 			try {
 				bOutput.write(cunk);
 			} catch (IOException e) {
@@ -245,27 +246,28 @@ public class TestXMLDocumentSplitter {
 		// verify result
 		byte[] result = bOutput.toByteArray();
 		Assert.assertEquals(totalData.length, result.length);
+		Assert.assertEquals(XMLDocumentSplitter.SHAsum(totalData), XMLDocumentSplitter.SHAsum(result));
 
 		for (int i = 0; i < totalData.length; i++) {
 			if (totalData[i] != result[i]) {
 				Assert.fail();
 			}
 		}
-		System.out.println("total result size = " + result.length+ " => hash: "+XMLDocumentSplitter.SHAsum(result));
+		System.out.println("total result size = " + result.length + " => hash: " + XMLDocumentSplitter.SHAsum(result));
 	}
-
 
 	/**
 	 * Test iterator interface
 	 * 
 	 * This test verifies if a itemCollection is correctly chunked and returned by
 	 * the iterator interface
-	 * @throws NoSuchAlgorithmException 
+	 * 
+	 * @throws NoSuchAlgorithmException
 	 * 
 	 */
 	@Test
 	public void testIterator3mb() throws NoSuchAlgorithmException {
-
+		System.out.println("2nd XMLDocumentSplitter.iterator test....");
 		// second test create a much bigger itemColection
 		ItemCollection workitem = WorkitemFactory.createWorkitem();
 		workitem.replaceItemValue("_subject", "The Interator 2nd test");
@@ -285,25 +287,25 @@ public class TestXMLDocumentSplitter {
 		} catch (JAXBException e) {
 			Assert.fail();
 		}
-		System.out.println("total data size = " + totalData.length+ " => hash: "+XMLDocumentSplitter.SHAsum(totalData));
+		System.out.println(
+				"total data size = " + totalData.length + " => hash: " + XMLDocumentSplitter.SHAsum(totalData));
 
 		// Long way
 		Iterator<byte[]> it = splitter.iterator();
-		System.out.println("1st test....");
+
 		while (it.hasNext()) {
 			byte[] cunk = it.next();
-			System.out.println("chunk size=" + cunk.length + " => hash: "+XMLDocumentSplitter.SHAsum(cunk));
+			System.out.println("chunk size=" + cunk.length + " => hash: " + XMLDocumentSplitter.SHAsum(cunk));
 		}
 
 		// Shorter, nicer way:
 		ByteArrayOutputStream bOutput = new ByteArrayOutputStream();
 
-		System.out.println("2nd test....");
 		for (byte[] cunk : splitter) {
-			System.out.println("chunk size=" + cunk.length + " => hash: "+XMLDocumentSplitter.SHAsum(cunk));
+			System.out.println("chunk size=" + cunk.length + " => hash: " + XMLDocumentSplitter.SHAsum(cunk));
 			try {
 				bOutput.write(cunk);
-				
+
 			} catch (IOException e) {
 
 				e.printStackTrace();
@@ -313,12 +315,14 @@ public class TestXMLDocumentSplitter {
 		// verify result
 		byte[] result = bOutput.toByteArray();
 		Assert.assertEquals(totalData.length, result.length);
+		Assert.assertEquals(XMLDocumentSplitter.SHAsum(totalData), XMLDocumentSplitter.SHAsum(result));
 
 		for (int i = 0; i < totalData.length; i++) {
 			if (totalData[i] != result[i]) {
 				Assert.fail();
 			}
 		}
-		System.out.println("total result size = " + result.length+ " => hash: "+XMLDocumentSplitter.SHAsum(result));
+
+		System.out.println("total result size = " + result.length + " => hash: " + XMLDocumentSplitter.SHAsum(result));
 	}
 }
