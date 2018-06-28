@@ -7,6 +7,10 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.logging.Logger;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
@@ -26,9 +30,11 @@ import org.imixs.workflow.xml.XMLDocument;
  * @author rsoika
  *
  */
-public class XMLDocumentSplitter {
+public class XMLDocumentSplitter implements Iterable<byte[]> {
 
 	XMLDocument xmlDocument = null;
+
+	private static Logger logger = Logger.getLogger(XMLDocumentSplitter.class.getName());
 
 	public XMLDocumentSplitter(XMLDocument xmlDocument) {
 		super();
@@ -165,8 +171,7 @@ public class XMLDocumentSplitter {
 	/**
 	 * Computes the SHA-1 hash of the given byte array
 	 * 
-	 * @param data
-	 *            byte[]
+	 * @param data byte[]
 	 * @return String
 	 */
 	public static String SHAsum(byte[] data) throws NoSuchAlgorithmException {
@@ -179,6 +184,59 @@ public class XMLDocumentSplitter {
 		}
 		// return hash
 		return stringBuffer.toString();
+	}
+
+	@Override
+	public Iterator<byte[]> iterator() {
+		try {
+			return new ChunkIterator();
+		} catch (JAXBException e) {
+			logger.warning("unable to read data : " + e.getMessage());
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	// Inner class example
+	private class ChunkIterator implements Iterator<byte[]> {
+		private int cursor;
+		private byte[] data;
+		private int CHUNK_SIZE = 2097152; // 2mb
+
+		public ChunkIterator() throws JAXBException {
+			this.cursor = 0;
+			// fetch the whole data in one array
+			data = XMLDocumentSplitter.this.getBytes();
+		}
+
+		public boolean hasNext() {
+			return this.cursor < data.length;
+		}
+
+		public byte[] next() {
+			if (this.hasNext()) {
+				byte[] chunk;
+				// check length of byte from cursor...
+				if (data.length > cursor + CHUNK_SIZE) {
+					chunk = Arrays.copyOfRange(data, cursor,  cursor + CHUNK_SIZE);
+					cursor = cursor + CHUNK_SIZE;
+				} else {
+					// last junk
+					chunk = Arrays.copyOfRange(data, cursor,  data.length);
+					cursor = data.length;
+				}
+
+				//logger.info("Read junk from " + cursor + " to " + chunkEnd);
+				//byte[] chunk = Arrays.copyOfRange(data, cursor, chunkEnd);
+				//cursor = cursor + chunkEnd;
+				return chunk;
+			}
+			throw new NoSuchElementException();
+		}
+
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
 	}
 
 }
