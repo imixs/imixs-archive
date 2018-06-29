@@ -26,36 +26,5 @@ public class ConectionController {
 	ClusterService clusterService;
 
 	
-	
-	/**
-	 * show connections
-	 * 
-	 * @return
-	 */
-	@Path("/")
-	@GET
-	public String showConfigs() {
 
-			
-		
-		logger.info("show config...");
-
-		return "archive_list.xhtml";
-	}
-	
-	/**
-	 * Create a new key-space
-	 * 
-	 * @return
-	 */
-	@Path("/action/create")
-	@GET
-	public String createKeySpace() {
-
-			
-		
-		logger.info("create archive config...");
-
-		return "archive_config.xhtml";
-	}
 }

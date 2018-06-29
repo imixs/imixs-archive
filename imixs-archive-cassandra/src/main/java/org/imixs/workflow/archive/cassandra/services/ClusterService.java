@@ -33,6 +33,12 @@ public class ClusterService {
 	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "archive.cluster.replication_factor";
 	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_CLASS = "archive.cluster.replication_class";
 
+	// table schemas
+
+	public static final String TABLE_SCHEMA_DOCUMENT = "CREATE TABLE IF NOT EXISTS document (id text, data blob, PRIMARY KEY (id))";
+	public static final String TABLE_SCHEMA_DOCUMENT_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS document_snapshots (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
+	public static final String TABLE_SCHEMA_DOCUMENT_MODIFIED = "CREATE TABLE IF NOT EXISTS document_modified (modified date,id text,PRIMARY KEY(modified, id));";
+
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
 	@EJB
@@ -53,12 +59,10 @@ public class ClusterService {
 		String contactPoint = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
 		String keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
 
-		
 		logger.info("......cluster conecting...");
 		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
 
-		
 		logger.info("......cluster conection status = OK");
 
 		// try to open keySpace
@@ -78,6 +82,19 @@ public class ClusterService {
 		return session;
 	}
 
+	public Cluster getCluster() {
+		String contactPoint = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
+		String keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
+
+		logger.info("......cluster conecting...");
+		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
+		cluster.init();
+
+		logger.info("......cluster conection status = OK");
+		return cluster;
+
+	}
+
 	public void save(ItemCollection itemCol, Session session) throws JAXBException {
 
 		PreparedStatement ps1 = session
@@ -95,7 +112,7 @@ public class ClusterService {
 	 * 
 	 * @param cluster
 	 */
-	private Session createKeSpace(Cluster cluster, String keySpace) {
+	public Session createKeSpace(Cluster cluster, String keySpace) {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
 
 		Session session = cluster.connect();
@@ -105,7 +122,7 @@ public class ClusterService {
 		String repClass = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_REPLICATION_CLASS,
 				"SimpleStrategy");
 
-		String statement = "CREATE KEYSPACE " + keySpace + " WITH replication = {'class': '" + repClass
+		String statement = "CREATE KEYSPACE IF NOT EXISTS " + keySpace + " WITH replication = {'class': '" + repClass
 				+ "', 'replication_factor': " + repFactor + "};";
 		logger.info("......keyspace created...");
 		session.execute(statement);
@@ -120,9 +137,16 @@ public class ClusterService {
 	/**
 	 * This helper method creates the imixs-data table if not yet exists
 	 */
-	private void createTable(Session session) {
-		String statement = "CREATE TABLE IF NOT EXISTS document (id text PRIMARY KEY, type text, created timestamp, modified timestamp, data text);";
-		session.execute(statement);
+	public void createTableSchema(Session session) {
+
+		logger.info(TABLE_SCHEMA_DOCUMENT);
+		session.execute(TABLE_SCHEMA_DOCUMENT);
+
+		logger.info(TABLE_SCHEMA_DOCUMENT_SNAPSHOTS);
+		session.execute(TABLE_SCHEMA_DOCUMENT_SNAPSHOTS);
+
+		logger.info(TABLE_SCHEMA_DOCUMENT_MODIFIED);
+		session.execute(TABLE_SCHEMA_DOCUMENT_MODIFIED);
 
 	}
 

@@ -18,14 +18,24 @@
 
 				<div class="col-6">
 					<form
-						action="#{facesContext.externalContext.requestContextPath}/imixsadmin/"
+						action="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/"
 						method="post">
 
 						<div class="imixs-form-section">
+						
+							<dl>
+								<dt>Keyspace:</dt>
+								<dd>
+									<input type="text" value="#{archiveDataController.keyspace}"
+										 name="keyspace" />
+								</dd>
+							</dl> 
+							
+							
 							<dl>
 								<dt>URL:</dt>
 								<dd>
-									<input type="text" value="#{connectionController.url}"
+									<input type="text" value="#{archiveDataController.url}"
 										autocomplete="url" name="url" />
 								</dd>
 							</dl>
@@ -35,7 +45,7 @@
 							<dl>
 								<dt>UserID:</dt>
 								<dd>
-									<input type="text" value="#{connectionController.userid}"
+									<input type="text" value="#{archiveDataController.userid}"
 										autocomplete="username" name="userid" />
 								</dd>
 							</dl>
@@ -43,7 +53,7 @@
 							<dl>
 								<dt>Password:</dt>
 								<dd>
-									<input type="password" value="#{connectionController.password}"
+									<input type="password" value="#{archiveDataController.password}"
 										autocomplete="current-password" name="password" />
 								</dd> 
 							</dl>
@@ -51,11 +61,11 @@
 								<dt>Authentication:</dt>
 								<dd>
 									<select name="authentication">
-									<ui:fragment rendered="#{connectionController.authMethod eq 'Form'}">
+									<ui:fragment rendered="#{archiveDataController.authMethod eq 'Form'}">
 										<option value="Basic" >Basic</option>
 										<option value="Form" selected="selected">Form</option>
 									 </ui:fragment>
-									<ui:fragment rendered="#{connectionController.authMethod ne 'Form'}">
+									<ui:fragment rendered="#{archiveDataController.authMethod ne 'Form'}">
 											<option value="Basic" selected="selected">Basic</option>
 											<option value="Form">Form</option>
 									 </ui:fragment>
@@ -64,7 +74,7 @@
 							</dl>
 						</div>
 
-						<input type="submit" value="Connect ..." />
+						<input type="submit" value="Create Archive ..." />
 					</form>
 
 				</div>

@@ -36,7 +36,10 @@ public class ConfigDataController implements Serializable {
 	Properties configurationProperties = null;
 	String contactPoints;
 	String keySpace;
+	
 
+	
+	
 	ItemCollection configuration;
 	List<ItemCollection> configurations;
 
