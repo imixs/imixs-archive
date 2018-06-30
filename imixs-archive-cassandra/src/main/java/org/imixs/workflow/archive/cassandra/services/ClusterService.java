@@ -52,18 +52,31 @@ public class ClusterService {
 	}
 
 	/**
-	 * Helper method to get a session for the configured keyspace
+	 * This method initializes the core keyspace and creates the table schema if not
+	 * exits. The method returns true if the keyspace is accessable
 	 */
-	public Session connect() {
+	public boolean init() {
+		try {
+			String keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
+			logger.info("......init cluster keyspace '" + keySpace +"' ...");
+			Session session = getSession(keySpace);
+			// create core tabel schema
+			createTableSchema(session);
+		} catch (Exception e) {
+			logger.warning("......init cluster keyspace failed: " + e.getMessage());
+			return false;
+		}
+		return true;
+	}
 
-		String contactPoint = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
-		String keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
+	/**
+	 * Returns a session for the configured core keyspace
+	 */
+	public Session getSession(String keySpace) {
 
-		logger.info("......cluster conecting...");
-		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
-		cluster.init();
-
-		logger.info("......cluster conection status = OK");
+		
+		logger.info("......get session...");
+		Cluster cluster = getCluster();
 
 		// try to open keySpace
 		logger.info("......conecting keyspace '" + keySpace + "'...");
@@ -84,8 +97,6 @@ public class ClusterService {
 
 	public Cluster getCluster() {
 		String contactPoint = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
-		String keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
-
 		logger.info("......cluster conecting...");
 		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();

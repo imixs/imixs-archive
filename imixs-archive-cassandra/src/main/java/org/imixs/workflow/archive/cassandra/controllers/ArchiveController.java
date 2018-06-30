@@ -70,7 +70,8 @@ public class ArchiveController {
 	 */
 	@POST
 	@Path("/")
-	public String saveTeam(@FormParam("keyspace") String keyspace, @FormParam("url") String url) {
+	public String saveTeam(@FormParam("keyspace") String keyspace, @FormParam("url") String url
+			, @FormParam("pollingInterval") String pollingInterval) {
 
 		logger.info("creating new Keyspace " + keyspace + " ....");
 		

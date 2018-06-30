@@ -22,25 +22,24 @@
 
 				<tr>
 					<td>Contact Points:</td>
-					<td>#{configDataController.contactPoints}</td>
+					<td>#{clusterDataController.contactPoints}</td>
+
 				</tr>
 
 				<tr>
 					<td>Central KeySpace:</td>
-					<td>#{configDataController.keySpace}</td>
+					<td>#{clusterDataController.keySpace}</td>
 				</tr>
 
 				<tr>
 					<td>Connecton Status:x</td>
-					<td>
-						<ui:fragment rendered="#{configDataController.connected}">
+					<td><ui:fragment rendered="#{clusterDataController.connected}">
 							OK <span class="typcn typcn-media-record"
 								style="font-size: 1.3em; color: green;"></span>
-						</ui:fragment> <ui:fragment rendered="#{!configDataController.connected}">
+						</ui:fragment> <ui:fragment rendered="#{!clusterDataController.connected}">
 							Failed <span class="typcn typcn-media-record"
 								style="font-size: 1.3em; color: red;"></span>
-						</ui:fragment>
-					</td>
+						</ui:fragment></td>
 				</tr>
 
 			</table>

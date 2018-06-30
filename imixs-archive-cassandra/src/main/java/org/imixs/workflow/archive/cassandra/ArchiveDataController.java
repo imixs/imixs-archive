@@ -27,6 +27,7 @@ public class ArchiveDataController implements Serializable {
 	String userid;
 	String password;
 	String authMethod;
+	int pollingInterval;
 	
 
 	
@@ -74,6 +75,14 @@ public class ArchiveDataController implements Serializable {
 
 	public void setAuthMethod(String authMethod) {
 		this.authMethod = authMethod;
+	}
+
+	public int getPollingInterval() {
+		return pollingInterval;
+	}
+
+	public void setPollingInterval(int pollingInterval) {
+		this.pollingInterval = pollingInterval;
 	}
 
 	

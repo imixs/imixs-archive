@@ -17,17 +17,17 @@ import org.imixs.workflow.archive.cassandra.services.ClusterService;
 import com.datastax.driver.core.Session;
 
 /**
- * Session Scoped CID Bean to hold config data.
+ * Session Scoped CID Bean to hold cluster configuration data.
  * 
  * @author rsoika
  *
  */
 @Named
 @SessionScoped
-public class ConfigDataController implements Serializable {
+public class ClusterDataController implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-	private static Logger logger = Logger.getLogger(ConfigDataController.class.getName());
+	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
 
 	public static int DEFAULT_PAGE_SIZE = 30;
 	public static String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT = "archive.cluster.contactpoints";
@@ -48,13 +48,12 @@ public class ConfigDataController implements Serializable {
 	@EJB
 	ClusterService clusterService;
 
-	public ConfigDataController() {
+	public ClusterDataController() {
 		super();
 	}
 
 	/**
-	 * This method loads the config entity. If the entity did not yet exist, the
-	 * method creates one.
+	 * This method verifies and initializes the core keyspace
 	 * 
 	 *
 	 */
@@ -64,7 +63,7 @@ public class ConfigDataController implements Serializable {
 
 		configurationProperties = new Properties();
 		try {
-			// load confiugration file 'imixs.properties'
+			// load configuration file 'imixs.properties'
 			configurationProperties
 					.load(Thread.currentThread().getContextClassLoader().getResource("imixs.properties").openStream());
 		} catch (Exception e) {
@@ -85,19 +84,9 @@ public class ConfigDataController implements Serializable {
 		logger.info(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT + "=" + contactPoints);
 		logger.info(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE + "=" + keySpace);
 
-		// no we test the connection
-
+		// now we test the connection
 		if (clusterService != null) {
-
-			Session session = clusterService.connect();
-
-			if (session != null) {
-				connected= true;
-			} else {
-				logger.warning("Unable to connect to contact point!");
-				connected= false;
-			}
-
+			connected=clusterService.init();
 		} else {
 			logger.warning("Unable to inject ClusterService!");
 			connected= false;

@@ -11,20 +11,33 @@ import javax.ws.rs.Path;
 import org.imixs.workflow.archive.cassandra.services.ClusterService;
 
 /**
- * Test the cassandra cluster connection
+ * The cluster controller provides action methods to setup the cluster configuration
+ *  
  * 
  * @author rsoika
  *
  */
 @Controller
-@Path("connection")
+@Path("cluster")
 @Named
-public class ConectionController {
-	private static Logger logger = Logger.getLogger(ConectionController.class.getName());
+public class ClusterController {
+	private static Logger logger = Logger.getLogger(ClusterController.class.getName());
 
 	@EJB
 	ClusterService clusterService;
 
-	
+	/**
+	 * show connections
+	 * 
+	 * @return
+	 */
+	@Path("/")
+	@GET
+	public String showConfigs() {
+
+		logger.info("show cluster config...");
+
+		return "cluster.xhtml";
+	}
 
 }
