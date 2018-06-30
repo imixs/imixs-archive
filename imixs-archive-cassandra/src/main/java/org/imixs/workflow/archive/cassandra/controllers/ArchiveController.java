@@ -5,10 +5,12 @@ import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.inject.Inject;
 import javax.mvc.annotation.Controller;
+
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ArchiveDataController;
@@ -49,6 +51,21 @@ public class ArchiveController {
 		return "archive_list.xhtml";
 	}
 
+	/**
+	 * Edit key-space
+	 * 
+	 * @return
+	 */
+	@Path("/action/edit/{keyspace}")
+	@GET
+	public String editKeySpace(@PathParam("keyspace") String keyspace) {
+
+		logger.info("edit archive config '" + keyspace + "'...");
+		archiveDataController.setConfiguration(clusterService.getConfigurationByName(keyspace));
+
+		return "archive_config.xhtml";
+	}
+	
 	/**
 	 * Create a new key-space
 	 * 

@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -15,7 +16,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.xml.XMLDataCollection;
+import org.imixs.workflow.ItemCollectionComparator;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
@@ -210,7 +211,52 @@ public class ClusterService {
 			e.printStackTrace();
 			return null;
 		}
+		
+		// sort result
+		Collections.sort(result, new ItemCollectionComparator("keyspace", true));
 		return result;
+	}
+	
+
+	/**
+	 * returns a list of all existing configuration entities stored in the
+	 * ImixsArchive core keyspace.
+	 * 
+	 * @return
+	 */
+	public ItemCollection getConfigurationByName(String keyspace) {
+		// get session from archive....
+		try {
+			Session session = this.getCoreSession();
+
+			ResultSet resultSet = session.execute("SELECT * FROM configuration WHERE id='" + keyspace + "';");
+			Row row=resultSet.one();
+			if ( row !=null ) {
+				//String keyspace = row.getString("id");
+				byte[] source = row.getBytes("data").array();
+
+				ByteArrayInputStream bis = new ByteArrayInputStream(source);
+
+				JAXBContext context;
+				context = JAXBContext.newInstance(XMLDocument.class);
+				Unmarshaller m = context.createUnmarshaller();
+				Object jaxbObject = m.unmarshal(bis);
+				if (jaxbObject == null) {
+					throw new RuntimeException(
+							"readCollection error - wrong xml file format - unable to read content!");
+				}
+				XMLDocument xmlDocument = (XMLDocument) jaxbObject;
+				
+				return XMLDocumentAdapter.putDocument(xmlDocument);
+
+			}
+
+		} catch (JAXBException e) {
+			logger.severe("failed to read result set: " + e.getMessage());
+			e.printStackTrace();
+			return null;
+		}
+		return null;
 	}
 
 	/**

@@ -2,7 +2,6 @@ package org.imixs.workflow.archive.cassandra;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.logging.Logger;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
@@ -20,72 +19,14 @@ import org.imixs.workflow.ItemCollection;
 public class ArchiveDataController implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-	private static Logger logger = Logger.getLogger(ArchiveDataController.class.getName());
 
-	String keyspace;
-	String url;
-	String userid;
-	String password;
-	String authMethod;
-	int pollingInterval;
-	String errorMessage=null;
-	
-	List<ItemCollection> configurations=null;
-	
+	String errorMessage = null;
 
-	
+	List<ItemCollection> configurations = null;
+	ItemCollection configuration = null;
+
 	public ArchiveDataController() {
 		super();
-	}
-
-	public String getKeyspace() {
-		return keyspace;
-	}
-
-	public void setKeyspace(String keyspace) {
-		this.keyspace = keyspace;
-	}
-
-	public String getUrl() {
-		return url;
-	}
-
-	public void setUrl(String url) {
-		this.url = url;
-	}
-
-	
-
-	public String getUserid() {
-		return userid;
-	}
-
-	public void setUserid(String userid) {
-		this.userid = userid;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public String getAuthMethod() {
-		return authMethod;
-	}
-
-	public void setAuthMethod(String authMethod) {
-		this.authMethod = authMethod;
-	}
-
-	public int getPollingInterval() {
-		return pollingInterval;
-	}
-
-	public void setPollingInterval(int pollingInterval) {
-		this.pollingInterval = pollingInterval;
 	}
 
 	public String getErrorMessage() {
@@ -104,6 +45,15 @@ public class ArchiveDataController implements Serializable {
 		this.configurations = configurations;
 	}
 
-	
+	public ItemCollection getConfiguration() {
+		if (configuration == null) {
+			configuration = new ItemCollection();
+		}
+		return configuration;
+	}
+
+	public void setConfiguration(ItemCollection configuration) {
+		this.configuration = configuration;
+	}
 
 }

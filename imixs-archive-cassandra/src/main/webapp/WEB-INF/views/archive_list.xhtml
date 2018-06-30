@@ -42,7 +42,7 @@
 									<td>#{record.item['keyspace']}</td>
 									<td>#{record.item['url']}</td>
 									<td><a
-										href="#{facesContext.externalContext.requestContextPath}/imxisarchive/archive/edit/#{record.item['$uniqueid']}"
+										href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/edit/#{record.item['keyspace']}"
 										title="#{record.item['$uniqueid']}"><span
 											class="typcn typcn-edit"></span>#{message.edit}</a> | <a href="#"
 										onclick="deleteDocument('#{record.item['$uniqueid']}')"

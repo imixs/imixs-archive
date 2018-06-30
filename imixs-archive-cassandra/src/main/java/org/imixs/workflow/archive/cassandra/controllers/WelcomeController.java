@@ -17,7 +17,7 @@ public class WelcomeController {
 
 	@GET
 	public String home() {
-		return "index.xhtml";
+		return "monitor.xhtml";
 	}
 
 	

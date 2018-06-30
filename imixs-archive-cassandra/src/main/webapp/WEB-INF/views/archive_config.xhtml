@@ -22,20 +22,34 @@
 						method="post">
 
 						<div class="imixs-form-section">
-						
+
 							<dl>
 								<dt>Keyspace:</dt>
 								<dd>
-									<input type="text" value="#{archiveDataController.keyspace}"
-										 name="keyspace" />
+									<!-- not editable if already defined! -->
+									<ui:fragment
+										rendered="#{!empty archiveDataController.configuration.item['keyspace']}">
+										
+										<input type="text" disabled="disabled" value="#{archiveDataController.configuration.item['keyspace']}" />
+										<input type="hidden" 
+											value="#{archiveDataController.configuration.item['keyspace']}"
+											name="keyspace" />
+									</ui:fragment>
+									<ui:fragment
+										rendered="#{empty archiveDataController.configuration.item['keyspace']}">
+										<input type="text" 
+											value="#{archiveDataController.configuration.item['keyspace']}"
+											name="keyspace" />
+									</ui:fragment>
 								</dd>
-							</dl> 
-							
-							
+							</dl>
+
+
 							<dl>
 								<dt>URL:</dt>
 								<dd>
-									<input type="text" value="#{archiveDataController.url}"
+									<input type="text"
+										value="#{archiveDataController.configuration.item['url']}"
 										autocomplete="url" name="url" />
 								</dd>
 							</dl>
@@ -45,7 +59,8 @@
 							<dl>
 								<dt>UserID:</dt>
 								<dd>
-									<input type="text" value="#{archiveDataController.userid}"
+									<input type="text"
+										value="#{archiveDataController.configuration.item['userid']}"
 										autocomplete="username" name="userid" />
 								</dd>
 							</dl>
@@ -53,51 +68,54 @@
 							<dl>
 								<dt>Password:</dt>
 								<dd>
-									<input type="password" value="#{archiveDataController.password}"
+									<input type="password"
+										value="#{archiveDataController.configuration.item['password']}"
 										autocomplete="current-password" name="password" />
-								</dd> 
+								</dd>
 							</dl>
 							<dl>
 								<dt>Authentication:</dt>
 								<dd>
 									<select name="authentication">
-									<ui:fragment rendered="#{archiveDataController.authMethod eq 'Form'}">
-										<option value="Basic" >Basic</option>
-										<option value="Form" selected="selected">Form</option>
-									 </ui:fragment>
-									<ui:fragment rendered="#{archiveDataController.authMethod ne 'Form'}">
+										<ui:fragment
+											rendered="#{archiveDataController.configuration.item['authMethod'] eq 'Form'}">
+											<option value="Basic">Basic</option>
+											<option value="Form" selected="selected">Form</option>
+										</ui:fragment>
+										<ui:fragment
+											rendered="#{archiveDataController.configuration.item['authMethod'] ne 'Form'}">
 											<option value="Basic" selected="selected">Basic</option>
 											<option value="Form">Form</option>
-									 </ui:fragment>
+										</ui:fragment>
 									</select>
 								</dd>
 							</dl>
-							
-							
-							
-			
-				<dl>
-					<dt>Polling Interval:</dt>
-					<dd>
-						<input type="text" value="#{archiveDataController.pollingInterval}"
-							autocomplete="pollingInterval" name="pollingInterval" /> in seconds
-					</dd>
-				</dl>
-			
 
-							
+
+
+
+							<dl>
+								<dt>Polling Interval:</dt>
+								<dd>
+									<input type="text"
+										value="#{archiveDataController.configuration.item['pollingInterval']}"
+										autocomplete="pollingInterval" name="pollingInterval" /> in
+									seconds
+								</dd>
+							</dl>
 						</div>
 
-						<input type="submit" value="Create Archive ..." />
-						
-						
-						<ui:fragment rendered="#{! empty archiveDataController.errorMessage}">
-						
-							<h3 style="color:red">#{archiveDataController.errorMessage}</h3>
-						
+						<input type="submit" value="Save" />
+
+
+						<ui:fragment
+							rendered="#{! empty archiveDataController.errorMessage}">
+
+							<h3 style="color: red">#{archiveDataController.errorMessage}</h3>
+
 						</ui:fragment>
-						
-						
+
+
 					</form>
 
 				</div>
