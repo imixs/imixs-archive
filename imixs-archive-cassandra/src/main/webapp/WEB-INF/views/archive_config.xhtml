@@ -89,6 +89,15 @@
 						</div>
 
 						<input type="submit" value="Create Archive ..." />
+						
+						
+						<ui:fragment rendered="#{! empty archiveDataController.errorMessage}">
+						
+							<h3 style="color:red">#{archiveDataController.errorMessage}</h3>
+						
+						</ui:fragment>
+						
+						
 					</form>
 
 				</div>

@@ -1,15 +1,22 @@
 package org.imixs.workflow.archive.cassandra.services;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
+import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.xml.XMLDocument;
+import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
@@ -29,9 +36,10 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
 public class ClusterService {
 
 	public static final String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT = "archive.cluster.contactpoints";
-	public static final String PROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
 	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "archive.cluster.replication_factor";
 	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_CLASS = "archive.cluster.replication_class";
+	public static final String PROPERTY_ARCHIVE_CORE_KEYSPACE = "archive.core.keyspace";
+	public static final String DEFAULT_CORE_KEYSPACE = "imixsarchive";
 
 	// table schemas
 
@@ -39,6 +47,7 @@ public class ClusterService {
 	public static final String TABLE_SCHEMA_DOCUMENT_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS document_snapshots (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
 	public static final String TABLE_SCHEMA_DOCUMENT_MODIFIED = "CREATE TABLE IF NOT EXISTS document_modified (modified date,id text,PRIMARY KEY(modified, id));";
 
+	private static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
 	@EJB
@@ -57,9 +66,8 @@ public class ClusterService {
 	 */
 	public boolean init() {
 		try {
-			String keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
-			logger.info("......init cluster keyspace '" + keySpace +"' ...");
-			Session session = getSession(keySpace);
+			logger.info("......init core keyspace ...");
+			Session session = getSession(null);
 			// create core tabel schema
 			createTableSchema(session);
 		} catch (Exception e) {
@@ -70,11 +78,17 @@ public class ClusterService {
 	}
 
 	/**
-	 * Returns a session for the configured core keyspace
+	 * Returns a cassandra session for a KeySpace. If no keySpace is defined, the
+	 * core keyspace will be returned. If no keyspace with this given keyspace name
+	 * exists, the method creates the keyspace and table schemas.
 	 */
 	public Session getSession(String keySpace) {
 
-		
+		if (keySpace == null || keySpace.isEmpty()) {
+			keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CORE_KEYSPACE,
+					DEFAULT_CORE_KEYSPACE);
+		}
+
 		logger.info("......get session...");
 		Cluster cluster = getCluster();
 
@@ -87,12 +101,19 @@ public class ClusterService {
 		} catch (InvalidQueryException e) {
 			logger.warning("......conecting keyspace '" + keySpace + "' failed: " + e.getMessage());
 			// create keyspace...
-			session = createKeSpace(cluster, keySpace);
+			session = createKeSpace(keySpace);
 		}
 		if (session != null) {
 			logger.info("......keyspace conection status = OK");
 		}
 		return session;
+	}
+
+	/**
+	 * Returns a cassandra session for a ImixsArchive core KeySpace.
+	 */
+	public Session getSession() {
+		return getSession(null);
 	}
 
 	public Cluster getCluster() {
@@ -106,26 +127,84 @@ public class ClusterService {
 
 	}
 
-	public void save(ItemCollection itemCol, Session session) throws JAXBException {
+	/**
+	 * This method saves a ItemCollection into the keyspace defined by the given
+	 * session
+	 * 
+	 * @param itemCol
+	 * @param session
+	 * @throws ImixsArchiveException 
+	 */
+	public void save(ItemCollection itemCol, Session session) throws ImixsArchiveException {
+		byte[] data = null;
+		PreparedStatement statement = null;
+		BoundStatement bound = null;
 
-		PreparedStatement ps1 = session
-				.prepare("insert into document (id, type, created, modified, data) values (?, ?, ?, ?, ?)");
+		String snapshotID = itemCol.getUniqueID();
+		if (!isSnapshotID(snapshotID)) {
+			throw new IllegalArgumentException("invalid item '$snapshotid'");
+		}
 
-		BoundStatement bound = ps1.bind().setString("id", itemCol.getUniqueID()).setString("type", itemCol.getType())
-				.setTimestamp("created", itemCol.getItemValueDate("$created"))
-				.setTimestamp("modified", itemCol.getItemValueDate("$modified")).setString("data", getXML(itemCol));
+		if (!itemCol.hasItem("$modified")) {
+			throw new IllegalArgumentException("missing item '$modified'");
+		}
 
+		// extract $snapshotid 2de78aec-6f14-4345-8acf-dd37ae84875d-1530315900599
+		String[] snapshotSegments = snapshotID.split("-");
+		String snapshotDigits = snapshotSegments[snapshotSegments.length - 1];
+		String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
+
+		// create byte array from XMLDocument...
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		try {
+			JAXBContext context;
+			context = JAXBContext.newInstance(XMLDocument.class);
+			Marshaller m = context.createMarshaller();
+			XMLDocument xmlDocument = XMLDocumentAdapter.getDocument(itemCol);
+			m.marshal(xmlDocument, outputStream);
+			data = outputStream.toByteArray();
+		} catch (JAXBException e) {
+			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(),e);
+		}
+
+		// upset document....
+		statement = session.prepare("insert into document (id, data) values (?, ?)");
+		bound = statement.bind().setString("id", itemCol.getUniqueID()).setBytes("adta", ByteBuffer.wrap(data));
+		session.execute(bound);
+
+		// upset document_snapshots....
+		statement = session.prepare("insert into document_snapshots (uniqueid, snapshot) values (?, ?)");
+		bound = statement.bind().setString("uniqueid", originUnqiueID).setString("snapshot", snapshotDigits);
+		session.execute(bound);
+
+		// upset document_modified....
+		LocalDate ld = LocalDate.fromMillisSinceEpoch(itemCol.getItemValueDate("$modified").getTime());
+		statement = session.prepare("insert into document_snapshots (date, id) values (?, ?)");
+		bound = statement.bind().setDate("date", ld).setString("uniqueid", originUnqiueID).setString("id",
+				itemCol.getUniqueID());
 		session.execute(bound);
 	}
 
 	/**
-	 * This method creates a keypace
+	 * This method returns true if the given id is a valid Snapshot id (UUI +
+	 * timestamp
+	 * 
+	 * @param uid
+	 * @return
+	 */
+	public static boolean isSnapshotID(String uid) {
+		return uid.matches(REGEX_SNAPSHOTID);
+	}
+
+	/**
+	 * This method creates a keySpace
 	 * 
 	 * @param cluster
 	 */
-	public Session createKeSpace(Cluster cluster, String keySpace) {
+	private Session createKeSpace(String keySpace) {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
 
+		Cluster cluster = getCluster();
 		Session session = cluster.connect();
 
 		String repFactor = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_REPLICATION_FACTOR,
@@ -141,6 +220,9 @@ public class ClusterService {
 		session = cluster.connect(keySpace);
 		if (session != null) {
 			logger.info("......keyspace conection status = OK");
+
+			// now create table schemas
+			createTableSchema(session);
 		}
 		return session;
 	}
@@ -148,7 +230,7 @@ public class ClusterService {
 	/**
 	 * This helper method creates the imixs-data table if not yet exists
 	 */
-	public void createTableSchema(Session session) {
+	private void createTableSchema(Session session) {
 
 		logger.info(TABLE_SCHEMA_DOCUMENT);
 		session.execute(TABLE_SCHEMA_DOCUMENT);
@@ -161,27 +243,4 @@ public class ClusterService {
 
 	}
 
-	/**
-	 * Converts a ItemCollection into a xml string
-	 * 
-	 * @param itemcol
-	 * @return
-	 * @throws JAXBException
-	 */
-	private String getXML(ItemCollection itemCol) throws JAXBException {
-		String result = null;
-		// // convert the ItemCollection into a XMLItemcollection...
-		// XMLItemCollection xmlItemCollection =
-		// XMLItemCollectionAdapter.putItemCollection(itemCol);
-		//
-		// // marshal the Object into an XML Stream....
-		// StringWriter writer = new StringWriter();
-		// JAXBContext context = JAXBContext.newInstance(XMLItemCollection.class);
-		// Marshaller m = context.createMarshaller();
-		// m.marshal(xmlItemCollection, writer);
-		//
-		// result = writer.toString();
-		return result;
-
-	}
 }

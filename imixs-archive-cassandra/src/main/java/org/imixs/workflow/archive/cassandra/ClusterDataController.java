@@ -14,8 +14,6 @@ import javax.inject.Named;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.services.ClusterService;
 
-import com.datastax.driver.core.Session;
-
 /**
  * Session Scoped CID Bean to hold cluster configuration data.
  * 
