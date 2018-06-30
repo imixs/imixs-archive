@@ -44,6 +44,21 @@ To run a cqlsh (Cassandra Query Language Shell) against your Cassandra Dev conta
 	cqlsh>
 
 
+**show key spaces:**
+
+	cqlsh> DESC KEYSPACES;	
+	
+**Switch to Keysapce:**
+
+	cqlsh> use imixsarchive ;
+	
+**Show tables in a keyspace:**	
+
+	cqlsh:imixsarchive> DESC TABLES;
+	
+**Drop Keyspace: ** 
+
+	DROP KEYSPACE [IF EXISTS] keyspace_name
 
 ### Create a dev keyspace with cqlsh
 

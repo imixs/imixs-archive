@@ -27,8 +27,12 @@
 
 package org.imixs.workflow.archive.cassandra;
 
+import javax.annotation.PostConstruct;
+import javax.ejb.EJB;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
+
+import org.imixs.workflow.archive.cassandra.services.ClusterService;
 
 /**
  * The Imixs-Archive-Cassandra application setup
@@ -40,8 +44,20 @@ import javax.ws.rs.core.Application;
 @ApplicationPath("imixsarchive")
 public class ImixsArchiveCassandra extends Application {
 
+	@EJB
+	ClusterService clusterService;
+
 	public ImixsArchiveCassandra() {
 		super();
 	}
 
+	/**
+	 * Initialize the web application
+	 */
+	@PostConstruct
+	public void initialize() {
+		if (clusterService != null) {
+			clusterService.init();
+		}
+	}
 }

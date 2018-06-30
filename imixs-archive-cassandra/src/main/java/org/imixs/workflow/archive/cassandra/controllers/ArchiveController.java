@@ -1,6 +1,5 @@
 package org.imixs.workflow.archive.cassandra.controllers;
 
-import java.util.Date;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
@@ -16,8 +15,6 @@ import org.imixs.workflow.archive.cassandra.ArchiveDataController;
 import org.imixs.workflow.archive.cassandra.services.ClusterService;
 import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 
-import com.datastax.driver.core.Session;
-
 /**
  * The ArchiveController is used to create, show und update archive
  * configurations
@@ -32,7 +29,7 @@ public class ArchiveController {
 
 	@EJB
 	ClusterService clusterService;
-	
+
 	@Inject
 	ArchiveDataController archiveDataController;
 
@@ -45,7 +42,9 @@ public class ArchiveController {
 	@GET
 	public String showConfigs() {
 
-		logger.info("show config...");
+		logger.finest("......show config...");
+
+		archiveDataController.setConfigurations(clusterService.getConfigurationList());
 
 		return "archive_list.xhtml";
 	}
@@ -79,36 +78,21 @@ public class ArchiveController {
 	public String saveArchiveKeySpace(@FormParam("keyspace") String keyspace, @FormParam("url") String url,
 			@FormParam("pollingInterval") int pollingInterval) {
 
-		// open core keyspace...
-		Session coreSession = clusterService.getSession();
-
 		// create ItemCollection with archive data
 		ItemCollection archive = new ItemCollection();
-		archive.replaceItemValue("$modified", new Date());
 		archive.replaceItemValue("keyspace", keyspace);
 		archive.replaceItemValue("url", url);
 		archive.replaceItemValue("pollingInterval", pollingInterval);
 
 		logger.info("creating table schemas for keyspace '" + keyspace + "' ....");
-		Session archiveSession=clusterService.getSession(keyspace);
-		
-		
-		if (archiveSession==null) {
-			archiveDataController.setErrorMessage("Unabel to create keyspace");
-			return "archive_config.xhtml";
-		}
-		
-		// save the archvie configuraton
 		try {
-			clusterService.save(archive, coreSession);
+			// save the archive configuration
+			clusterService.saveConfiguration(archive, keyspace);
 		} catch (ImixsArchiveException e) {
 			logger.severe(e.getMessage());
 			archiveDataController.setErrorMessage(e.getMessage());
 			return "archive_config.xhtml";
 		}
-
-		// now save the configuration into the core keySpace
-
 		return "redirect:archive";
 	}
 

@@ -42,6 +42,7 @@ public  class ImixsArchiveException extends Exception {
 	protected String errorCode = "UNDEFINED";
 
 	public static final String INVALID_DOCUMENT_OBJECT = "INVALID_DOCUMENT_OBJECT";
+	public static final String INVALID_KEYSPACE = "INVALID_KEYSPACE";
 	
 	
 	public ImixsArchiveException(String aErrorCode, String message) {

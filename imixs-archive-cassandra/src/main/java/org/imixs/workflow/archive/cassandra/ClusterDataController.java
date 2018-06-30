@@ -83,12 +83,12 @@ public class ClusterDataController implements Serializable {
 		logger.info(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE + "=" + keySpace);
 
 		// now we test the connection
-		if (clusterService != null) {
-			connected=clusterService.init();
-		} else {
-			logger.warning("Unable to inject ClusterService!");
-			connected= false;
-		}
+//		if (clusterService != null) {
+//			connected=clusterService.init();
+//		} else {
+//			logger.warning("Unable to inject ClusterService!");
+//			connected= false;
+//		}
 		
 		
 	}

@@ -121,7 +121,6 @@ body, html {
 	color: #fff;
 }
 
-
 button, input[type="button"], input[type="submit"], .button, a.button,
 	.imixs-button {
 	background: #2284a5;
@@ -135,10 +134,10 @@ button, input[type="button"]:hover, input[type="submit"]:hover, .button:hover,
 	color: #ddd !important;
 }
 
-
 #imixs-content a.imixs-button {
 	color: inherit;
 }
+
 #imixs-content a.imixs-button:hover {
 	color: #fff;
 }
@@ -157,6 +156,10 @@ table {
 
 th {
 	font-weight: bold;
+}
+
+.imixsdatatable a {
+	color: #428bca !important;
 }
 
 .danger-zone {

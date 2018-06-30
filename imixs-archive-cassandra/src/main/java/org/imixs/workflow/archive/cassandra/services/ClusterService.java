@@ -1,7 +1,10 @@
 package org.imixs.workflow.archive.cassandra.services;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
@@ -9,8 +12,10 @@ import javax.ejb.Stateless;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
@@ -18,6 +23,8 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 
@@ -42,7 +49,7 @@ public class ClusterService {
 	public static final String DEFAULT_CORE_KEYSPACE = "imixsarchive";
 
 	// table schemas
-
+	public static final String TABLE_SCHEMA_CONFIGURATION = "CREATE TABLE IF NOT EXISTS configuration (id text, data blob, PRIMARY KEY (id))";
 	public static final String TABLE_SCHEMA_DOCUMENT = "CREATE TABLE IF NOT EXISTS document (id text, data blob, PRIMARY KEY (id))";
 	public static final String TABLE_SCHEMA_DOCUMENT_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS document_snapshots (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
 	public static final String TABLE_SCHEMA_DOCUMENT_MODIFIED = "CREATE TABLE IF NOT EXISTS document_modified (modified date,id text,PRIMARY KEY(modified, id));";
@@ -54,77 +61,18 @@ public class ClusterService {
 	PropertyService propertyService;
 
 	/**
-	 * Test the local connection
-	 */
-	public void testCluster() {
-
-	}
-
-	/**
 	 * This method initializes the core keyspace and creates the table schema if not
 	 * exits. The method returns true if the keyspace is accessable
 	 */
 	public boolean init() {
 		try {
-			logger.info("......init core keyspace ...");
-			Session session = getSession(null);
-			// create core tabel schema
-			createTableSchema(session);
+			logger.info("...init imixsarchive keyspace ...");
+			Session session = getCoreSession();
+			return (session != null);
 		} catch (Exception e) {
-			logger.warning("......init cluster keyspace failed: " + e.getMessage());
+			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return false;
 		}
-		return true;
-	}
-
-	/**
-	 * Returns a cassandra session for a KeySpace. If no keySpace is defined, the
-	 * core keyspace will be returned. If no keyspace with this given keyspace name
-	 * exists, the method creates the keyspace and table schemas.
-	 */
-	public Session getSession(String keySpace) {
-
-		if (keySpace == null || keySpace.isEmpty()) {
-			keySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CORE_KEYSPACE,
-					DEFAULT_CORE_KEYSPACE);
-		}
-
-		logger.info("......get session...");
-		Cluster cluster = getCluster();
-
-		// try to open keySpace
-		logger.info("......conecting keyspace '" + keySpace + "'...");
-
-		Session session = null;
-		try {
-			session = cluster.connect(keySpace);
-		} catch (InvalidQueryException e) {
-			logger.warning("......conecting keyspace '" + keySpace + "' failed: " + e.getMessage());
-			// create keyspace...
-			session = createKeSpace(keySpace);
-		}
-		if (session != null) {
-			logger.info("......keyspace conection status = OK");
-		}
-		return session;
-	}
-
-	/**
-	 * Returns a cassandra session for a ImixsArchive core KeySpace.
-	 */
-	public Session getSession() {
-		return getSession(null);
-	}
-
-	public Cluster getCluster() {
-		String contactPoint = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
-		logger.info("......cluster conecting...");
-		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
-		cluster.init();
-
-		logger.info("......cluster conection status = OK");
-		return cluster;
-
 	}
 
 	/**
@@ -133,9 +81,9 @@ public class ClusterService {
 	 * 
 	 * @param itemCol
 	 * @param session
-	 * @throws ImixsArchiveException 
+	 * @throws ImixsArchiveException
 	 */
-	public void save(ItemCollection itemCol, Session session) throws ImixsArchiveException {
+	public void saveDocument(ItemCollection itemCol, String keyspace) throws ImixsArchiveException {
 		byte[] data = null;
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
@@ -164,8 +112,11 @@ public class ClusterService {
 			m.marshal(xmlDocument, outputStream);
 			data = outputStream.toByteArray();
 		} catch (JAXBException e) {
-			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(),e);
+			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
 		}
+
+		// get session from archive....
+		Session session = this.getArchiveSession(keyspace);
 
 		// upset document....
 		statement = session.prepare("insert into document (id, data) values (?, ?)");
@@ -186,6 +137,83 @@ public class ClusterService {
 	}
 
 	/**
+	 * This method saves a archive confiugration into the core keyspace
+	 * 
+	 * @param itemCol
+	 * @param session
+	 * @throws ImixsArchiveException
+	 */
+	public void saveConfiguration(ItemCollection itemCol, String keyspace) throws ImixsArchiveException {
+		byte[] data = null;
+		PreparedStatement statement = null;
+		BoundStatement bound = null;
+
+		// create byte array from XMLDocument...
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		try {
+			JAXBContext context;
+			context = JAXBContext.newInstance(XMLDocument.class);
+			Marshaller m = context.createMarshaller();
+			XMLDocument xmlDocument = XMLDocumentAdapter.getDocument(itemCol);
+			m.marshal(xmlDocument, outputStream);
+			data = outputStream.toByteArray();
+		} catch (JAXBException e) {
+			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
+		}
+
+		// get session from archive....
+		Session session = this.getCoreSession();
+
+		// upset document....
+		statement = session.prepare("insert into configuration (id, data) values (?, ?)");
+		bound = statement.bind().setString("id", keyspace).setBytes("data", ByteBuffer.wrap(data));
+		session.execute(bound);
+
+	}
+
+	/**
+	 * returns a list of all existing configuration entities stored in the
+	 * ImixsArchive core keyspace.
+	 * 
+	 * @return
+	 */
+	public List<ItemCollection> getConfigurationList() {
+		List<ItemCollection> result = new ArrayList<ItemCollection>();
+
+		// get session from archive....
+		try {
+			Session session = this.getCoreSession();
+
+			ResultSet resultSet = session.execute("SELECT * FROM configuration;");
+			for (Row row : resultSet) {
+				//String keyspace = row.getString("id");
+				byte[] source = row.getBytes("data").array();
+
+				ByteArrayInputStream bis = new ByteArrayInputStream(source);
+
+				JAXBContext context;
+				context = JAXBContext.newInstance(XMLDocument.class);
+				Unmarshaller m = context.createUnmarshaller();
+				Object jaxbObject = m.unmarshal(bis);
+				if (jaxbObject == null) {
+					throw new RuntimeException(
+							"readCollection error - wrong xml file format - unable to read content!");
+				}
+				XMLDocument xmlDocument = (XMLDocument) jaxbObject;
+				
+				result.add(XMLDocumentAdapter.putDocument(xmlDocument));
+
+			}
+
+		} catch (JAXBException e) {
+			logger.severe("failed to read result set: " + e.getMessage());
+			e.printStackTrace();
+			return null;
+		}
+		return result;
+	}
+
+	/**
 	 * This method returns true if the given id is a valid Snapshot id (UUI +
 	 * timestamp
 	 * 
@@ -196,12 +224,81 @@ public class ClusterService {
 		return uid.matches(REGEX_SNAPSHOTID);
 	}
 
+	protected Cluster getCluster() {
+		String contactPoint = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
+		logger.info("......cluster conecting...");
+		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
+		cluster.init();
+
+		logger.info("......cluster conection status = OK");
+		return cluster;
+
+	}
+
+	/**
+	 * Returns a cassandra session for a ImixsArchive core KeySpace.
+	 */
+	protected Session getCoreSession() {
+		String coreKeySpace = null;
+
+		Cluster cluster = getCluster();
+
+		coreKeySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CORE_KEYSPACE,
+				DEFAULT_CORE_KEYSPACE);
+		Session session = null;
+		try {
+			session = cluster.connect(coreKeySpace);
+		} catch (InvalidQueryException e) {
+			logger.warning("......conecting keyspace '" + coreKeySpace + "' failed: " + e.getMessage());
+			// create keyspace...
+			session = createKeSpace(coreKeySpace, KeyspaceType.CORE);
+		}
+		if (session != null) {
+			logger.info("......keyspace conection status = OK");
+		}
+
+		return session;
+	}
+
+	/**
+	 * Returns a cassandra session for a KeySpace. If no keySpace is defined, the
+	 * core keyspace will be returned. If no keyspace with this given keyspace name
+	 * exists, the method creates the keyspace and table schemas.
+	 * 
+	 * @throws ImixsArchiveException
+	 */
+	protected Session getArchiveSession(String keySpace) throws ImixsArchiveException {
+
+		if (keySpace == null || keySpace.isEmpty()) {
+			throw new ImixsArchiveException(ImixsArchiveException.INVALID_KEYSPACE, "missing keyspace");
+		}
+
+		Cluster cluster = getCluster();
+		// try to open keySpace
+		logger.info("......conecting keyspace '" + keySpace + "'...");
+
+		Session session = null;
+		try {
+			session = cluster.connect(keySpace);
+		} catch (InvalidQueryException e) {
+			logger.warning("......conecting keyspace '" + keySpace + "' failed: " + e.getMessage());
+			// create keyspace...
+			session = createKeSpace(keySpace, KeyspaceType.ARCHIVE);
+		}
+		if (session != null) {
+			logger.info("......keyspace conection status = OK");
+		}
+		return session;
+	}
+
 	/**
 	 * This method creates a keySpace
 	 * 
+	 * If archiveKeySpace is true than an archvie table schema will be created
+	 * 
 	 * @param cluster
 	 */
-	private Session createKeSpace(String keySpace) {
+	protected Session createKeSpace(String keySpace, KeyspaceType type) {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
 
 		Cluster cluster = getCluster();
@@ -222,15 +319,23 @@ public class ClusterService {
 			logger.info("......keyspace conection status = OK");
 
 			// now create table schemas
-			createTableSchema(session);
+			switch (type) {
+			case ARCHIVE:
+				createArchiveTableSchema(session);
+				break;
+			case CORE:
+				createConfigurationTableSchema(session);
+				break;
+			}
 		}
 		return session;
 	}
 
 	/**
-	 * This helper method creates the imixs-data table if not yet exists
+	 * This helper method creates the ImixsArchive document table schema if not yet
+	 * exists
 	 */
-	private void createTableSchema(Session session) {
+	protected void createArchiveTableSchema(Session session) {
 
 		logger.info(TABLE_SCHEMA_DOCUMENT);
 		session.execute(TABLE_SCHEMA_DOCUMENT);
@@ -241,6 +346,15 @@ public class ClusterService {
 		logger.info(TABLE_SCHEMA_DOCUMENT_MODIFIED);
 		session.execute(TABLE_SCHEMA_DOCUMENT_MODIFIED);
 
+	}
+
+	/**
+	 * This helper method creates the ImixsArchive configuration table schema if not
+	 * yet exists
+	 */
+	protected void createConfigurationTableSchema(Session session) {
+		logger.info(TABLE_SCHEMA_CONFIGURATION);
+		session.execute(TABLE_SCHEMA_CONFIGURATION);
 	}
 
 }

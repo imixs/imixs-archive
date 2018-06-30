@@ -37,10 +37,10 @@
 								<th>#{message.modified}</th>
 								<th>Action</th>
 							</tr>
-							<ui:repeat var="record" value="#{configDataController.configurations}">
+							<ui:repeat var="record" value="#{archiveDataController.configurations}">
 								<tr>
-									<td>#{record.item['txtName']}</td>
-									<td>#{record.item['$modified']}</td>
+									<td>#{record.item['keyspace']}</td>
+									<td>#{record.item['url']}</td>
 									<td><a
 										href="#{facesContext.externalContext.requestContextPath}/imxisarchive/archive/edit/#{record.item['$uniqueid']}"
 										title="#{record.item['$uniqueid']}"><span

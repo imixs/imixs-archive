@@ -1,10 +1,13 @@
 package org.imixs.workflow.archive.cassandra;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
+
+import org.imixs.workflow.ItemCollection;
 
 /**
  * Request Scoped CID Bean to hold the config data for a singel archive.
@@ -26,6 +29,8 @@ public class ArchiveDataController implements Serializable {
 	String authMethod;
 	int pollingInterval;
 	String errorMessage=null;
+	
+	List<ItemCollection> configurations=null;
 	
 
 	
@@ -89,6 +94,14 @@ public class ArchiveDataController implements Serializable {
 
 	public void setErrorMessage(String errorMessage) {
 		this.errorMessage = errorMessage;
+	}
+
+	public List<ItemCollection> getConfigurations() {
+		return configurations;
+	}
+
+	public void setConfigurations(List<ItemCollection> configurations) {
+		this.configurations = configurations;
 	}
 
 	
