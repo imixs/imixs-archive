@@ -34,10 +34,9 @@ public class ClusterDataController implements Serializable {
 	Properties configurationProperties = null;
 	String contactPoints;
 	String keySpace;
-	
 
-	
-	
+	int archiveCount;
+
 	ItemCollection configuration;
 	List<ItemCollection> configurations;
 
@@ -82,15 +81,12 @@ public class ClusterDataController implements Serializable {
 		logger.info(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT + "=" + contactPoints);
 		logger.info(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE + "=" + keySpace);
 
-		// now we test the connection
-//		if (clusterService != null) {
-//			connected=clusterService.init();
-//		} else {
-//			logger.warning("Unable to inject ClusterService!");
-//			connected= false;
-//		}
-		
-		
+		List<ItemCollection> archiveList = clusterService.getConfigurationList();
+		if (archiveList != null) {
+			archiveCount = archiveList.size();
+			connected = true;
+		}
+
 	}
 
 	public ItemCollection getConfiguration() {
@@ -130,8 +126,7 @@ public class ClusterDataController implements Serializable {
 	}
 
 	/**
-	 * returns true if a connection to the specified keySpace was
-	 * successful
+	 * returns true if a connection to the specified keySpace was successful
 	 * 
 	 * @return
 	 */
@@ -139,5 +134,12 @@ public class ClusterDataController implements Serializable {
 		return connected;
 	}
 
+	public int getArchiveCount() {
+		return archiveCount;
+	}
+
+	public void setArchiveCount(int archiveCount) {
+		this.archiveCount = archiveCount;
+	}
 
 }
