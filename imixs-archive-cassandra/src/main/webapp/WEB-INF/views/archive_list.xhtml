@@ -25,7 +25,7 @@
 		<div class="imixs-form">
 			<div class="imixs-header">
 				<h1>
-					<span class="typcn typcn-database"></span>Archives
+					<span class="typcn typcn-database"></span>Configurations
 				</h1>
 			</div>
 			<div class="imixs-body">
@@ -34,13 +34,19 @@
 						<table id="imixsdatatable" class="imixsdatatable">
 							<tr>
 								<th>#{message.name}</th>
+								<th>#{message.endpoint}</th>
 								<th>#{message.modified}</th>
 								<th>Action</th>
 							</tr>
-							<ui:repeat var="record" value="#{archiveDataController.configurations}">
+							<ui:repeat var="record"
+								value="#{archiveDataController.configurations}">
 								<tr>
-									<td>#{record.item['keyspace']}</td>
+									<td><a
+										href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/edit/#{record.item['keyspace']}">#{record.item['keyspace']}</a>
+
+									</td>
 									<td>#{record.item['url']}</td>
+									<td>#{record.item['$modified']}</td>
 									<td><a
 										href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/edit/#{record.item['keyspace']}"
 										title="#{record.item['$uniqueid']}"><span

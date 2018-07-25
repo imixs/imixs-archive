@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -154,6 +155,8 @@ public class ClusterService {
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
 
+		
+		configuration.replaceItemValue("$modified", new Date());
 		// create byte array from XMLDocument...
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		try {

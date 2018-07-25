@@ -8,7 +8,7 @@
 		<div class="imixs-form">
 			<div class="imixs-header">
 				<h1>
-					<span class="typcn typcn-plug"></span>Archive Configuration
+					<span class="typcn typcn-plug"></span>Configuration
 				</h1>
 				<p>Connect to Imixs-Worklfow remote Rest API</p>
 			</div>
@@ -22,22 +22,24 @@
 						method="post">
 
 						<div class="imixs-form-section">
-
+							<h3>Keyspace:</h3>
+							<hr />
 							<dl>
-								<dt>Keyspace:</dt>
+								<dt>Name:</dt>
 								<dd>
 									<!-- not editable if already defined! -->
 									<ui:fragment
 										rendered="#{!empty archiveDataController.configuration.item['keyspace']}">
-										
-										<input type="text" disabled="disabled" value="#{archiveDataController.configuration.item['keyspace']}" />
-										<input type="hidden" 
+
+										<input type="text" disabled="disabled"
+											value="#{archiveDataController.configuration.item['keyspace']}" />
+										<input type="hidden"
 											value="#{archiveDataController.configuration.item['keyspace']}"
 											name="keyspace" />
 									</ui:fragment>
 									<ui:fragment
 										rendered="#{empty archiveDataController.configuration.item['keyspace']}">
-										<input type="text" 
+										<input type="text"
 											value="#{archiveDataController.configuration.item['keyspace']}"
 											name="keyspace" />
 									</ui:fragment>
@@ -46,7 +48,7 @@
 
 
 							<dl>
-								<dt>URL:</dt>
+								<dt>#{message.endpoint}:</dt>
 								<dd>
 									<input type="text"
 										value="#{archiveDataController.configuration.item['url']}"
@@ -94,27 +96,67 @@
 
 
 
-							<dl>
-								<dt>Polling Interval:</dt>
-								<dd>
-									<input type="text"  placeholder="1"
-										value="#{archiveDataController.configuration.item['pollingInterval']}"
-										autocomplete="pollingInterval" name="pollingInterval" /> in
-									minutes
-								</dd>
-							</dl>
+
 						</div>
 
-						<input type="submit" value="Save" />
 
 
-						<ui:fragment
-							rendered="#{! empty archiveDataController.errorMessage}">
+						<div class="imixs-form-section">
+							<h3>Timer Settings:</h3>
+							<hr />
+							<input type="text" placeholder="1" style="width: 5em"
+								value="#{archiveDataController.configuration.item['pollingInterval']}"
+								autocomplete="pollingInterval" name="pollingInterval" />
+						</div>
 
-							<h3 style="color: red">#{archiveDataController.errorMessage}</h3>
 
-						</ui:fragment>
+						
 
+
+						<!-- **** Status ***** -->
+						<hr />
+						<div class="imixs-form-section-2">
+							<h3>Status: #{!empty archiveDataController.configuration.item['nextTimeout']?'running':'stopped'} </h3>
+							<hr />
+
+							<dl>
+								<dt>ID:</dt>
+								<dd>#{archiveDataController.configuration.item['$UniqueID']}"
+									(#{archiveDataController.configuration.item['statusMessage']})
+								</dd>
+							</dl>
+
+							<dl>
+								<dt>Schedule:</dt>
+								<dd>#{archiveDataController.configuration.item['Schedule']}</dd>
+							</dl>
+
+							<dl>
+								<dt>Last run:</dt>
+								<dd>#{archiveDataController.configuration.item['datLastRun']}</dd>
+							</dl>
+
+
+
+						</div>
+						
+						<hr />
+						<div class="imixs-form-section">
+							<input type="submit" value="Save" /> <input type="button"
+								onclick="document.location.href='#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/';"
+								value="Close" />
+
+
+
+							<ui:fragment
+								rendered="#{! empty archiveDataController.errorMessage}">
+
+								<h3 style="color: red">#{archiveDataController.errorMessage}</h3>
+
+							</ui:fragment>
+						</div>
+						
+<br /><br /><br /><br />
 
 					</form>
 

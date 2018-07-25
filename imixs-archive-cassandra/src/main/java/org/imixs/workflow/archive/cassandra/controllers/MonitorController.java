@@ -29,9 +29,12 @@ package org.imixs.workflow.archive.cassandra.controllers;
 
 import java.util.logging.Logger;
 
+import javax.inject.Inject;
 import javax.mvc.annotation.Controller;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+
+import org.imixs.workflow.archive.cassandra.ClusterDataController;
 
 /**
  * This Marty SetupController extends the Marty ConfigController and holds the
@@ -58,6 +61,8 @@ import javax.ws.rs.Path;
 @Path("monitor")
 public class MonitorController {
 
+	@Inject
+	ClusterDataController clusterDataController;
 	
 	private static Logger logger = Logger.getLogger(MonitorController.class.getName());
 
@@ -70,6 +75,8 @@ public class MonitorController {
 	@GET
 	public String showSetupSettings() {
 		logger.info("show monitor...");
+		// refresh config....
+		clusterDataController.refreshConfiguration();
 		return "monitor.xhtml";
 	}
 	

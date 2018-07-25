@@ -81,12 +81,20 @@ public class ClusterDataController implements Serializable {
 		logger.info(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT + "=" + contactPoints);
 		logger.info(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE + "=" + keySpace);
 
+		refreshConfiguration();
+		
+
+	}
+	
+	/** 
+	 * Updates the configuration list
+	 */
+	public void refreshConfiguration() {
 		List<ItemCollection> archiveList = clusterService.getConfigurationList();
 		if (archiveList != null) {
 			archiveCount = archiveList.size();
 			connected = true;
 		}
-
 	}
 
 	public ItemCollection getConfiguration() {
