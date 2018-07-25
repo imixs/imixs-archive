@@ -9,7 +9,7 @@ import javax.inject.Named;
 import org.imixs.workflow.ItemCollection;
 
 /**
- * Request Scoped CID Bean to hold the config data for a singel archive.
+ * Request Scoped CID Bean to hold the config-data for a single archive.
  * 
  * @author rsoika
  *

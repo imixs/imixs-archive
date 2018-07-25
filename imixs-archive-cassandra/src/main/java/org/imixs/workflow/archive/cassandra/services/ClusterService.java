@@ -30,12 +30,16 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 
 /**
- * Service to persist the content of a Imixs Document into a Cassandra keystore.
+ * The ClusterService provides methods to persist the content of a Imixs
+ * Document into a Cassandra keystore.
  * 
  * The service saves the content in XML format. The size of an XML
  * representation of a Imixs document is only slightly different in size from
  * the serialized map object. This is the reason why we do not store the
  * document map in a serialized object format.
+ * 
+ * The ClusterService creates a Core-KeySpace automatically which is used for
+ * the internal management.
  * 
  * @author rsoika
  * 
@@ -49,11 +53,13 @@ public class ClusterService {
 	public static final String PROPERTY_ARCHIVE_CORE_KEYSPACE = "archive.core.keyspace";
 	public static final String DEFAULT_CORE_KEYSPACE = "imixsarchive";
 
-	// table schemas
-	public static final String TABLE_SCHEMA_CONFIGURATION = "CREATE TABLE IF NOT EXISTS configuration (id text, data blob, PRIMARY KEY (id))";
-	public static final String TABLE_SCHEMA_DOCUMENT = "CREATE TABLE IF NOT EXISTS document (id text, data blob, PRIMARY KEY (id))";
-	public static final String TABLE_SCHEMA_DOCUMENT_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS document_snapshots (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
-	public static final String TABLE_SCHEMA_DOCUMENT_MODIFIED = "CREATE TABLE IF NOT EXISTS document_modified (modified date,id text,PRIMARY KEY(modified, id));";
+	// core table schema
+	public static final String TABLE_SCHEMA_CONFIGURATION = "CREATE TABLE IF NOT EXISTS configurations (id text, data blob, PRIMARY KEY (id))";
+
+	// archive table schemas
+	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (id text, data blob, PRIMARY KEY (id))";
+	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID = "CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
+	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED = "CREATE TABLE IF NOT EXISTS snapshots_by_modified (modified date,id text,PRIMARY KEY(modified, id));";
 
 	private static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
@@ -62,8 +68,8 @@ public class ClusterService {
 	PropertyService propertyService;
 
 	/**
-	 * This method initializes the core keyspace and creates the table schema if not
-	 * exits. The method returns true if the keyspace is accessable
+	 * This method initializes the Core-KeySpace and creates the table schema if not
+	 * exits. The method returns true if the Core-KeySpace is accessible
 	 */
 	public boolean init() {
 		try {
@@ -77,8 +83,7 @@ public class ClusterService {
 	}
 
 	/**
-	 * This method saves a ItemCollection into the keyspace defined by the given
-	 * session
+	 * This method saves a ItemCollection into a specific KeySpace.
 	 * 
 	 * @param itemCol
 	 * @param session
@@ -120,31 +125,31 @@ public class ClusterService {
 		Session session = this.getArchiveSession(keyspace);
 
 		// upset document....
-		statement = session.prepare("insert into document (id, data) values (?, ?)");
+		statement = session.prepare("insert into snapshots (id, data) values (?, ?)");
 		bound = statement.bind().setString("id", itemCol.getUniqueID()).setBytes("adta", ByteBuffer.wrap(data));
 		session.execute(bound);
 
 		// upset document_snapshots....
-		statement = session.prepare("insert into document_snapshots (uniqueid, snapshot) values (?, ?)");
+		statement = session.prepare("insert into snapshots_by_uniqueid (uniqueid, snapshot) values (?, ?)");
 		bound = statement.bind().setString("uniqueid", originUnqiueID).setString("snapshot", snapshotDigits);
 		session.execute(bound);
 
 		// upset document_modified....
 		LocalDate ld = LocalDate.fromMillisSinceEpoch(itemCol.getItemValueDate("$modified").getTime());
-		statement = session.prepare("insert into document_snapshots (date, id) values (?, ?)");
+		statement = session.prepare("insert into snapshots_by_modified (date, id) values (?, ?)");
 		bound = statement.bind().setDate("date", ld).setString("uniqueid", originUnqiueID).setString("id",
 				itemCol.getUniqueID());
 		session.execute(bound);
 	}
 
 	/**
-	 * This method saves a archive confiugration into the core keyspace
+	 * This method saves a archive configuration into the Core-KeySpace. A
+	 * configuration defines a archive.
 	 * 
-	 * @param itemCol
-	 * @param session
+	 * @param configuration
 	 * @throws ImixsArchiveException
 	 */
-	public void saveConfiguration(ItemCollection itemCol, String keyspace) throws ImixsArchiveException {
+	public void saveConfiguration(ItemCollection configuration) throws ImixsArchiveException {
 		byte[] data = null;
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
@@ -155,7 +160,7 @@ public class ClusterService {
 			JAXBContext context;
 			context = JAXBContext.newInstance(XMLDocument.class);
 			Marshaller m = context.createMarshaller();
-			XMLDocument xmlDocument = XMLDocumentAdapter.getDocument(itemCol);
+			XMLDocument xmlDocument = XMLDocumentAdapter.getDocument(configuration);
 			m.marshal(xmlDocument, outputStream);
 			data = outputStream.toByteArray();
 		} catch (JAXBException e) {
@@ -166,28 +171,30 @@ public class ClusterService {
 		Session session = this.getCoreSession();
 
 		// upset document....
-		statement = session.prepare("insert into configuration (id, data) values (?, ?)");
+		String keyspace = configuration.getItemValueString("keyspace");
+		statement = session.prepare("insert into configurations (id, data) values (?, ?)");
 		bound = statement.bind().setString("id", keyspace).setBytes("data", ByteBuffer.wrap(data));
 		session.execute(bound);
 
 	}
 
 	/**
-	 * returns a list of all existing configuration entities stored in the
-	 * ImixsArchive core keyspace.
+	 * Returns a list of all existing archive configurations which are stored in the
+	 * Core-KeySpace.
 	 * 
-	 * @return
+	 * @return configuration list
 	 */
 	public List<ItemCollection> getConfigurationList() {
 		List<ItemCollection> result = new ArrayList<ItemCollection>();
 
-		// get session from archive....
+		logger.finest("......load configuraiton list...");
+		// get session from Core-KeySpace....
 		try {
 			Session session = this.getCoreSession();
 
-			ResultSet resultSet = session.execute("SELECT * FROM configuration;");
+			ResultSet resultSet = session.execute("SELECT * FROM configurations;");
 			for (Row row : resultSet) {
-				//String keyspace = row.getString("id");
+				// String keyspace = row.getString("id");
 				byte[] source = row.getBytes("data").array();
 
 				ByteArrayInputStream bis = new ByteArrayInputStream(source);
@@ -201,7 +208,7 @@ public class ClusterService {
 							"readCollection error - wrong xml file format - unable to read content!");
 				}
 				XMLDocument xmlDocument = (XMLDocument) jaxbObject;
-				
+
 				result.add(XMLDocumentAdapter.putDocument(xmlDocument));
 
 			}
@@ -211,12 +218,11 @@ public class ClusterService {
 			e.printStackTrace();
 			return null;
 		}
-		
+
 		// sort result
 		Collections.sort(result, new ItemCollectionComparator("keyspace", true));
 		return result;
 	}
-	
 
 	/**
 	 * returns a list of all existing configuration entities stored in the
@@ -229,10 +235,10 @@ public class ClusterService {
 		try {
 			Session session = this.getCoreSession();
 
-			ResultSet resultSet = session.execute("SELECT * FROM configuration WHERE id='" + keyspace + "';");
-			Row row=resultSet.one();
-			if ( row !=null ) {
-				//String keyspace = row.getString("id");
+			ResultSet resultSet = session.execute("SELECT * FROM configurations WHERE id='" + keyspace + "';");
+			Row row = resultSet.one();
+			if (row != null) {
+				// String keyspace = row.getString("id");
 				byte[] source = row.getBytes("data").array();
 
 				ByteArrayInputStream bis = new ByteArrayInputStream(source);
@@ -246,7 +252,7 @@ public class ClusterService {
 							"readCollection error - wrong xml file format - unable to read content!");
 				}
 				XMLDocument xmlDocument = (XMLDocument) jaxbObject;
-				
+
 				return XMLDocumentAdapter.putDocument(xmlDocument);
 
 			}
@@ -282,7 +288,8 @@ public class ClusterService {
 	}
 
 	/**
-	 * Returns a cassandra session for a ImixsArchive core KeySpace.
+	 * Returns a cassandra session for a ImixsArchive Core-KeySpace. The
+	 * Core-KeySpace is used for the internal management.
 	 */
 	protected Session getCoreSession() {
 		String coreKeySpace = null;
@@ -297,7 +304,7 @@ public class ClusterService {
 		} catch (InvalidQueryException e) {
 			logger.warning("......conecting keyspace '" + coreKeySpace + "' failed: " + e.getMessage());
 			// create keyspace...
-			session = createKeSpace(coreKeySpace, KeyspaceType.CORE);
+			session = createKeySpace(coreKeySpace, KeyspaceType.CORE);
 		}
 		if (session != null) {
 			logger.info("......keyspace conection status = OK");
@@ -329,7 +336,7 @@ public class ClusterService {
 		} catch (InvalidQueryException e) {
 			logger.warning("......conecting keyspace '" + keySpace + "' failed: " + e.getMessage());
 			// create keyspace...
-			session = createKeSpace(keySpace, KeyspaceType.ARCHIVE);
+			session = createKeySpace(keySpace, KeyspaceType.ARCHIVE);
 		}
 		if (session != null) {
 			logger.info("......keyspace conection status = OK");
@@ -338,13 +345,15 @@ public class ClusterService {
 	}
 
 	/**
-	 * This method creates a keySpace
-	 * 
-	 * If archiveKeySpace is true than an archvie table schema will be created
+	 * This method creates a cassandra keySpace.
+	 * <p>
+	 * Depending on the KeyspaceType, the method creates the core table schema to
+	 * store configurations, or the extended Archive table schcema which is used to
+	 * store imixs documents.
 	 * 
 	 * @param cluster
 	 */
-	protected Session createKeSpace(String keySpace, KeyspaceType type) {
+	protected Session createKeySpace(String keySpace, KeyspaceType type) {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
 
 		Cluster cluster = getCluster();
@@ -383,14 +392,14 @@ public class ClusterService {
 	 */
 	protected void createArchiveTableSchema(Session session) {
 
-		logger.info(TABLE_SCHEMA_DOCUMENT);
-		session.execute(TABLE_SCHEMA_DOCUMENT);
+		logger.info(TABLE_SCHEMA_SNAPSHOTS);
+		session.execute(TABLE_SCHEMA_SNAPSHOTS);
 
-		logger.info(TABLE_SCHEMA_DOCUMENT_SNAPSHOTS);
-		session.execute(TABLE_SCHEMA_DOCUMENT_SNAPSHOTS);
+		logger.info(TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID);
+		session.execute(TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID);
 
-		logger.info(TABLE_SCHEMA_DOCUMENT_MODIFIED);
-		session.execute(TABLE_SCHEMA_DOCUMENT_MODIFIED);
+		logger.info(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
+		session.execute(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
 
 	}
 

@@ -18,8 +18,8 @@ import org.imixs.workflow.archive.cassandra.services.ClusterService;
 import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 
 /**
- * The ArchiveController is used to create, show und update archive
- * configurations
+ * The ArchiveController is used to create, show and update archive
+ * configurations.
  * 
  * @author rsoika
  *
@@ -65,7 +65,7 @@ public class ArchiveController {
 
 		return "archive_config.xhtml";
 	}
-	
+
 	/**
 	 * Create a new key-space
 	 * 
@@ -93,18 +93,23 @@ public class ArchiveController {
 	@POST
 	@Path("/")
 	public String saveArchiveKeySpace(@FormParam("keyspace") String keyspace, @FormParam("url") String url,
-			@FormParam("pollingInterval") int pollingInterval) {
+			@FormParam("pollingInterval") String pollingInterval) {
 
 		// create ItemCollection with archive data
 		ItemCollection archive = new ItemCollection();
 		archive.replaceItemValue("keyspace", keyspace);
 		archive.replaceItemValue("url", url);
-		archive.replaceItemValue("pollingInterval", pollingInterval);
 
+		try {
+			archive.replaceItemValue("pollingInterval", Integer.parseInt(pollingInterval));
+		} catch (NumberFormatException n) {
+			// set default value
+			archive.replaceItemValue("pollingInterval", 1);
+		}
 		logger.info("creating table schemas for keyspace '" + keyspace + "' ....");
 		try {
 			// save the archive configuration
-			clusterService.saveConfiguration(archive, keyspace);
+			clusterService.saveConfiguration(archive);
 		} catch (ImixsArchiveException e) {
 			logger.severe(e.getMessage());
 			archiveDataController.setErrorMessage(e.getMessage());
