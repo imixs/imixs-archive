@@ -134,6 +134,10 @@ button, input[type="button"]:hover, input[type="submit"]:hover, .button:hover,
 	color: #ddd !important;
 }
 
+#imixs-content {
+	padding-bottom:80px;
+}
+
 #imixs-content a.imixs-button {
 	color: inherit;
 }
