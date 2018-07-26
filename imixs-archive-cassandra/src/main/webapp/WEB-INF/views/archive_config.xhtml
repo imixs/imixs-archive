@@ -23,7 +23,6 @@
 
 						<div class="imixs-form-section">
 							<h3>Keyspace:</h3>
-							<hr />
 							<dl>
 								<dt>Name:</dt>
 								<dd>
@@ -103,46 +102,35 @@
 
 						<div class="imixs-form-section">
 							<h3>Timer Settings:</h3>
-							<hr />
-							<input type="text" placeholder="1" style="width: 5em"
-								value="#{archiveDataController.configuration.item['pollingInterval']}"
-								autocomplete="pollingInterval" name="pollingInterval" />
+
+							<textarea rows="" cols="" style="height: 8em; width: 100%;">#{archiveDataController.configuration.item['pollingInterval']}</textarea>
+
 						</div>
 
 
-						
+
 
 
 						<!-- **** Status ***** -->
-						<hr />
+
 						<div class="imixs-form-section-2">
-							<h3>Status: #{!empty archiveDataController.configuration.item['nextTimeout']?'running':'stopped'} </h3>
-							<hr />
+							<ui:param name="timeRemaining"
+								value="#{archiveDataController.configuration.item['timeRemaining']}"></ui:param>
+							<h3>Status:</h3>
 
-							<dl>
-								<dt>ID:</dt>
-								<dd>#{archiveDataController.configuration.item['$UniqueID']}"
-									(#{archiveDataController.configuration.item['statusMessage']})
-								</dd>
-							</dl>
-
-							<dl>
-								<dt>Schedule:</dt>
-								<dd>#{archiveDataController.configuration.item['Schedule']}</dd>
-							</dl>
-
-							<dl>
-								<dt>Last run:</dt>
-								<dd>#{archiveDataController.configuration.item['datLastRun']}</dd>
-							</dl>
-
+							<p>Timer Status = #{timeRemaining > 0?'running':'stopped'}</p>
+							<p>Time Remaining : #{timeRemaining > 0?timeRemaining:'-'} ms</p>
 
 
 						</div>
-						
+
 						<hr />
 						<div class="imixs-form-section">
-							<input type="submit" value="Save" /> <input type="button"
+
+							<input type="submit"
+								value="#{empty archiveDataController.configuration.item['keyspace']?'Create':'Update'}" />
+
+							<input type="button"
 								onclick="document.location.href='#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/';"
 								value="Close" />
 
@@ -155,7 +143,7 @@
 
 							</ui:fragment>
 						</div>
-						
+
 
 
 					</form>

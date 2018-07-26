@@ -106,7 +106,7 @@ public class ArchiveController {
 			// set default value
 			archive.replaceItemValue("pollingInterval", 1);
 		}
-		logger.info("creating table schemas for keyspace '" + keyspace + "' ....");
+		logger.info("update configuration for keyspace '" + keyspace + "' ....");
 		try {
 			// save the archive configuration
 			clusterService.saveConfiguration(archive);

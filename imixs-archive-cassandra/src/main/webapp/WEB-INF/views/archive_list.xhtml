@@ -33,9 +33,14 @@
 					<div class="imixs-form-section">
 						<table id="imixsdatatable" class="imixsdatatable">
 							<tr>
+
 								<th>#{message.name}</th>
+								
 								<th>#{message.endpoint}</th>
 								<th>#{message.modified}</th>
+								<th>
+									<!-- status -->
+								</th>
 								<th>Action</th>
 							</tr>
 							<ui:repeat var="record"
@@ -45,8 +50,21 @@
 										href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/edit/#{record.item['keyspace']}">#{record.item['keyspace']}</a>
 
 									</td>
+									
+
+
 									<td>#{record.item['url']}</td>
 									<td>#{record.item['$modified']}</td>
+									
+									<td><ui:fragment
+											rendered="#{record.item['timeRemaining'] gt 0}">
+											<span class="typcn typcn-media-record"
+												style="font-size: 1.3em; color: #5c9e5c;"></span>
+										</ui:fragment> <ui:fragment rendered="#{record.item['timeRemaining'] le 0}">
+											<span class="typcn typcn-media-record"
+												style="font-size: 1.3em; color: #e84848;"></span>
+										</ui:fragment></td>
+									
 									<td><a
 										href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/edit/#{record.item['keyspace']}"
 										title="#{record.item['$uniqueid']}"><span
