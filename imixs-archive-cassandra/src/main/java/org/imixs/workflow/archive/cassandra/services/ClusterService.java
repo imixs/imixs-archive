@@ -67,6 +67,9 @@ public class ClusterService {
 
 	@EJB
 	PropertyService propertyService;
+	
+	@EJB
+	SchedulerService schedulerService;
 
 	/**
 	 * This method initializes the Core-KeySpace and creates the table schema if not
@@ -76,7 +79,24 @@ public class ClusterService {
 		try {
 			logger.info("...init imixsarchive keyspace ...");
 			Session session = getCoreSession();
-			return (session != null);
+			
+			if (session!=null) {
+				// start archive schedulers....
+				logger.info("...starting schedulers...");
+				List<ItemCollection> archives = this.getConfigurationList();
+				for (ItemCollection configItemCollection: archives) {
+					schedulerService.start(configItemCollection);
+				}
+
+				
+				return true;
+			} else {
+				logger.warning("...Failed to initalize imixsarchive keyspace!");
+				return false;
+			}
+			
+			
+			
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return false;
@@ -155,8 +175,18 @@ public class ClusterService {
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
 
+		String keyspace = configuration.getItemValueString("keyspace");
+		// stop timer
+		schedulerService.stop(configuration);
+		
 		
 		configuration.replaceItemValue("$modified", new Date());
+		
+		// restart timer....
+		schedulerService.start(configuration);
+
+		
+		
 		// create byte array from XMLDocument...
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		try {
@@ -170,15 +200,14 @@ public class ClusterService {
 			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
 		}
 
-		// get session from archive....
-		Session session = this.getCoreSession();
-
 		// upset document....
-		String keyspace = configuration.getItemValueString("keyspace");
+		Session session = this.getCoreSession();
 		statement = session.prepare("insert into configurations (id, data) values (?, ?)");
 		bound = statement.bind().setString("id", keyspace).setBytes("data", ByteBuffer.wrap(data));
 		session.execute(bound);
-
+		
+		
+		
 	}
 
 	/**
@@ -281,11 +310,11 @@ public class ClusterService {
 
 	protected Cluster getCluster() {
 		String contactPoint = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
-		logger.info("......cluster conecting...");
+		logger.finest("......cluster conecting...");
 		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
 
-		logger.info("......cluster conection status = OK");
+		logger.finest("......cluster conection status = OK");
 		return cluster;
 
 	}
@@ -310,7 +339,7 @@ public class ClusterService {
 			session = createKeySpace(coreKeySpace, KeyspaceType.CORE);
 		}
 		if (session != null) {
-			logger.info("......keyspace conection status = OK");
+			logger.finest("......keyspace conection status = OK");
 		}
 
 		return session;
@@ -331,7 +360,7 @@ public class ClusterService {
 
 		Cluster cluster = getCluster();
 		// try to open keySpace
-		logger.info("......conecting keyspace '" + keySpace + "'...");
+		logger.finest("......conecting keyspace '" + keySpace + "'...");
 
 		Session session = null;
 		try {
@@ -342,7 +371,7 @@ public class ClusterService {
 			session = createKeySpace(keySpace, KeyspaceType.ARCHIVE);
 		}
 		if (session != null) {
-			logger.info("......keyspace conection status = OK");
+			logger.finest("......keyspace conection status = OK");
 		}
 		return session;
 	}

@@ -99,13 +99,12 @@ public class ArchiveController {
 		ItemCollection archive = new ItemCollection();
 		archive.replaceItemValue("keyspace", keyspace);
 		archive.replaceItemValue("url", url);
-
-		try {
-			archive.replaceItemValue("pollingInterval", Integer.parseInt(pollingInterval));
-		} catch (NumberFormatException n) {
-			// set default value
-			archive.replaceItemValue("pollingInterval", 1);
+		
+		if (pollingInterval== null || pollingInterval.isEmpty() ) {
+			pollingInterval="hour=*"; // defaut setting
 		}
+		archive.replaceItemValue("pollingInterval", pollingInterval);
+		
 		logger.info("update configuration for keyspace '" + keyspace + "' ....");
 		try {
 			// save the archive configuration

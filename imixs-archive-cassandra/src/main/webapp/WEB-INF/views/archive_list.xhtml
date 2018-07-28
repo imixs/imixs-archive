@@ -37,10 +37,12 @@
 								<th>#{message.name}</th>
 								
 								<th>#{message.endpoint}</th>
-								<th>#{message.modified}</th>
 								<th>
 									<!-- status -->
 								</th>
+								<th>Polling Intervall</th>
+								<th>#{message.modified}</th>
+								
 								<th>Action</th>
 							</tr>
 							<ui:repeat var="record"
@@ -54,7 +56,6 @@
 
 
 									<td>#{record.item['url']}</td>
-									<td>#{record.item['$modified']}</td>
 									
 									<td><ui:fragment
 											rendered="#{record.item['timeRemaining'] gt 0}">
@@ -64,6 +65,10 @@
 											<span class="typcn typcn-media-record"
 												style="font-size: 1.3em; color: #e84848;"></span>
 										</ui:fragment></td>
+									<td><pre>#{record.item['pollingInterval']}</pre></td>
+									<td>#{record.item['$modified']}</td>
+									
+									
 									
 									<td><a
 										href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/edit/#{record.item['keyspace']}"

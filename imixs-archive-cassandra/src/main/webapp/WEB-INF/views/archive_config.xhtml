@@ -103,8 +103,18 @@
 						<div class="imixs-form-section">
 							<h3>Timer Settings:</h3>
 
-							<textarea rows="" cols="" style="height: 8em; width: 100%;">#{archiveDataController.configuration.item['pollingInterval']}</textarea>
-
+							<div class="row nested">
+								<div class="col-8">
+									<textarea name="pollingInterval" rows="" cols="" style="height: 11em; width: 100%;">#{archiveDataController.configuration.item['pollingInterval']}</textarea>
+								</div>
+								<div class="col-4">
+									<SMALL> <span style="text-decoration: underline;"><strong><a
+												href="https://docs.oracle.com/javaee/7/api/javax/ejb/ScheduleExpression.html"
+												target="_blank">Cron Settings:</a></strong></span> <br />second [0,59]<br />
+										minute [0,59]<br /> hour [0,23]<br /> dayOfWeek [1,31]<br />
+										dayOfMonth [1,12]<br /> year<br /></SMALL>
+								</div>
+							</div>
 						</div>
 
 
@@ -143,9 +153,6 @@
 
 							</ui:fragment>
 						</div>
-
-
-
 					</form>
 
 				</div>

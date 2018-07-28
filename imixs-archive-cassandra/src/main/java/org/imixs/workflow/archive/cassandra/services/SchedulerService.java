@@ -24,7 +24,6 @@ package org.imixs.workflow.archive.cassandra.services;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.logging.Logger;
 
@@ -79,7 +78,7 @@ public class SchedulerService {
 	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
 	/**
-	 * This Method starts the TimerService.
+	 * This Method starts the TimerService. If a timer with the id was already running, than the method will stop this timer instance before. 
 	 * 
 	 * The Timer can be started based on a Calendar setting stored in the property
 	 * 'pollingInterval'
@@ -89,12 +88,15 @@ public class SchedulerService {
 	 * 
 	 * @throws ParseException
 	 */
-	public ItemCollection start(ItemCollection configItemCollection) throws ParseException {
-		Timer timer = null;
-		if (configItemCollection == null)
-			return null;
+	@SuppressWarnings("unused")
+	public boolean start(ItemCollection configItemCollection) {
+		if (configItemCollection == null) {
+			logger.warning("...invalid configuraiton object");
+			return false;
+		}
 
 		String id = configItemCollection.getItemValueString("keyspace");
+		logger.info("...starting scheduler for archive '" + id + "'");
 
 		// try to cancel an existing timer for this workflowinstance
 		while (this.findTimer(id) != null) {
@@ -102,27 +104,16 @@ public class SchedulerService {
 		}
 
 		// New timer will be started on calendar confiugration
-		timer = createTimerOnCalendar(configItemCollection);
-
-		// start and set statusmessage
-		if (timer != null) {
-
-			Calendar calNow = Calendar.getInstance();
-			SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
-			String msg = "started at " + dateFormatDE.format(calNow.getTime()) + " by "
-					+ ctx.getCallerPrincipal().getName();
-			configItemCollection.replaceItemValue("statusmessage", msg);
-
-			if (timer.isCalendarTimer()) {
-				configItemCollection.replaceItemValue("Schedule", timer.getSchedule().toString());
-			} else {
-				configItemCollection.replaceItemValue("Schedule", "");
-
-			}
-			logger.info("" + configItemCollection.getItemValueString("txtName") + " started: " + id);
+		try {
+			Timer timer = createTimerOnCalendar(configItemCollection);
+			logger.info("...... scheduler for archive '" + id + "' started!");
+			
+			return true;
+		} catch (ParseException e) {
+			logger.severe("starting scheduler for '" + id + "' failed: " + e.getMessage());
 		}
 
-		return configItemCollection;
+		return false;
 	}
 
 	/**
@@ -131,14 +122,14 @@ public class SchedulerService {
 	 * @param true if timer was found and successfull canceled.
 	 * 
 	 */
-	public boolean stop(ItemCollection config) throws Exception {
+	public boolean stop(ItemCollection config) {
 		String id = config.getItemValueString("keyspace");
 		boolean found = false;
 		while (this.findTimer(id) != null) {
 			this.findTimer(id).cancel();
 			found = true;
 		}
-
+		logger.warning("No running timer with id '" + id + "' found.");
 		return found;
 	}
 
@@ -236,6 +227,8 @@ public class SchedulerService {
 
 		TimerConfig timerConfig = new TimerConfig();
 
+		String id=configItemCollection.getItemValueString("keyspace");
+		logger.info("...sarting timer for id '" + id + "'...");
 		XMLDocument xmlConfigItem = null;
 		try {
 			xmlConfigItem = XMLDocumentAdapter.getDocument(configItemCollection);
@@ -293,6 +286,16 @@ public class SchedulerService {
 			}
 
 		}
+		
+		
+		// log timer settings
+		logger.finest("...scheudler settings for timer '" + id + "':");
+		logger.info("...... second=" + scheduerExpression.getSecond());
+		logger.info("...... minute=" + scheduerExpression.getMinute());
+		logger.info("...... hour=" + scheduerExpression.getHour());
+		logger.info("...... dayOfWeek=" + scheduerExpression.getDayOfWeek());
+		logger.info("...... dayOfMonth=" + scheduerExpression.getDayOfMonth());
+		logger.info("...... year=" + scheduerExpression.getYear());
 
 		Timer timer = timerService.createCalendarTimer(scheduerExpression, timerConfig);
 
