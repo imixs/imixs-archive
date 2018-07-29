@@ -12,11 +12,11 @@
 			});
 
 			function deleteDocument(id) {
-				if (!confirm('Are you sure?\nDelete Entity ' + id + ' now?')) {
+				if (!confirm('Are you sure to delete the archive configuration ' + id + ' ? \nThis will stop the current synchronisation. The corresponding Cassandra keyspace will be deleted! ')) {
 					return false;
 				}
 				// delete...
-				document.location.href="#{facesContext.externalContext.requestContextPath}/app/teams/delete/"+id;
+				document.location.href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/delete/"+id;
 			}
 			/*]]>*/
 		</script>
@@ -35,14 +35,14 @@
 							<tr>
 
 								<th>#{message.name}</th>
-								
+
 								<th>#{message.endpoint}</th>
 								<th>
 									<!-- status -->
 								</th>
 								<th>Polling Intervall</th>
 								<th>#{message.modified}</th>
-								
+
 								<th>Action</th>
 							</tr>
 							<ui:repeat var="record"
@@ -52,11 +52,11 @@
 										href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/edit/#{record.item['keyspace']}">#{record.item['keyspace']}</a>
 
 									</td>
-									
+
 
 
 									<td>#{record.item['url']}</td>
-									
+
 									<td><ui:fragment
 											rendered="#{record.item['timeRemaining'] gt 0}">
 											<span class="typcn typcn-media-record"
@@ -67,14 +67,14 @@
 										</ui:fragment></td>
 									<td><pre>#{record.item['pollingInterval']}</pre></td>
 									<td>#{record.item['$modified']}</td>
-									
-									
-									
+
+
+
 									<td><a
 										href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/edit/#{record.item['keyspace']}"
 										title="#{record.item['$uniqueid']}"><span
 											class="typcn typcn-edit"></span>#{message.edit}</a> | <a href="#"
-										onclick="deleteDocument('#{record.item['$uniqueid']}')"
+										onclick="deleteDocument('#{record.item['keyspace']}')"
 										title="#{record.item['$uniqueid']}"><span
 											class="typcn typcn-trash" title="#{message.delete}"></span>#{message.delete}</a>
 
@@ -90,6 +90,14 @@
 						<a class="imixs-button"
 							href="#{facesContext.externalContext.requestContextPath}/imixsarchive/">#{message.close}</a>
 
+
+
+						<ui:fragment
+							rendered="#{! empty errorController.message}">
+
+							<h3 style="color: red">#{errorController.message}</h3>
+
+						</ui:fragment>
 					</div>
 				</div>
 			</div>

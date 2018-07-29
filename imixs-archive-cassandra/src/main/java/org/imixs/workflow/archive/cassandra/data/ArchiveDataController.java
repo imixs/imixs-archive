@@ -27,22 +27,12 @@ public class ArchiveDataController implements Serializable {
 	@EJB
 	SchedulerService schedulerService;
 
-	String errorMessage = null;
-
 	List<ItemCollection> configurations = null;
 	ItemCollection configuration = null;
 	long timeRemaining;
 
 	public ArchiveDataController() {
 		super();
-	}
-
-	public String getErrorMessage() {
-		return errorMessage;
-	}
-
-	public void setErrorMessage(String errorMessage) {
-		this.errorMessage = errorMessage;
 	}
 
 	public List<ItemCollection> getConfigurations() {

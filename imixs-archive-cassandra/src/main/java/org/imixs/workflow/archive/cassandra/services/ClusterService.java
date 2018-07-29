@@ -30,7 +30,10 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.InvalidConfigurationInQueryException;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
+import com.datastax.driver.core.exceptions.QueryValidationException;
+import com.datastax.driver.core.exceptions.SyntaxError;
 
 /**
  * The ClusterService provides methods to persist the content of a Imixs
@@ -69,7 +72,7 @@ public class ClusterService {
 
 	@EJB
 	PropertyService propertyService;
-	
+
 	@EJB
 	SchedulerService schedulerService;
 
@@ -81,24 +84,21 @@ public class ClusterService {
 		try {
 			logger.info("...init imixsarchive keyspace ...");
 			Session session = getCoreSession();
-			
-			if (session!=null) {
+
+			if (session != null) {
 				// start archive schedulers....
 				logger.info("...starting schedulers...");
 				List<ItemCollection> archives = this.getConfigurationList();
-				for (ItemCollection configItemCollection: archives) {
+				for (ItemCollection configItemCollection : archives) {
 					schedulerService.start(configItemCollection);
 				}
 
-				
 				return true;
 			} else {
 				logger.warning("...Failed to initalize imixsarchive keyspace!");
 				return false;
 			}
-			
-			
-			
+
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return false;
@@ -180,21 +180,18 @@ public class ClusterService {
 		String keyspace = configuration.getItemValueString("keyspace");
 		// stop timer
 		schedulerService.stop(configuration);
-		
-		
+
 		configuration.replaceItemValue(WorkflowKernel.MODIFIED, new Date());
-		
+
 		// do we have a valid SyncPoint?
-		long lSyncpoint=configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
-		if (lSyncpoint==0) {
+		long lSyncpoint = configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
+		if (lSyncpoint == 0) {
 			logger.info("......initialized new syncpoint");
 		}
-		
+
 		// restart timer....
 		schedulerService.start(configuration);
 
-		
-		
 		// create byte array from XMLDocument...
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		try {
@@ -214,8 +211,50 @@ public class ClusterService {
 		bound = statement.bind().setString("id", keyspace).setBytes("data", ByteBuffer.wrap(data));
 		session.execute(bound);
 		
+		// create keyspace if not exists
+		session= getArchiveSession(keyspace);
+
+	}
+
+	/**
+	 * This method deletes an archive configuration from the Core-KeySpace and the
+	 * corresponding keyspace.
+	 * 
+	 * @param configuration
+	 * @return error messages if occured during deletion.
+	 */
+	public String deleteConfiguration(ItemCollection configuration) {
+
+		String errorMessage="";
+		String keyspace = configuration.getItemValueString("keyspace");
+
+		// first stop the timer
+		schedulerService.stop(configuration);
+
+		// next delete the keyspace....
+		try {
+			Cluster cluster = getCluster();
+			Session session = cluster.connect();
+			session.execute("DROP KEYSPACE " + keyspace + "");
+			logger.info("......keyspace deleted...");
+		} catch (InvalidConfigurationInQueryException | SyntaxError e) {
+			String message="Deletion of keyspace '" + keyspace + "' failed: " + e.getMessage();
+			logger.warning("......" + message);
+			errorMessage+=message + "\n";
+		}
+
+		// finally delete the configuration entry ....
+		try {
+			Session session = this.getCoreSession();
+			session.execute("DELETE FROM configurations WHERE id IN ('" + keyspace + "')");
+			logger.info("......archive configuration deleted...");
+		} catch (QueryValidationException e) {
+			String message="deletion of configuration for keyspace '" + keyspace + "' failed: " + e.getMessage();
+			logger.warning("......" + message);
+			errorMessage+=message + "\n";
+		}
 		
-		
+		return errorMessage;
 	}
 
 	/**
@@ -423,8 +462,7 @@ public class ClusterService {
 				break;
 			}
 		}
-		
-	
+
 		return session;
 	}
 

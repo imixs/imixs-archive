@@ -70,21 +70,20 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 @Stateless
 public class SchedulerService {
 
-		
-	
 	@Resource
 	SessionContext ctx;
 
 	@Resource
 	javax.ejb.TimerService timerService;
-	
+
 	@EJB
 	SyncService syncService;
 
 	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
 	/**
-	 * This Method starts the TimerService. If a timer with the id was already running, than the method will stop this timer instance before. 
+	 * This Method starts the TimerService. If a timer with the id was already
+	 * running, than the method will stop this timer instance before.
 	 * 
 	 * The Timer can be started based on a Calendar setting stored in the property
 	 * 'pollingInterval'
@@ -94,7 +93,6 @@ public class SchedulerService {
 	 * 
 	 * @throws ParseException
 	 */
-	@SuppressWarnings("unused")
 	public boolean start(ItemCollection configItemCollection) {
 		if (configItemCollection == null) {
 			logger.warning("...invalid configuraiton object");
@@ -112,9 +110,7 @@ public class SchedulerService {
 		// New timer will be started on calendar confiugration
 		try {
 			Timer timer = createTimerOnCalendar(configItemCollection);
-			logger.info("...... scheduler for archive '" + id + "' started!");
-			
-			return true;
+			return (timer != null);
 		} catch (ParseException e) {
 			logger.severe("starting scheduler for '" + id + "' failed: " + e.getMessage());
 		}
@@ -130,6 +126,7 @@ public class SchedulerService {
 	 */
 	public boolean stop(ItemCollection config) {
 		String id = config.getItemValueString("keyspace");
+		logger.info("...stopping timer with id '" + id + "'");
 		boolean found = false;
 		while (this.findTimer(id) != null) {
 			this.findTimer(id).cancel();
@@ -206,15 +203,14 @@ public class SchedulerService {
 
 		logger.info("starting import....");
 
-		
 		XMLDocument xmlItemCollection = (XMLDocument) timer.getInfo();
 		ItemCollection configuration = XMLDocumentAdapter.putDocument(xmlItemCollection);
-		
+
 		XMLDocument data = syncService.readSyncData(configuration);
-		
-		if (data!=null) {
-			
-			logger.info("...Data found - new Syncpoint=" );
+
+		if (data != null) {
+
+			logger.info("...Data found - new Syncpoint=");
 		}
 
 		logger.info("import finished in " + (System.currentTimeMillis() - lProfiler) + "ms");
@@ -234,16 +230,20 @@ public class SchedulerService {
 	 *   year=*
 	 * </code>
 	 * 
+	 * If no configuration is found than no timer will be created and the method
+	 * returns null.
+	 * 
+	 * 
 	 * @param sConfiguation
 	 * @return
 	 * @throws ParseException
 	 */
 	Timer createTimerOnCalendar(ItemCollection configItemCollection) throws ParseException {
-
+		boolean found = false;
 		TimerConfig timerConfig = new TimerConfig();
 
-		String id=configItemCollection.getItemValueString("keyspace");
-		logger.info("...sarting timer for id '" + id + "'...");
+		String id = configItemCollection.getItemValueString("keyspace");
+		logger.info("...validating timer settings for id '" + id + "'...");
 		XMLDocument xmlConfigItem = null;
 		try {
 			xmlConfigItem = XMLDocumentAdapter.getDocument(configItemCollection);
@@ -263,27 +263,35 @@ public class SchedulerService {
 
 			if (confgEntry.startsWith("second=")) {
 				scheduerExpression.second(confgEntry.substring(confgEntry.indexOf('=') + 1));
+				found = true;
 			}
 			if (confgEntry.startsWith("minute=")) {
 				scheduerExpression.minute(confgEntry.substring(confgEntry.indexOf('=') + 1));
+				found = true;
 			}
 			if (confgEntry.startsWith("hour=")) {
 				scheduerExpression.hour(confgEntry.substring(confgEntry.indexOf('=') + 1));
+				found = true;
 			}
 			if (confgEntry.startsWith("dayOfWeek=")) {
 				scheduerExpression.dayOfWeek(confgEntry.substring(confgEntry.indexOf('=') + 1));
+				found = true;
 			}
 			if (confgEntry.startsWith("dayOfMonth=")) {
 				scheduerExpression.dayOfMonth(confgEntry.substring(confgEntry.indexOf('=') + 1));
+				found = true;
 			}
 			if (confgEntry.startsWith("month=")) {
 				scheduerExpression.month(confgEntry.substring(confgEntry.indexOf('=') + 1));
+				found = true;
 			}
 			if (confgEntry.startsWith("year=")) {
 				scheduerExpression.year(confgEntry.substring(confgEntry.indexOf('=') + 1));
+				found = true;
 			}
 			if (confgEntry.startsWith("timezone=")) {
 				scheduerExpression.timezone(confgEntry.substring(confgEntry.indexOf('=') + 1));
+				found = true;
 			}
 
 			/* Start date */
@@ -291,6 +299,8 @@ public class SchedulerService {
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
 				Date convertedDate = dateFormat.parse(confgEntry.substring(confgEntry.indexOf('=') + 1));
 				scheduerExpression.start(convertedDate);
+				found = true;
+
 			}
 
 			/* End date */
@@ -298,23 +308,31 @@ public class SchedulerService {
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
 				Date convertedDate = dateFormat.parse(confgEntry.substring(confgEntry.indexOf('=') + 1));
 				scheduerExpression.end(convertedDate);
+				found = true;
+
 			}
 
 		}
-		
-		
-		// log timer settings
-		logger.finest("...scheudler settings for timer '" + id + "':");
-		logger.info("...... second=" + scheduerExpression.getSecond());
-		logger.info("...... minute=" + scheduerExpression.getMinute());
-		logger.info("...... hour=" + scheduerExpression.getHour());
-		logger.info("...... dayOfWeek=" + scheduerExpression.getDayOfWeek());
-		logger.info("...... dayOfMonth=" + scheduerExpression.getDayOfMonth());
-		logger.info("...... year=" + scheduerExpression.getYear());
 
-		Timer timer = timerService.createCalendarTimer(scheduerExpression, timerConfig);
+		if (found) {
 
-		return timer;
+			// log timer settings
+			logger.finest("...scheudler settings for timer '" + id + "':");
+			logger.info("...... second=" + scheduerExpression.getSecond());
+			logger.info("...... minute=" + scheduerExpression.getMinute());
+			logger.info("...... hour=" + scheduerExpression.getHour());
+			logger.info("...... dayOfWeek=" + scheduerExpression.getDayOfWeek());
+			logger.info("...... dayOfMonth=" + scheduerExpression.getDayOfMonth());
+			logger.info("...... year=" + scheduerExpression.getYear());
+
+			Timer timer = timerService.createCalendarTimer(scheduerExpression, timerConfig);
+
+			logger.info("...timer for id '" + id + "' started...");
+			return timer;
+		} else {
+			logger.info("...no valid timer settings for id '" + id + "' defined.");
+			return null;
+		}
 
 	}
 

@@ -15,6 +15,7 @@ import javax.ws.rs.PathParam;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
 import org.imixs.workflow.archive.cassandra.data.ArchiveDataController;
+import org.imixs.workflow.archive.cassandra.data.ErrorController;
 import org.imixs.workflow.archive.cassandra.services.ClusterService;
 import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 
@@ -35,6 +36,9 @@ public class ArchiveController {
 
 	@Inject
 	ArchiveDataController archiveDataController;
+	
+	@Inject
+	ErrorController errorController;
 
 	/**
 	 * show connections
@@ -61,6 +65,7 @@ public class ArchiveController {
 	@GET
 	public String editKeySpace(@PathParam("keyspace") String keyspace) {
 
+		errorController.reset();
 		logger.info("edit archive config '" + keyspace + "'...");
 		archiveDataController.setConfiguration(clusterService.getConfigurationByName(keyspace));
 
@@ -75,11 +80,32 @@ public class ArchiveController {
 	@Path("/action/create")
 	@GET
 	public String createKeySpace() {
-
+		errorController.reset();
 		logger.info("create archive config...");
 
 		return "archive_config.xhtml";
 	}
+	
+	
+	/**
+	 * Deletes a key-space
+	 * 
+	 * @return
+	 * @throws ImixsArchiveException 
+	 */
+	@Path("/action/delete/{keyspace}")
+	@GET
+	public String deleteKeySpace(@PathParam("keyspace") String keyspace) throws ImixsArchiveException {
+
+		logger.info("delete archive config '" + keyspace + "'...");
+		ItemCollection configuration = clusterService.getConfigurationByName(keyspace);
+		String message=clusterService.deleteConfiguration(configuration);
+		
+		errorController.setMessage(message);
+
+		return "redirect:archive";
+	}
+
 
 	/**
 	 * Save the archive configuration. If the corresponding keyspace does not exist,
@@ -99,6 +125,16 @@ public class ArchiveController {
 			@FormParam("userid") String userid,
 			@FormParam("password") String password) {
 
+		errorController.reset();
+
+		
+		// validate keyspace pattern
+		if (keyspace.matches("-?\\d+(\\.\\d+)?")) {
+			errorController.setMessage("Keyspace can not be a numeric value!");
+			return "redirect:archive";
+		}
+		
+		
 		// create ItemCollection with archive data
 		ItemCollection archive = new ItemCollection();
 		archive.replaceItemValue(ImixsArchiveApp.ITEM_KEYSPACE, keyspace);
@@ -118,7 +154,7 @@ public class ArchiveController {
 			clusterService.saveConfiguration(archive);
 		} catch (ImixsArchiveException e) {
 			logger.severe(e.getMessage());
-			archiveDataController.setErrorMessage(e.getMessage());
+			errorController.setMessage(e.getMessage());
 			return "archive_config.xhtml";
 		}
 		return "redirect:archive";
