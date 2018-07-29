@@ -9,6 +9,7 @@ import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
 
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
 import org.imixs.workflow.archive.cassandra.services.SchedulerService;
 
 /**
@@ -88,7 +89,7 @@ public class ArchiveDataController implements Serializable {
 			return null;
 		}
 
-		long lsyncPoint = configuration.getItemValueLong(SchedulerService.ITEM_SYNCPOINT);
+		long lsyncPoint = configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
 
 		Date syncPoint = new Date(lsyncPoint);
 		return syncPoint;
