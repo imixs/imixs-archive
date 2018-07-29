@@ -18,6 +18,7 @@ import javax.xml.bind.Unmarshaller;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.ItemCollectionComparator;
+import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
@@ -180,7 +181,13 @@ public class ClusterService {
 		schedulerService.stop(configuration);
 		
 		
-		configuration.replaceItemValue("$modified", new Date());
+		configuration.replaceItemValue(WorkflowKernel.MODIFIED, new Date());
+		
+		// do we have a valid SyncPoint?
+		long lSyncpoint=configuration.getItemValueLong(SchedulerService.ITEM_SYNCPOINT);
+		if (lSyncpoint==0) {
+			logger.info("......initialized new syncpoint");
+		}
 		
 		// restart timer....
 		schedulerService.start(configuration);
@@ -415,6 +422,8 @@ public class ClusterService {
 				break;
 			}
 		}
+		
+	
 		return session;
 	}
 

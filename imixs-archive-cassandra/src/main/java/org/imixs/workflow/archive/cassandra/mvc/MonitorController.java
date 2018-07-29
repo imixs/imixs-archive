@@ -25,7 +25,7 @@
  *  	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.workflow.archive.cassandra.controllers;
+package org.imixs.workflow.archive.cassandra.mvc;
 
 import java.util.logging.Logger;
 
@@ -34,7 +34,7 @@ import javax.mvc.annotation.Controller;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.imixs.workflow.archive.cassandra.ClusterDataController;
+import org.imixs.workflow.archive.cassandra.data.ClusterDataController;
 
 /**
  * This Marty SetupController extends the Marty ConfigController and holds the

@@ -69,6 +69,8 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 @Stateless
 public class SchedulerService {
 
+		
+	
 	@Resource
 	SessionContext ctx;
 

@@ -42,12 +42,22 @@ import org.imixs.workflow.archive.cassandra.services.ClusterService;
  */
 
 @ApplicationPath("imixsarchive")
-public class ImixsArchiveCassandra extends Application {
+public class ImixsArchiveApp extends Application {
 
+
+	public final static String ITEM_KEYSPACE = "keyspace";
+	public final static String ITEM_URL = "url";
+	public final static String ITEM_USERID = "userid";
+	public final static String ITEM_PASSWORD = "password";
+	public final static String ITEM_AUTHMETHOD = "authmethod";
+	public final static String ITEM_POLLINGINTERVAL = "pollinginterval";
+	public final static String ITEM_SYNCPOINT = "syncpoint";
+
+	
 	@EJB
 	ClusterService clusterService;
 
-	public ImixsArchiveCassandra() {
+	public ImixsArchiveApp() {
 		super();
 	}
 

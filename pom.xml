@@ -1,19 +1,21 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.imixs.workflow</groupId>
 	<artifactId>imixs-archive</artifactId>
 	<packaging>pom</packaging>
-	
+
 	<modules>
 		<module>imixs-archive-api</module>
 		<module>imixs-archive-ocr</module>
 		<module>imixs-archive-cassandra</module>
 		<module>imixs-archive-hadoop</module>
 		<module>imixs-archive-test</module>
-		
+
 	</modules>
-	
-	
+
+
 	<name>Imixs-Archive</name>
 	<version>1.1.1-SNAPSHOT</version>
 	<description>Imixs Workflow Archive </description>
@@ -57,8 +59,8 @@
 		<connection>scm:git:https://github.com/imixs/imixs-archive.git</connection>
 		<developerConnection>scm:git:https://github.com/imixs/imixs-archive.git</developerConnection>
 		<url>https://github.com/imixs/imixs-archive/</url>
-	  <tag>HEAD</tag>
-  </scm>
+		<tag>HEAD</tag>
+	</scm>
 
 
 	<licenses>
@@ -80,13 +82,14 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<org.imixs.workflow.version>4.3.1</org.imixs.workflow.version>
+		<org.imixs.workflow.version>4.3.5</org.imixs.workflow.version>
+		<org.imixs.melman.version>1.0.3-SNAPSHOT</org.imixs.melman.version>
 		<lucene.version>6.6.1</lucene.version>
 		<!-- imixs-github-repo on github - see ~/.m2/settings.xml -->
 		<github.global.server>imixs-github-repo</github.global.server>
 	</properties>
-	
-	
+
+
 	<repositories>
 		<repository>
 			<id>imixs-mvn-repo</id>
@@ -252,14 +255,20 @@
 				<version>${org.imixs.marty.version}</version>
 				<scope>provided</scope>
 			</dependency>
-		
-				
+			<dependency>
+				<groupId>org.imixs.workflow</groupId>
+				<artifactId>imixs-melman</artifactId>
+				<version>${org.imixs.melman.version}</version>
+				<scope>provided</scope>
+			</dependency>
+
+
 		</dependencies>
 	</dependencyManagement>
-	
-	
-	
-	
+
+
+
+
 	<dependencies>
 		<!-- JEE Dependencies -->
 		<dependency>

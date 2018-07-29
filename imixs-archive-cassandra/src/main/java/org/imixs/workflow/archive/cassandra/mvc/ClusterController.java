@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.controllers;
+package org.imixs.workflow.archive.cassandra.mvc;
 
 import java.util.logging.Logger;
 

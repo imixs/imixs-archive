@@ -1,6 +1,7 @@
-package org.imixs.workflow.archive.cassandra;
+package org.imixs.workflow.archive.cassandra.data;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 
 import javax.ejb.EJB;
@@ -58,9 +59,9 @@ public class ArchiveDataController implements Serializable {
 	 */
 	public void setConfigurations(List<ItemCollection> configurations) {
 		this.configurations = configurations;
-		
+
 		// refresh timeouts...
-		for (ItemCollection config: this.configurations) {
+		for (ItemCollection config : this.configurations) {
 			// test if the timer is active...
 			timeRemaining = schedulerService.getTimeRemaining(config.getItemValueString("keyspace"));
 			config.replaceItemValue("timeRemaining", timeRemaining);
@@ -75,6 +76,22 @@ public class ArchiveDataController implements Serializable {
 			configuration = new ItemCollection();
 		}
 		return configuration;
+	}
+
+	/**
+	 * returns the syncpoint of the current configuration
+	 * 
+	 * @return
+	 */
+	public Date getSyncPoint() {
+		if (configuration == null) {
+			return null;
+		}
+
+		long lsyncPoint = configuration.getItemValueLong(SchedulerService.ITEM_SYNCPOINT);
+
+		Date syncPoint = new Date(lsyncPoint);
+		return syncPoint;
 	}
 
 	/**

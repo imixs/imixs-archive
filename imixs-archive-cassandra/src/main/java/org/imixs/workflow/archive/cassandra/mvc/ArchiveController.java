@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.controllers;
+package org.imixs.workflow.archive.cassandra.mvc;
 
 import java.util.logging.Logger;
 
@@ -13,7 +13,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.archive.cassandra.ArchiveDataController;
+import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
+import org.imixs.workflow.archive.cassandra.data.ArchiveDataController;
 import org.imixs.workflow.archive.cassandra.services.ClusterService;
 import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 
@@ -93,17 +94,23 @@ public class ArchiveController {
 	@POST
 	@Path("/")
 	public String saveArchiveKeySpace(@FormParam("keyspace") String keyspace, @FormParam("url") String url,
-			@FormParam("pollingInterval") String pollingInterval) {
+			@FormParam("pollingInterval") String pollingInterval, 
+			@FormParam("authmethod") String authmethod,
+			@FormParam("userid") String userid,
+			@FormParam("password") String password) {
 
 		// create ItemCollection with archive data
 		ItemCollection archive = new ItemCollection();
-		archive.replaceItemValue("keyspace", keyspace);
-		archive.replaceItemValue("url", url);
+		archive.replaceItemValue(ImixsArchiveApp.ITEM_KEYSPACE, keyspace);
+		archive.replaceItemValue(ImixsArchiveApp.ITEM_URL, url);
+		archive.replaceItemValue(ImixsArchiveApp.ITEM_USERID, userid);
+		archive.replaceItemValue(ImixsArchiveApp.ITEM_PASSWORD, password);
+		archive.replaceItemValue(ImixsArchiveApp.ITEM_AUTHMETHOD, authmethod);
 		
 		if (pollingInterval== null || pollingInterval.isEmpty() ) {
 			pollingInterval="hour=*"; // defaut setting
 		}
-		archive.replaceItemValue("pollingInterval", pollingInterval);
+		archive.replaceItemValue(ImixsArchiveApp.ITEM_POLLINGINTERVAL, pollingInterval);
 		
 		logger.info("update configuration for keyspace '" + keyspace + "' ....");
 		try {

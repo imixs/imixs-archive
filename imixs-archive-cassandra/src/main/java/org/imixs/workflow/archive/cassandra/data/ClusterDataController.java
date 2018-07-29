@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra;
+package org.imixs.workflow.archive.cassandra.data;
 
 import java.io.Serializable;
 import java.util.ArrayList;

@@ -22,6 +22,15 @@ The Imixs-Archive-Cassandra project provides an adapter for Apache Cassandra Big
 
 The Imixs-Archive-Cassandra is connected with a Imixs-Workflow instance via the Imixs-Rest API and runs as a single microservice. 
 
+## Syncpoint
+
+An Imixs Archive configuration holds a syncpoint. The syncpoint is the last successfull read form the source system in miliseconds. 
+When the syncpoint is reset it is set to January 1, 1970 00:00:00 GMT.
+After each successfull sync the syncpoint will be set to the modidfied timestamp of the synced workitem. 
+
+
+
+
 
 # How to Setup a Test Environment
 

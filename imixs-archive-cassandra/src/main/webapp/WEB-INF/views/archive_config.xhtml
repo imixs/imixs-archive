@@ -77,7 +77,7 @@
 							<dl>
 								<dt>Authentication:</dt>
 								<dd>
-									<select name="authentication">
+									<select name="authmethod">
 										<ui:fragment
 											rendered="#{archiveDataController.configuration.item['authMethod'] eq 'Form'}">
 											<option value="Basic">Basic</option>
@@ -130,6 +130,7 @@
 
 							<p>Timer Status = #{timeRemaining > 0?'running':'stopped'}</p>
 							<p>Time Remaining : #{timeRemaining > 0?timeRemaining:'-'} ms</p>
+							<p>Sync Point : #{archiveDataController.syncPoint}</p>
 
 
 						</div>
