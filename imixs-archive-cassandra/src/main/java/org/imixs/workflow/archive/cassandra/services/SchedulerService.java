@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
+import javax.ejb.EJB;
 import javax.ejb.NoMoreTimeoutsException;
 import javax.ejb.NoSuchObjectLocalException;
 import javax.ejb.ScheduleExpression;
@@ -76,6 +77,9 @@ public class SchedulerService {
 
 	@Resource
 	javax.ejb.TimerService timerService;
+	
+	@EJB
+	SyncService syncService;
 
 	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
@@ -202,7 +206,16 @@ public class SchedulerService {
 
 		logger.info("starting import....");
 
-		// so some work...
+		
+		XMLDocument xmlItemCollection = (XMLDocument) timer.getInfo();
+		ItemCollection configuration = XMLDocumentAdapter.putDocument(xmlItemCollection);
+		
+		XMLDocument data = syncService.readSyncData(configuration);
+		
+		if (data!=null) {
+			
+			logger.info("...Data found - new Syncpoint=" );
+		}
 
 		logger.info("import finished in " + (System.currentTimeMillis() - lProfiler) + "ms");
 	}
