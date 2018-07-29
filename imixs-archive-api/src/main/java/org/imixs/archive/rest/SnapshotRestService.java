@@ -28,6 +28,10 @@
 package org.imixs.archive.rest;
 
 import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
@@ -45,10 +49,12 @@ import javax.ws.rs.core.UriInfo;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.DocumentService;
 import org.imixs.workflow.jaxrs.WorkflowRestService;
+import org.imixs.workflow.xml.XMLDataCollection;
+import org.imixs.workflow.xml.XMLDataCollectionAdapter;
 
 /**
- * The SnapshotRestService is a wrapper for the WorkflowRestService and provides a method 
- * to get a file content based on the $uniqueid of the origin workitem.
+ * The SnapshotRestService is a wrapper for the WorkflowRestService and provides
+ * a method to get a file content based on the $uniqueid of the origin workitem.
  * 
  * @author rsoika
  */
@@ -74,10 +80,11 @@ public class SnapshotRestService implements Serializable {
 	 * Finally the method calls the origin method getWorkItemFile
 	 * 
 	 * @param uniqueid
-	 * @return
+	 * @param file     - file name
+	 * @return byte stream with file data.
 	 */
 	@GET
-	@Path("/{uniqueid}/file/{file}")
+	@Path("/{uniqueid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}/file/{file}")
 	public Response getWorkItemFile(@PathParam("uniqueid") String uniqueid, @PathParam("file") @Encoded String file,
 			@Context UriInfo uriInfo) {
 
@@ -95,6 +102,38 @@ public class SnapshotRestService implements Serializable {
 			}
 		}
 		return workflowRestService.getWorkItemFile(sTargetID, file, uriInfo);
+	}
+
+	/**
+	 * This method retunrs the next workitem from a given syncpoint. A syncpoint is
+	 * defined in milliseconds after January 1, 1970 00:00:00 GMT.
+	 * 
+	 * The syncpoint is compared to the modified date. If not data is found, the
+	 * method returns null.
+	 * 
+	 * @param syncpoint
+	 * @return
+	 */
+	@GET
+	@Path("/syncpoint/{syncpoint}")
+	public XMLDataCollection getDocumentBySyncPoint(@PathParam("syncpoint") long lSyncpoint) {
+
+		Date syncpoint = new Date(lSyncpoint);
+
+		// ISO date time format: '2016-08-25 01:23:46.0',
+		DateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+		String query = "SELECT document FROM Document AS document ";
+		query += " WHERE document.modified>.type = '" + isoFormat.format(syncpoint) + "'";
+		query += " ORDER BY document.modified DESC";
+
+		List<ItemCollection> result = documentService.getDocumentsByQuery(query, 1);
+
+		if (result == null || result.size() == 0) {
+			return null;
+		}
+		ItemCollection document = result.get(0);
+		return XMLDataCollectionAdapter.getDataCollection(document);
+
 	}
 
 }
