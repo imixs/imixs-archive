@@ -34,25 +34,37 @@ After each successfull sync the syncpoint will be set to the modidfied timestamp
 
 The project includes a test environment based on a docker stack including the following components:
 
-* Imixs-Archive-Cassandra - Web Front-End
 * Cassandra - local cluster
+* Imixs-Archive-Cassandra - Web Front-End (ports: 8080, 9990, 8787)
 
 To start the environment run:
 	
 	$ docker-compose up
 
+You can start the Imixs-Archive Web UI from the following URL:
 
+	http://localhost:8080/
+
+	 	 	
 Alternativly you can use the docker-compose-dev.yml file to start an extended development envionment including the following services:
 
-* Imixs-Archive-Cassandra - Web Front-End
 * Cassandra - local cluster
-* Imixs-Office-Workflow - Web Application
+* Imixs-Archive-Cassandra - Web Front-End (ports: 8080, 9990, 8787)
+* Imixs-Office-Workflow - Web Application (ports: 8081, 9991, 8788)
+* Imixs Admin Client (ports: 8082)
 * PostgreSQL - Database
 
 To start the dev environment run: 
 
 	$ docker-compose -f docker-compose-dev.yml up
 
+You can start the Imixs-Office-Workflow applcation from the following URL:
+
+	http://localhost:8081/
+
+The Imixs-Admin client can be started by the URL:
+		
+	http://localhost:8082/
 
 
 ## Build with Maven 
@@ -129,7 +141,7 @@ The following section shows the commands to create a imixs-archive table schema 
 
 **Note:** The imixs-archive-cassandra application creates the schemas in background. So a manual creation of schemas is not necessary. 
 	
-### Select from document table:
+### Select dat from the snapshots table:
 
 	cqlsh> SELECT * FROM imixs_dev.snapshots;
 	

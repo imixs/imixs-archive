@@ -1,0 +1,44 @@
+version: "3.1"
+services:
+
+  imixsarchivecassandra:
+    image: imixs/imixs-archive-cassandra
+    environment:
+      WILDFLY_PASS: adminadmin
+      DEBUG: "true"
+      archive.cluster.contactpoints: "cassandra"
+      archive.cluster.keyspace: "imixs-dev"
+    ports:
+      - "8080:8080"
+      - "9990:9990"
+      - "8787:8787"
+    volumes:
+        - ~/git/imixs-archive/imixs-archive-cassandra/src/docker/deployments:/opt/wildfly/standalone/deployments/
+
+  cassandra:
+     image: cassandra:3.11
+
+     
+  postgresoffice:
+    image: postgres:9.6.1
+    environment:
+      POSTGRES_PASSWORD: adminadmin
+      POSTGRES_DB: office
+
+  imixsofficeworkflow:
+    image: imixs/imixs-office-workflow
+    environment:
+      WILDFLY_PASS: adminadmin
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "adminadmin"
+      POSTGRES_CONNECTION: "jdbc:postgresql://postgresoffice/office"
+    ports:
+      - "8081:8080"
+      - "9991:9990"
+      - "8788:8787"     
+
+  imixsadmin:
+    image: imixs/imixs-admin
+    ports:
+      - "8082:8080"
+    
