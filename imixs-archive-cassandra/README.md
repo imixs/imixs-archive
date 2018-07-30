@@ -30,21 +30,45 @@ After each successfull sync the syncpoint will be set to the modidfied timestamp
 
 
 
+# Docker Support
+
+The project includes a test environment based on a docker stack including the following components:
+
+* Imixs-Archive-Cassandra - Web Front-End
+* Cassandra - local cluster
+
+To start the environment run:
+	
+	$ docker-compose up
 
 
-# How to Setup a Test Environment
+Alternativly you can use the docker-compose-dev.yml file to start an extended development envionment including the following services:
 
-For local dev tests an Apache Cassandra test environment can be setup with Docker. 
+* Imixs-Archive-Cassandra - Web Front-End
+* Cassandra - local cluster
+* Imixs-Office-Workflow - Web Application
+* PostgreSQL - Database
 
-Starting a Cassandra Docker container:
+To start the dev environment run: 
 
-	$ docker run --name cassandra-dev -it -p 9042:9042 cassandra:latest
+	$ docker-compose -f docker-compose-dev.yml up
 
-This container can now be used for junit tests as provided in the project. 
 
-### cqlsh
 
-To run a cqlsh (Cassandra Query Language Shell) against your Cassandra Dev container run:
+## Build with Maven 
+
+If you have not yet a Imixs-Archive-Cassandra container, you can build the application from sources and create the docker image use the maven command:
+
+	$ mvn clean install -Pdocker-build
+
+
+# The Cassandra Query Language Shell 
+
+With the  Cassandra Query Language Shell (cqlsh) you can evaluate a cassandra cluster form the console. This is the native way to access cassandra. You can create keyspaces as also table schemas and you can query data from you tables. 
+
+## How to access the Cassandra Cluster with Docker
+
+To run cqlsh from your started docker environment run:
 
 	$ docker exec -it cassandra-dev cqlsh
 	Connected to Test Cluster at 127.0.0.1:9042.
@@ -52,20 +76,30 @@ To run a cqlsh (Cassandra Query Language Shell) against your Cassandra Dev conta
 	Use HELP for help.
 	cqlsh>
 
+## CQL Examples
+The following section contains some basic cqlsh commands. For full description see the [Cassandra CQL refernce](https://docs.datastax.com/en/dse/6.0/cql/). 
 
 **show key spaces:**
+
+Show all available keyspaces:
 
 	cqlsh> DESC KEYSPACES;	
 	
 **Switch to Keysapce:**
 
+Select a keyspace be name to interact with this keyspace:
+
 	cqlsh> use imixsarchive ;
 	
 **Show tables in a keyspace:**	
 
+Show tables schemas in current keyspace: 
+
 	cqlsh:imixsarchive> DESC TABLES;
 	
 **Drop Keyspace: ** 
+
+Drop the keyspace: 
 
 	DROP KEYSPACE [IF EXISTS] keyspace_name
 
@@ -76,52 +110,34 @@ To run a cqlsh (Cassandra Query Language Shell) against your Cassandra Dev conta
 	
 ### Create the Data Schema
 
-	CREATE TABLE documents (
-	document_id text,
-	chunk_order int,
-	chunk_id text,
-	PRIMARY KEY (document_id, chunk_order))
-	
-	CREATE TABLE documents_data (
-	chunk_id text, 
-	chunk blob,
-	PRIMARY KEY(chunk_id))
-	
-	CREATE TABLE documents_meta (
-	modified date,
-	document_id text,
-	document_hash text,
-	PRIMARY KEY(modified, document_id));
-	
-	
-Select from document table:
+The following section shows the commands to create a imixs-archive table schema manually. 
 
-	cqlsh> SELECT * FROM imixs_dev.document ;
+	CREATE TABLE IF NOT EXISTS snapshots (
+		id text, 
+		data blob, 
+		PRIMARY KEY (id))
 	
-	 id                                   | created                         | data | modified                        | type
-	--------------------------------------+---------------------------------+------+---------------------------------+---------
-	 77d02ca4-d96e-4052-9b59-b8ea6ce052aa | 2018-02-18 16:49:35.050000+0000 | null | 2018-02-18 16:49:35.050000+0000 | workitem
+	CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (
+		uniqueid text,
+		snapshot text, 
+		PRIMARY KEY(uniqueid, snapshot))
+	
+	CREATE TABLE IF NOT EXISTS snapshots_by_modified (
+		modified date,
+		id text,
+		PRIMARY KEY(modified, id));
+
+**Note:** The imixs-archive-cassandra application creates the schemas in background. So a manual creation of schemas is not necessary. 
+	
+### Select from document table:
+
+	cqlsh> SELECT * FROM imixs_dev.snapshots;
+	
+	 id                                   | data 
+	--------------------------------------+-----------------------
+	 77d02ca4-d96e-4052-9b59-b8ea6ce052aa | null 
 	
 	(1 rows)
 
-
-
-# Docker Support
-
-The project includes a test environment based on a docker stack including the following components:
-
-* Imixs-Archive-Cassandra - Web Front-End
-* Cassandra - local cluster
-
-
-## Build
-
-To build the environment run the maven command:
-
-	$ mvn clean install -Pdocker-build
-
-To start the environment run:
-	
-	$ docker-compose up
 
 
