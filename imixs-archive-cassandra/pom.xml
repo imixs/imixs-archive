@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.imixs.workflow</groupId>
@@ -18,12 +20,12 @@
 		<org.imixs.docker.registry>localhost:5000</org.imixs.docker.registry>
 		<root-context>/</root-context>
 	</properties>
-	
-	
+
+
 	<profiles>
-	
+
 		<profile>
-			<id>docker-build</id>
+			<id>docker</id>
 			<build>
 				<plugins>
 					<plugin>
@@ -54,7 +56,40 @@
 				</plugins>
 			</build>
 		</profile>
+		
+		<profile>
+			<id>docker-build</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.8</version>
+						<executions>
+							<execution>
+								<phase>install</phase>
+								<configuration>
 
+									<target>
+										<exec executable="docker">
+											<arg value="build" />
+											<arg value="-t" />
+											<arg
+												value="imixs/imixs-archive-cassandra:${project.version}" />
+											<arg value="./." />
+										</exec>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+				</plugins>
+			</build>
+		</profile>
 
 		<profile>
 			<id>docker-push</id>
@@ -72,12 +107,14 @@
 										<exec executable="docker">
 											<arg value="build" />
 											<arg value="-t" />
-											<arg value="imixs/imixs-archive-cassandra:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-cassandra:${project.version}" />
 											<arg value="./" />
 										</exec>
 										<exec executable="docker">
 											<arg value="tag" />
-											<arg value="imixs/imixs-archive-cassandra:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-cassandra:${project.version}" />
 											<arg
 												value="${org.imixs.docker.registry}/imixs/imixs-archive-cassandra:${project.version}" />
 										</exec>
@@ -138,7 +175,7 @@
 					</webResources>
 				</configuration>
 			</plugin>
-			
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
