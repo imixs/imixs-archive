@@ -32,6 +32,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
@@ -46,6 +47,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.DocumentService;
 import org.imixs.workflow.jaxrs.WorkflowRestService;
@@ -71,6 +73,8 @@ public class SnapshotRestService implements Serializable {
 
 	@EJB
 	WorkflowRestService workflowRestService;
+
+	private static Logger logger = Logger.getLogger(SnapshotRestService.class.getName());
 
 	/**
 	 * This method wraps the WorkflowRestService method 'getWorkItemFile' and
@@ -123,8 +127,10 @@ public class SnapshotRestService implements Serializable {
 		// ISO date time format: '2016-08-25 01:23:46.0',
 		DateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		String query = "SELECT document FROM Document AS document ";
-		query += " WHERE document.modified>.type = '" + isoFormat.format(syncpoint) + "'";
+		query += " WHERE document.modified >= '" + isoFormat.format(syncpoint) + "'";
+		query += " AND document.type LIKE '" + SnapshotService.TYPE_PRAFIX + "%' ";
 		query += " ORDER BY document.modified DESC";
+		logger.finest("......QUERY=" + query);
 
 		List<ItemCollection> result = documentService.getDocumentsByQuery(query, 1);
 
