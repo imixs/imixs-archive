@@ -373,8 +373,9 @@ public class SnapshotService {
 							// compare MD5Checksum
 							ItemCollection dmsColOrigin = DMSHandler.getDMSEntry(fileName, origin);
 							ItemCollection dmsColSource = DMSHandler.getDMSEntry(fileName, source);
-							if (!dmsColOrigin.getItemValueString("md5checksum")
-									.equals(dmsColSource.getItemValueString("md5checksum"))) {
+							if ((dmsColOrigin != null && dmsColSource != null)
+									&& (!dmsColOrigin.getItemValueString("md5checksum")
+											.equals(dmsColSource.getItemValueString("md5checksum")))) {
 
 								Date fileDate = dmsColSource.getItemValueDate("$created");
 								if (fileDate == null) {
