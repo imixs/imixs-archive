@@ -6,7 +6,7 @@ The _"Imixs-Archive-Cassandra"_ project provides an Archive Service to store the
  - Analyze archived business data 
  - Data recovery after a data loss 
 
-_Imixs-Archive-Cassandra_ runs  typically in a Cassandra Cluster consisting of serveral data nodes. The Imixs-Archive Service automatically pulls the data from an Imixs Workflow Instance into the archive. This includes all business process data and documents. 
+_Imixs-Archive-Cassandra_ runs  typically in a Cassandra Cluster consisting of serveral data nodes. The Imixs-Archive Service runs oon Jakarta EE and automatically pulls the data from an Imixs Workflow Instance into the Cassandra Cluster. This includes all business process data and documents. 
 
 The Imixs-Archive Service can be used to retrieve a single archived process instance or to restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
 

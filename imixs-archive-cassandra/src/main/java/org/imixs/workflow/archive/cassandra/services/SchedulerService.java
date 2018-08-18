@@ -78,6 +78,9 @@ public class SchedulerService {
 
 	@EJB
 	SyncService syncService;
+	
+	@EJB
+	ClusterService clusterService;
 
 	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
@@ -205,11 +208,17 @@ public class SchedulerService {
 
 		XMLDocument xmlItemCollection = (XMLDocument) timer.getInfo();
 		ItemCollection configuration = XMLDocumentAdapter.putDocument(xmlItemCollection);
+		String keyspace = configuration.getItemValueString("keyspace");
 
-		XMLDocument data = syncService.readSyncData(configuration);
+		XMLDocument xmlDocument = syncService.readSyncData(configuration);
 
-		if (data != null) {
+		if (xmlDocument != null) {
+			
+			clusterService.saveDocument(XMLDocumentAdapter.putDocument(xmlDocument), configuration.getItemValueString(keyspace));
 
+			// update stats....
+			
+			
 			logger.info("...Data found - new Syncpoint=");
 		}
 

@@ -149,7 +149,7 @@ public class ClusterService {
 
 		// upset document....
 		statement = session.prepare("insert into snapshots (id, data) values (?, ?)");
-		bound = statement.bind().setString("id", itemCol.getUniqueID()).setBytes("adta", ByteBuffer.wrap(data));
+		bound = statement.bind().setString("id", itemCol.getUniqueID()).setBytes("data", ByteBuffer.wrap(data));
 		session.execute(bound);
 
 		// upset document_snapshots....
@@ -480,6 +480,8 @@ public class ClusterService {
 
 		logger.info(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
 		session.execute(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
+		
+		
 
 	}
 

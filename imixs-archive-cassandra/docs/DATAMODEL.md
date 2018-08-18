@@ -47,6 +47,13 @@ To store a process instance into this data model the EJB ArchiveService can be u
 	....
 	archiveService.write(workitem);
 
+
+### Writing Statistic Data
+
+During the archive process, the Imixs-Archive Service write statistical data. This data can be used to analyse the amount of data in a singe Imixs-Workflow instance. 
+
+
+
 	
 ## Read Process Instances
 
