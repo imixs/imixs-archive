@@ -39,6 +39,7 @@ import java.util.logging.Logger;
 
 import javax.annotation.Resource;
 import javax.ejb.EJB;
+import javax.ejb.EJBTransactionRolledbackException;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
@@ -48,6 +49,7 @@ import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
 import org.imixs.workflow.engine.DocumentService;
 import org.imixs.workflow.engine.PropertyService;
+import org.imixs.workflow.exceptions.AccessDeniedException;
 
 /**
  * This service component provides a mechanism to transfer the content of a
@@ -311,7 +313,11 @@ public class SnapshotService {
 		while (result.size() >= iSnapshotHistory) {
 			ItemCollection oldSnapshot = result.get(0);
 			logger.fine("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
-			documentService.remove(oldSnapshot);
+			try {
+				documentService.remove(oldSnapshot);
+			} catch (EJBTransactionRolledbackException | AccessDeniedException e) {
+				logger.warning("remove deprecated snapshot '" + snapshotID + "' failed: " + e.getMessage());
+			}
 			result.remove(0);
 		}
 	}
