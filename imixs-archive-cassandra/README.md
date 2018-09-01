@@ -97,7 +97,7 @@ To access archived data the $uniqueid of the snapshot is mandatory.
 	
 	
 
-Read the section [Datamodel](docs/DATAMODEL.md] for detailed informatin.
+Read the section [Datamodel](docs/DATAMODEL.md) for detailed informatin.
 
 	
 # The ArchiveService
