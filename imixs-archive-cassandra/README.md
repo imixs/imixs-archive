@@ -74,74 +74,18 @@ If you have not yet a Imixs-Archive-Cassandra container, you can build the appli
 	$ mvn clean install -Pdocker-build
 
 
-# The Cassandra Query Language Shell 
 
-With the  Cassandra Query Language Shell (cqlsh) you can evaluate a cassandra cluster form the console. This is the native way to access cassandra. You can create keyspaces as also table schemas and you can query data from you tables. 
+# The Imixs-Archive Data Schema
 
-## How to access the Cassandra Cluster with Docker
-
-To run cqlsh from your started docker environment run:
-
-	$ docker exec -it cassandra-dev cqlsh
-	Connected to Test Cluster at 127.0.0.1:9042.
-	[cqlsh 5.0.1 | Cassandra 3.11.1 | CQL spec 3.4.4 | Native protocol v4]
-	Use HELP for help.
-	cqlsh>
-
-## CQL Examples
-The following section contains some basic cqlsh commands. For full description see the [Cassandra CQL refernce](https://docs.datastax.com/en/dse/6.0/cql/). 
-
-**show key spaces:**
-
-Show all available keyspaces:
-
-	cqlsh> DESC KEYSPACES;	
-	
-**Switch to Keysapce:**
-
-Select a keyspace be name to interact with this keyspace:
-
-	cqlsh> use imixsarchive ;
-	
-**Show tables in a keyspace:**	
-
-Show tables schemas in current keyspace: 
-
-	cqlsh:imixsarchive> DESC TABLES;
-	
-**Drop Keyspace: ** 
-
-Drop the keyspace: 
-
-	DROP KEYSPACE [IF EXISTS] keyspace_name
-
-### Create a dev keyspace with cqlsh
-
-	cqlsh> CREATE KEYSPACE imixs_dev WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-	
-	
-### Create the Data Schema
-
-The following section shows the commands to create a imixs-archive table schema manually. 
-
-	CREATE TABLE IF NOT EXISTS snapshots (
-		id text, 
-		data blob, 
-		PRIMARY KEY (id))
-	
-	CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (
-		uniqueid text,
-		snapshot text, 
-		PRIMARY KEY(uniqueid, snapshot))
-	
-	CREATE TABLE IF NOT EXISTS snapshots_by_modified (
-		modified date,
-		id text,
-		PRIMARY KEY(modified, id));
+The Imixs-Archive provides a denormalized data schema to optimize storrage and access of archive data. 
+Snapshot data is stored in the main table space named "_snapshots_". The primary and partion key for this table is the $uniqueid of the snapshot. 
 
 **Note:** The imixs-archive-cassandra application creates the schemas in background. So a manual creation of schemas is not necessary. 
+
+To access archived data the $uniqueid of the snapshot is mandatory.
+
 	
-### Select dat from the snapshots table:
+### Select data from the snapshots table:
 
 	cqlsh> SELECT * FROM imixs_dev.snapshots;
 	
@@ -150,6 +94,49 @@ The following section shows the commands to create a imixs-archive table schema 
 	 77d02ca4-d96e-4052-9b59-b8ea6ce052aa | null 
 	
 	(1 rows)
+	
+	
 
+Read the section [Datamodel](docs/DATAMODEL.md] for detailed informatin.
+
+	
+# The ArchiveService
+
+
+## Writing a Process Instance
+
+To store a process instance into this data model the EJB ArchiveService encapsulates the process to store data into the data schema.
+
+	ItemCollection workitem;
+	....
+	archiveService.write(workitem);
+
+
+### Writing Statistic Data
+
+During the archive process, the Imixs-Archive Service write statistical data. This data can be used to analyse the amount of data in a singe Imixs-Workflow instance. 
+
+
+
+	
+## Read Process Instances
+
+To read an archived process instance directly the read() method can be used: 
+
+	ItemCollection workitem=archiveService.read(id);
+	
+THis method expects the $snapshotID of an archived process instance. 
+ 	
+The method _findSnapshotsByUnqiueID_ or _findSnapshotsByDate_ can be used selecting first the SnapshotIDs by a given $uniqueid or modified date:
+
+
+	// return all snaphostids for a given UniqueID
+	List<String> ids=archiveService.findSnapshotsByUnqiueID(uniqueid);
+	
+	...
+	// return all snapshotIDs for a given date 
+	List<String> ids=archiveService.findSnapshotsByDate("2018-06-29");
+
+ 	
 
 
