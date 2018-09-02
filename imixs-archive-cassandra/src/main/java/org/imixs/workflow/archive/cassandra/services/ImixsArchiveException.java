@@ -40,9 +40,11 @@ public  class ImixsArchiveException extends Exception {
 
 	protected String errorContext = "UNDEFINED";
 	protected String errorCode = "UNDEFINED";
-
+	
+	
 	public static final String INVALID_DOCUMENT_OBJECT = "INVALID_DOCUMENT_OBJECT";
 	public static final String INVALID_KEYSPACE = "INVALID_KEYSPACE";
+	public static final String SYNC_ERROR= "SYNC_ERROR";
 	
 	
 	public ImixsArchiveException(String aErrorCode, String message) {

@@ -1,5 +1,7 @@
 package org.imixs.workflow.archive.cassandra.services;
 
+import java.util.logging.Logger;
+
 import javax.ejb.Stateless;
 
 import org.imixs.melman.BasicAuthenticator;
@@ -22,8 +24,13 @@ import org.imixs.workflow.xml.XMLDocument;
  *
  */
 @Stateless
-public class SyncService  {
+public class SyncService {
+	
+	private static String SNAPSHOT_RESOURCE="snapshot/syncpoint/";
+	
+	private static Logger logger = Logger.getLogger(SyncService.class.getName());
 
+	
 	/**
 	 * This method read sync data. The method returns the first workitem from the
 	 * given syncpoint. If no data is available the method returns null.
@@ -31,14 +38,27 @@ public class SyncService  {
 	 * 
 	 * @return an XMLDocument instance representing the data to sync or null if no
 	 *         data form the given syncpoint is available.
+	 * @throws ImixsArchiveException 
 	 * 
 	 */
-	public XMLDocument readSyncData(ItemCollection configuration) {
+	public XMLDocument readSyncData(ItemCollection configuration) throws ImixsArchiveException {
+		XMLDataCollection result = null;
 		// load next document
 		long syncPoint = configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
 
 		WorkflowClient workflowClient = initWorkflowClient(configuration);
-		XMLDataCollection result = workflowClient.getCustomResourceXML("snapshot/sycnpoint/" + syncPoint);
+
+		String url = SNAPSHOT_RESOURCE  + syncPoint;
+
+		logger.info("...... read data: " + url + "....");
+
+		try {
+			result = workflowClient.getCustomResourceXML(url);
+		} catch (Exception e) {
+			String errorMessage="Failed to connnect '" + url + " : " + e.getMessage();
+			logger.warning("..."+errorMessage);
+			throw new ImixsArchiveException(ImixsArchiveException.SYNC_ERROR, errorMessage);
+		}
 
 		if (result != null && result.getDocument().length > 0) {
 			return result.getDocument()[0];
@@ -52,7 +72,9 @@ public class SyncService  {
 	 */
 	private WorkflowClient initWorkflowClient(ItemCollection configuration) {
 		String url = configuration.getItemValueString(ImixsArchiveApp.ITEM_URL);
-		WorkflowClient workflowClient = new WorkflowClient(configuration.getItemValueString(ImixsArchiveApp.ITEM_URL));
+		logger.info("...... init rest client - url = " + url);
+
+		WorkflowClient workflowClient = new WorkflowClient(url);
 		// Test authentication method
 		if ("Form".equalsIgnoreCase(configuration.getItemValueString(ImixsArchiveApp.ITEM_AUTHMETHOD))) {
 			// default basic authenticator

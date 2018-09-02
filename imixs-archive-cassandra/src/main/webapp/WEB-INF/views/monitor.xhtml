@@ -17,11 +17,11 @@
 			</div>
 
 			<div class="row">
-			
-				
+
+
 				<div class="col-3 monitor-portlet">
-				
-				<h1>Core Keyspace Status:</h1>
+
+					<h1>Core Keyspace Status:</h1>
 					<table>
 
 						<tr>
@@ -53,16 +53,44 @@
 
 				<div class="col-3 monitor-portlet">
 
-					<h1>Keyspaces total count:
+					<h1>
+						Keyspaces total count: <a
+							href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive">
+							<span class="typcn typcn-zoom-outline"> </span>
+						</a>
+					</h1>
+					<p class="lead">
+						<span class="typcn typcn-database"></span>
+						#{clusterDataController.archiveCount}
+					</p>
+
+
+				</div>
+
+
+
+				<div class="col-3 monitor-portlet">
+
+					<h1>
+						Synchronisation Status: 
+					</h1>
+					<p class="lead">
+						<span class="typcn typcn-arrow-down-outline"></span>
+						#{clusterDataController.syncCount} <span style="font-size:0.3em">total</span>
+					</p>
+
+					<p class="small">
+					Errors Object: #{clusterDataController.errorCountObject}
+					<br />
+					Errors Sync: #{clusterDataController.errorCountSync}
+					<br />
+					Errors Total: #{clusterDataController.errorCount}
 					
 					
 					
-					<a
-					href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive">
-					<span class="typcn typcn-zoom-outline">
-					</span></a></h1>
-					<p class="lead"><span
-						class="typcn typcn-database"></span> #{clusterDataController.archiveCount}</p>
+					</p>
+
+
 				</div>
 
 

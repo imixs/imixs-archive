@@ -142,4 +142,18 @@ public class SnapshotRestService implements Serializable {
 
 	}
 
+	
+	
+	
+	/**
+	 * Ping service
+	 * @param lSyncpoint
+	 * @return
+	 */
+	@GET
+	@Path("/ping")
+	public String ping() {
+		return "ping = " + System.currentTimeMillis();
+	}
+		
 }

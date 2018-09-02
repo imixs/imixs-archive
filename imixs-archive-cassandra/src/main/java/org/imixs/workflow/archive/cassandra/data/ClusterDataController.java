@@ -36,6 +36,7 @@ public class ClusterDataController implements Serializable {
 	String keySpace;
 
 	int archiveCount;
+	long syncCount, errorCount, errorCountSync, errorCountObject;
 
 	ItemCollection configuration;
 	List<ItemCollection> configurations;
@@ -82,19 +83,30 @@ public class ClusterDataController implements Serializable {
 		logger.info(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE + "=" + keySpace);
 
 		refreshConfiguration();
-		
 
 	}
-	
-	/** 
+
+	/**
 	 * Updates the configuration list
 	 */
 	public void refreshConfiguration() {
 		List<ItemCollection> archiveList = clusterService.getConfigurationList();
-		if (archiveList != null) {
-			archiveCount = archiveList.size();
-			connected = true;
+
+		archiveCount = 0;
+
+		syncCount = 0;
+
+		for (ItemCollection archiveConf : archiveList) {
+			archiveCount++;
+			syncCount = syncCount + archiveConf.getItemValueLong("_sync_count");
+			errorCount = errorCount + archiveConf.getItemValueLong("_error_count");
+
+			errorCountObject = errorCountObject + archiveConf.getItemValueLong("_error_count_object");
+
+			errorCountSync = errorCountSync + archiveConf.getItemValueLong("_error_count_Sync");
+
 		}
+
 	}
 
 	public ItemCollection getConfiguration() {
@@ -148,6 +160,41 @@ public class ClusterDataController implements Serializable {
 
 	public void setArchiveCount(int archiveCount) {
 		this.archiveCount = archiveCount;
+	}
+
+	
+	
+	
+	public long getSyncCount() {
+		return syncCount;
+	}
+
+	public void setSyncCount(long syncCount) {
+		this.syncCount = syncCount;
+	}
+
+	public long getErrorCount() {
+		return errorCount;
+	}
+
+	public void setErrorCount(long errorCount) {
+		this.errorCount = errorCount;
+	}
+
+	public long getErrorCountSync() {
+		return errorCountSync;
+	}
+
+	public void setErrorCountSync(long errorCountSync) {
+		this.errorCountSync = errorCountSync;
+	}
+
+	public long getErrorCountObject() {
+		return errorCountObject;
+	}
+
+	public void setErrorCountObject(long errorCountObject) {
+		this.errorCountObject = errorCountObject;
 	}
 
 }

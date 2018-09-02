@@ -190,7 +190,7 @@ th {
 .monitor-portlet {
 	margin: 10px;
 	background: #eee;
-	min-height: 160px;
+	min-height: 200px;
 }
 
 .monitor-portlet h1 {
@@ -207,8 +207,8 @@ th {
 
 .monitor-portlet .lead {
 	font-weight: 600;;
-	font-size: 48px;
-	margin-bottom: 0.1em;
+	font-size: 46px;
+	margin-bottom: 0;
 }
 
 .monitor-portlet .lead .typcn {

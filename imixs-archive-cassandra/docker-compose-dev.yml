@@ -3,7 +3,6 @@ services:
 
   imixsofficeworkflow:
     image: imixs/imixs-office-workflow:3.4.0-SNAPSHOT
-
     environment:
       WILDFLY_PASS: adminadmin
       DEBUG: "true"
@@ -14,6 +13,7 @@ services:
       - "8081:8080"
       - "9991:9990"
       - "8788:8787"     
+
 
   imixsarchivecassandra:
     image: imixs/imixs-archive-cassandra
@@ -30,7 +30,6 @@ services:
       - "8787:8787"
     volumes:
         - ~/git/imixs-archive/imixs-archive-cassandra/src/docker/deployments:/opt/wildfly/standalone/deployments/
-
   cassandra:
      image: cassandra:3.11
 
@@ -46,5 +45,5 @@ services:
   imixsadmin:
     image: imixs/imixs-admin
     ports:
-      - "8082:8080"
+      - "8888:8080"
     

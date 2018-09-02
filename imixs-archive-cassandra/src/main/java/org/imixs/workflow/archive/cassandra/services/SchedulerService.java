@@ -44,7 +44,7 @@ import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
- * The SchedulerService is starts and stops TimerService for each archive
+ * The SchedulerService starts and stops TimerService for each archive
  * configuration to archive imixs-workflow data periodically.
  * 
  * The TimerService can be started using the method start(). The Methods
@@ -210,18 +210,53 @@ public class SchedulerService {
 		ItemCollection configuration = XMLDocumentAdapter.putDocument(xmlItemCollection);
 		String keyspace = configuration.getItemValueString("keyspace");
 
+		
+		try {
 		XMLDocument xmlDocument = syncService.readSyncData(configuration);
-
+		
 		if (xmlDocument != null) {
-			
-			clusterService.saveDocument(XMLDocumentAdapter.putDocument(xmlDocument), configuration.getItemValueString(keyspace));
+			ItemCollection snapshot=XMLDocumentAdapter.putDocument(xmlDocument);
+			logger.info("......new snapshot found: " + snapshot.getUniqueID());
+			clusterService.saveDocument(snapshot, configuration.getItemValueString(keyspace));
 
 			// update stats....
 			
 			
 			logger.info("...Data found - new Syncpoint=");
+			
+			int syncs=configuration.getItemValue("_sync_count", Integer.class);
+			syncs++;
+			configuration.setItemValue("_sync_count", syncs);
+			
+			
 		}
 
+		
+		} catch (ImixsArchiveException e) {
+			
+			int errors=configuration.getItemValue("_error_count", Integer.class);
+			errors++;
+			configuration.setItemValue("_error_count", errors);
+			
+			if (ImixsArchiveException.SYNC_ERROR.equals(e.getErrorCode())) {
+				 errors=configuration.getItemValue("_error_count_Sync", Integer.class);
+				errors++;
+				configuration.setItemValue("_error_count_Sync", errors);
+			}
+			
+			if (ImixsArchiveException.INVALID_DOCUMENT_OBJECT.equals(e.getErrorCode())) {
+				 errors=configuration.getItemValue("_error_count_Object", Integer.class);
+				errors++;
+				configuration.setItemValue("_error_count_Object", errors);
+			}
+			
+			
+			
+		}
+		
+		// save the updated configuration object
+		clusterService.saveConfiguration(configuration);
+		
 		logger.info("import finished in " + (System.currentTimeMillis() - lProfiler) + "ms");
 	}
 
