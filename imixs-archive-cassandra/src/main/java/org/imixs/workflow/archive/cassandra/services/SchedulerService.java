@@ -234,6 +234,11 @@ public class SchedulerService {
 		
 		} catch (ImixsArchiveException e) {
 			
+			// stop timer....
+			logger.info("......stopping timer...");
+			timer.cancel();
+			
+			
 			int errors=configuration.getItemValue("_error_count", Integer.class);
 			errors++;
 			configuration.setItemValue("_error_count", errors);
