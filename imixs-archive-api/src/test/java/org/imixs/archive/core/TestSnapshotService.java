@@ -96,8 +96,8 @@ public class TestSnapshotService {
 		// load test workitem
 		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
 		workitem.replaceItemValue(WorkflowKernel.MODELVERSION, WorkflowMockEnvironment.DEFAULT_MODEL_VERSION);
-		workitem.replaceItemValue(WorkflowKernel.PROCESSID, 1000);
-		workitem.replaceItemValue(WorkflowKernel.ACTIVITYID, 10);
+		workitem.replaceItemValue(WorkflowKernel.TASKID, 1000);
+		workitem.replaceItemValue(WorkflowKernel.EVENTID, 10);
 
 		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
 
@@ -139,9 +139,9 @@ public class TestSnapshotService {
 		// load test workitem
 		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
 		workitem.replaceItemValue(WorkflowKernel.MODELVERSION, WorkflowMockEnvironment.DEFAULT_MODEL_VERSION);
-		workitem.replaceItemValue(WorkflowKernel.PROCESSID, 1000);
+		workitem.replaceItemValue(WorkflowKernel.TASKID, 1000);
 		// trigger the split event
-		workitem.replaceItemValue(WorkflowKernel.ACTIVITYID, 10);
+		workitem.replaceItemValue(WorkflowKernel.EVENTID, 10);
 
 		byte[] data = "This is a test".getBytes();
 		// we attache a file....
@@ -173,7 +173,7 @@ public class TestSnapshotService {
 		 * Now we trigger a second event to create a version be we remove the file
 		 * content before...
 		 */
-		workitem.replaceItemValue(WorkflowKernel.ACTIVITYID, 20);
+		workitem.replaceItemValue(WorkflowKernel.EVENTID, 20);
 		documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
 		snapshotService.onSave(documentEvent);
 		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
@@ -232,8 +232,8 @@ public class TestSnapshotService {
 		// load test workitem
 		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
 		workitem.replaceItemValue(WorkflowKernel.MODELVERSION, WorkflowMockEnvironment.DEFAULT_MODEL_VERSION);
-		workitem.replaceItemValue(WorkflowKernel.PROCESSID, 1000);
-		workitem.replaceItemValue(WorkflowKernel.ACTIVITYID, 10);
+		workitem.replaceItemValue(WorkflowKernel.TASKID, 1000);
+		workitem.replaceItemValue(WorkflowKernel.EVENTID, 10);
 
 		// add file...
 		byte[] dummyContent = { 1, 2, 3 };
