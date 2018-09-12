@@ -62,6 +62,11 @@ The access to archive data, written into the Imixs-Archive, is controlled comple
 
 Each snapshot-workitem is flagged as '_$immutable=true_' and '_$noindex=true_'. This guarantees that the snapshot can not be changed subsequently by the workflow system or is searchable through the lucene index. 
 
+## NOSNAPSHOT Flag
+
+It is possible to prohibit the creation of a snapshot when a document is saved. In this case the item "$nosnapshot" must be set to 'true'. This can be useful is some rare situations. Use this flag carefully!
+
+
 ## CDI Events
 
 The communication between the service layers is implemented by the CDI Observer pattern. The CDI Events are tied to the transaction context of the imixs-workflow engine. 
