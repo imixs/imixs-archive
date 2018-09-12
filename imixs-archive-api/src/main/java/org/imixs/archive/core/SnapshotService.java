@@ -114,11 +114,13 @@ public class SnapshotService {
 
 	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
-	public static String SNAPSHOTID = "$snapshotid";
-	public static String TYPE_PRAFIX = "snapshot-";
-	public static String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
-	public static String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
-	public static String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
+	public static final String SNAPSHOTID = "$snapshotid";
+	public static final String TYPE_PRAFIX = "snapshot-";
+	public static final String NOSNAPSHOT = "$nosnapshot"; // ignore snapshots
+
+	public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
+	public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
+	public static final String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
 
 	/**
 	 * The snapshot-workitem is created immediately after the workitem was processed
@@ -139,6 +141,11 @@ public class SnapshotService {
 
 		if ("model".equals(type)) {
 			// skip models
+			return;
+		}
+		
+		if (documentEvent.getDocument().getItemValueBoolean(NOSNAPSHOT)) {
+			// skip if NOSNAPSHOT is true
 			return;
 		}
 
