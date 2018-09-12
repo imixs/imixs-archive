@@ -39,7 +39,6 @@ import java.util.logging.Logger;
 
 import javax.annotation.Resource;
 import javax.ejb.EJB;
-import javax.ejb.EJBTransactionRolledbackException;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
@@ -315,7 +314,7 @@ public class SnapshotService {
 			logger.fine("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
 			try {
 				documentService.remove(oldSnapshot);
-			} catch (EJBTransactionRolledbackException | AccessDeniedException e) {
+			} catch (AccessDeniedException e) {
 				logger.warning("remove deprecated snapshot '" + snapshotID + "' failed: " + e.getMessage());
 			}
 			result.remove(0);
