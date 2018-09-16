@@ -48,11 +48,10 @@ public class ConfigurationService {
 
 	@EJB
 	ClusterService clusterService;
-	
+
 	@EJB
 	SchedulerService schedulerService;
-	
-	
+
 	/**
 	 * This method initializes the Core-KeySpace and creates the table schema if not
 	 * exits. The method returns true if the Core-KeySpace is accessible
@@ -94,7 +93,7 @@ public class ConfigurationService {
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
 
-		String keyspace = configuration.getItemValueString("keyspace");
+		String keyspace = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
 		// stop timer
 		schedulerService.stop(configuration);
 
@@ -144,7 +143,7 @@ public class ConfigurationService {
 	public String deleteConfiguration(ItemCollection configuration) {
 
 		String errorMessage = "";
-		String keyspace = configuration.getItemValueString("keyspace");
+		String keyspace = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
 
 		// first stop the timer
 		schedulerService.stop(configuration);
@@ -177,7 +176,11 @@ public class ConfigurationService {
 
 	/**
 	 * Returns a list of all existing archive configurations which are stored in the
-	 * Core-KeySpace.
+	 * Core-KeySpace. The method updates the timer details for each configuration
+	 * delevered by the ScheudlerService.
+	 * <p>
+	 * The flag "_scheduler_enabled" indicates if a timer for a configuraiton is running.
+	 * 
 	 * 
 	 * @return configuration list
 	 */
@@ -216,8 +219,13 @@ public class ConfigurationService {
 			return null;
 		}
 
+		// Update the timer details for each confiugraton
+		for (ItemCollection config : result) {
+			schedulerService.updateTimerDetails(config);
+		}
+
 		// sort result
-		Collections.sort(result, new ItemCollectionComparator("keyspace", true));
+		Collections.sort(result, new ItemCollectionComparator(ImixsArchiveApp.ITEM_KEYSPACE, true));
 		return result;
 	}
 

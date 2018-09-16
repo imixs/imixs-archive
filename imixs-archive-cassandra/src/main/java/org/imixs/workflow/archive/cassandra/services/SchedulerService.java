@@ -40,6 +40,7 @@ import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
 import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.InvalidAccessException;
 import org.imixs.workflow.exceptions.QueryException;
@@ -98,7 +99,7 @@ public class SchedulerService {
 	 * The Timer can be started based on a Calendar setting stored in the property
 	 * _scheduler_definition.
 	 * <p>
-	 * The $UniqueID of the configuration entity is the id of the timer to be
+	 * The item 'keyspace' of the configuration entity is the id of the timer to be
 	 * controlled.
 	 * <p>
 	 * The method throws an exception if the configuration entity contains invalid
@@ -119,8 +120,10 @@ public class SchedulerService {
 		Timer timer = null;
 		if (configuration == null)
 			return null;
+		
+		
 
-		String id = configuration.getUniqueID();
+		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
 		// try to cancel an existing timer for this workflowinstance
 		timer = findTimer(id);
 		if (timer != null) {
@@ -128,13 +131,13 @@ public class SchedulerService {
 				timer.cancel();
 				timer = null;
 			} catch (Exception e) {
-				logger.warning("...failed to stop existing timer for '" + configuration.getUniqueID() + "'!");
+				logger.warning("...failed to stop existing timer for '" +id + "'!");
 				throw new InvalidAccessException(SchedulerService.class.getName(), SchedulerException.INVALID_WORKITEM,
 						" failed to cancle existing timer!");
 			}
 		}
 
-		logger.info("...Scheduler Service " + configuration.getUniqueID() + " will be started...");
+		logger.info("...Scheduler Service " +id + " will be started...");
 		String schedulerDescription = configuration.getItemValueString(ITEM_SCHEDULER_DEFINITION);
 
 		if (!schedulerDescription.isEmpty()) {
@@ -174,17 +177,19 @@ public class SchedulerService {
 	 * 
 	 */
 	public ItemCollection stop(ItemCollection configuration) {
-		Timer timer = findTimer(configuration.getUniqueID());
+		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
+		Timer timer = findTimer(id);
 		return stop(configuration, timer);
 
 	}
 
 	public ItemCollection stop(ItemCollection configuration, Timer timer) {
+		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
 		if (timer != null) {
 			try {
 				timer.cancel();
 			} catch (Exception e) {
-				logger.info("...failed to stop timer for '" + configuration.getUniqueID() + "'!");
+				logger.info("...failed to stop timer for '" + id + "'!");
 			}
 
 			// update status message
@@ -199,7 +204,7 @@ public class SchedulerService {
 			configuration.replaceItemValue("statusmessage", message);
 
 			logger.info("... scheduler " + configuration.getItemValueString("txtName") + " stopped: "
-					+ configuration.getUniqueID());
+					+ id);
 		} else {
 			String msg = "stopped";
 			configuration.replaceItemValue("statusmessage", msg);
@@ -234,12 +239,15 @@ public class SchedulerService {
 	 * properties netxtTimeout and timeRemaining and store them into the timer
 	 * configuration.
 	 * 
+	 * 
 	 * @param configuration - the current scheduler configuration to be updated.
 	 */
 	public void updateTimerDetails(ItemCollection configuration) {
 		if (configuration == null)
 			return;// configuration;
-		String id = configuration.getUniqueID();
+		
+		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
+		
 		Timer timer;
 		try {
 			timer = this.findTimer(id);
@@ -247,14 +255,17 @@ public class SchedulerService {
 				// load current timer details
 				configuration.replaceItemValue("nextTimeout", timer.getNextTimeout());
 				configuration.replaceItemValue("timeRemaining", timer.getTimeRemaining());
+				configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
 			} else {
 				configuration.removeItem("nextTimeout");
 				configuration.removeItem("timeRemaining");
+				configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
 			}
 		} catch (Exception e) {
 			logger.warning("unable to updateTimerDetails: " + e.getMessage());
 			configuration.removeItem("nextTimeout");
 			configuration.removeItem("timeRemaining");
+			configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
 		}
 	}
 
@@ -276,15 +287,17 @@ public class SchedulerService {
 	 * @return
 	 * @throws ParseException
 	 */
-	Timer createTimerOnCalendar(ItemCollection configItemCollection) throws ParseException {
+	Timer createTimerOnCalendar(ItemCollection configuration) throws ParseException {
 
 		TimerConfig timerConfig = new TimerConfig();
-		timerConfig.setInfo(configItemCollection.getUniqueID());
+		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
+		timerConfig.setInfo(id);
 
 		ScheduleExpression scheduerExpression = new ScheduleExpression();
 
-		@SuppressWarnings("unchecked")
-		List<String> calendarConfiguation = configItemCollection.getItemValue(ITEM_SCHEDULER_DEFINITION);
+		String sDefinition = configuration.getItemValueString(ITEM_SCHEDULER_DEFINITION);
+		String calendarConfiguation[] = sDefinition.split("\\r?\\n");
+		
 		// try to parse the configuration list....
 		for (String confgEntry : calendarConfiguation) {
 
@@ -365,7 +378,7 @@ public class SchedulerService {
 
 			if (xmlDocument != null) {
 				ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
-				logger.info("......new snapshot found: " + snapshot.getUniqueID());
+				logger.info("......new snapshot found: " + keyspaceID);
 			
 				// update stats....
 				logger.info("...Data found - new Syncpoint=");
@@ -378,7 +391,7 @@ public class SchedulerService {
 
 			}
 
-		} catch (RuntimeException e) {
+		} catch (ImixsArchiveException | RuntimeException e) {
 			// in case of an exception we did not cancel the Timer service
 			if (logger.isLoggable(Level.FINEST)) {
 				e.printStackTrace();

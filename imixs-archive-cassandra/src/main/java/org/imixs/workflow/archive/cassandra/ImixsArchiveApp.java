@@ -50,7 +50,6 @@ public class ImixsArchiveApp extends Application {
 	public final static String ITEM_USERID = "userid";
 	public final static String ITEM_PASSWORD = "password";
 	public final static String ITEM_AUTHMETHOD = "authmethod";
-	public final static String ITEM_POLLINGINTERVAL = "pollinginterval";
 	public final static String ITEM_SYNCPOINT = "syncpoint";
 
 	

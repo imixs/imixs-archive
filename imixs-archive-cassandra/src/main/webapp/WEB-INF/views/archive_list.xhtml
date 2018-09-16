@@ -46,7 +46,7 @@
 								<th>Action</th>
 							</tr>
 							<ui:repeat var="record"
-								value="#{archiveDataController.configurations}">
+								value="#{configurationDataController.configurations}">
 								<tr>
 									<td><a
 										href="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/action/edit/#{record.item['keyspace']}">#{record.item['keyspace']}</a>
@@ -65,7 +65,7 @@
 											<span class="typcn typcn-media-record"
 												style="font-size: 1.3em; color: #e84848;"></span>
 										</ui:fragment></td>
-									<td><pre>#{record.item['pollingInterval']}</pre></td>
+									<td><pre>#{record.item['_scheduler_definition']}</pre></td>
 									<td>#{record.item['$modified']}</td>
 
 

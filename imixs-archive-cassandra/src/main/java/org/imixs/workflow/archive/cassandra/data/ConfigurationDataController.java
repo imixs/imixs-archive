@@ -8,22 +8,22 @@ import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
-import javax.validation.Valid;
-import javax.validation.constraints.Pattern;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
 import org.imixs.workflow.archive.cassandra.services.SchedulerService;
 
 /**
- * Request Scoped CID Bean to hold the config-data for a single archive.
+ * Request Scoped CID Bean to hold the config-data. It provides a list of all available cnfiguations
+ * and handles the curren configuraton object for updates. 
  * 
+ * @see archive_config.xhtml, archive_list.xhtml
  * @author rsoika
  *
  */
 @Named
 @RequestScoped
-public class ArchiveDataController implements Serializable {
+public class ConfigurationDataController implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 	
@@ -40,7 +40,7 @@ public class ArchiveDataController implements Serializable {
 
 	
 
-	public ArchiveDataController() {
+	public ConfigurationDataController() {
 		super();
 	}
 
@@ -59,14 +59,6 @@ public class ArchiveDataController implements Serializable {
 	 */
 	public void setConfigurations(List<ItemCollection> configurations) {
 		this.configurations = configurations;
-
-		// refresh timeouts...
-		for (ItemCollection config : this.configurations) {
-			// test if the timer is active...
-			 schedulerService.updateTimerDetails(config);
-			//.getTimeRemaining(config.getItemValueString("keyspace"));
-			//config.replaceItemValue("timeRemaining", timeRemaining);
-		}
 	}
 
 	/**

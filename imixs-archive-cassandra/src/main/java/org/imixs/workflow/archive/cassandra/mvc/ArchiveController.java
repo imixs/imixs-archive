@@ -13,10 +13,11 @@ import javax.ws.rs.PathParam;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
-import org.imixs.workflow.archive.cassandra.data.ArchiveDataController;
+import org.imixs.workflow.archive.cassandra.data.ConfigurationDataController;
 import org.imixs.workflow.archive.cassandra.data.ErrorController;
 import org.imixs.workflow.archive.cassandra.services.ConfigurationService;
 import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
+import org.imixs.workflow.archive.cassandra.services.SchedulerService;
 
 /**
  * The ArchiveController is used to create, show and update archive
@@ -37,7 +38,7 @@ public class ArchiveController {
 	ConfigurationService configurationService;
 
 	@Inject
-	ArchiveDataController archiveDataController;
+	ConfigurationDataController configurationDataController;
 	
 	@Inject
 	ErrorController errorController;
@@ -53,7 +54,7 @@ public class ArchiveController {
 
 		logger.finest("......show config...");
 
-		archiveDataController.setConfigurations(configurationService.getConfigurationList());
+		configurationDataController.setConfigurations(configurationService.getConfigurationList());
 
 		return "archive_list.xhtml";
 	}
@@ -65,11 +66,11 @@ public class ArchiveController {
 	 */
 	@Path("/action/edit/{keyspace}")
 	@GET
-	public String editKeySpace(@PathParam("keyspace") String keyspace) {
+	public String editKeySpace(@PathParam(ImixsArchiveApp.ITEM_KEYSPACE) String keyspace) {
 
 		errorController.reset();
 		logger.finest("......edit archive config '" + keyspace + "'...");
-		archiveDataController.setConfiguration(configurationService.loadConfiguration(keyspace));
+		configurationDataController.setConfiguration(configurationService.loadConfiguration(keyspace));
 
 		return "archive_config.xhtml";
 	}
@@ -97,7 +98,7 @@ public class ArchiveController {
 	 */
 	@Path("/action/delete/{keyspace}")
 	@GET
-	public String deleteKeySpace(@PathParam("keyspace") String keyspace) throws ImixsArchiveException {
+	public String deleteKeySpace(@PathParam(ImixsArchiveApp.ITEM_KEYSPACE) String keyspace) throws ImixsArchiveException {
 
 		logger.info("...delete archive config '" + keyspace + "'...");
 		ItemCollection configuration = configurationService.loadConfiguration(keyspace);
@@ -121,12 +122,12 @@ public class ArchiveController {
 	 */
 	@POST
 	@Path("/")
-	public String saveArchiveKeySpace(@FormParam("keyspace") String keyspace, @FormParam("url") String url,
-			@FormParam("pollingInterval") String pollingInterval, 
+	public String saveArchiveKeySpace(@FormParam(ImixsArchiveApp.ITEM_KEYSPACE) String keyspace, @FormParam("url") String url,
+			@FormParam("_scheduler_definition") String schedulerDefinition, 
 			@FormParam("authmethod") String authmethod,
 			@FormParam("userid") String userid,
 			@FormParam("password") String password) {
-
+ 
 		errorController.reset();
 
 		
@@ -145,10 +146,10 @@ public class ArchiveController {
 		archive.replaceItemValue(ImixsArchiveApp.ITEM_PASSWORD, password);
 		archive.replaceItemValue(ImixsArchiveApp.ITEM_AUTHMETHOD, authmethod);
 		
-		if (pollingInterval== null || pollingInterval.isEmpty() ) {
-			pollingInterval="hour=*"; // defaut setting
+		if (schedulerDefinition== null || schedulerDefinition.isEmpty() ) {
+			schedulerDefinition="hour=*"; // defaut setting
 		}
-		archive.replaceItemValue(ImixsArchiveApp.ITEM_POLLINGINTERVAL, pollingInterval);
+		archive.replaceItemValue(SchedulerService.ITEM_SCHEDULER_DEFINITION ,schedulerDefinition);
 		
 		logger.info("update configuration for keyspace '" + keyspace + "' ....");
 		try {

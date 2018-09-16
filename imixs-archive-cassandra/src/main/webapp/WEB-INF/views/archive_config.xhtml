@@ -28,18 +28,18 @@
 								<dd>
 									<!-- not editable if already defined! -->
 									<ui:fragment
-										rendered="#{!empty archiveDataController.configuration.item['keyspace']}">
+										rendered="#{!empty configurationDataController.configuration.item['keyspace']}">
 
 										<input type="text" disabled="disabled"
-											value="#{archiveDataController.configuration.item['keyspace']}" />
+											value="#{configurationDataController.configuration.item['keyspace']}" />
 										<input type="hidden"
-											value="#{archiveDataController.configuration.item['keyspace']}"
+											value="#{configurationDataController.configuration.item['keyspace']}"
 											name="keyspace" />
 									</ui:fragment>
 									<ui:fragment
-										rendered="#{empty archiveDataController.configuration.item['keyspace']}">
+										rendered="#{empty configurationDataController.configuration.item['keyspace']}">
 										<input type="text"
-											value="#{archiveDataController.configuration.item['keyspace']}"
+											value="#{configurationDataController.configuration.item['keyspace']}"
 											name="keyspace" />
 									</ui:fragment>
 								</dd>
@@ -50,7 +50,7 @@
 								<dt>#{message.endpoint}:</dt>
 								<dd>
 									<input type="text"
-										value="#{archiveDataController.configuration.item['url']}"
+										value="#{configurationDataController.configuration.item['url']}"
 										autocomplete="url" name="url" />
 								</dd>
 							</dl>
@@ -61,7 +61,7 @@
 								<dt>UserID:</dt>
 								<dd>
 									<input type="text"
-										value="#{archiveDataController.configuration.item['userid']}"
+										value="#{configurationDataController.configuration.item['userid']}"
 										autocomplete="username" name="userid" />
 								</dd>
 							</dl>
@@ -70,7 +70,7 @@
 								<dt>Password:</dt>
 								<dd>
 									<input type="password"
-										value="#{archiveDataController.configuration.item['password']}"
+										value="#{configurationDataController.configuration.item['password']}"
 										autocomplete="current-password" name="password" />
 								</dd>
 							</dl>
@@ -79,12 +79,12 @@
 								<dd>
 									<select name="authmethod">
 										<ui:fragment
-											rendered="#{archiveDataController.configuration.item['authMethod'] eq 'Form'}">
+											rendered="#{configurationDataController.configuration.item['authMethod'] eq 'Form'}">
 											<option value="Basic">Basic</option>
 											<option value="Form" selected="selected">Form</option>
 										</ui:fragment>
 										<ui:fragment
-											rendered="#{archiveDataController.configuration.item['authMethod'] ne 'Form'}">
+											rendered="#{configurationDataController.configuration.item['authMethod'] ne 'Form'}">
 											<option value="Basic" selected="selected">Basic</option>
 											<option value="Form">Form</option>
 										</ui:fragment>
@@ -105,7 +105,8 @@
 
 							<div class="row nested">
 								<div class="col-8">
-									<textarea name="pollingInterval" rows="" cols="" style="height: 11em; width: 100%;">#{archiveDataController.configuration.item['pollingInterval']}</textarea>
+									<textarea name="_scheduler_definition" rows="" cols=""
+										style="height: 11em; width: 100%;">#{configurationDataController.configuration.item['_scheduler_definition']}</textarea>
 								</div>
 								<div class="col-4">
 									<SMALL> <span style="text-decoration: underline;"><strong><a
@@ -116,39 +117,79 @@
 								</div>
 							</div>
 						</div>
+					
+						<!-- **** Timer Status ***** -->
+						<div class="imixs-form-panel">
+							<div id="timer_details" class="imixs-form-section">
+
+								<h3>
+									Timer Status ⇢
+									#{configurationDataController.configuration.item['statusMessage']}
+
+									<ui:fragment
+										rendered="#{! empty configurationDataController.configuration.item['errormessage']}"
+										class="small" style="color:red">
+										<br />Error: #{configurationDataController.configuration.item['errormessage']}"
+									</ui:fragment>
+								</h3>
+
+								<table>
+
+									<tr>
+										<td>Sync Point :</td>
+										<td>#{configurationDataController.syncPoint}</td>
+									</tr>
+									<tr>
+										<td>Schedule:</td>
+										<td>#{configurationDataController.configuration.item['Schedule']}</td>
 
 
+									</tr>
+									<tr>
+										<td>Next Timeout:</td>
+										<td>#{configurationDataController.configuration.item['nextTimeout']}</td>
+									</tr>
+
+									<tr>
+										<td>TimeRemaining:</td>
+										<td>#{configurationDataController.configuration.item['timeRemaining']}</td>
+									</tr>
+									<tr>
+
+										<td>Last run:</td>
+										<td>#{configurationDataController.configuration.item['datLastRun']}</td>
+									</tr>
+
+									<tr>
+										<td>Log:</td>
+										<td><pre>
+												<ui:repeat var="logentry"
+													value="#{workitem.itemList['_scheduler_log']}">
+													#{logentry}"
+														<br />
+												</ui:repeat>
+											</pre></td>
+									</tr>
+								</table>
 
 
+								<hr />
 
-						<!-- **** Status ***** -->
-
-						<div class="imixs-form-section-2">
-							<ui:param name="timeRemaining"
-								value="#{archiveDataController.configuration.item['timeRemaining']}"></ui:param>
-							<h3>Status:</h3>
-
-							<p>Timer Status = #{timeRemaining > 0?'running':'stopped'}</p>
-							<p>Time Remaining : #{timeRemaining > 0?timeRemaining:'-'} ms</p>
-							<p>Sync Point : #{archiveDataController.syncPoint}</p>
-
-
+							</div>
 						</div>
+
+
 
 						<hr />
 						<div class="imixs-form-section">
 
 							<input type="submit"
-								value="#{empty archiveDataController.configuration.item['keyspace']?'Create':'Update'}" />
+								value="#{empty configurationDataController.configuration.item['keyspace']?'Create':'Update'}" />
 
 							<input type="button"
 								onclick="document.location.href='#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/';"
 								value="Close" />
-
-
-
-							<ui:fragment
-								rendered="#{! empty errorController.message}">
+							<ui:fragment rendered="#{! empty errorController.message}">
 
 								<h3 style="color: red">#{errorController.message}</h3>
 
