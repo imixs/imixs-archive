@@ -34,10 +34,11 @@ import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
 
-
 /**
  * This singleton ejb provides a service to access the imxis.property file. This
  * file can be packaged together with an application in any ejb module.
+ * <p>
+ * The imixs.property file contains the cluster details.
  * 
  * @version 1.0
  * @author rsoika
@@ -84,12 +85,12 @@ public class PropertyService {
 	 */
 	private void loadProperties() {
 		properties = new Properties();
-		try {			 
-			properties.load(Thread.currentThread().getContextClassLoader()
-					.getResource("imixs.properties").openStream());
+		try {
+			properties
+					.load(Thread.currentThread().getContextClassLoader().getResource("imixs.properties").openStream());
 		} catch (Exception e) {
 			logger.warning("PropertyService unable to find imixs.properties in current classpath");
-			if (logger.isLoggable(Level.FINE)){
+			if (logger.isLoggable(Level.FINE)) {
 				e.printStackTrace();
 			}
 		}

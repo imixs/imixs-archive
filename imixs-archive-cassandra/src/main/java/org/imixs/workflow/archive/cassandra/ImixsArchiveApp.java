@@ -32,7 +32,7 @@ import javax.ejb.EJB;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
-import org.imixs.workflow.archive.cassandra.services.ClusterService;
+import org.imixs.workflow.archive.cassandra.services.ConfigurationService;
 
 /**
  * The Imixs-Archive-Cassandra application setup
@@ -55,7 +55,7 @@ public class ImixsArchiveApp extends Application {
 
 	
 	@EJB
-	ClusterService clusterService;
+	ConfigurationService configurationService;
 
 	public ImixsArchiveApp() {
 		super();
@@ -66,8 +66,8 @@ public class ImixsArchiveApp extends Application {
 	 */
 	@PostConstruct
 	public void initialize() {
-		if (clusterService != null) {
-			clusterService.init();
+		if (configurationService != null) {
+			configurationService.init();
 		}
 	}
 }

@@ -35,7 +35,7 @@ public class ClusterController {
 	@GET
 	public String showConfigs() {
 
-		logger.info("show cluster config...");
+		logger.finest("......show cluster config...");
 
 		return "cluster.xhtml";
 	}

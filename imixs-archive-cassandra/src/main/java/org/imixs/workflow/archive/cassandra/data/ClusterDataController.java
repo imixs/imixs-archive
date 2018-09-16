@@ -12,7 +12,7 @@ import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.archive.cassandra.services.ClusterService;
+import org.imixs.workflow.archive.cassandra.services.ConfigurationService;
 
 /**
  * Session Scoped CID Bean to hold cluster configuration data.
@@ -44,7 +44,7 @@ public class ClusterDataController implements Serializable {
 	boolean connected;
 
 	@EJB
-	ClusterService clusterService;
+	ConfigurationService configurationService;
 
 	public ClusterDataController() {
 		super();
@@ -57,7 +57,7 @@ public class ClusterDataController implements Serializable {
 	 */
 	@PostConstruct
 	public void init() {
-		logger.info("Initial setup: reading environment....");
+		logger.info("...initial setup: reading environment....");
 
 		configurationProperties = new Properties();
 		try {
@@ -79,8 +79,8 @@ public class ClusterDataController implements Serializable {
 		contactPoints = configurationProperties.getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
 		keySpace = configurationProperties.getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
 
-		logger.info(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT + "=" + contactPoints);
-		logger.info(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE + "=" + keySpace);
+		logger.info("......"+PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT + "=" + contactPoints);
+		logger.info("......"+PROPERTY_ARCHIVE_CLUSTER_KEYSPACE + "=" + keySpace);
 
 		refreshConfiguration();
 
@@ -90,7 +90,7 @@ public class ClusterDataController implements Serializable {
 	 * Updates the configuration list
 	 */
 	public void refreshConfiguration() {
-		List<ItemCollection> archiveList = clusterService.getConfigurationList();
+		List<ItemCollection> archiveList = configurationService.getConfigurationList();
 
 		archiveCount = 0;
 

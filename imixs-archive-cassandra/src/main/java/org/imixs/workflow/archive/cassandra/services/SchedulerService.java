@@ -24,13 +24,14 @@ package org.imixs.workflow.archive.cassandra.services;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
 import javax.ejb.EJB;
-import javax.ejb.NoMoreTimeoutsException;
-import javax.ejb.NoSuchObjectLocalException;
 import javax.ejb.ScheduleExpression;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
@@ -39,6 +40,8 @@ import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.exceptions.AccessDeniedException;
+import org.imixs.workflow.exceptions.InvalidAccessException;
 import org.imixs.workflow.exceptions.QueryException;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -70,6 +73,11 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 @Stateless
 public class SchedulerService {
 
+	public final static String ITEM_SCHEDULER_NAME = "txtname";
+	public final static String ITEM_SCHEDULER_ENABLED = "_scheduler_enabled";
+	public final static String ITEM_SCHEDULER_CLASS = "_scheduler_class";
+	public final static String ITEM_SCHEDULER_DEFINITION = "_scheduler_definition";
+
 	@Resource
 	SessionContext ctx;
 
@@ -78,65 +86,129 @@ public class SchedulerService {
 
 	@EJB
 	SyncService syncService;
-	
+
 	@EJB
-	ClusterService clusterService;
+	ConfigurationService confiugrationService;
 
 	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
 	/**
-	 * This Method starts the TimerService. If a timer with the id was already
-	 * running, than the method will stop this timer instance before.
-	 * 
+	 * Starts a new Timer for the scheduler defined by the Configuration.
+	 * <p>
 	 * The Timer can be started based on a Calendar setting stored in the property
-	 * 'pollingInterval'
-	 * 
+	 * _scheduler_definition.
+	 * <p>
+	 * The $UniqueID of the configuration entity is the id of the timer to be
+	 * controlled.
+	 * <p>
 	 * The method throws an exception if the configuration entity contains invalid
 	 * attributes or values.
+	 * <p>
+	 * After the timer was started the configuration is updated with the latest
+	 * statusmessage. The item _schedueler_enabled will be set to 'true'.
+	 * <p>
+	 * The method returns the updated configuration. The configuration will not be
+	 * saved!
 	 * 
+	 * @param configuration - scheduler configuration
+	 * @return updated configuration
+	 * @throws AccessDeniedException
 	 * @throws ParseException
 	 */
-	public boolean start(ItemCollection configItemCollection) {
-		if (configItemCollection == null) {
-			logger.warning("...invalid configuraiton object");
-			return false;
-		}
+	public ItemCollection start(ItemCollection configuration) throws AccessDeniedException, ParseException {
+		Timer timer = null;
+		if (configuration == null)
+			return null;
 
-		String id = configItemCollection.getItemValueString("keyspace");
-		logger.info("...starting scheduler for archive '" + id + "'");
-
+		String id = configuration.getUniqueID();
 		// try to cancel an existing timer for this workflowinstance
-		while (this.findTimer(id) != null) {
-			this.findTimer(id).cancel();
+		timer = findTimer(id);
+		if (timer != null) {
+			try {
+				timer.cancel();
+				timer = null;
+			} catch (Exception e) {
+				logger.warning("...failed to stop existing timer for '" + configuration.getUniqueID() + "'!");
+				throw new InvalidAccessException(SchedulerService.class.getName(), SchedulerException.INVALID_WORKITEM,
+						" failed to cancle existing timer!");
+			}
 		}
 
-		// New timer will be started on calendar confiugration
-		try {
-			Timer timer = createTimerOnCalendar(configItemCollection);
-			return (timer != null);
-		} catch (ParseException e) {
-			logger.severe("starting scheduler for '" + id + "' failed: " + e.getMessage());
-		}
+		logger.info("...Scheduler Service " + configuration.getUniqueID() + " will be started...");
+		String schedulerDescription = configuration.getItemValueString(ITEM_SCHEDULER_DEFINITION);
 
-		return false;
+		if (!schedulerDescription.isEmpty()) {
+			// New timer will be started on calendar confiugration
+			timer = createTimerOnCalendar(configuration);
+		}
+		// start and set statusmessage
+		if (timer != null) {
+
+			Calendar calNow = Calendar.getInstance();
+			SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
+			String msg = "started at " + dateFormatDE.format(calNow.getTime()) + " by "
+					+ ctx.getCallerPrincipal().getName();
+			configuration.replaceItemValue("statusmessage", msg);
+
+			if (timer.isCalendarTimer()) {
+				configuration.replaceItemValue("Schedule", timer.getSchedule().toString());
+			} else {
+				configuration.replaceItemValue("Schedule", "");
+
+			}
+			logger.info("...Scheduler Service" + id + " (" + configuration.getItemValueString("txtName")
+					+ ") successfull started.");
+		}
+		configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
+		configuration.replaceItemValue("errormessage", "");
+		return configuration;
 	}
 
 	/**
-	 * Cancels a running timer instance.
+	 * Cancels a running timer instance. After cancel a timer the corresponding
+	 * timerDescripton (ItemCollection) is no longer valid.
+	 * <p>
+	 * The method returns the current configuration. The configuration will not be
+	 * saved!
 	 * 
-	 * @param true if timer was found and successfull canceled.
 	 * 
 	 */
-	public boolean stop(ItemCollection config) {
-		String id = config.getItemValueString("keyspace");
-		logger.info("...stopping timer with id '" + id + "'");
-		boolean found = false;
-		while (this.findTimer(id) != null) {
-			this.findTimer(id).cancel();
-			found = true;
+	public ItemCollection stop(ItemCollection configuration) {
+		Timer timer = findTimer(configuration.getUniqueID());
+		return stop(configuration, timer);
+
+	}
+
+	public ItemCollection stop(ItemCollection configuration, Timer timer) {
+		if (timer != null) {
+			try {
+				timer.cancel();
+			} catch (Exception e) {
+				logger.info("...failed to stop timer for '" + configuration.getUniqueID() + "'!");
+			}
+
+			// update status message
+			Calendar calNow = Calendar.getInstance();
+			SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
+
+			String message = "stopped at " + dateFormatDE.format(calNow.getTime());
+			String name = ctx.getCallerPrincipal().getName();
+			if (name != null && !name.isEmpty() && !"anonymous".equals(name)) {
+				message += " by " + name;
+			}
+			configuration.replaceItemValue("statusmessage", message);
+
+			logger.info("... scheduler " + configuration.getItemValueString("txtName") + " stopped: "
+					+ configuration.getUniqueID());
+		} else {
+			String msg = "stopped";
+			configuration.replaceItemValue("statusmessage", msg);
+
 		}
-		logger.warning("No running timer with id '" + id + "' found.");
-		return found;
+		configuration.removeItem("nextTimeout");
+		configuration.removeItem("timeRemaining");
+		configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
+		return configuration;
 	}
 
 	/**
@@ -147,122 +219,43 @@ public class SchedulerService {
 	 * @return Timer
 	 * @throws Exception
 	 */
-	private Timer findTimer(String id) {
+	public Timer findTimer(String id) {
 		for (Object obj : timerService.getTimers()) {
 			Timer timer = (javax.ejb.Timer) obj;
-
-			if (timer.getInfo() instanceof XMLDocument) {
-				XMLDocument xmlItemCollection = (XMLDocument) timer.getInfo();
-				ItemCollection adescription = XMLDocumentAdapter.putDocument(xmlItemCollection);
-				if (id.equals(adescription.getItemValueString("keyspace"))) {
-					return timer;
-				}
+			if (id.equals(timer.getInfo())) {
+				return timer;
 			}
 		}
 		return null;
 	}
 
 	/**
-	 * Returns returns the number of milliseconds that will elapse before the next
-	 * scheduled timer expiration for a given keyspace.
+	 * Updates the timer details of a running timer service. The method updates the
+	 * properties netxtTimeout and timeRemaining and store them into the timer
+	 * configuration.
 	 * 
-	 * The method returns -1 if no timer exists.
-	 * 
-	 * @param id
-	 * @return
+	 * @param configuration - the current scheduler configuration to be updated.
 	 */
-	public long getTimeRemaining(String id) {
-		Timer timer = findTimer(id);
-
-		if (timer != null) {
-			try {
-				long l = timer.getTimeRemaining();
-
-				if (l > 0) {
-					logger.finest("...... timer '" + id + " - times remaining: " + l + "ms");
-				}
-				return l;
-			} catch (IllegalStateException | NoSuchObjectLocalException | NoMoreTimeoutsException e) {
-				logger.warning("Error get timer status: " + e.getMessage());
-			}
-		}
-
-		return -1;
-	}
-
-	/**
-	 * This method pulls the archive data into the cassandra keyspace
-	 * 
-	 * 
-	 * @param timer
-	 * @throws Exception
-	 * @throws QueryException
-	 */
-	@Timeout
-	public void pullData(javax.ejb.Timer timer) throws Exception {
-
-		// Startzeit ermitteln
-		long lProfiler = System.currentTimeMillis();
-
-		logger.info("starting import....");
-
-		XMLDocument xmlItemCollection = (XMLDocument) timer.getInfo();
-		ItemCollection configuration = XMLDocumentAdapter.putDocument(xmlItemCollection);
-		String keyspace = configuration.getItemValueString("keyspace");
-
-		
+	public void updateTimerDetails(ItemCollection configuration) {
+		if (configuration == null)
+			return;// configuration;
+		String id = configuration.getUniqueID();
+		Timer timer;
 		try {
-		XMLDocument xmlDocument = syncService.readSyncData(configuration);
-		
-		if (xmlDocument != null) {
-			ItemCollection snapshot=XMLDocumentAdapter.putDocument(xmlDocument);
-			logger.info("......new snapshot found: " + snapshot.getUniqueID());
-			clusterService.saveDocument(snapshot, configuration.getItemValueString(keyspace));
-
-			// update stats....
-			
-			
-			logger.info("...Data found - new Syncpoint=");
-			
-			int syncs=configuration.getItemValue("_sync_count", Integer.class);
-			syncs++;
-			configuration.setItemValue("_sync_count", syncs);
-			
-			
-		}
-
-		
-		} catch (ImixsArchiveException e) {
-			
-			// stop timer....
-			logger.info("......stopping timer...");
-			timer.cancel();
-			
-			
-			int errors=configuration.getItemValue("_error_count", Integer.class);
-			errors++;
-			configuration.setItemValue("_error_count", errors);
-			
-			if (ImixsArchiveException.SYNC_ERROR.equals(e.getErrorCode())) {
-				 errors=configuration.getItemValue("_error_count_Sync", Integer.class);
-				errors++;
-				configuration.setItemValue("_error_count_Sync", errors);
+			timer = this.findTimer(id);
+			if (timer != null) {
+				// load current timer details
+				configuration.replaceItemValue("nextTimeout", timer.getNextTimeout());
+				configuration.replaceItemValue("timeRemaining", timer.getTimeRemaining());
+			} else {
+				configuration.removeItem("nextTimeout");
+				configuration.removeItem("timeRemaining");
 			}
-			
-			if (ImixsArchiveException.INVALID_DOCUMENT_OBJECT.equals(e.getErrorCode())) {
-				 errors=configuration.getItemValue("_error_count_Object", Integer.class);
-				errors++;
-				configuration.setItemValue("_error_count_Object", errors);
-			}
-			
-			
-			
+		} catch (Exception e) {
+			logger.warning("unable to updateTimerDetails: " + e.getMessage());
+			configuration.removeItem("nextTimeout");
+			configuration.removeItem("timeRemaining");
 		}
-		
-		// save the updated configuration object
-		clusterService.saveConfiguration(configuration);
-		
-		logger.info("import finished in " + (System.currentTimeMillis() - lProfiler) + "ms");
 	}
 
 	/**
@@ -279,68 +272,45 @@ public class SchedulerService {
 	 *   year=*
 	 * </code>
 	 * 
-	 * If no configuration is found than no timer will be created and the method
-	 * returns null.
-	 * 
-	 * 
 	 * @param sConfiguation
 	 * @return
 	 * @throws ParseException
 	 */
 	Timer createTimerOnCalendar(ItemCollection configItemCollection) throws ParseException {
-		boolean found = false;
+
 		TimerConfig timerConfig = new TimerConfig();
+		timerConfig.setInfo(configItemCollection.getUniqueID());
 
-		String id = configItemCollection.getItemValueString("keyspace");
-		logger.info("...validating timer settings for id '" + id + "'...");
-		XMLDocument xmlConfigItem = null;
-		try {
-			xmlConfigItem = XMLDocumentAdapter.getDocument(configItemCollection);
-		} catch (Exception e) {
-			logger.severe("Unable to serialize confitItemCollection into a XML object");
-			e.printStackTrace();
-			return null;
-		}
-
-		timerConfig.setInfo(xmlConfigItem);
 		ScheduleExpression scheduerExpression = new ScheduleExpression();
 
-		String pollingData = configItemCollection.getItemValueString("pollingInterval");
-		String calendarConfiguation[] = pollingData.split("\\r?\\n");
+		@SuppressWarnings("unchecked")
+		List<String> calendarConfiguation = configItemCollection.getItemValue(ITEM_SCHEDULER_DEFINITION);
 		// try to parse the configuration list....
 		for (String confgEntry : calendarConfiguation) {
 
 			if (confgEntry.startsWith("second=")) {
 				scheduerExpression.second(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				found = true;
 			}
 			if (confgEntry.startsWith("minute=")) {
 				scheduerExpression.minute(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				found = true;
 			}
 			if (confgEntry.startsWith("hour=")) {
 				scheduerExpression.hour(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				found = true;
 			}
 			if (confgEntry.startsWith("dayOfWeek=")) {
 				scheduerExpression.dayOfWeek(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				found = true;
 			}
 			if (confgEntry.startsWith("dayOfMonth=")) {
 				scheduerExpression.dayOfMonth(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				found = true;
 			}
 			if (confgEntry.startsWith("month=")) {
 				scheduerExpression.month(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				found = true;
 			}
 			if (confgEntry.startsWith("year=")) {
 				scheduerExpression.year(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				found = true;
 			}
 			if (confgEntry.startsWith("timezone=")) {
 				scheduerExpression.timezone(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				found = true;
 			}
 
 			/* Start date */
@@ -348,8 +318,6 @@ public class SchedulerService {
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
 				Date convertedDate = dateFormat.parse(confgEntry.substring(confgEntry.indexOf('=') + 1));
 				scheduerExpression.start(convertedDate);
-				found = true;
-
 			}
 
 			/* End date */
@@ -357,32 +325,76 @@ public class SchedulerService {
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
 				Date convertedDate = dateFormat.parse(confgEntry.substring(confgEntry.indexOf('=') + 1));
 				scheduerExpression.end(convertedDate);
-				found = true;
-
 			}
 
 		}
 
-		if (found) {
+		Timer timer = timerService.createCalendarTimer(scheduerExpression, timerConfig);
 
-			// log timer settings
-			logger.finest("...scheudler settings for timer '" + id + "':");
-			logger.info("...... second=" + scheduerExpression.getSecond());
-			logger.info("...... minute=" + scheduerExpression.getMinute());
-			logger.info("...... hour=" + scheduerExpression.getHour());
-			logger.info("...... dayOfWeek=" + scheduerExpression.getDayOfWeek());
-			logger.info("...... dayOfMonth=" + scheduerExpression.getDayOfMonth());
-			logger.info("...... year=" + scheduerExpression.getYear());
+		return timer;
 
-			Timer timer = timerService.createCalendarTimer(scheduerExpression, timerConfig);
+	}
 
-			logger.info("...timer for id '" + id + "' started...");
-			return timer;
-		} else {
-			logger.info("...no valid timer settings for id '" + id + "' defined.");
-			return null;
+	/**
+	 * This is the method which processes the timeout event depending on the running
+	 * timer settings. The method calls the abstract method 'process' which need to
+	 * be implemented by a subclass.
+	 * 
+	 * @param timer
+	 * @throws Exception
+	 * @throws QueryException
+	 */
+	@Timeout
+	void onTimeout(javax.ejb.Timer timer) throws Exception {
+		String errorMes = "";
+		// start time....
+		long lProfiler = System.currentTimeMillis();
+		String keyspaceID = timer.getInfo().toString();
+
+		ItemCollection configuration = confiugrationService.loadConfiguration(keyspaceID);
+
+		if (configuration == null) {
+			logger.severe("...failed to load scheduler configuration for current timer. Timer will be stopped...");
+			return;
 		}
 
+		try {
+			// ...start processing
+			logger.info("...run scheduler '" + keyspaceID + "....");
+			XMLDocument xmlDocument = syncService.readSyncData(configuration);
+
+			if (xmlDocument != null) {
+				ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
+				logger.info("......new snapshot found: " + snapshot.getUniqueID());
+			
+				// update stats....
+				logger.info("...Data found - new Syncpoint=");
+
+				int syncs = configuration.getItemValue("_sync_count", Integer.class);
+				syncs++;
+				configuration.setItemValue("_sync_count", syncs);
+				logger.info("...run scheduler  '" + keyspaceID + "' finished in: "
+						+ ((System.currentTimeMillis()) - lProfiler) + " ms");
+
+			}
+
+		} catch (RuntimeException e) {
+			// in case of an exception we did not cancel the Timer service
+			if (logger.isLoggable(Level.FINEST)) {
+				e.printStackTrace();
+			}
+			errorMes = e.getMessage();
+			logger.severe("Scheduler '" + keyspaceID + "' failed: " + errorMes);
+
+			configuration = stop(configuration, timer);
+		} finally {
+			// Save statistic in configuration
+			if (configuration != null) {
+				configuration.replaceItemValue("errormessage", errorMes);
+				confiugrationService.saveConfiguration(configuration);
+
+			}
+		}
 	}
 
 }

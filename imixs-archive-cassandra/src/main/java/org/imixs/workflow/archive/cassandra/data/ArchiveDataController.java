@@ -3,10 +3,13 @@ package org.imixs.workflow.archive.cassandra.data;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
+import javax.validation.Valid;
+import javax.validation.constraints.Pattern;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
@@ -23,13 +26,19 @@ import org.imixs.workflow.archive.cassandra.services.SchedulerService;
 public class ArchiveDataController implements Serializable {
 
 	private static final long serialVersionUID = 1L;
+	
+	public static final String KEYSPACE_NAME_PATTERN = "^[A-Z]{2}(?:[ ]?[0-9]){18,20}$";
 
 	@EJB
 	SchedulerService schedulerService;
 
 	List<ItemCollection> configurations = null;
 	ItemCollection configuration = null;
-	long timeRemaining;
+	//long timeRemaining;
+	
+	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
+
+	
 
 	public ArchiveDataController() {
 		super();
@@ -54,8 +63,9 @@ public class ArchiveDataController implements Serializable {
 		// refresh timeouts...
 		for (ItemCollection config : this.configurations) {
 			// test if the timer is active...
-			timeRemaining = schedulerService.getTimeRemaining(config.getItemValueString("keyspace"));
-			config.replaceItemValue("timeRemaining", timeRemaining);
+			 schedulerService.updateTimerDetails(config);
+			//.getTimeRemaining(config.getItemValueString("keyspace"));
+			//config.replaceItemValue("timeRemaining", timeRemaining);
 		}
 	}
 
@@ -99,9 +109,14 @@ public class ArchiveDataController implements Serializable {
 		this.configuration = configuration;
 
 		// test if the timer is active...
-		timeRemaining = schedulerService.getTimeRemaining(configuration.getItemValueString("keyspace"));
+		schedulerService.updateTimerDetails(configuration);
+		//.getTimeRemaining(configuration.getItemValueString("keyspace"));
 
-		configuration.replaceItemValue("timeRemaining", timeRemaining);
+		//configuration.replaceItemValue("timeRemaining", timeRemaining);
 	}
+	
+	
+	
+
 
 }

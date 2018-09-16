@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.inject.Inject;
 import javax.mvc.annotation.Controller;
-
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -16,7 +15,7 @@ import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
 import org.imixs.workflow.archive.cassandra.data.ArchiveDataController;
 import org.imixs.workflow.archive.cassandra.data.ErrorController;
-import org.imixs.workflow.archive.cassandra.services.ClusterService;
+import org.imixs.workflow.archive.cassandra.services.ConfigurationService;
 import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 
 /**
@@ -31,8 +30,11 @@ import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 public class ArchiveController {
 	private static Logger logger = Logger.getLogger(ArchiveController.class.getName());
 
+	
+	public static final String KEYSPACE_REGEX="^[a-z_]*[^-]$";
+	
 	@EJB
-	ClusterService clusterService;
+	ConfigurationService configurationService;
 
 	@Inject
 	ArchiveDataController archiveDataController;
@@ -51,7 +53,7 @@ public class ArchiveController {
 
 		logger.finest("......show config...");
 
-		archiveDataController.setConfigurations(clusterService.getConfigurationList());
+		archiveDataController.setConfigurations(configurationService.getConfigurationList());
 
 		return "archive_list.xhtml";
 	}
@@ -66,8 +68,8 @@ public class ArchiveController {
 	public String editKeySpace(@PathParam("keyspace") String keyspace) {
 
 		errorController.reset();
-		logger.info("edit archive config '" + keyspace + "'...");
-		archiveDataController.setConfiguration(clusterService.getConfigurationByName(keyspace));
+		logger.finest("......edit archive config '" + keyspace + "'...");
+		archiveDataController.setConfiguration(configurationService.loadConfiguration(keyspace));
 
 		return "archive_config.xhtml";
 	}
@@ -81,7 +83,7 @@ public class ArchiveController {
 	@GET
 	public String createKeySpace() {
 		errorController.reset();
-		logger.info("create archive config...");
+		logger.info("...create archive config...");
 
 		return "archive_config.xhtml";
 	}
@@ -97,9 +99,9 @@ public class ArchiveController {
 	@GET
 	public String deleteKeySpace(@PathParam("keyspace") String keyspace) throws ImixsArchiveException {
 
-		logger.info("delete archive config '" + keyspace + "'...");
-		ItemCollection configuration = clusterService.getConfigurationByName(keyspace);
-		String message=clusterService.deleteConfiguration(configuration);
+		logger.info("...delete archive config '" + keyspace + "'...");
+		ItemCollection configuration = configurationService.loadConfiguration(keyspace);
+		String message=configurationService.deleteConfiguration(configuration);
 		
 		errorController.setMessage(message);
 
@@ -129,8 +131,8 @@ public class ArchiveController {
 
 		
 		// validate keyspace pattern
-		if (keyspace.matches("-?\\d+(\\.\\d+)?")) {
-			errorController.setMessage("Keyspace can not be a numeric value!");
+		if (!keyspace.matches(KEYSPACE_REGEX)) {
+			errorController.setMessage("Keyspace may not contain - or contain a numeric value!");
 			return "redirect:archive";
 		}
 		
@@ -151,7 +153,7 @@ public class ArchiveController {
 		logger.info("update configuration for keyspace '" + keyspace + "' ....");
 		try {
 			// save the archive configuration
-			clusterService.saveConfiguration(archive);
+			configurationService.saveConfiguration(archive);
 		} catch (ImixsArchiveException e) {
 			logger.severe(e.getMessage());
 			errorController.setMessage(e.getMessage());

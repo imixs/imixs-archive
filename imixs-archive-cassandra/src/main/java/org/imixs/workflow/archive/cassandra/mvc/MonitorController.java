@@ -74,7 +74,7 @@ public class MonitorController {
 	@Path("/")
 	@GET
 	public String showSetupSettings() {
-		logger.info("show monitor...");
+		logger.finest("......show monitor...");
 		// refresh config....
 		clusterDataController.refreshConfiguration();
 		return "monitor.xhtml";
