@@ -26,7 +26,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,11 +37,12 @@ import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
+import javax.ws.rs.Path;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
-import org.imixs.workflow.exceptions.AccessDeniedException;
-import org.imixs.workflow.exceptions.InvalidAccessException;
 import org.imixs.workflow.exceptions.QueryException;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -71,12 +71,13 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
  * @author rsoika
  * 
  */
+
 @Stateless
 public class SchedulerService {
 
-	public final static String ITEM_SCHEDULER_NAME = "txtname";
+//	public final static String ITEM_SCHEDULER_NAME = "txtname";
 	public final static String ITEM_SCHEDULER_ENABLED = "_scheduler_enabled";
-	public final static String ITEM_SCHEDULER_CLASS = "_scheduler_class";
+//	public final static String ITEM_SCHEDULER_CLASS = "_scheduler_class";
 	public final static String ITEM_SCHEDULER_DEFINITION = "_scheduler_definition";
 
 	@Resource
@@ -113,17 +114,17 @@ public class SchedulerService {
 	 * 
 	 * @param configuration - scheduler configuration
 	 * @return updated configuration
-	 * @throws AccessDeniedException
-	 * @throws ParseException
+	 * @throws ImixsArchiveException 
 	 */
-	public ItemCollection start(ItemCollection configuration) throws AccessDeniedException, ParseException {
+	public ItemCollection start(String id) throws ImixsArchiveException {
 		Timer timer = null;
-		if (configuration == null)
-			return null;
-		
-		
 
-		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
+		ItemCollection configuration = confiugrationService.loadConfiguration(id);
+
+		if (configuration == null) {
+			return null;
+		}
+
 		// try to cancel an existing timer for this workflowinstance
 		timer = findTimer(id);
 		if (timer != null) {
@@ -131,36 +132,44 @@ public class SchedulerService {
 				timer.cancel();
 				timer = null;
 			} catch (Exception e) {
-				logger.warning("...failed to stop existing timer for '" +id + "'!");
-				throw new InvalidAccessException(SchedulerService.class.getName(), SchedulerException.INVALID_WORKITEM,
+				logger.warning("...failed to stop existing timer for '" + id + "'!");
+				throw new ImixsArchiveException(SchedulerService.class.getName(), SchedulerException.INVALID_WORKITEM,
 						" failed to cancle existing timer!");
 			}
 		}
 
-		logger.info("...Scheduler Service " +id + " will be started...");
-		String schedulerDescription = configuration.getItemValueString(ITEM_SCHEDULER_DEFINITION);
+		try {
+			logger.info("...Scheduler Service " + id + " will be started...");
+			String schedulerDescription = configuration.getItemValueString(ITEM_SCHEDULER_DEFINITION);
 
-		if (!schedulerDescription.isEmpty()) {
-			// New timer will be started on calendar confiugration
-			timer = createTimerOnCalendar(configuration);
-		}
-		// start and set statusmessage
-		if (timer != null) {
+			if (!schedulerDescription.isEmpty()) {
+				// New timer will be started on calendar confiugration
 
-			Calendar calNow = Calendar.getInstance();
-			SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
-			String msg = "started at " + dateFormatDE.format(calNow.getTime()) + " by "
-					+ ctx.getCallerPrincipal().getName();
-			configuration.replaceItemValue("statusmessage", msg);
-
-			if (timer.isCalendarTimer()) {
-				configuration.replaceItemValue("Schedule", timer.getSchedule().toString());
-			} else {
-				configuration.replaceItemValue("Schedule", "");
+				timer = createTimerOnCalendar(configuration);
 
 			}
-			logger.info("...Scheduler Service" + id + " (" + configuration.getItemValueString("txtName")
-					+ ") successfull started.");
+			// start and set statusmessage
+			if (timer != null) {
+
+				Calendar calNow = Calendar.getInstance();
+				SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
+				String msg = "started at " + dateFormatDE.format(calNow.getTime()) + " by "
+						+ ctx.getCallerPrincipal().getName();
+				configuration.replaceItemValue("statusmessage", msg);
+
+				if (timer.isCalendarTimer()) {
+					configuration.replaceItemValue("Schedule", timer.getSchedule().toString());
+				} else {
+					configuration.replaceItemValue("Schedule", "");
+
+				}
+				logger.info("...Scheduler Service" + id + " (" + configuration.getItemValueString("txtName")
+						+ ") successfull started.");
+			}
+
+		} catch (ParseException e) {
+			throw new ImixsArchiveException(SchedulerService.class.getName(), SchedulerException.INVALID_WORKITEM,
+					" failed to start timer: "+e.getMessage());
 		}
 		configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
 		configuration.replaceItemValue("errormessage", "");
@@ -176,8 +185,11 @@ public class SchedulerService {
 	 * 
 	 * 
 	 */
-	public ItemCollection stop(ItemCollection configuration) {
-		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
+	public ItemCollection stop(String id) {
+		ItemCollection configuration = confiugrationService.loadConfiguration(id);
+		if (configuration == null) {
+			return null;
+		}
 		Timer timer = findTimer(id);
 		return stop(configuration, timer);
 
@@ -203,8 +215,7 @@ public class SchedulerService {
 			}
 			configuration.replaceItemValue("statusmessage", message);
 
-			logger.info("... scheduler " + configuration.getItemValueString("txtName") + " stopped: "
-					+ id);
+			logger.info("... scheduler " + configuration.getItemValueString("txtName") + " stopped: " + id);
 		} else {
 			String msg = "stopped";
 			configuration.replaceItemValue("statusmessage", msg);
@@ -245,9 +256,9 @@ public class SchedulerService {
 	public void updateTimerDetails(ItemCollection configuration) {
 		if (configuration == null)
 			return;// configuration;
-		
+
 		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
-		
+
 		Timer timer;
 		try {
 			timer = this.findTimer(id);
@@ -297,7 +308,7 @@ public class SchedulerService {
 
 		String sDefinition = configuration.getItemValueString(ITEM_SCHEDULER_DEFINITION);
 		String calendarConfiguation[] = sDefinition.split("\\r?\\n");
-		
+
 		// try to parse the configuration list....
 		for (String confgEntry : calendarConfiguation) {
 
@@ -374,12 +385,15 @@ public class SchedulerService {
 		try {
 			// ...start processing
 			logger.info("...run scheduler '" + keyspaceID + "....");
+			
+			
+			
 			XMLDocument xmlDocument = syncService.readSyncData(configuration);
 
 			if (xmlDocument != null) {
 				ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
 				logger.info("......new snapshot found: " + keyspaceID);
-			
+
 				// update stats....
 				logger.info("...Data found - new Syncpoint=");
 

@@ -117,21 +117,21 @@
 								</div>
 							</div>
 						</div>
-					
+
 						<!-- **** Timer Status ***** -->
 						<div class="imixs-form-panel">
 							<div id="timer_details" class="imixs-form-section">
 
-								<h3>
-									Timer Status ⇢
+								<h3>Timer Status ⇢
 									#{configurationDataController.configuration.item['statusMessage']}
 
-									<ui:fragment
-										rendered="#{! empty configurationDataController.configuration.item['errormessage']}"
-										class="small" style="color:red">
-										<br />Error: #{configurationDataController.configuration.item['errormessage']}"
-									</ui:fragment>
+
 								</h3>
+								<ui:fragment
+									rendered="#{! empty configurationDataController.configuration.item['errormessage']}">
+									<h3 class="small" style="color: red">Error:
+										#{configurationDataController.configuration.item['errormessage']}</h3>
+								</ui:fragment>
 
 								<table>
 

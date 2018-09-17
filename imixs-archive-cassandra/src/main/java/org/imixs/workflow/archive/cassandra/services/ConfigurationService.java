@@ -3,7 +3,6 @@ package org.imixs.workflow.archive.cassandra.services;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -54,7 +53,10 @@ public class ConfigurationService {
 
 	/**
 	 * This method initializes the Core-KeySpace and creates the table schema if not
-	 * exits. The method returns true if the Core-KeySpace is accessible
+	 * exits. The method returns true if the Core-KeySpace is accessible.
+	 * <p>
+	 * The method starts all enabled schedulers for existing configurations. 
+	 * 
 	 */
 	public boolean init() {
 		try {
@@ -66,7 +68,9 @@ public class ConfigurationService {
 				logger.info("...starting schedulers...");
 				List<ItemCollection> archives = this.getConfigurationList();
 				for (ItemCollection configItemCollection : archives) {
-					schedulerService.start(configItemCollection);
+					if (configItemCollection.getItemValueBoolean(SchedulerService.ITEM_SCHEDULER_ENABLED)) {
+						schedulerService.start(configItemCollection.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE));
+					}
 				}
 
 				return true;
@@ -83,7 +87,7 @@ public class ConfigurationService {
 
 	/**
 	 * This method saves a archive configuration into the Core-KeySpace. A
-	 * configuration defines a archive.
+	 * configuration defines an archive keyspace.
 	 * 
 	 * @param configuration
 	 * @throws ImixsArchiveException
@@ -94,9 +98,10 @@ public class ConfigurationService {
 		BoundStatement bound = null;
 
 		String keyspace = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
-		// stop timer
-		schedulerService.stop(configuration);
-
+	
+		if (keyspace.isEmpty()) {
+			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT,"missing keyspace!");
+		}
 		configuration.replaceItemValue(WorkflowKernel.MODIFIED, new Date());
 
 		// do we have a valid SyncPoint?
@@ -106,9 +111,6 @@ public class ConfigurationService {
 		}
 
 		try {
-			// restart timer....
-			schedulerService.start(configuration);
-
 			// create byte array from XMLDocument...
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
@@ -118,7 +120,7 @@ public class ConfigurationService {
 			XMLDocument xmlDocument = XMLDocumentAdapter.getDocument(configuration);
 			m.marshal(xmlDocument, outputStream);
 			data = outputStream.toByteArray();
-		} catch (JAXBException | AccessDeniedException | ParseException e) {
+		} catch (JAXBException | AccessDeniedException e) {
 			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
 		}
 
@@ -146,7 +148,7 @@ public class ConfigurationService {
 		String keyspace = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
 
 		// first stop the timer
-		schedulerService.stop(configuration);
+		schedulerService.stop(configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE));
 
 		// next delete the keyspace....
 		try {
@@ -179,7 +181,8 @@ public class ConfigurationService {
 	 * Core-KeySpace. The method updates the timer details for each configuration
 	 * delevered by the ScheudlerService.
 	 * <p>
-	 * The flag "_scheduler_enabled" indicates if a timer for a configuraiton is running.
+	 * The flag "_scheduler_enabled" indicates if a timer for a configuraiton is
+	 * running.
 	 * 
 	 * 
 	 * @return configuration list

@@ -188,11 +188,6 @@
 			<artifactId>imixs-workflow-core</artifactId>
 			<scope>compile</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.imixs.workflow</groupId>
-			<artifactId>imixs-melman</artifactId>
-			<scope>compile</scope>
-		</dependency>
 		<!-- mvc-api -->
 		<dependency>
 			<groupId>javax.mvc</groupId>
@@ -211,7 +206,6 @@
 			<version>3.4.0</version>
 			<scope>compile</scope>
 		</dependency>
-
 
 
 		<!-- Java EE dependencies -->

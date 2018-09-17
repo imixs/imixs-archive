@@ -3,12 +3,14 @@ package org.imixs.workflow.archive.cassandra.services;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
 
-import org.imixs.melman.BasicAuthenticator;
-import org.imixs.melman.FormAuthenticator;
-import org.imixs.melman.WorkflowClient;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
+import org.imixs.workflow.services.rest.BasicAuthenticator;
+import org.imixs.workflow.services.rest.FormAuthenticator;
+import org.imixs.workflow.services.rest.RestClient;
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 
@@ -23,6 +25,7 @@ import org.imixs.workflow.xml.XMLDocument;
  * @author rsoika
  *
  */
+@Path("/sync")
 @Stateless
 public class SyncService {
 	
@@ -30,6 +33,22 @@ public class SyncService {
 	
 	private static Logger logger = Logger.getLogger(SyncService.class.getName());
 
+		
+	/**
+	 * Ping test
+	 * 
+	 * @return time
+	 * @throws Exception
+	 */
+	@GET
+	@Path("/")
+	public String ping() {
+		logger.finest("......Ping....");
+		java.time.LocalDate localDate = java.time.LocalDate.now();
+		return "Ping: " + localDate;
+	}
+	
+	
 	
 	/**
 	 * This method read sync data. The method returns the first workitem from the
@@ -46,14 +65,14 @@ public class SyncService {
 		// load next document
 		long syncPoint = configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
 
-		WorkflowClient workflowClient = initWorkflowClient(configuration);
+		RestClient workflowClient =initWorkflowClient(configuration);
 
 		String url = SNAPSHOT_RESOURCE  + syncPoint;
 
 		logger.info("...... read data: " + url + "....");
 
-		try {
-			result = workflowClient.getCustomResourceXML(url);
+		try {			
+			result = workflowClient.getXMLDataCollection(url);
 		} catch (Exception e) {
 			String errorMessage="Failed to connnect '" + url + " : " + e.getMessage();
 			logger.warning("..."+errorMessage);
@@ -65,16 +84,21 @@ public class SyncService {
 		}
 		return null;
 	}
+	
+	 
 
 	/**
 	 * Helper method to initalize a Melman Workflow Client based on the current
 	 * archive configuration.
 	 */
-	private WorkflowClient initWorkflowClient(ItemCollection configuration) {
+	private RestClient initWorkflowClient(ItemCollection configuration) {
 		String url = configuration.getItemValueString(ImixsArchiveApp.ITEM_URL);
 		logger.info("...... init rest client - url = " + url);
+		
+		RestClient workflowClient = new RestClient(url);
 
-		WorkflowClient workflowClient = new WorkflowClient(url);
+
+		
 		// Test authentication method
 		if ("Form".equalsIgnoreCase(configuration.getItemValueString(ImixsArchiveApp.ITEM_AUTHMETHOD))) {
 			// default basic authenticator
@@ -82,7 +106,7 @@ public class SyncService {
 					configuration.getItemValueString(ImixsArchiveApp.ITEM_USERID),
 					configuration.getItemValueString(ImixsArchiveApp.ITEM_PASSWORD));
 			// register the authenticator
-			workflowClient.registerClientRequestFilter(formAuth);
+			workflowClient.registerRequestFilter(formAuth);
 
 		} else {
 			// default basic authenticator
@@ -90,7 +114,7 @@ public class SyncService {
 					configuration.getItemValueString(ImixsArchiveApp.ITEM_USERID),
 					configuration.getItemValueString(ImixsArchiveApp.ITEM_PASSWORD));
 			// register the authenticator
-			workflowClient.registerClientRequestFilter(basicAuth);
+			workflowClient.registerRequestFilter(basicAuth);
 		}
 		return workflowClient;
 	}
