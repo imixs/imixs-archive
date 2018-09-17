@@ -10,6 +10,7 @@ import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
 import org.imixs.workflow.services.rest.BasicAuthenticator;
 import org.imixs.workflow.services.rest.FormAuthenticator;
+import org.imixs.workflow.services.rest.RestAPIException;
 import org.imixs.workflow.services.rest.RestClient;
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
@@ -73,8 +74,8 @@ public class SyncService {
 
 		try {			
 			result = workflowClient.getXMLDataCollection(url);
-		} catch (Exception e) {
-			String errorMessage="Failed to connnect '" + url + " : " + e.getMessage();
+		} catch (RestAPIException e) {
+			String errorMessage="Failed to readSyncData : " + e.getMessage();
 			logger.warning("..."+errorMessage);
 			throw new ImixsArchiveException(ImixsArchiveException.SYNC_ERROR, errorMessage);
 		}
