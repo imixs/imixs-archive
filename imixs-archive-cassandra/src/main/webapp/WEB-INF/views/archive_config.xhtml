@@ -16,7 +16,7 @@
 
 			<div class="row">
 
-				<div class="col-6">
+				<div class="col-12">
 					<form
 						action="#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/"
 						method="post">
@@ -139,6 +139,11 @@
 										<td>Sync Point :</td>
 										<td>#{configurationDataController.syncPoint}</td>
 									</tr>
+									
+									<tr>
+										<td>Syncs Total :</td>
+										<td>#{configurationDataController.configuration.item['_sync_count']}</td>
+									</tr>
 									<tr>
 										<td>Schedule:</td>
 										<td>#{configurationDataController.configuration.item['Schedule']}</td>
@@ -151,11 +156,6 @@
 									</tr>
 
 									<tr>
-										<td>TimeRemaining:</td>
-										<td>#{configurationDataController.configuration.item['timeRemaining']}</td>
-									</tr>
-									<tr>
-
 										<td>Last run:</td>
 										<td>#{configurationDataController.configuration.item['datLastRun']}</td>
 									</tr>

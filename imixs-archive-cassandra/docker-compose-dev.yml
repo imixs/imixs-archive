@@ -2,7 +2,7 @@ version: "3.1"
 services:
 
   imixsofficeworkflow:
-    image: imixs/imixs-office-workflow:3.4.0-SNAPSHOT
+    image: imixs/imixs-office-workflow:3.4.1-SNAPSHOT
     environment:
       WILDFLY_PASS: adminadmin
       DEBUG: "true"

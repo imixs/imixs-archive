@@ -63,8 +63,6 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
  * 
  * nextTimeout - Next Timeout - pint of time when the service will be scheduled
  * 
- * timeRemaining - Timeout in milliseconds
- * 
  * statusmessage - text message
  * 
  * 
@@ -88,9 +86,12 @@ public class SchedulerService {
 
 	@EJB
 	SyncService syncService;
+	
+	@EJB
+	DocumentService documentService;
 
 	@EJB
-	ConfigurationService confiugrationService;
+	ConfigurationService configurationService;
 
 	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
@@ -119,7 +120,7 @@ public class SchedulerService {
 	public ItemCollection start(String id) throws ImixsArchiveException {
 		Timer timer = null;
 
-		ItemCollection configuration = confiugrationService.loadConfiguration(id);
+		ItemCollection configuration = configurationService.loadConfiguration(id);
 
 		if (configuration == null) {
 			return null;
@@ -186,7 +187,7 @@ public class SchedulerService {
 	 * 
 	 */
 	public ItemCollection stop(String id) {
-		ItemCollection configuration = confiugrationService.loadConfiguration(id);
+		ItemCollection configuration = configurationService.loadConfiguration(id);
 		if (configuration == null) {
 			return null;
 		}
@@ -222,7 +223,6 @@ public class SchedulerService {
 
 		}
 		configuration.removeItem("nextTimeout");
-		configuration.removeItem("timeRemaining");
 		configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
 		return configuration;
 	}
@@ -247,7 +247,7 @@ public class SchedulerService {
 
 	/**
 	 * Updates the timer details of a running timer service. The method updates the
-	 * properties netxtTimeout and timeRemaining and store them into the timer
+	 * properties netxtTimeout and store them into the timer
 	 * configuration.
 	 * 
 	 * 
@@ -265,17 +265,14 @@ public class SchedulerService {
 			if (timer != null) {
 				// load current timer details
 				configuration.replaceItemValue("nextTimeout", timer.getNextTimeout());
-				configuration.replaceItemValue("timeRemaining", timer.getTimeRemaining());
 				configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
 			} else {
 				configuration.removeItem("nextTimeout");
-				configuration.removeItem("timeRemaining");
 				configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
 			}
 		} catch (Exception e) {
 			logger.warning("unable to updateTimerDetails: " + e.getMessage());
 			configuration.removeItem("nextTimeout");
-			configuration.removeItem("timeRemaining");
 			configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
 		}
 	}
@@ -375,12 +372,14 @@ public class SchedulerService {
 		long lProfiler = System.currentTimeMillis();
 		String keyspaceID = timer.getInfo().toString();
 
-		ItemCollection configuration = confiugrationService.loadConfiguration(keyspaceID);
+		ItemCollection configuration = configurationService.loadConfiguration(keyspaceID);
 
 		if (configuration == null) {
 			logger.severe("...failed to load scheduler configuration for current timer. Timer will be stopped...");
 			return;
 		}
+		
+		
 
 		try {
 			// ...start processing
@@ -392,18 +391,33 @@ public class SchedulerService {
 
 			if (xmlDocument != null) {
 				ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
-				logger.info("......new snapshot found: " + keyspaceID);
-
+			
+				// update snypoint
+				Date syncpointdate = snapshot.getItemValueDate("$modified");
+				logger.info("...data found - new syncpoint="+syncpointdate.getTime());
+				
+				
+				// store data into archive
+				documentService.saveDocument(snapshot, keyspaceID);
+				
+				
+				configuration.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT,syncpointdate.getTime());
+				
 				// update stats....
-				logger.info("...Data found - new Syncpoint=");
 
 				int syncs = configuration.getItemValue("_sync_count", Integer.class);
 				syncs++;
 				configuration.setItemValue("_sync_count", syncs);
-				logger.info("...run scheduler  '" + keyspaceID + "' finished in: "
-						+ ((System.currentTimeMillis()) - lProfiler) + " ms");
+				
 
+			} else {
+				// no more syncpoints
+				logger.info("...no more data found for syncpoint: "+configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT));
+				
 			}
+			
+			logger.info("...run scheduler  '" + keyspaceID + "' finished in: "
+					+ ((System.currentTimeMillis()) - lProfiler) + " ms");
 
 		} catch (ImixsArchiveException | RuntimeException e) {
 			// in case of an exception we did not cancel the Timer service
@@ -418,7 +432,7 @@ public class SchedulerService {
 			// Save statistic in configuration
 			if (configuration != null) {
 				configuration.replaceItemValue("errormessage", errorMes);
-				confiugrationService.saveConfiguration(configuration);
+				configurationService.saveConfiguration(configuration);
 
 			}
 		}

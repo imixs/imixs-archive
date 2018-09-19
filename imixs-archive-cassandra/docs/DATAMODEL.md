@@ -22,9 +22,9 @@ The table schema is defined as followed:
 
 
 	CREATE TABLE IF NOT EXISTS snapshots (
-		id text, 
+		snapshot text, 
 		data blob, 
-		PRIMARY KEY (id))
+		PRIMARY KEY (snapshot))
 	
 	CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (
 		uniqueid text,
@@ -33,8 +33,8 @@ The table schema is defined as followed:
 	
 	CREATE TABLE IF NOT EXISTS snapshots_by_modified (
 		modified date,
-		id text,
-		PRIMARY KEY(modified, id));
+		snapshot text,
+		PRIMARY KEY(modified, snapshot));
 
 **Note:** The imixs-archive-cassandra application creates the schemas in background. So a manual creation of schemas is not necessary. 
 
@@ -63,7 +63,7 @@ The following section contains some basic cqlsh commands. For full description s
 
 Show all available keyspaces:
 
-	cqlsh> DESC KEYSPACES;	
+	cqlsh> DESC KEYSPACES;
 	
 **Switch to Keysapce:**
 
@@ -86,6 +86,24 @@ Drop the keyspace:
 ### Create a dev keyspace with cqlsh
 
 	cqlsh> CREATE KEYSPACE imixs_dev WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-	
 
 
+
+### Inspect the Content of the Core-Archive
+The Core-Archive keyspace provides data about syncpoints of each archive:
+
+	 cqlsh> use imixsarchive;
+	 cqlsh> select * from configurations ;
+	 
+The data shown here is the serialized information of an XMLDocument for each configuration. Use the Web-UI to inspect the data. 
+
+	 
+
+### Inspect the Content of an Archive
+
+To see the latest upsets of an archive use:
+
+ 
+	cqlsh> use my_archive;
+	cqlsh> select * from snapshots;
+	 

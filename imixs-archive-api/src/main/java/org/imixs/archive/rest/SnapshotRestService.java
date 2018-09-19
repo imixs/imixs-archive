@@ -127,7 +127,7 @@ public class SnapshotRestService implements Serializable {
 		// ISO date time format: '2016-08-25 01:23:46.0',
 		DateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		String query = "SELECT document FROM Document AS document ";
-		query += " WHERE document.modified >= '" + isoFormat.format(syncpoint) + "'";
+		query += " WHERE document.modified > '" + isoFormat.format(syncpoint) + "'";
 		query += " AND document.type LIKE '" + SnapshotService.TYPE_PRAFIX + "%' ";
 		query += " ORDER BY document.modified DESC";
 		logger.finest("......QUERY=" + query);
