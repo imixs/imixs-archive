@@ -67,9 +67,7 @@ public class SyncService {
 		long syncPoint = configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
 
 		RestClient workflowClient =initWorkflowClient(configuration);
-
 		String url = SNAPSHOT_RESOURCE  + syncPoint;
-
 		logger.info("...... read data: " + url + "....");
 
 		try {			
@@ -77,7 +75,7 @@ public class SyncService {
 		} catch (RestAPIException e) {
 			String errorMessage="Failed to readSyncData : " + e.getMessage();
 			logger.warning("..."+errorMessage);
-			throw new ImixsArchiveException(ImixsArchiveException.SYNC_ERROR, errorMessage);
+			throw new ImixsArchiveException(ImixsArchiveException.SYNC_ERROR, errorMessage,e);
 		}
 
 		if (result != null && result.getDocument().length > 0) {
