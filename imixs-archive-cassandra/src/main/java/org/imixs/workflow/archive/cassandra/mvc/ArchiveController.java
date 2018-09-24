@@ -1,5 +1,6 @@
 package org.imixs.workflow.archive.cassandra.mvc;
 
+import java.util.Date;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
@@ -126,7 +127,8 @@ public class ArchiveController {
 	public String saveArchiveKeySpace(@FormParam(ImixsArchiveApp.ITEM_KEYSPACE) String keyspace,
 			@FormParam("url") String url, @FormParam("_scheduler_definition") String schedulerDefinition,
 			@FormParam("authmethod") String authmethod, @FormParam("userid") String userid,
-			@FormParam("password") String password) {
+			@FormParam("password") String password,
+			@FormParam("syncpoint") int syncpoint) {
 
 		errorController.reset();
 
@@ -144,6 +146,13 @@ public class ArchiveController {
 			archive.replaceItemValue(ImixsArchiveApp.ITEM_USERID, userid);
 			archive.replaceItemValue(ImixsArchiveApp.ITEM_PASSWORD, password);
 			archive.replaceItemValue(ImixsArchiveApp.ITEM_AUTHMETHOD, authmethod);
+			
+			
+			// syncpoint?
+			if (syncpoint==0) {
+				logger.finest("......reset syncpoint to 0");
+				archive.replaceItemValue(ImixsArchiveApp.ITEM_SYNCPOINT,new Date(0));
+			}
 
 			if (schedulerDefinition == null || schedulerDefinition.isEmpty()) {
 				schedulerDefinition = "hour=*"; // defaut setting

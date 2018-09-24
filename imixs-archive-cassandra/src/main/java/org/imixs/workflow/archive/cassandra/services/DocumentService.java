@@ -71,7 +71,7 @@ public class DocumentService {
 
 		// extract $snapshotid 2de78aec-6f14-4345-8acf-dd37ae84875d-1530315900599
 		String[] snapshotSegments = snapshotID.split("-");
-		//String snapshotDigits = snapshotSegments[snapshotSegments.length - 1];
+		// String snapshotDigits = snapshotSegments[snapshotSegments.length - 1];
 		String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
 
 		// create byte array from XMLDocument...
@@ -87,25 +87,35 @@ public class DocumentService {
 			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
 		}
 
-		// get session from archive....
-		Session session = clusterService.getArchiveSession(keyspace);
+		Session session = null;
+		try {
+			// get session from archive....
+			session = clusterService.getArchiveSession(keyspace);
 
-		// upset document....
-		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS);
-		bound = statement.bind().setString(COLUMN_SNAPSHOT, itemCol.getUniqueID()).setBytes(COLUMN_DATA,
-				ByteBuffer.wrap(data));
-		session.execute(bound);
+			// upset document....
+			statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS);
+			bound = statement.bind().setString(COLUMN_SNAPSHOT, itemCol.getUniqueID()).setBytes(COLUMN_DATA,
+					ByteBuffer.wrap(data));
+			session.execute(bound);
 
-		// upset document_snapshots....
-		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_UNIQUEID);
-		bound = statement.bind().setString(COLUMN_UNIQUEID, originUnqiueID).setString(COLUMN_SNAPSHOT, itemCol.getUniqueID());
-		session.execute(bound);
+			// upset document_snapshots....
+			statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_UNIQUEID);
+			bound = statement.bind().setString(COLUMN_UNIQUEID, originUnqiueID).setString(COLUMN_SNAPSHOT,
+					itemCol.getUniqueID());
+			session.execute(bound);
 
-		// upset document_modified....
-		LocalDate ld = LocalDate.fromMillisSinceEpoch(itemCol.getItemValueDate("$modified").getTime());
-		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED);
-		bound = statement.bind().setDate(COLUMN_MODIFIED, ld).setString(COLUMN_SNAPSHOT, itemCol.getUniqueID());
-		session.execute(bound);
+			// upset document_modified....
+			LocalDate ld = LocalDate.fromMillisSinceEpoch(itemCol.getItemValueDate("$modified").getTime());
+			statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED);
+			bound = statement.bind().setDate(COLUMN_MODIFIED, ld).setString(COLUMN_SNAPSHOT, itemCol.getUniqueID());
+			session.execute(bound);
+
+		} finally {
+			if (session != null) {
+				session.close();
+			}
+		}
+
 	}
 
 	/**

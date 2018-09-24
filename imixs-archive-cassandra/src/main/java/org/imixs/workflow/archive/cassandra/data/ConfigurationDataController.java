@@ -100,11 +100,9 @@ public class ConfigurationDataController implements Serializable {
 	public void setConfiguration(ItemCollection configuration) {
 		this.configuration = configuration;
 
+		logger.finest("......update timer details...");
 		// test if the timer is active...
 		schedulerService.updateTimerDetails(configuration);
-		//.getTimeRemaining(configuration.getItemValueString("keyspace"));
-
-		//configuration.replaceItemValue("timeRemaining", timeRemaining);
 	}
 	
 	

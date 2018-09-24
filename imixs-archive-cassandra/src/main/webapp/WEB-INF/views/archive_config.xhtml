@@ -139,11 +139,8 @@
 										<td>Sync Point :</td>
 										<td>#{configurationDataController.syncPoint}</td>
 									</tr>
-									
-									<tr>
-										<td>Syncs Total :</td>
-										<td>#{configurationDataController.configuration.item['_sync_count']}</td>
-									</tr>
+
+
 									<tr>
 										<td>Schedule:</td>
 										<td>#{configurationDataController.configuration.item['Schedule']}</td>
@@ -160,6 +157,10 @@
 										<td>#{configurationDataController.configuration.item['datLastRun']}</td>
 									</tr>
 
+									<tr>
+										<td>Total Syncs :</td>
+										<td>#{configurationDataController.configuration.item['_sync_count']}</td>
+									</tr>
 									<tr>
 										<td>Log:</td>
 										<td><pre>
@@ -186,9 +187,21 @@
 							<input type="submit"
 								value="#{empty configurationDataController.configuration.item['keyspace']?'Create':'Update'}" />
 
-							<input type="button"
+							<input type="submit"
+								value="#{empty configurationDataController.configuration.item['keyspace']?'Create':'Update'}" />
+
+
+							<input type="submit" value="Reset" onclick="$('#syncpoint_id').val(0);" /> 
+							
+							<input type="hidden" id="syncpoint_id"
+								value="#{configurationDataController.configuration.item['syncpoint']}" />
+								
+							<input
+								type="button"
 								onclick="document.location.href='#{facesContext.externalContext.requestContextPath}/imixsarchive/archive/';"
 								value="Close" />
+							
+							
 							<ui:fragment rendered="#{! empty errorController.message}">
 
 								<h3 style="color: red">#{errorController.message}</h3>

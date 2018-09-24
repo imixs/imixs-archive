@@ -55,7 +55,7 @@ public class ConfigurationService {
 	 * This method initializes the Core-KeySpace and creates the table schema if not
 	 * exits. The method returns true if the Core-KeySpace is accessible.
 	 * <p>
-	 * The method starts all enabled schedulers for existing configurations. 
+	 * The method starts all enabled schedulers for existing configurations.
 	 * 
 	 */
 	public boolean init() {
@@ -98,9 +98,9 @@ public class ConfigurationService {
 		BoundStatement bound = null;
 
 		String keyspace = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
-	
+
 		if (keyspace.isEmpty()) {
-			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT,"missing keyspace!");
+			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, "missing keyspace!");
 		}
 		configuration.replaceItemValue(WorkflowKernel.MODIFIED, new Date());
 
@@ -125,14 +125,22 @@ public class ConfigurationService {
 		}
 
 		// upset document....
-		Session session = clusterService.getCoreSession();
-		statement = session.prepare("insert into configurations (id, data) values (?, ?)");
-		bound = statement.bind().setString("id", keyspace).setBytes("data", ByteBuffer.wrap(data));
-		session.execute(bound);
+		Session session = null;
+		try {
+			session = clusterService.getCoreSession();
+			statement = session.prepare("insert into configurations (id, data) values (?, ?)");
+			bound = statement.bind().setString("id", keyspace).setBytes("data", ByteBuffer.wrap(data));
+			session.execute(bound);
+			session.close();
 
-		// create keyspace if not exists
-		session = clusterService.getArchiveSession(keyspace);
-
+			// create keyspace if not exists
+			session = clusterService.getArchiveSession(keyspace);
+			session.close();
+		} finally {
+			if (session != null) {
+				session.close();
+			}
+		}
 	}
 
 	/**
@@ -238,9 +246,10 @@ public class ConfigurationService {
 	 * @return
 	 */
 	public ItemCollection loadConfiguration(String keyspaceID) {
+		Session session=null;
 		// get session from archive....
 		try {
-			Session session = clusterService.getCoreSession();
+			session = clusterService.getCoreSession();
 
 			ResultSet resultSet = session.execute("SELECT * FROM configurations WHERE id='" + keyspaceID + "';");
 			Row row = resultSet.one();
@@ -268,6 +277,10 @@ public class ConfigurationService {
 			logger.severe("failed to read result set: " + e.getMessage());
 			e.printStackTrace();
 			return null;
+		} finally {
+			if (session!=null) {
+				session.close();
+			}
 		}
 		return null;
 	}

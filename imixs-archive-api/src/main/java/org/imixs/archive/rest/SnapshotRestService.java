@@ -129,7 +129,7 @@ public class SnapshotRestService implements Serializable {
 		String query = "SELECT document FROM Document AS document ";
 		query += " WHERE document.modified > '" + isoFormat.format(syncpoint) + "'";
 		query += " AND document.type LIKE '" + SnapshotService.TYPE_PRAFIX + "%' ";
-		query += " ORDER BY document.modified DESC";
+		query += " ORDER BY document.modified ASC";
 		logger.finest("......QUERY=" + query);
 
 		List<ItemCollection> result = documentService.getDocumentsByQuery(query, 1);

@@ -37,9 +37,6 @@ import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
-import javax.ws.rs.Path;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
@@ -73,10 +70,10 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 @Stateless
 public class SchedulerService {
 
-//	public final static String ITEM_SCHEDULER_NAME = "txtname";
 	public final static String ITEM_SCHEDULER_ENABLED = "_scheduler_enabled";
-//	public final static String ITEM_SCHEDULER_CLASS = "_scheduler_class";
 	public final static String ITEM_SCHEDULER_DEFINITION = "_scheduler_definition";
+
+	private final static int MAX_COUNT = 100;
 
 	@Resource
 	SessionContext ctx;
@@ -86,7 +83,7 @@ public class SchedulerService {
 
 	@EJB
 	SyncService syncService;
-	
+
 	@EJB
 	DocumentService documentService;
 
@@ -115,7 +112,7 @@ public class SchedulerService {
 	 * 
 	 * @param configuration - scheduler configuration
 	 * @return updated configuration
-	 * @throws ImixsArchiveException 
+	 * @throws ImixsArchiveException
 	 */
 	public ItemCollection start(String id) throws ImixsArchiveException {
 		Timer timer = null;
@@ -170,7 +167,7 @@ public class SchedulerService {
 
 		} catch (ParseException e) {
 			throw new ImixsArchiveException(SchedulerService.class.getName(), SchedulerException.INVALID_WORKITEM,
-					" failed to start timer: "+e.getMessage());
+					" failed to start timer: " + e.getMessage());
 		}
 		configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
 		configuration.replaceItemValue("errormessage", "");
@@ -247,8 +244,7 @@ public class SchedulerService {
 
 	/**
 	 * Updates the timer details of a running timer service. The method updates the
-	 * properties netxtTimeout and store them into the timer
-	 * configuration.
+	 * properties netxtTimeout and store them into the timer configuration.
 	 * 
 	 * 
 	 * @param configuration - the current scheduler configuration to be updated.
@@ -358,8 +354,10 @@ public class SchedulerService {
 
 	/**
 	 * This is the method which processes the timeout event depending on the running
-	 * timer settings. The method calls the abstract method 'process' which need to
-	 * be implemented by a subclass.
+	 * timer settings.
+	 * <p>
+	 * The method reads MAX_COUNT snapshot workitems from a imixs workflow instance.
+	 * 
 	 * 
 	 * @param timer
 	 * @throws Exception
@@ -378,45 +376,45 @@ public class SchedulerService {
 			logger.severe("...failed to load scheduler configuration for current timer. Timer will be stopped...");
 			return;
 		}
-		
-		
 
 		try {
 			// ...start processing
 			logger.info("...run scheduler '" + keyspaceID + "....");
-			
-			
-			
-			XMLDocument xmlDocument = syncService.readSyncData(configuration);
 
-			if (xmlDocument != null) {
-				ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
-			
-				// update snypoint
-				Date syncpointdate = snapshot.getItemValueDate("$modified");
-				logger.info("...data found - new syncpoint="+syncpointdate.getTime());
-				
-				
-				// store data into archive
-				documentService.saveDocument(snapshot, keyspaceID);
-				
-				
-				configuration.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT,syncpointdate.getTime());
-				
-				// update stats....
+			int count = 0;
 
-				int syncs = configuration.getItemValue("_sync_count", Integer.class);
-				syncs++;
-				configuration.setItemValue("_sync_count", syncs);
-				
+			while (count < MAX_COUNT) {
+				XMLDocument xmlDocument = syncService.readSyncData(configuration);
 
-			} else {
-				// no more syncpoints
-				logger.info("...no more data found for syncpoint: "+configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT));
-				
+				if (xmlDocument != null) {
+					count++;
+					
+					ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
+
+					// update snypoint
+					Date syncpointdate = snapshot.getItemValueDate("$modified");
+					logger.info("...data found - new syncpoint=" + syncpointdate.getTime());
+
+					// store data into archive
+					documentService.saveDocument(snapshot, keyspaceID);
+
+					configuration.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT, syncpointdate.getTime());
+
+					// update stats....
+
+					int syncs = configuration.getItemValue("_sync_count", Integer.class);
+					syncs++;
+					configuration.setItemValue("_sync_count", syncs);
+
+				} else {
+					// no more syncpoints
+					logger.info("...no more data found for syncpoint: "
+							+ configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT));
+					break;
+				}
 			}
-			
-			logger.info("...run scheduler  '" + keyspaceID + "' finished in: "
+
+			logger.info("...scheduler  '" + keyspaceID + "' finished - " + count + " snapshots synchronized in: "
 					+ ((System.currentTimeMillis()) - lProfiler) + " ms");
 
 		} catch (ImixsArchiveException | RuntimeException e) {
