@@ -143,7 +143,7 @@ public class SnapshotService {
 			// skip models
 			return;
 		}
-		
+
 		if (documentEvent.getDocument().getItemValueBoolean(NOSNAPSHOT)) {
 			// skip if NOSNAPSHOT is true
 			return;
@@ -209,8 +209,8 @@ public class SnapshotService {
 			lastSnapshot = documentService.load(documentEvent.getDocument().getItemValueString(SNAPSHOTID));
 		}
 
-		// in case that we have still no snapshot but a UNIQUEIDSOURCE we can lookup
-		// here the snapshot from the origin version
+		// in case that we have still no snapshot but a $blobWorkitem we can lookup
+		// here the deprecated $blobWorkitem
 		if (lastSnapshot == null && !documentEvent.getDocument().getItemValueString("$blobworkitem").isEmpty()) {
 			logger.fine("lookup last blobworkitem: '" + documentEvent.getDocument().getItemValueString("$blobworkitem")
 					+ "'");
@@ -257,6 +257,44 @@ public class SnapshotService {
 
 		// 8. remove deprecated snapshots
 		cleanSnaphostHistory(snapshot.getUniqueID());
+
+	}
+
+	/**
+	 * All existing snapshot-workitems will be deleted when the workitem is removed.
+	 */
+	public void onDelete(@Observes DocumentEvent documentEvent) {
+
+		String type = documentEvent.getDocument().getType();
+
+		if (documentEvent.getEventType() != DocumentEvent.ON_DOCUMENT_DELETE) {
+			// skip
+			return;
+		}
+		if (type.startsWith(TYPE_PRAFIX)) {
+			// skip recursive call
+			return;
+		}
+
+		// verify and delete deprecated $blobwWrkitem
+		if (!documentEvent.getDocument().getItemValueString("$blobworkitem").isEmpty()) {
+			// try to delete the blobWorkitem
+			ItemCollection lobWorkitem = documentService
+					.load(documentEvent.getDocument().getItemValueString("$blobworkitem"));
+			if (lobWorkitem != null) {
+				logger.info("delete deprecated blobworkitem: '"
+						+ documentEvent.getDocument().getItemValueString("$blobworkitem") + "'");
+				documentService.remove(lobWorkitem);
+			}
+		}
+
+		// 1.) find all snapshots
+		List<ItemCollection> snappshotList = findAllSnapshots(documentEvent.getDocument().getUniqueID());
+
+		// 2.) delete all snapshots
+		for (ItemCollection snapshot : snappshotList) {
+			documentService.remove(snapshot);
+		}
 
 	}
 
