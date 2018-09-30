@@ -38,7 +38,10 @@ import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
+import javax.annotation.security.DeclareRoles;
+import javax.annotation.security.RunAs;
 import javax.ejb.EJB;
+import javax.ejb.LocalBean;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
@@ -101,6 +104,9 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
  * @author rsoika
  */
 @Stateless
+@LocalBean
+@DeclareRoles({ "org.imixs.ACCESSLEVEL.MANAGERACCESS" })
+@RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 public class SnapshotService {
 
 	@Resource
