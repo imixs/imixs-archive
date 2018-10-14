@@ -204,6 +204,16 @@
 			<version>3.4.0</version>
 			<scope>compile</scope>
 		</dependency>
+		
+		
+		<!-- Microprofile 
+		<dependency>
+			<groupId>org.eclipse.microprofile</groupId>
+			<artifactId>microprofile</artifactId>
+			<version>2.0.1</version>
+			<scope>compile</scope>
+		</dependency>
+			-->
 
 
 		<!-- Java EE dependencies -->

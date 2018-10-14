@@ -35,7 +35,7 @@ import javax.ws.rs.core.Application;
 import org.imixs.workflow.archive.cassandra.services.ConfigurationService;
 
 /**
- * The Imixs-Archive-Cassandra application setup
+ * The Imixs-Archive-Service application setup
  * 
  * @author rsoika
  * 
