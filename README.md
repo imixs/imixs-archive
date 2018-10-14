@@ -18,6 +18,9 @@ The project pursues the following main objectives:
 Imixs-Archive is based based on [Apache Cassandra](http://cassandra.apache.org/) which offers a highly available Big Data Platform .
 _"Imixs-Archive"_  provides an optimized data model to archive process instances into a Cassandra cluster. Read the section [datamodel](docs/DATAMODEL.md) for further information.
 
+
+[Apache Cassandra](http://cassandra.apache.org/)
+
  
 ### The Core API
 
@@ -32,7 +35,7 @@ The _"Imixs-Archive-Service"_ project provides an MicrosService to store the dat
  
 The Imixs-Archive Service can also be used to retrieve a single archived process instance or to restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
 
-[Imixs-Archive-Service](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-cassandra)
+[Imixs-Archive-Service](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-service)
 
 
 
