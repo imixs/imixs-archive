@@ -40,17 +40,14 @@ public class MetadataService {
 	 * 
 	 */
 	public boolean init() {
+		Session session = null;
 		try {
 			logger.info("...init imixsarchive keyspace ...");
-			Session session = clusterService.getArchiveSession();
-
+			session = clusterService.getArchiveSession();
 			if (session != null) {
 				// start archive schedulers....
 				logger.info("...starting schedulers...");
-				
-						schedulerService.start();
-				
-
+				schedulerService.start();
 				return true;
 			} else {
 				logger.warning("...Failed to initalize imixsarchive keyspace!");
@@ -60,6 +57,11 @@ public class MetadataService {
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return false;
+
+		} finally {
+			if (session != null) {
+				session.close();
+			}
 		}
 	}
 
@@ -75,22 +77,26 @@ public class MetadataService {
 		try {
 			session = clusterService.getArchiveSession();
 
-			String id = "METADATA" +clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+			String id = "METADATA_" + clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 
-			ResultSet resultSet = session.execute("SELECT * FROM configurations WHERE id='" + id + "';");
+			ResultSet resultSet = session.execute("SELECT * FROM snapshots WHERE snapshot='" + id + "';");
 			Row row = resultSet.one();
 			if (row != null) {
 
 				// String keyspace = row.getString("id");
 				byte[] source = row.getBytes("data").array();
 				return DocumentService.getItemCollection(source);
+			} else {
+				logger.info("...initialize meta data object");
+				
+				ItemCollection metaData=new ItemCollection();
+				return saveMetadata(metaData);
 			}
 		} finally {
 			if (session != null) {
 				session.close();
 			}
 		}
-		return null;
 	}
 
 	/**
@@ -100,13 +106,13 @@ public class MetadataService {
 	 * @param metadata
 	 * @throws ImixsArchiveException
 	 */
-	public void saveMetadata(ItemCollection metadata) throws ImixsArchiveException {
+	public ItemCollection saveMetadata(ItemCollection metadata) throws ImixsArchiveException {
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
 		Session session = null;
 
 		// set static UnqiueID
-		String id = "METADATA" + clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		String id = "METADATA_" + clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		metadata.setItemValue("$uniqueid", id);
 
 		try {
@@ -124,5 +130,6 @@ public class MetadataService {
 				session.close();
 			}
 		}
+		return metadata;
 	}
 }

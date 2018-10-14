@@ -81,7 +81,7 @@ Show tables schemas in current keyspace:
 
 Drop the keyspace: 
 
-	DROP KEYSPACE [IF EXISTS] keyspace_name
+	DROP KEYSPACE IF EXISTS keyspace_name;
 
 ### Create a dev keyspace with cqlsh
 
@@ -93,7 +93,7 @@ Drop the keyspace:
 The Core-Archive keyspace provides data about syncpoints of each archive:
 
 	 cqlsh> use imixsarchive;
-	 cqlsh> select * from configurations ;
+	 cqlsh> select * from snapshots;
 	 
 The data shown here is the serialized information of an XMLDocument for each configuration. Use the Web-UI to inspect the data. 
 

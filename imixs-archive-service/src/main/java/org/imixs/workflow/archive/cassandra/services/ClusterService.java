@@ -5,6 +5,8 @@ import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 
+import org.imixs.workflow.archive.cassandra.mvc.ArchiveController;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
@@ -33,9 +35,9 @@ public class ClusterService {
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS = "ARCHIVE_CLUSTER_REPLICATION_CLASS";
 	public static final String ENV_ARCHIVE_SCHEDULER_DEFINITION = "ARCHIVE_SCHEDULER_DEFINITION";
 
-	
 	// core table schema
-	//public static final String TABLE_SCHEMA_CONFIGURATION = "CREATE TABLE IF NOT EXISTS configurations (id text, data blob, PRIMARY KEY (id))";
+	// public static final String TABLE_SCHEMA_CONFIGURATION = "CREATE TABLE IF NOT
+	// EXISTS configurations (id text, data blob, PRIMARY KEY (id))";
 
 	// archive table schemas
 	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
@@ -72,15 +74,15 @@ public class ClusterService {
 	 */
 	public Session getArchiveSession() throws ImixsArchiveException {
 
-		String keySpace = this.getEnv(ENV_ARCHIVE_CLUSTER_KEYSPACE, null);// KeySpaceName();
-		if (keySpace == null || keySpace.isEmpty()) {
-			throw new ImixsArchiveException(ImixsArchiveException.INVALID_KEYSPACE, "missing keyspace");
+		String keySpace = this.getEnv(ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		if (!isValidKeyspaceName(keySpace)) {
+			throw new ImixsArchiveException(ImixsArchiveException.INVALID_KEYSPACE,
+					"keyspace '" + keySpace + "' name invalid.");
 		}
 
 		Cluster cluster = getCluster();
 		// try to open keySpace
 		logger.finest("......conecting keyspace '" + keySpace + "'...");
-
 		Session session = null;
 		try {
 			session = cluster.connect(keySpace);
@@ -126,7 +128,7 @@ public class ClusterService {
 	 * System property. If not available in the system variables than the method
 	 * verifies the imixs.properties field.
 	 * 
-	 * @param env - environment variable name
+	 * @param env          - environment variable name
 	 * @param defaultValue - optional default value
 	 * @return value
 	 */
@@ -191,6 +193,21 @@ public class ClusterService {
 
 		logger.info(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
 		session.execute(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
+
+	}
+
+	/**
+	 * Test if the keyspace name is valid.
+	 * 
+	 * @param keySpace
+	 * @return
+	 */
+	public boolean isValidKeyspaceName(String keySpace) {
+		if (keySpace == null || keySpace.isEmpty()) {
+			return false;
+		}
+
+		return keySpace.matches(ArchiveController.KEYSPACE_REGEX);
 
 	}
 

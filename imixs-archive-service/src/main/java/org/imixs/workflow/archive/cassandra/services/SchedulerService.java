@@ -71,7 +71,7 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 public class SchedulerService {
 
 	public final static String ITEM_SCHEDULER_ENABLED = "_scheduler_enabled";
-	public final static String ITEM_SCHEDULER_DEFINITION = "_scheduler_definition";
+	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
 
 	private final static int MAX_COUNT = 100;
 
@@ -137,14 +137,9 @@ public class SchedulerService {
 		ItemCollection metaData = metadataService.loadMetadata();
 		try {
 			logger.info("...Scheduler Service " + id + " will be started...");
-			String schedulerDescription =  clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, null);
+			// New timer will be started on calendar confiugration
+			timer = createTimerOnCalendar();
 
-			if (!schedulerDescription.isEmpty()) {
-				// New timer will be started on calendar confiugration
-
-				timer = createTimerOnCalendar();
-
-			}
 			// start and set statusmessage
 			if (timer != null) {
 
@@ -187,7 +182,7 @@ public class SchedulerService {
 	public ItemCollection stop() throws ImixsArchiveException {
 		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		Timer timer = findTimer(id);
-		return stop( timer);
+		return stop(timer);
 
 	}
 
@@ -289,7 +284,7 @@ public class SchedulerService {
 	 * @param sConfiguation
 	 * @return
 	 * @throws ParseException
-	 * @throws ImixsArchiveException 
+	 * @throws ImixsArchiveException
 	 */
 	Timer createTimerOnCalendar() throws ParseException, ImixsArchiveException {
 
@@ -299,7 +294,8 @@ public class SchedulerService {
 
 		ScheduleExpression scheduerExpression = new ScheduleExpression();
 
-		String sDefinition = clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, null);
+		String sDefinition = clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION,
+				DEFAULT_SCHEDULER_DEFINITION);
 		String calendarConfiguation[] = sDefinition.split("\\r?\\n");
 
 		// try to parse the configuration list....
@@ -366,7 +362,7 @@ public class SchedulerService {
 	@Timeout
 	void onTimeout(javax.ejb.Timer timer) throws Exception {
 		String errorMes = "";
-		ItemCollection metaData=null;
+		ItemCollection metaData = null;
 		// start time....
 		long lProfiler = System.currentTimeMillis();
 		String keyspaceID = timer.getInfo().toString();
@@ -374,7 +370,7 @@ public class SchedulerService {
 		try {
 			// ...start processing
 			logger.info("...run scheduler '" + keyspaceID + "....");
-			 metaData = metadataService.loadMetadata();
+			metaData = metadataService.loadMetadata();
 			int count = 0;
 
 			while (count < MAX_COUNT) {

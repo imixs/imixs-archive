@@ -54,7 +54,7 @@ public class ImixsArchiveApp extends Application {
 
 	
 	@EJB
-	MetadataService configurationService;
+	MetadataService metadataService;
 
 	public ImixsArchiveApp() {
 		super();
@@ -65,8 +65,8 @@ public class ImixsArchiveApp extends Application {
 	 */
 	@PostConstruct
 	public void initialize() {
-		if (configurationService != null) {
-			configurationService.init();
+		if (metadataService != null) {
+			metadataService.init();
 		}
 	}
 }
