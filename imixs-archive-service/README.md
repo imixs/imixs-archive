@@ -1,26 +1,9 @@
-# Imixs-Archive-Cassandra
-The _"Imixs-Archive-Cassandra"_ project provides an Archive Service to store the data of Imixs-Workflow into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). The project pursues the following main objectives:
-
- - Archive business data in a highly available Big Data Platform
- - Retrieve archived business data 
- - Analyze archived business data 
- - Data recovery after a data loss 
-
-_Imixs-Archive-Cassandra_ runs  typically in a Cassandra Cluster consisting of serveral data nodes. The Imixs-Archive Service runs oon Jakarta EE and automatically pulls the data from an Imixs Workflow Instance into the Cassandra Cluster. This includes all business process data and documents. 
+# The Imixs-Archive Microservice
+The _"Imixs-Archive-Service"_ project provides a MicroSerivce to store the data of Imixs-Workflow into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). _Imixs-Archive-Service_ runs  typically in a Cassandra Cluster consisting of serveral data nodes. The Imixs-Archive Service runs on Jakarta EE and automatically pulls the data from an Imixs Workflow Instance into the Cassandra Cluster. This includes all business process data and documents. 
 
 The Imixs-Archive Service can be used to retrieve a single archived process instance or to restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
 
-
-_"Imixs-Archive-Cassandra"_  provides an optimized data model to archive process instances into a Cassandra cluster. Read the section [datamodel](docs/DATAMODEL.md) for further information.
-
-
-# The Imixs-Archive Microservice
-
-
-
-The Imixs-Archive-Cassandra project provides an adapter for Apache Cassandra Big Data Platform.
-
-The Imixs-Archive-Cassandra is connected with a Imixs-Workflow instance via the Imixs-Rest API and runs as a single microservice. 
+The Imixs-Archive-Service is connected with a Imixs-Workflow instance via the Imixs-Rest API and runs as a single microservice. 
 
 ## Syncpoint
 
@@ -29,13 +12,12 @@ When the syncpoint is reset it is set to January 1, 1970 00:00:00 GMT.
 After each successfull sync the syncpoint will be set to the modidfied timestamp of the synced workitem. 
 
 
-
 # Docker Support
 
 The project includes a test environment based on a docker stack including the following components:
 
 * Cassandra - local cluster
-* Imixs-Archive-Cassandra - Web Front-End (ports: 8080, 9990, 8787)
+* Imixs-Archive-Service - Web Front-End (ports: 8080, 9990, 8787)
 
 To start the environment run:
 	
@@ -49,7 +31,7 @@ You can start the Imixs-Archive Web UI from the following URL:
 Alternativly you can use the docker-compose-dev.yml file to start an extended development envionment including the following services:
 
 * Cassandra - local cluster
-* Imixs-Archive-Cassandra - Web Front-End (ports: 8080, 9990, 8787)
+* Imixs-Archive-Service - Web Front-End (ports: 8080, 9990, 8787)
 * Imixs-Office-Workflow - Web Application (ports: 8081, 9991, 8788)
 * Imixs Admin Client (ports: 8082)
 * PostgreSQL - Database
@@ -69,7 +51,7 @@ The Imixs-Admin client can be started by the URL:
 
 ## Build with Maven 
 
-If you have not yet a Imixs-Archive-Cassandra container, you can build the application from sources and create the docker image use the maven command:
+If you have not yet a Imixs-Archive-Service container, you can build the application from sources and create the docker image use the maven command:
 
 	$ mvn clean install -Pdocker-build
 
@@ -80,7 +62,7 @@ If you have not yet a Imixs-Archive-Cassandra container, you can build the appli
 The Imixs-Archive provides a denormalized data schema to optimize storrage and access of archive data. 
 Snapshot data is stored in the main table space named "_snapshots_". The primary and partion key for this table is the $uniqueid of the snapshot. 
 
-**Note:** The imixs-archive-cassandra application creates the schemas in background. So a manual creation of schemas is not necessary. 
+**Note:** The Imixs-Archive-Service application creates the schemas in background. So a manual creation of schemas is not necessary. 
 
 To access archived data the $uniqueid of the snapshot is mandatory.
 

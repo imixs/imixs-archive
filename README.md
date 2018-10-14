@@ -3,6 +3,39 @@
 _Imixs-Archive_ is an open source project designed to provide a transparent and sustaining solution for long-term audit-proof archiving of business data. In this context, business data means not only documents but also the comprehensible documentation of business processes.
 Imixs-Archive is a sub-project of the Human-Centric Workflow engine [Imixs-Workflow](http://www.imixs.org), which provides a powerful platform to describe and execute business processes.
 
+## Architecture
+
+The project pursues the following main objectives:
+
+ - Archive business data in a highly available Big Data Platform
+ - Retrieve archived business data 
+ - Analyze archived business data 
+ - Data recovery after a data loss 
+ 
+ 
+### Apache Cassandra  
+
+Imixs-Archive is based based on [Apache Cassandra](http://cassandra.apache.org/) which offers a highly available Big Data Platform .
+_"Imixs-Archive"_  provides an optimized data model to archive process instances into a Cassandra cluster. Read the section [datamodel](docs/DATAMODEL.md) for further information.
+
+ 
+### The Core API
+
+The [sub-module Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api) provides core functionality and interfaces to exchange business data with any kind of archive or big data platform. 
+This API is platform independent and based on the Imixs-Workflow API. The API is bundled with an Imixs-Workflow instance. 
+
+[Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api)
+
+### The Microservice
+
+The _"Imixs-Archive-Service"_ project provides an MicrosService to store the data of Imixs-Workflow into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). The service runs  typically in a Cassandra Cluster consisting of serveral data nodes. The Imixs-Archive Service is build on Jakarta EE and automatically pulls the data from an Imixs Workflow Instance into the Cassandra Cluster based on a scheduler. The archive process includes all business process data and documents. 
+ 
+The Imixs-Archive Service can also be used to retrieve a single archived process instance or to restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
+
+[Imixs-Archive-Service](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-cassandra)
+
+
+
 
 ## What is audit-proof archiving?
 Audit-proof archiving means that documents or business information can be searched, traced back to their origin, and stored securely against tampering. From an organizational perspective, a procedure for audit-proof archiving must be transparent for 
@@ -19,47 +52,5 @@ Based on a BPMN 2.0 process model, business data can be protected from changes a
 Imixs-Workflow supports a fine grained access control on the level of a single process instance. This concept allows protecting data from tampering. In addition, Imixs-Archive supports a [snapshot concept](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api) that automatically stores immutable business data protected from any further manipulation.
 
 
-Imixs-Archive consists of independent modules which allow the transparent integration of any kind of archive or big data platform. 
-Big data platforms supported by Imixs-Archive are [Apache Cassandra](http://cassandra.apache.org/) and [Apache Hadoop](http://hadoop.apache.org/).
 
-
-## The Core API
-
-The [sub-module Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api) provides core functionality and interfaces to exchange business data with any kind of archive or big data platform. This API is platform independent and based on the Imixs-Workflow API.
-
-[Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api)
-
-## Cassandra
-
-The _"Imixs-Archive-Cassandra"_ project provides an Archive Service to store the data of Imixs-Workflow into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). 
-
-[Imixs-Archive-Cassandra](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-cassandra)
-
-  
-## Hadoop 
-
-The [sub-module Imixs-Archive-Hadoop](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-hadoop) provides an adapter project for the [Apache Hadoop Filesystem (hdfs)](http://hadoop.apache.org/). The adapter is based on the HttpFS Rest API. HttpFS can be used to transfer data in a restfull way between different versions of Hadoop clusters. HttpFS allows to access data in clustered HDFS behind of a firewall which enables a restricted and secured archive architecture. 
-As HttpFS is based on REST, this component does not need any additional hadoop libraries. In addition HttpFS has built-in security supporting Hadoop pseudo authentication, HTTP SPNEGO Kerberos and other pluggable authentication mechanisms to be used depending on the target architecture. 
-
-[Imixs-Archive-Hadoop](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-hadoop)
-
-
-## OCR
-
-The [sub-module Imixs-Archive-OCR](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ocr) provides a solution for OCR scans on documents which are part of Imxis-Archive. Imixs-Archive-OCR includes a fulltext search based on [Apache Lucene](http://lucene.apache.org/). This module can be combined with any Imixs-Workflow business application as also with standalone applications. 
-
-[Imixs-Archive-OCR](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ocr)
-
-
-## The Test Environment
-
-Imixs-Archive provides a test environment based on Docker. The Test Environment consists of the following docker containers:
-
-- PostgreSQL Database
-- Hadoop Single Node Cluster
-- Imixs-Office-Workflow
-
-The Imixs-Archive Test Environment is for test purpose only. The Docker containers should only run in a system environment protected from external access. 
-
-[Imixs-Archive-Test](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-test)
-
+ 
