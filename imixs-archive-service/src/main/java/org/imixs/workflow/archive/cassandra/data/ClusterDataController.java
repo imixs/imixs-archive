@@ -81,11 +81,11 @@ public class ClusterDataController implements Serializable {
 		}
 
 		// load environment setup..
-		contactPoints = clusterService.getContactPoints();
-		keySpace = clusterService.getKeySpaceName();
+		contactPoints = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
+		keySpace = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 
-		logger.info("......"+ClusterService.PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINTS + "=" + contactPoints);
-		logger.info("......"+ClusterService.PROPERTY_ARCHIVE_CLUSTER_KEYSPACE+ "=" + keySpace);
+		logger.info("......"+ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS + "=" + contactPoints);
+		logger.info("......"+ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE+ "=" + keySpace);
 
 		
 

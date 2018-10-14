@@ -120,7 +120,7 @@ public class SchedulerService {
 	public ItemCollection start() throws ImixsArchiveException {
 		Timer timer = null;
 
-		String id = clusterService.getKeySpaceName();
+		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		// try to cancel an existing timer for this workflowinstance
 		timer = findTimer(id);
 		if (timer != null) {
@@ -137,7 +137,7 @@ public class SchedulerService {
 		ItemCollection metaData = metadataService.loadMetadata();
 		try {
 			logger.info("...Scheduler Service " + id + " will be started...");
-			String schedulerDescription = clusterService.getSchedulerDefinition();
+			String schedulerDescription =  clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, null);
 
 			if (!schedulerDescription.isEmpty()) {
 				// New timer will be started on calendar confiugration
@@ -185,14 +185,14 @@ public class SchedulerService {
 	 * 
 	 */
 	public ItemCollection stop() throws ImixsArchiveException {
-		String id = clusterService.getKeySpaceName();
+		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		Timer timer = findTimer(id);
 		return stop( timer);
 
 	}
 
 	public ItemCollection stop(Timer timer) throws ImixsArchiveException {
-		String id = clusterService.getKeySpaceName();
+		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		ItemCollection metaData = metadataService.loadMetadata();
 		if (timer != null) {
 			try {
@@ -294,12 +294,12 @@ public class SchedulerService {
 	Timer createTimerOnCalendar() throws ParseException, ImixsArchiveException {
 
 		TimerConfig timerConfig = new TimerConfig();
-		String id = clusterService.getKeySpaceName();
+		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		timerConfig.setInfo(id);
 
 		ScheduleExpression scheduerExpression = new ScheduleExpression();
 
-		String sDefinition = clusterService.getSchedulerDefinition();
+		String sDefinition = clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, null);
 		String calendarConfiguation[] = sDefinition.split("\\r?\\n");
 
 		// try to parse the configuration list....

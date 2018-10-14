@@ -21,6 +21,9 @@ The following configuration parameters are mandatory:
  * ARCHIVE\_CLUSTER\_REPLICATION\_FACTOR = defines the replication factor 
  * ARCHIVE\_CLUSTER\_KEYSPACE = cassandra keyspace for the archive
  * ARCHIVE\_SCHEDULER\_DEFINITION = cron defiition for scheduling
+ * ARCHIVE\_CLUSTER\_REPLICATION\_FACTOR = 
+ * ARCHIVE\_CLUSTER\_REPLICATION\_CLASS = 
+ 
  
 # Docker Support
 

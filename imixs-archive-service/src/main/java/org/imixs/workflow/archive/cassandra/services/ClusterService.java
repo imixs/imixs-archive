@@ -1,24 +1,11 @@
 package org.imixs.workflow.archive.cassandra.services;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
-import java.util.Properties;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 
-import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.xml.XMLDocument;
-import org.imixs.workflow.xml.XMLDocumentAdapter;
-
-import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.LocalDate;
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 
@@ -40,16 +27,15 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
 @Stateless
 public class ClusterService {
 
-	public static final String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINTS = "archive.cluster.contactpoints";
-	public static final String PROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
+	public static final String ENV_ARCHIVE_CLUSTER_CONTACTPOINTS = "ARCHIVE_CLUSTER_CONTACTPOINTS";
+	public static final String ENV_ARCHIVE_CLUSTER_KEYSPACE = "ARCHIVE_CLUSTER_KEYSPACE";
+	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "ARCHIVE_CLUSTER_REPLICATION_FACTOR";
+	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS = "ARCHIVE_CLUSTER_REPLICATION_CLASS";
+	public static final String ENV_ARCHIVE_SCHEDULER_DEFINITION = "ARCHIVE_SCHEDULER_DEFINITION";
 
-	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "archive.cluster.replication_factor";
-	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_CLASS = "archive.cluster.replication_class";
-	public static final String PROPERTY_ARCHIVE_SCHEDULER_DEFINITION = "archive.scheduler.definition";
-	public static final String DEFAULT_CORE_KEYSPACE = "imixsarchive";
-
+	
 	// core table schema
-	public static final String TABLE_SCHEMA_CONFIGURATION = "CREATE TABLE IF NOT EXISTS configurations (id text, data blob, PRIMARY KEY (id))";
+	//public static final String TABLE_SCHEMA_CONFIGURATION = "CREATE TABLE IF NOT EXISTS configurations (id text, data blob, PRIMARY KEY (id))";
 
 	// archive table schemas
 	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
@@ -66,66 +52,6 @@ public class ClusterService {
 	SchedulerService schedulerService;
 
 	/**
-	 * This method saves a ItemCollection into a specific KeySpace.
-	 * 
-	 * @param itemCol
-	 * @param session
-	 * @throws ImixsArchiveException
-	 */
-	public void saveDocument(ItemCollection itemCol, String keyspace) throws ImixsArchiveException {
-		byte[] data = null;
-		PreparedStatement statement = null;
-		BoundStatement bound = null;
-
-		String snapshotID = itemCol.getUniqueID();
-		if (!isSnapshotID(snapshotID)) {
-			throw new IllegalArgumentException("invalid item '$snapshotid'");
-		}
-
-		if (!itemCol.hasItem("$modified")) {
-			throw new IllegalArgumentException("missing item '$modified'");
-		}
-
-		// extract $snapshotid 2de78aec-6f14-4345-8acf-dd37ae84875d-1530315900599
-		String[] snapshotSegments = snapshotID.split("-");
-		String snapshotDigits = snapshotSegments[snapshotSegments.length - 1];
-		String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
-
-		// create byte array from XMLDocument...
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		try {
-			JAXBContext context;
-			context = JAXBContext.newInstance(XMLDocument.class);
-			Marshaller m = context.createMarshaller();
-			XMLDocument xmlDocument = XMLDocumentAdapter.getDocument(itemCol);
-			m.marshal(xmlDocument, outputStream);
-			data = outputStream.toByteArray();
-		} catch (JAXBException e) {
-			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
-		}
-
-		// get session from archive....
-		Session session = this.getArchiveSession();
-
-		// upset document....
-		statement = session.prepare("insert into snapshots (id, data) values (?, ?)");
-		bound = statement.bind().setString("id", itemCol.getUniqueID()).setBytes("data", ByteBuffer.wrap(data));
-		session.execute(bound);
-
-		// upset document_snapshots....
-		statement = session.prepare("insert into snapshots_by_uniqueid (uniqueid, snapshot) values (?, ?)");
-		bound = statement.bind().setString("uniqueid", originUnqiueID).setString("snapshot", snapshotDigits);
-		session.execute(bound);
-
-		// upset document_modified....
-		LocalDate ld = LocalDate.fromMillisSinceEpoch(itemCol.getItemValueDate("$modified").getTime());
-		statement = session.prepare("insert into snapshots_by_modified (date, id) values (?, ?)");
-		bound = statement.bind().setDate("date", ld).setString("uniqueid", originUnqiueID).setString("id",
-				itemCol.getUniqueID());
-		session.execute(bound);
-	}
-
-	/**
 	 * This method returns true if the given id is a valid Snapshot id (UUI +
 	 * timestamp
 	 * 
@@ -137,30 +63,6 @@ public class ClusterService {
 	}
 
 	/**
-	 * Returns a cassandra session for a ImixsArchive Core-KeySpace. The
-	 * Core-KeySpace is used for the internal management.
-	 * 
-	 * @throws ImixsArchiveException
-	 */
-	/*
-	 * public Session getCoreSession() throws ImixsArchiveException { String
-	 * coreKeySpace = null;
-	 * 
-	 * Cluster cluster = getCluster();
-	 * 
-	 * coreKeySpace =
-	 * propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CORE_KEYSPACE,
-	 * DEFAULT_CORE_KEYSPACE); Session session = null; try { session =
-	 * cluster.connect(coreKeySpace); } catch (InvalidQueryException e) {
-	 * logger.warning("......conecting keyspace '" + coreKeySpace + "' failed: " +
-	 * e.getMessage()); // create keyspace... session = createKeySpace(coreKeySpace,
-	 * KeyspaceType.CORE); } if (session != null) {
-	 * logger.finest("......keyspace conection status = OK"); }
-	 * 
-	 * return session; }
-	 */
-
-	/**
 	 * Returns a cassandra session for the archive KeySpace. The keyspace is defined
 	 * by the environmetn variable ARCHIVE_CLUSTER_KEYSPACE. If no keyspace with
 	 * this given keyspace name exists, the method creates the keyspace and table
@@ -170,7 +72,7 @@ public class ClusterService {
 	 */
 	public Session getArchiveSession() throws ImixsArchiveException {
 
-		String keySpace=this.getKeySpaceName();
+		String keySpace = this.getEnv(ENV_ARCHIVE_CLUSTER_KEYSPACE, null);// KeySpaceName();
 		if (keySpace == null || keySpace.isEmpty()) {
 			throw new ImixsArchiveException(ImixsArchiveException.INVALID_KEYSPACE, "missing keyspace");
 		}
@@ -185,7 +87,7 @@ public class ClusterService {
 		} catch (InvalidQueryException e) {
 			logger.warning("......conecting keyspace '" + keySpace + "' failed: " + e.getMessage());
 			// create keyspace...
-			session = createKeySpace(keySpace, KeyspaceType.ARCHIVE);
+			session = createKeySpace(keySpace);
 		}
 		if (session != null) {
 			logger.finest("......keyspace conection status = OK");
@@ -203,7 +105,7 @@ public class ClusterService {
 	 * @throws ImixsArchiveException
 	 */
 	public Cluster getCluster() throws ImixsArchiveException {
-		String contactPoint = getContactPoints();
+		String contactPoint = getEnv(ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
 
 		if (contactPoint == null || contactPoint.isEmpty()) {
 			throw new ImixsArchiveException(ImixsArchiveException.MISSING_CONTACTPOINT,
@@ -220,33 +122,22 @@ public class ClusterService {
 	}
 
 	/**
-	 * Returns the cassandra contact points provided by a environment variable
+	 * Returns a environment variable. An environment variable can be provided as a
+	 * System property. If not available in the system variables than the method
+	 * verifies the imixs.properties field.
 	 * 
-	 * @return
+	 * @param env - environment variable name
+	 * @param defaultValue - optional default value
+	 * @return value
 	 */
-	public String getContactPoints() {
-		String result = System.getenv("ARCHIVE_CLUSTER_CONTACTPOINTS");
+	public String getEnv(String env, String defaultValue) {
+		String result = System.getenv(env);
 		if (result == null || result.isEmpty()) {
 			// get from imixs.properties....
-			result = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINTS);
+			result = propertyService.getProperties().getProperty(env, defaultValue);
 		}
-		return result;
-	}
-
-	public String getSchedulerDefinition() {
-		String result = System.getenv("ARCHIVE_SCHEDULER_DEFINITION");
 		if (result == null || result.isEmpty()) {
-			// get from imixs.properties....
-			result = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_SCHEDULER_DEFINITION);
-		}
-		return result;
-	}
-
-	public String getKeySpaceName() throws ImixsArchiveException {
-		String result = System.getenv("ARCHIVE_CLUSTER_KEYSPACE");
-		if (result == null || result.isEmpty()) {
-			// get from imixs.properties....
-			result = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
+			result = defaultValue;
 		}
 		return result;
 	}
@@ -261,16 +152,14 @@ public class ClusterService {
 	 * @param cluster
 	 * @throws ImixsArchiveException
 	 */
-	protected Session createKeySpace(String keySpace, KeyspaceType type) throws ImixsArchiveException {
+	protected Session createKeySpace(String keySpace) throws ImixsArchiveException {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
 
 		Cluster cluster = getCluster();
 		Session session = cluster.connect();
 
-		String repFactor = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_REPLICATION_FACTOR,
-				"1");
-		String repClass = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_REPLICATION_CLASS,
-				"SimpleStrategy");
+		String repFactor = getEnv(ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, "1");
+		String repClass = getEnv(ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, "SimpleStrategy");
 
 		String statement = "CREATE KEYSPACE IF NOT EXISTS " + keySpace + " WITH replication = {'class': '" + repClass
 				+ "', 'replication_factor': " + repFactor + "};";
@@ -282,14 +171,7 @@ public class ClusterService {
 			logger.info("......keyspace conection status = OK");
 
 			// now create table schemas
-			switch (type) {
-			case ARCHIVE:
-				createArchiveTableSchema(session);
-				break;
-			case CORE:
-				createConfigurationTableSchema(session);
-				break;
-			}
+			createArchiveTableSchema(session);
 		}
 
 		return session;
@@ -310,15 +192,6 @@ public class ClusterService {
 		logger.info(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
 		session.execute(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
 
-	}
-
-	/**
-	 * This helper method creates the ImixsArchive configuration table schema if not
-	 * yet exists
-	 */
-	protected void createConfigurationTableSchema(Session session) {
-		logger.info(TABLE_SCHEMA_CONFIGURATION);
-		session.execute(TABLE_SCHEMA_CONFIGURATION);
 	}
 
 }

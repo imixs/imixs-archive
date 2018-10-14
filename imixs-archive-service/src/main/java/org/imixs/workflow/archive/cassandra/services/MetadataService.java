@@ -1,39 +1,18 @@
 package org.imixs.workflow.archive.cassandra.services;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
 
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.ItemCollectionComparator;
-import org.imixs.workflow.WorkflowKernel;
-import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
-import org.imixs.workflow.exceptions.AccessDeniedException;
-import org.imixs.workflow.xml.XMLDocument;
-import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.exceptions.InvalidConfigurationInQueryException;
-import com.datastax.driver.core.exceptions.QueryValidationException;
-import com.datastax.driver.core.exceptions.SyntaxError;
 
 /**
  * The MetadataService saves metadata for an archive. E.g. the current syncpoint
@@ -96,7 +75,7 @@ public class MetadataService {
 		try {
 			session = clusterService.getArchiveSession();
 
-			String id = "METADATA" + clusterService.getKeySpaceName();
+			String id = "METADATA" +clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 
 			ResultSet resultSet = session.execute("SELECT * FROM configurations WHERE id='" + id + "';");
 			Row row = resultSet.one();
@@ -127,7 +106,7 @@ public class MetadataService {
 		Session session = null;
 
 		// set static UnqiueID
-		String id = "METADATA" + clusterService.getKeySpaceName();
+		String id = "METADATA" + clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		metadata.setItemValue("$uniqueid", id);
 
 		try {
