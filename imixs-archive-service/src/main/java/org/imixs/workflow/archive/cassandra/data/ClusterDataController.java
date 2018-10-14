@@ -12,7 +12,9 @@ import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.archive.cassandra.services.ConfigurationService;
+import org.imixs.workflow.archive.cassandra.services.ClusterService;
+import org.imixs.workflow.archive.cassandra.services.MetadataService;
+import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 
 /**
  * Session Scoped CID Bean to hold cluster configuration data.
@@ -28,8 +30,7 @@ public class ClusterDataController implements Serializable {
 	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
 
 	public static int DEFAULT_PAGE_SIZE = 30;
-	public static String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT = "archive.cluster.contactpoints";
-	public static String PROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
+	public static String xPROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
 
 	Properties configurationProperties = null;
 	String contactPoints;
@@ -44,7 +45,10 @@ public class ClusterDataController implements Serializable {
 	boolean connected;
 
 	@EJB
-	ConfigurationService configurationService;
+	MetadataService configurationService;
+	
+	@EJB
+	ClusterService clusterService;
 
 	public ClusterDataController() {
 		super();
@@ -52,11 +56,12 @@ public class ClusterDataController implements Serializable {
 
 	/**
 	 * This method verifies and initializes the core keyspace
+	 * @throws ImixsArchiveException 
 	 * 
 	 *
 	 */
 	@PostConstruct
-	public void init() {
+	public void init() throws ImixsArchiveException {
 		logger.info("...initial setup: reading environment....");
 
 		configurationProperties = new Properties();
@@ -76,39 +81,17 @@ public class ClusterDataController implements Serializable {
 		}
 
 		// load environment setup..
-		contactPoints = configurationProperties.getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
-		keySpace = configurationProperties.getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
+		contactPoints = clusterService.getContactPoints();
+		keySpace = clusterService.getKeySpaceName();
 
-		logger.info("......"+PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT + "=" + contactPoints);
-		logger.info("......"+PROPERTY_ARCHIVE_CLUSTER_KEYSPACE + "=" + keySpace);
+		logger.info("......"+ClusterService.PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINTS + "=" + contactPoints);
+		logger.info("......"+ClusterService.PROPERTY_ARCHIVE_CLUSTER_KEYSPACE+ "=" + keySpace);
 
-		refreshConfiguration();
-
-	}
-
-	/**
-	 * Updates the configuration list
-	 */
-	public void refreshConfiguration() {
-		List<ItemCollection> archiveList = configurationService.getConfigurationList();
-
-		archiveCount = 0;
-
-		syncCount = 0;
-
-		for (ItemCollection archiveConf : archiveList) {
-			archiveCount++;
-			syncCount = syncCount + archiveConf.getItemValueLong("_sync_count");
-			errorCount = errorCount + archiveConf.getItemValueLong("_error_count");
-
-			errorCountObject = errorCountObject + archiveConf.getItemValueLong("_error_count_object");
-
-			errorCountSync = errorCountSync + archiveConf.getItemValueLong("_error_count_Sync");
-
-		}
+		
 
 	}
 
+	
 	public ItemCollection getConfiguration() {
 		return configuration;
 	}

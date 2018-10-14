@@ -1,5 +1,6 @@
 package org.imixs.workflow.archive.cassandra.services;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
@@ -9,6 +10,7 @@ import javax.ejb.Stateless;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.xml.XMLDocument;
@@ -53,8 +55,8 @@ public class DocumentService {
 	 * @param session
 	 * @throws ImixsArchiveException
 	 */
-	public void saveDocument(ItemCollection itemCol, String keyspace) throws ImixsArchiveException {
-		byte[] data = null;
+	public void saveDocument(ItemCollection itemCol) throws ImixsArchiveException {
+
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
 
@@ -74,28 +76,15 @@ public class DocumentService {
 		// String snapshotDigits = snapshotSegments[snapshotSegments.length - 1];
 		String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
 
-		// create byte array from XMLDocument...
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		try {
-			JAXBContext context;
-			context = JAXBContext.newInstance(XMLDocument.class);
-			Marshaller m = context.createMarshaller();
-			XMLDocument xmlDocument = XMLDocumentAdapter.getDocument(itemCol);
-			m.marshal(xmlDocument, outputStream);
-			data = outputStream.toByteArray();
-		} catch (JAXBException e) {
-			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
-		}
-
 		Session session = null;
 		try {
 			// get session from archive....
-			session = clusterService.getArchiveSession(keyspace);
+			session = clusterService.getArchiveSession();
 
 			// upset document....
 			statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS);
 			bound = statement.bind().setString(COLUMN_SNAPSHOT, itemCol.getUniqueID()).setBytes(COLUMN_DATA,
-					ByteBuffer.wrap(data));
+					ByteBuffer.wrap(getRawData(itemCol)));
 			session.execute(bound);
 
 			// upset document_snapshots....
@@ -116,6 +105,57 @@ public class DocumentService {
 			}
 		}
 
+	}
+
+	/**
+	 * Converts a ItemCollection into a XMLDocument and returns the byte data.
+	 * 
+	 * @param itemCol
+	 * @return
+	 * @throws ImixsArchiveException
+	 */
+	public static byte[] getRawData(ItemCollection itemCol) throws ImixsArchiveException {
+		byte[] data = null;
+		// create byte array from XMLDocument...
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		try {
+			JAXBContext context;
+			context = JAXBContext.newInstance(XMLDocument.class);
+			Marshaller m = context.createMarshaller();
+			XMLDocument xmlDocument = XMLDocumentAdapter.getDocument(itemCol);
+			m.marshal(xmlDocument, outputStream);
+			data = outputStream.toByteArray();
+		} catch (JAXBException e) {
+			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
+		}
+
+		return data;
+	}
+
+	/**
+	 * Converts a byte array into a XMLDocument and returns the ItemCollection
+	 * object.
+	 * @throws ImixsArchiveException 
+	 *
+	 */
+	public static ItemCollection getItemCollection(byte[] source) throws ImixsArchiveException {
+
+		ByteArrayInputStream bis = new ByteArrayInputStream(source);
+		try {
+			JAXBContext context;
+			context = JAXBContext.newInstance(XMLDocument.class);
+			Unmarshaller m = context.createUnmarshaller();
+			Object jaxbObject = m.unmarshal(bis);
+			if (jaxbObject == null) {
+				throw new RuntimeException("readCollection error - wrong xml file format - unable to read content!");
+			}
+			XMLDocument xmlDocument = (XMLDocument) jaxbObject;
+			return XMLDocumentAdapter.putDocument(xmlDocument);
+		} catch (JAXBException e) {
+			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
+		}
+
+		
 	}
 
 	/**

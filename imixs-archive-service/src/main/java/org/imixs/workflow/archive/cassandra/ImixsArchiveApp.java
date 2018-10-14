@@ -32,7 +32,7 @@ import javax.ejb.EJB;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
-import org.imixs.workflow.archive.cassandra.services.ConfigurationService;
+import org.imixs.workflow.archive.cassandra.services.MetadataService;
 
 /**
  * The Imixs-Archive-Service application setup
@@ -54,7 +54,7 @@ public class ImixsArchiveApp extends Application {
 
 	
 	@EJB
-	ConfigurationService configurationService;
+	MetadataService configurationService;
 
 	public ImixsArchiveApp() {
 		super();

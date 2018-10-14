@@ -35,6 +35,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
 import org.imixs.workflow.archive.cassandra.data.ClusterDataController;
+import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 
 /**
  * This Marty SetupController extends the Marty ConfigController and holds the
@@ -70,13 +71,14 @@ public class MonitorController {
 	 * show connections
 	 * 
 	 * @return
+	 * @throws ImixsArchiveException 
 	 */
 	@Path("/")
 	@GET
-	public String showSetupSettings() {
+	public String showSetupSettings() throws ImixsArchiveException {
 		logger.finest("......show monitor...");
 		// refresh config....
-		clusterDataController.refreshConfiguration();
+		//clusterDataController.refreshConfiguration();
 		return "monitor.xhtml";
 	}
 	

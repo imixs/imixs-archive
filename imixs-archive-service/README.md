@@ -12,6 +12,16 @@ When the syncpoint is reset it is set to January 1, 1970 00:00:00 GMT.
 After each successfull sync the syncpoint will be set to the modidfied timestamp of the synced workitem. 
 
 
+## Configuration
+
+The Imixs-Archive Microservice is configured by envirnment variables or an optional property file (imixs.properties). 
+The following configuration parameters are mandatory:
+
+ * ARCHIVE\_CLUSTER\_CONTACTPOINTS = one or many contact points of cassandra nodes within one cluster. 
+ * ARCHIVE\_CLUSTER\_REPLICATION\_FACTOR = defines the replication factor 
+ * ARCHIVE\_CLUSTER\_KEYSPACE = cassandra keyspace for the archive
+ * ARCHIVE\_SCHEDULER\_DEFINITION = cron defiition for scheduling
+ 
 # Docker Support
 
 The project includes a test environment based on a docker stack including the following components:

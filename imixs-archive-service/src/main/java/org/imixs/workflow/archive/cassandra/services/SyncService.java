@@ -61,12 +61,12 @@ public class SyncService {
 	 * @throws ImixsArchiveException 
 	 * 
 	 */
-	public XMLDocument readSyncData(ItemCollection configuration) throws ImixsArchiveException {
+	public XMLDocument readSyncData(ItemCollection metaData) throws ImixsArchiveException {
 		XMLDataCollection result = null;
 		// load next document
-		long syncPoint = configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
+		long syncPoint = metaData.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
 
-		RestClient workflowClient =initWorkflowClient(configuration);
+		RestClient workflowClient =initWorkflowClient(metaData);
 		String url = SNAPSHOT_RESOURCE  + syncPoint;
 		logger.info("...... read data: " + url + "....");
 

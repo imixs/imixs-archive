@@ -88,7 +88,10 @@ public class SchedulerService {
 	DocumentService documentService;
 
 	@EJB
-	ConfigurationService configurationService;
+	ClusterService clusterService;
+
+	@EJB
+	MetadataService metadataService;
 
 	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
@@ -114,15 +117,10 @@ public class SchedulerService {
 	 * @return updated configuration
 	 * @throws ImixsArchiveException
 	 */
-	public ItemCollection start(String id) throws ImixsArchiveException {
+	public ItemCollection start() throws ImixsArchiveException {
 		Timer timer = null;
 
-		ItemCollection configuration = configurationService.loadConfiguration(id);
-
-		if (configuration == null) {
-			return null;
-		}
-
+		String id = clusterService.getKeySpaceName();
 		// try to cancel an existing timer for this workflowinstance
 		timer = findTimer(id);
 		if (timer != null) {
@@ -136,14 +134,15 @@ public class SchedulerService {
 			}
 		}
 
+		ItemCollection metaData = metadataService.loadMetadata();
 		try {
 			logger.info("...Scheduler Service " + id + " will be started...");
-			String schedulerDescription = configuration.getItemValueString(ITEM_SCHEDULER_DEFINITION);
+			String schedulerDescription = clusterService.getSchedulerDefinition();
 
 			if (!schedulerDescription.isEmpty()) {
 				// New timer will be started on calendar confiugration
 
-				timer = createTimerOnCalendar(configuration);
+				timer = createTimerOnCalendar();
 
 			}
 			// start and set statusmessage
@@ -153,15 +152,15 @@ public class SchedulerService {
 				SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
 				String msg = "started at " + dateFormatDE.format(calNow.getTime()) + " by "
 						+ ctx.getCallerPrincipal().getName();
-				configuration.replaceItemValue("statusmessage", msg);
+				metaData.replaceItemValue("statusmessage", msg);
 
 				if (timer.isCalendarTimer()) {
-					configuration.replaceItemValue("Schedule", timer.getSchedule().toString());
+					metaData.replaceItemValue("Schedule", timer.getSchedule().toString());
 				} else {
-					configuration.replaceItemValue("Schedule", "");
+					metaData.replaceItemValue("Schedule", "");
 
 				}
-				logger.info("...Scheduler Service" + id + " (" + configuration.getItemValueString("txtName")
+				logger.info("...Scheduler Service" + id + " (" + metaData.getItemValueString("txtName")
 						+ ") successfull started.");
 			}
 
@@ -169,9 +168,9 @@ public class SchedulerService {
 			throw new ImixsArchiveException(SchedulerService.class.getName(), SchedulerException.INVALID_WORKITEM,
 					" failed to start timer: " + e.getMessage());
 		}
-		configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
-		configuration.replaceItemValue("errormessage", "");
-		return configuration;
+		metaData.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
+		metaData.replaceItemValue("errormessage", "");
+		return metaData;
 	}
 
 	/**
@@ -181,20 +180,20 @@ public class SchedulerService {
 	 * The method returns the current configuration. The configuration will not be
 	 * saved!
 	 * 
+	 * @throws ImixsArchiveException
+	 * 
 	 * 
 	 */
-	public ItemCollection stop(String id) {
-		ItemCollection configuration = configurationService.loadConfiguration(id);
-		if (configuration == null) {
-			return null;
-		}
+	public ItemCollection stop() throws ImixsArchiveException {
+		String id = clusterService.getKeySpaceName();
 		Timer timer = findTimer(id);
-		return stop(configuration, timer);
+		return stop( timer);
 
 	}
 
-	public ItemCollection stop(ItemCollection configuration, Timer timer) {
-		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
+	public ItemCollection stop(Timer timer) throws ImixsArchiveException {
+		String id = clusterService.getKeySpaceName();
+		ItemCollection metaData = metadataService.loadMetadata();
 		if (timer != null) {
 			try {
 				timer.cancel();
@@ -211,17 +210,17 @@ public class SchedulerService {
 			if (name != null && !name.isEmpty() && !"anonymous".equals(name)) {
 				message += " by " + name;
 			}
-			configuration.replaceItemValue("statusmessage", message);
+			metaData.replaceItemValue("statusmessage", message);
 
-			logger.info("... scheduler " + configuration.getItemValueString("txtName") + " stopped: " + id);
+			logger.info("... scheduler " + metaData.getItemValueString("txtName") + " stopped: " + id);
 		} else {
 			String msg = "stopped";
-			configuration.replaceItemValue("statusmessage", msg);
+			metaData.replaceItemValue("statusmessage", msg);
 
 		}
-		configuration.removeItem("nextTimeout");
-		configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
-		return configuration;
+		metaData.removeItem("nextTimeout");
+		metaData.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
+		return metaData;
 	}
 
 	/**
@@ -290,16 +289,17 @@ public class SchedulerService {
 	 * @param sConfiguation
 	 * @return
 	 * @throws ParseException
+	 * @throws ImixsArchiveException 
 	 */
-	Timer createTimerOnCalendar(ItemCollection configuration) throws ParseException {
+	Timer createTimerOnCalendar() throws ParseException, ImixsArchiveException {
 
 		TimerConfig timerConfig = new TimerConfig();
-		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
+		String id = clusterService.getKeySpaceName();
 		timerConfig.setInfo(id);
 
 		ScheduleExpression scheduerExpression = new ScheduleExpression();
 
-		String sDefinition = configuration.getItemValueString(ITEM_SCHEDULER_DEFINITION);
+		String sDefinition = clusterService.getSchedulerDefinition();
 		String calendarConfiguation[] = sDefinition.split("\\r?\\n");
 
 		// try to parse the configuration list....
@@ -366,29 +366,23 @@ public class SchedulerService {
 	@Timeout
 	void onTimeout(javax.ejb.Timer timer) throws Exception {
 		String errorMes = "";
+		ItemCollection metaData=null;
 		// start time....
 		long lProfiler = System.currentTimeMillis();
 		String keyspaceID = timer.getInfo().toString();
 
-		ItemCollection configuration = configurationService.loadConfiguration(keyspaceID);
-
-		if (configuration == null) {
-			logger.severe("...failed to load scheduler configuration for current timer. Timer will be stopped...");
-			return;
-		}
-
 		try {
 			// ...start processing
 			logger.info("...run scheduler '" + keyspaceID + "....");
-
+			 metaData = metadataService.loadMetadata();
 			int count = 0;
 
 			while (count < MAX_COUNT) {
-				XMLDocument xmlDocument = syncService.readSyncData(configuration);
+				XMLDocument xmlDocument = syncService.readSyncData(metaData);
 
 				if (xmlDocument != null) {
 					count++;
-					
+
 					ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
 
 					// update snypoint
@@ -396,20 +390,20 @@ public class SchedulerService {
 					logger.info("...data found - new syncpoint=" + syncpointdate.getTime());
 
 					// store data into archive
-					documentService.saveDocument(snapshot, keyspaceID);
+					documentService.saveDocument(snapshot);
 
-					configuration.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT, syncpointdate.getTime());
+					metaData.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT, syncpointdate.getTime());
 
 					// update stats....
 
-					int syncs = configuration.getItemValue("_sync_count", Integer.class);
+					int syncs = metaData.getItemValue("_sync_count", Integer.class);
 					syncs++;
-					configuration.setItemValue("_sync_count", syncs);
+					metaData.setItemValue("_sync_count", syncs);
 
 				} else {
 					// no more syncpoints
 					logger.info("...no more data found for syncpoint: "
-							+ configuration.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT));
+							+ metaData.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT));
 					break;
 				}
 			}
@@ -425,12 +419,12 @@ public class SchedulerService {
 			errorMes = e.getMessage();
 			logger.severe("Scheduler '" + keyspaceID + "' failed: " + errorMes);
 
-			configuration = stop(configuration, timer);
+			stop(timer);
 		} finally {
 			// Save statistic in configuration
-			if (configuration != null) {
-				configuration.replaceItemValue("errormessage", errorMes);
-				configurationService.saveConfiguration(configuration);
+			if (metaData != null) {
+				metaData.replaceItemValue("errormessage", errorMes);
+				metadataService.saveMetadata(metaData);
 
 			}
 		}

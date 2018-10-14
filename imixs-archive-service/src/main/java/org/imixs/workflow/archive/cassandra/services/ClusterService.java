@@ -2,6 +2,7 @@ package org.imixs.workflow.archive.cassandra.services;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
@@ -39,10 +40,12 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
 @Stateless
 public class ClusterService {
 
-	public static final String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT = "archive.cluster.contactpoints";
+	public static final String PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINTS = "archive.cluster.contactpoints";
+	public static final String PROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
+
 	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "archive.cluster.replication_factor";
 	public static final String PROPERTY_ARCHIVE_CLUSTER_REPLICATION_CLASS = "archive.cluster.replication_class";
-	public static final String PROPERTY_ARCHIVE_CORE_KEYSPACE = "archive.core.keyspace";
+	public static final String PROPERTY_ARCHIVE_SCHEDULER_DEFINITION = "archive.scheduler.definition";
 	public static final String DEFAULT_CORE_KEYSPACE = "imixsarchive";
 
 	// core table schema
@@ -62,7 +65,6 @@ public class ClusterService {
 	@EJB
 	SchedulerService schedulerService;
 
-	
 	/**
 	 * This method saves a ItemCollection into a specific KeySpace.
 	 * 
@@ -103,7 +105,7 @@ public class ClusterService {
 		}
 
 		// get session from archive....
-		Session session = this.getArchiveSession(keyspace);
+		Session session = this.getArchiveSession();
 
 		// upset document....
 		statement = session.prepare("insert into snapshots (id, data) values (?, ?)");
@@ -137,46 +139,46 @@ public class ClusterService {
 	/**
 	 * Returns a cassandra session for a ImixsArchive Core-KeySpace. The
 	 * Core-KeySpace is used for the internal management.
-	 */
-	public Session getCoreSession() {
-		String coreKeySpace = null;
-	
-		Cluster cluster = getCluster();
-	
-		coreKeySpace = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CORE_KEYSPACE,
-				DEFAULT_CORE_KEYSPACE);
-		Session session = null;
-		try {
-			session = cluster.connect(coreKeySpace);
-		} catch (InvalidQueryException e) {
-			logger.warning("......conecting keyspace '" + coreKeySpace + "' failed: " + e.getMessage());
-			// create keyspace...
-			session = createKeySpace(coreKeySpace, KeyspaceType.CORE);
-		}
-		if (session != null) {
-			logger.finest("......keyspace conection status = OK");
-		}
-	
-		return session;
-	}
-
-	/**
-	 * Returns a cassandra session for a KeySpace. If no keySpace is defined, the
-	 * core keyspace will be returned. If no keyspace with this given keyspace name
-	 * exists, the method creates the keyspace and table schemas.
 	 * 
 	 * @throws ImixsArchiveException
 	 */
-	public Session getArchiveSession(String keySpace) throws ImixsArchiveException {
-	
+	/*
+	 * public Session getCoreSession() throws ImixsArchiveException { String
+	 * coreKeySpace = null;
+	 * 
+	 * Cluster cluster = getCluster();
+	 * 
+	 * coreKeySpace =
+	 * propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CORE_KEYSPACE,
+	 * DEFAULT_CORE_KEYSPACE); Session session = null; try { session =
+	 * cluster.connect(coreKeySpace); } catch (InvalidQueryException e) {
+	 * logger.warning("......conecting keyspace '" + coreKeySpace + "' failed: " +
+	 * e.getMessage()); // create keyspace... session = createKeySpace(coreKeySpace,
+	 * KeyspaceType.CORE); } if (session != null) {
+	 * logger.finest("......keyspace conection status = OK"); }
+	 * 
+	 * return session; }
+	 */
+
+	/**
+	 * Returns a cassandra session for the archive KeySpace. The keyspace is defined
+	 * by the environmetn variable ARCHIVE_CLUSTER_KEYSPACE. If no keyspace with
+	 * this given keyspace name exists, the method creates the keyspace and table
+	 * schemas.
+	 * 
+	 * @throws ImixsArchiveException
+	 */
+	public Session getArchiveSession() throws ImixsArchiveException {
+
+		String keySpace=this.getKeySpaceName();
 		if (keySpace == null || keySpace.isEmpty()) {
 			throw new ImixsArchiveException(ImixsArchiveException.INVALID_KEYSPACE, "missing keyspace");
 		}
-	
+
 		Cluster cluster = getCluster();
 		// try to open keySpace
 		logger.finest("......conecting keyspace '" + keySpace + "'...");
-	
+
 		Session session = null;
 		try {
 			session = cluster.connect(keySpace);
@@ -191,8 +193,23 @@ public class ClusterService {
 		return session;
 	}
 
-	public Cluster getCluster() {
-		String contactPoint = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINT);
+	/**
+	 * This method creates a Cassandra Cluster object. The cluster is defined by
+	 * ContactPoints provided in the environmetn variable
+	 * 'ARCHIVE_CLUSTER_CONTACTPOINTS' or in the imixs.property
+	 * 'archive.cluster.contactpoints'
+	 * 
+	 * @return Cassandra Cluster instacne
+	 * @throws ImixsArchiveException
+	 */
+	public Cluster getCluster() throws ImixsArchiveException {
+		String contactPoint = getContactPoints();
+
+		if (contactPoint == null || contactPoint.isEmpty()) {
+			throw new ImixsArchiveException(ImixsArchiveException.MISSING_CONTACTPOINT,
+					"missing cluster contact points - verify configuration!");
+		}
+
 		logger.finest("......cluster conecting...");
 		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
@@ -203,6 +220,38 @@ public class ClusterService {
 	}
 
 	/**
+	 * Returns the cassandra contact points provided by a environment variable
+	 * 
+	 * @return
+	 */
+	public String getContactPoints() {
+		String result = System.getenv("ARCHIVE_CLUSTER_CONTACTPOINTS");
+		if (result == null || result.isEmpty()) {
+			// get from imixs.properties....
+			result = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_CONTACTPOINTS);
+		}
+		return result;
+	}
+
+	public String getSchedulerDefinition() {
+		String result = System.getenv("ARCHIVE_SCHEDULER_DEFINITION");
+		if (result == null || result.isEmpty()) {
+			// get from imixs.properties....
+			result = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_SCHEDULER_DEFINITION);
+		}
+		return result;
+	}
+
+	public String getKeySpaceName() throws ImixsArchiveException {
+		String result = System.getenv("ARCHIVE_CLUSTER_KEYSPACE");
+		if (result == null || result.isEmpty()) {
+			// get from imixs.properties....
+			result = propertyService.getProperties().getProperty(PROPERTY_ARCHIVE_CLUSTER_KEYSPACE);
+		}
+		return result;
+	}
+
+	/**
 	 * This method creates a cassandra keySpace.
 	 * <p>
 	 * Depending on the KeyspaceType, the method creates the core table schema to
@@ -210,8 +259,9 @@ public class ClusterService {
 	 * store imixs documents.
 	 * 
 	 * @param cluster
+	 * @throws ImixsArchiveException
 	 */
-	protected Session createKeySpace(String keySpace, KeyspaceType type) {
+	protected Session createKeySpace(String keySpace, KeyspaceType type) throws ImixsArchiveException {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
 
 		Cluster cluster = getCluster();

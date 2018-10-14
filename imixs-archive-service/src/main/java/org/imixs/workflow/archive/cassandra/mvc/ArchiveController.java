@@ -16,7 +16,7 @@ import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
 import org.imixs.workflow.archive.cassandra.data.ConfigurationDataController;
 import org.imixs.workflow.archive.cassandra.data.ErrorController;
-import org.imixs.workflow.archive.cassandra.services.ConfigurationService;
+import org.imixs.workflow.archive.cassandra.services.MetadataService;
 import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 import org.imixs.workflow.archive.cassandra.services.SchedulerService;
 
@@ -34,8 +34,6 @@ public class ArchiveController {
 
 	public static final String KEYSPACE_REGEX = "^[a-z_]*[^-]$";
 
-	@EJB
-	ConfigurationService configurationService;
 
 	@EJB
 	SchedulerService schedulerService;
@@ -45,20 +43,23 @@ public class ArchiveController {
 
 	@Inject
 	ErrorController errorController;
+	
+	@EJB
+	MetadataService metadataService;
 
 	/**
 	 * show connections
 	 * 
 	 * @return
+	 * @throws ImixsArchiveException 
 	 */
 	@Path("/")
 	@GET
-	public String showConfigs() {
+	public String showConfigs() throws ImixsArchiveException {
 
 		logger.finest("......show config...");
 
-		configurationDataController.setConfigurations(configurationService.getConfigurationList());
-
+	
 		return "archive_list.xhtml";
 	}
 
@@ -66,113 +67,17 @@ public class ArchiveController {
 	 * Edit key-space
 	 * 
 	 * @return
+	 * @throws ImixsArchiveException 
 	 */
 	@Path("/action/edit/{keyspace}")
 	@GET
-	public String editKeySpace(@PathParam(ImixsArchiveApp.ITEM_KEYSPACE) String keyspace) {
+	public String editMetadata(@PathParam(ImixsArchiveApp.ITEM_KEYSPACE) String keyspace) throws ImixsArchiveException {
 
 		errorController.reset();
 		logger.finest("......edit archive config '" + keyspace + "'...");
-		configurationDataController.setConfiguration(configurationService.loadConfiguration(keyspace));
+		configurationDataController.setConfiguration(metadataService.loadMetadata());
 
 		return "archive_config.xhtml";
-	}
-
-	/**
-	 * Create a new key-space
-	 * 
-	 * @return
-	 */
-	@Path("/action/create")
-	@GET
-	public String createKeySpace() {
-		errorController.reset();
-		logger.info("...create archive config...");
-
-		return "archive_config.xhtml";
-	}
-
-	/**
-	 * Deletes a key-space
-	 * 
-	 * @return
-	 * @throws ImixsArchiveException
-	 */
-	@Path("/action/delete/{keyspace}")
-	@GET
-	public String deleteKeySpace(@PathParam(ImixsArchiveApp.ITEM_KEYSPACE) String keyspace)
-			throws ImixsArchiveException {
-
-		logger.info("...delete archive config '" + keyspace + "'...");
-		ItemCollection configuration = configurationService.loadConfiguration(keyspace);
-		String message = configurationService.deleteConfiguration(configuration);
-
-		errorController.setMessage(message);
-
-		return "redirect:archive";
-	}
-
-	/**
-	 * Save the archive configuration. If the corresponding keyspace does not exist,
-	 * the method creates and initalizes the keyspace.
-	 * 
-	 * @param keyspace
-	 * @param url
-	 * @param session
-	 * @param cluster
-	 * @return
-	 */
-	@POST
-	@Path("/")
-	public String saveArchiveKeySpace(@FormParam(ImixsArchiveApp.ITEM_KEYSPACE) String keyspace,
-			@FormParam("url") String url, @FormParam("_scheduler_definition") String schedulerDefinition,
-			@FormParam("authmethod") String authmethod, @FormParam("userid") String userid,
-			@FormParam("password") String password,
-			@FormParam("syncpoint") int syncpoint) {
-
-		errorController.reset();
-
-		// validate keyspace pattern
-		if (!keyspace.matches(KEYSPACE_REGEX)) {
-			errorController.setMessage("Keyspace may not contain - or contain a numeric value!");
-			return "redirect:archive";
-		}
-
-		try {
-			// create ItemCollection with archive data
-			ItemCollection archive = new ItemCollection();
-			archive.replaceItemValue(ImixsArchiveApp.ITEM_KEYSPACE, keyspace);
-			archive.replaceItemValue(ImixsArchiveApp.ITEM_URL, url);
-			archive.replaceItemValue(ImixsArchiveApp.ITEM_USERID, userid);
-			archive.replaceItemValue(ImixsArchiveApp.ITEM_PASSWORD, password);
-			archive.replaceItemValue(ImixsArchiveApp.ITEM_AUTHMETHOD, authmethod);
-			
-			
-			// syncpoint?
-			if (syncpoint==0) {
-				logger.finest("......reset syncpoint to 0");
-				archive.replaceItemValue(ImixsArchiveApp.ITEM_SYNCPOINT,new Date(0));
-			}
-
-			if (schedulerDefinition == null || schedulerDefinition.isEmpty()) {
-				schedulerDefinition = "hour=*"; // defaut setting
-			}
-			archive.replaceItemValue(SchedulerService.ITEM_SCHEDULER_DEFINITION, schedulerDefinition);
-
-			logger.info("update configuration for keyspace '" + keyspace + "' ....");
-
-			// save the archive configuration
-			configurationService.saveConfiguration(archive);
-
-			// start scheduler
-			schedulerService.start(keyspace);
-
-		} catch (ImixsArchiveException e) {
-			logger.severe(e.getMessage());
-			errorController.setMessage(e.getMessage());
-			return "archive_config.xhtml";
-		}
-		return "redirect:archive";
 	}
 
 }
