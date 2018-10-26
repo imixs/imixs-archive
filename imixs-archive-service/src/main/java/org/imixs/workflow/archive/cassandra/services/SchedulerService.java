@@ -296,7 +296,7 @@ public class SchedulerService {
 
 		String sDefinition = clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION,
 				DEFAULT_SCHEDULER_DEFINITION);
-		String calendarConfiguation[] = sDefinition.split("\\r?\\n");
+		String calendarConfiguation[] = sDefinition.split("(\\r?\\n)|(;)|(,)");
 
 		// try to parse the configuration list....
 		for (String confgEntry : calendarConfiguation) {

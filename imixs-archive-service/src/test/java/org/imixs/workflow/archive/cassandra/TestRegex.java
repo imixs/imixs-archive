@@ -48,5 +48,14 @@ public class TestRegex {
 	
 	
 	
+	@Test
+	public void testSemicolonOrComma() {
+		// validate keyspace pattern
+		
+		String sDefinition="hour=5;minute=1,day=3";	
+		String calendarConfiguation[] = sDefinition.split("(\\r?\\n)|(;)|(,)");
+		Assert.assertEquals(3, calendarConfiguation.length);
+		
+	}
 	
 }
