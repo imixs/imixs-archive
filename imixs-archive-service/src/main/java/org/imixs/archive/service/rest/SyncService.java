@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.services;
+package org.imixs.archive.service.rest;
 
 import java.util.logging.Logger;
 
@@ -6,8 +6,9 @@ import javax.ejb.Stateless;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
+import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.ImixsArchiveApp;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
 import org.imixs.workflow.services.rest.BasicAuthenticator;
 import org.imixs.workflow.services.rest.FormAuthenticator;
 import org.imixs.workflow.services.rest.RestAPIException;
@@ -58,10 +59,10 @@ public class SyncService {
 	 * 
 	 * @return an XMLDocument instance representing the data to sync or null if no
 	 *         data form the given syncpoint is available.
-	 * @throws ImixsArchiveException 
+	 * @throws ArchiveException 
 	 * 
 	 */
-	public XMLDocument readSyncData(ItemCollection metaData) throws ImixsArchiveException {
+	public XMLDocument readSyncData(ItemCollection metaData) throws ArchiveException {
 		XMLDataCollection result = null;
 		// load next document
 		long syncPoint = metaData.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
@@ -75,7 +76,7 @@ public class SyncService {
 		} catch (RestAPIException e) {
 			String errorMessage="Failed to readSyncData : " + e.getMessage();
 			logger.warning("..."+errorMessage);
-			throw new ImixsArchiveException(ImixsArchiveException.SYNC_ERROR, errorMessage,e);
+			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage,e);
 		}
 
 		if (result != null && result.getDocument().length > 0) {

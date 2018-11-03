@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.mvc;
+package org.imixs.archive.service.mvc;
 
 import java.util.logging.Logger;
 
@@ -8,7 +8,7 @@ import javax.mvc.annotation.Controller;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.imixs.workflow.archive.cassandra.services.ClusterService;
+import org.imixs.archive.service.cassandra.ClusterService;
 
 /**
  * The cluster controller provides action methods to setup the cluster configuration

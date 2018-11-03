@@ -1,7 +1,7 @@
 package org.imixs.workflow.archive.cassandra;
 
-import org.imixs.workflow.archive.cassandra.mvc.ArchiveController;
-import org.imixs.workflow.archive.cassandra.services.ClusterService;
+import org.imixs.archive.service.cassandra.ClusterService;
+import org.imixs.archive.service.mvc.ArchiveController;
 import org.junit.Assert;
 import org.junit.Test;
 

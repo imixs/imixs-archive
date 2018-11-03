@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.mvc;
+package org.imixs.archive.service.mvc;
 
 import javax.mvc.annotation.Controller;
 import javax.ws.rs.GET;

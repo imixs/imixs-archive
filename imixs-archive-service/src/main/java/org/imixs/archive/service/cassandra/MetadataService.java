@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.services;
+package org.imixs.archive.service.cassandra;
 
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
@@ -6,6 +6,8 @@ import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 
+import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.scheduler.SchedulerService;
 import org.imixs.workflow.ItemCollection;
 
 import com.datastax.driver.core.BoundStatement;
@@ -69,9 +71,9 @@ public class MetadataService {
 	 * Loads a configuration from the core-keyspace by a keyspaceId.
 	 * 
 	 * @return
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 */
-	public ItemCollection loadMetadata() throws ImixsArchiveException {
+	public ItemCollection loadMetadata() throws ArchiveException {
 		Session session = null;
 		// get session from archive....
 		try {
@@ -104,9 +106,9 @@ public class MetadataService {
 	 * 'METADATA_'+ keyspace
 	 * 
 	 * @param metadata
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 */
-	public ItemCollection saveMetadata(ItemCollection metadata) throws ImixsArchiveException {
+	public ItemCollection saveMetadata(ItemCollection metadata) throws ArchiveException {
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
 		Session session = null;

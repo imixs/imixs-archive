@@ -76,7 +76,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<org.imixs.workflow.version>4.4.3</org.imixs.workflow.version>
+		<org.imixs.workflow.version>4.4.4</org.imixs.workflow.version>
 		<org.imixs.melman.version>1.0.4</org.imixs.melman.version>
 		<!-- imixs-github-repo on github - see ~/.m2/settings.xml -->
 		<github.global.server>imixs-github-repo</github.global.server>
@@ -105,50 +105,7 @@
 				</configuration>
 			</plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-site-plugin</artifactId>
-				<version>3.4</version>
-				<configuration>
-					<locales>en</locales>
-					<reportPlugins>
-						<plugin>
-							<groupId>org.apache.maven.plugins</groupId>
-							<artifactId>maven-project-info-reports-plugin</artifactId>
-							<version>2.4</version>
-							<!-- <reports> <report>index</report> <report>project-team</report> 
-								<report>license</report> <report>mailing-list</report> <report>dependencies</report> 
-								<report>dependency-convergence</report> <report>plugin-management</report> 
-								<report>issue-tracking</report> <report>summary</report> </reports> -->
-
-						</plugin>
-
-						<plugin>
-							<groupId>org.apache.maven.plugins</groupId>
-							<artifactId>maven-javadoc-plugin</artifactId>
-							<version>2.9</version>
-						</plugin>
-
-						<plugin>
-							<groupId>org.apache.maven.plugins</groupId>
-							<artifactId>maven-jxr-plugin</artifactId>
-							<version>2.1</version>
-						</plugin>
-						<!-- Findbugs -->
-						<plugin>
-							<groupId>org.codehaus.mojo</groupId>
-							<artifactId>findbugs-maven-plugin</artifactId>
-							<version>2.4.0</version>
-							<configuration>
-								<effort>Default</effort><!-- Min, Default, Max -->
-								<threshold>Default</threshold><!-- High, Default, Low, Ignore -->
-							</configuration>
-						</plugin>
-					</reportPlugins>
-				</configuration>
-			</plugin>
-
-
+			
 			<!-- release management -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

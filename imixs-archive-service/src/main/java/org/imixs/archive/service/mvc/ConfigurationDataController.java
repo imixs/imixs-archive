@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.data;
+package org.imixs.archive.service.mvc;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -9,9 +9,9 @@ import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
 
+import org.imixs.archive.service.ImixsArchiveApp;
+import org.imixs.archive.service.scheduler.SchedulerService;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
-import org.imixs.workflow.archive.cassandra.services.SchedulerService;
 
 /**
  * Request Scoped CID Bean to hold the config-data. It provides a list of all available cnfiguations

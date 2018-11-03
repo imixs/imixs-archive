@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.workflow.archive.cassandra.services;
+package org.imixs.archive.service.scheduler;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -38,8 +38,13 @@ import javax.ejb.Timeout;
 import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 
+import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.ImixsArchiveApp;
+import org.imixs.archive.service.cassandra.ClusterService;
+import org.imixs.archive.service.cassandra.DocumentService;
+import org.imixs.archive.service.cassandra.MetadataService;
+import org.imixs.archive.service.rest.SyncService;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.archive.cassandra.ImixsArchiveApp;
 import org.imixs.workflow.exceptions.QueryException;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -115,9 +120,9 @@ public class SchedulerService {
 	 * 
 	 * @param configuration - scheduler configuration
 	 * @return updated configuration
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 */
-	public ItemCollection start() throws ImixsArchiveException {
+	public ItemCollection start() throws ArchiveException {
 		Timer timer = null;
 
 		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
@@ -129,7 +134,7 @@ public class SchedulerService {
 				timer = null;
 			} catch (Exception e) {
 				logger.warning("...failed to stop existing timer for '" + id + "'!");
-				throw new ImixsArchiveException(SchedulerService.class.getName(), SchedulerException.INVALID_WORKITEM,
+				throw new ArchiveException(SchedulerService.class.getName(), ArchiveException.INVALID_WORKITEM,
 						" failed to cancle existing timer!");
 			}
 		}
@@ -160,7 +165,7 @@ public class SchedulerService {
 			}
 
 		} catch (ParseException e) {
-			throw new ImixsArchiveException(SchedulerService.class.getName(), SchedulerException.INVALID_WORKITEM,
+			throw new ArchiveException(SchedulerService.class.getName(), ArchiveException.INVALID_WORKITEM,
 					" failed to start timer: " + e.getMessage());
 		}
 		metaData.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
@@ -175,18 +180,18 @@ public class SchedulerService {
 	 * The method returns the current configuration. The configuration will not be
 	 * saved!
 	 * 
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 * 
 	 * 
 	 */
-	public ItemCollection stop() throws ImixsArchiveException {
+	public ItemCollection stop() throws ArchiveException {
 		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		Timer timer = findTimer(id);
 		return stop(timer);
 
 	}
 
-	public ItemCollection stop(Timer timer) throws ImixsArchiveException {
+	public ItemCollection stop(Timer timer) throws ArchiveException {
 		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		ItemCollection metaData = metadataService.loadMetadata();
 		if (timer != null) {
@@ -284,9 +289,9 @@ public class SchedulerService {
 	 * @param sConfiguation
 	 * @return
 	 * @throws ParseException
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 */
-	Timer createTimerOnCalendar() throws ParseException, ImixsArchiveException {
+	Timer createTimerOnCalendar() throws ParseException, ArchiveException {
 
 		TimerConfig timerConfig = new TimerConfig();
 		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
@@ -407,7 +412,7 @@ public class SchedulerService {
 			logger.info("...scheduler  '" + keyspaceID + "' finished - " + count + " snapshots synchronized in: "
 					+ ((System.currentTimeMillis()) - lProfiler) + " ms");
 
-		} catch (ImixsArchiveException | RuntimeException e) {
+		} catch (ArchiveException | RuntimeException e) {
 			// in case of an exception we did not cancel the Timer service
 			if (logger.isLoggable(Level.FINEST)) {
 				e.printStackTrace();

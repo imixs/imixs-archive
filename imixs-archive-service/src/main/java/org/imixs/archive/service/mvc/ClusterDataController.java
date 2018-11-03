@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.data;
+package org.imixs.archive.service.mvc;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -11,10 +11,9 @@ import javax.ejb.EJB;
 import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 
+import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.archive.cassandra.services.ClusterService;
-import org.imixs.workflow.archive.cassandra.services.MetadataService;
-import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
 
 /**
  * Session Scoped CID Bean to hold cluster configuration data.
@@ -44,8 +43,6 @@ public class ClusterDataController implements Serializable {
 
 	boolean connected;
 
-	@EJB
-	MetadataService configurationService;
 	
 	@EJB
 	ClusterService clusterService;
@@ -56,12 +53,12 @@ public class ClusterDataController implements Serializable {
 
 	/**
 	 * This method verifies and initializes the core keyspace
-	 * @throws ImixsArchiveException 
+	 * @throws ArchiveException 
 	 * 
 	 *
 	 */
 	@PostConstruct
-	public void init() throws ImixsArchiveException {
+	public void init() throws ArchiveException {
 		logger.info("...initial setup: reading environment....");
 
 		configurationProperties = new Properties();

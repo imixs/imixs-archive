@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.services;
+package org.imixs.archive.service.cassandra;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -12,6 +12,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
+import org.imixs.archive.service.ArchiveException;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -53,9 +54,9 @@ public class DocumentService {
 	 * 
 	 * @param itemCol
 	 * @param session
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 */
-	public void saveDocument(ItemCollection itemCol) throws ImixsArchiveException {
+	public void saveDocument(ItemCollection itemCol) throws ArchiveException {
 
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
@@ -112,9 +113,9 @@ public class DocumentService {
 	 * 
 	 * @param itemCol
 	 * @return
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 */
-	public static byte[] getRawData(ItemCollection itemCol) throws ImixsArchiveException {
+	public static byte[] getRawData(ItemCollection itemCol) throws ArchiveException {
 		byte[] data = null;
 		// create byte array from XMLDocument...
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -126,7 +127,7 @@ public class DocumentService {
 			m.marshal(xmlDocument, outputStream);
 			data = outputStream.toByteArray();
 		} catch (JAXBException e) {
-			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
+			throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
 		}
 
 		return data;
@@ -135,10 +136,10 @@ public class DocumentService {
 	/**
 	 * Converts a byte array into a XMLDocument and returns the ItemCollection
 	 * object.
-	 * @throws ImixsArchiveException 
+	 * @throws ArchiveException 
 	 *
 	 */
-	public static ItemCollection getItemCollection(byte[] source) throws ImixsArchiveException {
+	public static ItemCollection getItemCollection(byte[] source) throws ArchiveException {
 
 		ByteArrayInputStream bis = new ByteArrayInputStream(source);
 		try {
@@ -152,7 +153,7 @@ public class DocumentService {
 			XMLDocument xmlDocument = (XMLDocument) jaxbObject;
 			return XMLDocumentAdapter.putDocument(xmlDocument);
 		} catch (JAXBException e) {
-			throw new ImixsArchiveException(ImixsArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
+			throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
 		}
 
 		

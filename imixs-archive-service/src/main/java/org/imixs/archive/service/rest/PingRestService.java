@@ -25,48 +25,51 @@
  *  	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.workflow.archive.cassandra;
+package org.imixs.archive.service.rest;
 
-import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Application;
+import java.util.logging.Logger;
 
-import org.imixs.workflow.archive.cassandra.services.MetadataService;
+import javax.ejb.Stateless;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
 /**
- * The Imixs-Archive-Service application setup
+ * The WorkflowService Handler supports methods to manage user accounts to
+ * access the Imixs-Microservice platform. This service is based on the Marty
+ * UserGroupService.
  * 
+ * @see org.imixs.marty.ejb.security.UserGroupService
  * @author rsoika
  * 
  */
+@Path("/ping")
+@Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_HTML, MediaType.TEXT_XML })
+@Stateless
+public class PingRestService {
 
-@ApplicationPath("imixsarchive")
-public class ImixsArchiveApp extends Application {
+	@javax.ws.rs.core.Context
+	private static HttpServletRequest servletRequest;
 
-
-	public final static String ITEM_KEYSPACE = "keyspace";
-	public final static String ITEM_URL = "url";
-	public final static String ITEM_USERID = "userid";
-	public final static String ITEM_PASSWORD = "password";
-	public final static String ITEM_AUTHMETHOD = "authmethod";
-	public final static String ITEM_SYNCPOINT = "syncpoint";
-
-	
-	@EJB
-	MetadataService metadataService;
-
-	public ImixsArchiveApp() {
-		super();
-	}
+	private static Logger logger = Logger.getLogger(PingRestService.class.getName());
 
 	/**
-	 * Initialize the web application
+	 * Ping test
+	 * 
+	 * @return time
+	 * @throws Exception
 	 */
-	@PostConstruct
-	public void initialize() {
-		if (metadataService != null) {
-			metadataService.init();
-		}
+	@GET
+	@Path("/")
+	public String ping() {
+
+		logger.finest("......Ping....");
+
+		java.time.LocalDate localDate = java.time.LocalDate.now();
+		return "Ping: " + localDate;
+
 	}
+
 }

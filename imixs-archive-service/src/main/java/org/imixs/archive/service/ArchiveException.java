@@ -25,53 +25,50 @@
  *  	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.workflow.archive.cassandra.services;
+package org.imixs.archive.service;
 
 /**
- * WorkflowException is thrown by the ClusterService
- * 
+ * ImixsArchiveException is thrown by the Imxis-Archive Service
  * 
  * @author rsoika
- * 
+ * @version 1.0
  */
-public  class ImixsArchiveException extends Exception {
+public class ArchiveException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 
 	protected String errorContext = "UNDEFINED";
 	protected String errorCode = "UNDEFINED";
-	
-	
+
 	public static final String INVALID_DOCUMENT_OBJECT = "INVALID_DOCUMENT_OBJECT";
 	public static final String INVALID_KEYSPACE = "INVALID_KEYSPACE";
+	public static final String INVALID_WORKITEM = "INVALID_WORKITEM";
+
+
 	public static final String MISSING_CONTACTPOINT = "MISSING_CONTACTPOINT";
-	public static final String SYNC_ERROR= "SYNC_ERROR";
-	
-	
-	public ImixsArchiveException(String aErrorCode, String message) {
+	public static final String SYNC_ERROR = "SYNC_ERROR";
+
+	public ArchiveException(String aErrorCode, String message) {
 		super(message);
 		errorCode = aErrorCode;
 
 	}
 
-	public ImixsArchiveException(String aErrorContext, String aErrorCode,
-			String message) {
+	public ArchiveException(String aErrorContext, String aErrorCode, String message) {
 		super(message);
 		errorContext = aErrorContext;
 		errorCode = aErrorCode;
 
 	}
 
-	public ImixsArchiveException(String aErrorContext, String aErrorCode,
-			String message, Exception e) {
+	public ArchiveException(String aErrorContext, String aErrorCode, String message, Exception e) {
 		super(message, e);
 		errorContext = aErrorContext;
 		errorCode = aErrorCode;
 
 	}
-	
 
-	public ImixsArchiveException(String aErrorCode, String message, Exception e) {
+	public ArchiveException(String aErrorCode, String message, Exception e) {
 		super(message, e);
 
 		errorCode = aErrorCode;

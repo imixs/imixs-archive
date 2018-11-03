@@ -25,7 +25,7 @@
  *  	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.workflow.archive.cassandra.mvc;
+package org.imixs.archive.service.mvc;
 
 import java.util.logging.Logger;
 
@@ -34,8 +34,7 @@ import javax.mvc.annotation.Controller;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.imixs.workflow.archive.cassandra.data.ClusterDataController;
-import org.imixs.workflow.archive.cassandra.services.ImixsArchiveException;
+import org.imixs.archive.service.ArchiveException;
 
 /**
  * This Marty SetupController extends the Marty ConfigController and holds the
@@ -71,11 +70,11 @@ public class MonitorController {
 	 * show connections
 	 * 
 	 * @return
-	 * @throws ImixsArchiveException 
+	 * @throws ArchiveException 
 	 */
 	@Path("/")
 	@GET
-	public String showSetupSettings() throws ImixsArchiveException {
+	public String showSetupSettings() throws ArchiveException {
 		logger.finest("......show monitor...");
 		// refresh config....
 		//clusterDataController.refreshConfiguration();

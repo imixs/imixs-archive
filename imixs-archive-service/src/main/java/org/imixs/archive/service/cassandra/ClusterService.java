@@ -1,11 +1,13 @@
-package org.imixs.workflow.archive.cassandra.services;
+package org.imixs.archive.service.cassandra;
 
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 
-import org.imixs.workflow.archive.cassandra.mvc.ArchiveController;
+import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.mvc.ArchiveController;
+import org.imixs.archive.service.scheduler.SchedulerService;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -29,15 +31,15 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
 @Stateless
 public class ClusterService {
 
+	// mandatory environment settings
 	public static final String ENV_ARCHIVE_CLUSTER_CONTACTPOINTS = "ARCHIVE_CLUSTER_CONTACTPOINTS";
 	public static final String ENV_ARCHIVE_CLUSTER_KEYSPACE = "ARCHIVE_CLUSTER_KEYSPACE";
+	
+	// optional environment settings
+	public static final String ENV_ARCHIVE_SCHEDULER_DEFINITION = "ARCHIVE_SCHEDULER_DEFINITION";
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "ARCHIVE_CLUSTER_REPLICATION_FACTOR";
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS = "ARCHIVE_CLUSTER_REPLICATION_CLASS";
-	public static final String ENV_ARCHIVE_SCHEDULER_DEFINITION = "ARCHIVE_SCHEDULER_DEFINITION";
 
-	// core table schema
-	// public static final String TABLE_SCHEMA_CONFIGURATION = "CREATE TABLE IF NOT
-	// EXISTS configurations (id text, data blob, PRIMARY KEY (id))";
 
 	// archive table schemas
 	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
@@ -46,9 +48,6 @@ public class ClusterService {
 
 	private static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
-
-	@EJB
-	PropertyService propertyService;
 
 	@EJB
 	SchedulerService schedulerService;
@@ -70,14 +69,13 @@ public class ClusterService {
 	 * this given keyspace name exists, the method creates the keyspace and table
 	 * schemas.
 	 * 
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 */
-	public Session getArchiveSession() throws ImixsArchiveException {
+	public Session getArchiveSession() throws ArchiveException {
 
 		String keySpace = this.getEnv(ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		if (!isValidKeyspaceName(keySpace)) {
-			throw new ImixsArchiveException(ImixsArchiveException.INVALID_KEYSPACE,
-					"keyspace '" + keySpace + "' name invalid.");
+			throw new ArchiveException(ArchiveException.INVALID_KEYSPACE, "keyspace '" + keySpace + "' name invalid.");
 		}
 
 		Cluster cluster = getCluster();
@@ -104,13 +102,13 @@ public class ClusterService {
 	 * 'archive.cluster.contactpoints'
 	 * 
 	 * @return Cassandra Cluster instacne
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 */
-	public Cluster getCluster() throws ImixsArchiveException {
+	public Cluster getCluster() throws ArchiveException {
 		String contactPoint = getEnv(ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
 
 		if (contactPoint == null || contactPoint.isEmpty()) {
-			throw new ImixsArchiveException(ImixsArchiveException.MISSING_CONTACTPOINT,
+			throw new ArchiveException(ArchiveException.MISSING_CONTACTPOINT,
 					"missing cluster contact points - verify configuration!");
 		}
 
@@ -135,10 +133,6 @@ public class ClusterService {
 	public String getEnv(String env, String defaultValue) {
 		String result = System.getenv(env);
 		if (result == null || result.isEmpty()) {
-			// get from imixs.properties....
-			result = propertyService.getProperties().getProperty(env, defaultValue);
-		}
-		if (result == null || result.isEmpty()) {
 			result = defaultValue;
 		}
 		return result;
@@ -152,9 +146,9 @@ public class ClusterService {
 	 * store imixs documents.
 	 * 
 	 * @param cluster
-	 * @throws ImixsArchiveException
+	 * @throws ArchiveException
 	 */
-	protected Session createKeySpace(String keySpace) throws ImixsArchiveException {
+	protected Session createKeySpace(String keySpace) throws ArchiveException {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
 
 		Cluster cluster = getCluster();

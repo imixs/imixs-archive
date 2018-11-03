@@ -1,4 +1,4 @@
-package org.imixs.workflow.archive.cassandra.data;
+package org.imixs.archive.service.mvc;
 
 import java.io.Serializable;
 

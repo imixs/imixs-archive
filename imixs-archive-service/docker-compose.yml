@@ -5,15 +5,13 @@ services:
     image: imixs/imixs-archive-service
     environment:
       WILDFLY_PASS: adminadmin
-      DEBUG: "true"
       ARCHIVE_CLUSTER_CONTACTPOINTS: "cassandra"
       ARCHIVE_CLUSTER_KEYSPACE: "imixsdev"
+      # ARCHIVE_SCHEDULER_DEFINITION: "hour=*"
+      # ARCHIVE_CLUSTER_REPLICATION_FACTOR: "1"
+      # ARCHIVE_CLUSTER_REPLICATION_CLASS: "SimpleStrategy"
     ports:
       - "8080:8080"
-      - "9990:9990"
-      - "8787:8787"
-    volumes:
-        - ~/git/imixs-archive/imixs-archive-service/src/docker/deployments:/opt/wildfly/standalone/deployments/
 
   cassandra:
      image: cassandra:3.11

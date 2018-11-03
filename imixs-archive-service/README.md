@@ -14,15 +14,17 @@ After each successfull sync the syncpoint will be set to the modidfied timestamp
 
 ## Configuration
 
-The Imixs-Archive Microservice is configured by envirnment variables or an optional property file (imixs.properties). 
+The Imixs-Archive Microservice is configured by envirnment variables. 
 The following configuration parameters are mandatory:
 
  * ARCHIVE\_CLUSTER\_CONTACTPOINTS = one or many contact points of cassandra nodes within one cluster. 
- * ARCHIVE\_CLUSTER\_REPLICATION\_FACTOR = defines the replication factor 
- * ARCHIVE\_CLUSTER\_KEYSPACE = cassandra keyspace for the archive
- * ARCHIVE\_SCHEDULER\_DEFINITION = cron defiition for scheduling
- * ARCHIVE\_CLUSTER\_REPLICATION\_FACTOR = 
- * ARCHIVE\_CLUSTER\_REPLICATION\_CLASS = 
+ * ARCHIVE\_CLUSTER\_KEYSPACE = cassandra keyspace for the archive (will be created automatically if not exits)
+
+The cluster replication can be configured by following optional parameters:
+
+ * ARCHIVE\_SCHEDULER\_DEFINITION = cron defiition for scheduling (default = 'hour=*')
+ * ARCHIVE\_CLUSTER\_REPLICATION\_FACTOR = defines the replication factor (default = 1)
+ * ARCHIVE\_CLUSTER\_REPLICATION\_CLASS = replicator strategy (default = 'SimpleStrategy')
  
  
 # Docker Support

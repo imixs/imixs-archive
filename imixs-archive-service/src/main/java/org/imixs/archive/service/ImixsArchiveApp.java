@@ -25,51 +25,48 @@
  *  	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.workflow.archive.cassandra.rest;
+package org.imixs.archive.service;
 
-import java.util.logging.Logger;
+import javax.annotation.PostConstruct;
+import javax.ejb.EJB;
+import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.core.Application;
 
-import javax.ejb.Stateless;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import org.imixs.archive.service.cassandra.MetadataService;
 
 /**
- * The WorkflowService Handler supports methods to manage user accounts to
- * access the Imixs-Microservice platform. This service is based on the Marty
- * UserGroupService.
+ * The Imixs-Archive-Service application setup
  * 
- * @see org.imixs.marty.ejb.security.UserGroupService
  * @author rsoika
  * 
  */
-@Path("/ping")
-@Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_HTML, MediaType.TEXT_XML })
-@Stateless
-public class PingRestService {
 
-	@javax.ws.rs.core.Context
-	private static HttpServletRequest servletRequest;
+@ApplicationPath("imixsarchive")
+public class ImixsArchiveApp extends Application {
 
-	private static Logger logger = Logger.getLogger(PingRestService.class.getName());
 
-	/**
-	 * Ping test
-	 * 
-	 * @return time
-	 * @throws Exception
-	 */
-	@GET
-	@Path("/")
-	public String ping() {
+	public final static String ITEM_KEYSPACE = "keyspace";
+	public final static String ITEM_URL = "url";
+	public final static String ITEM_USERID = "userid";
+	public final static String ITEM_PASSWORD = "password";
+	public final static String ITEM_AUTHMETHOD = "authmethod";
+	public final static String ITEM_SYNCPOINT = "syncpoint";
 
-		logger.finest("......Ping....");
+	
+	@EJB
+	MetadataService metadataService;
 
-		java.time.LocalDate localDate = java.time.LocalDate.now();
-		return "Ping: " + localDate;
-
+	public ImixsArchiveApp() {
+		super();
 	}
 
+	/**
+	 * Initialize the web application
+	 */
+	@PostConstruct
+	public void initialize() {
+		if (metadataService != null) {
+			metadataService.init();
+		}
+	}
 }
