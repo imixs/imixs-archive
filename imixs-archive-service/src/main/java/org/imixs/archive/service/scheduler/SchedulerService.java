@@ -24,8 +24,10 @@ package org.imixs.archive.service.scheduler;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,6 +48,7 @@ import org.imixs.archive.service.cassandra.MetadataService;
 import org.imixs.archive.service.rest.SyncService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
+import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
@@ -379,27 +382,27 @@ public class SchedulerService {
 			int count = 0;
 
 			while (count < MAX_COUNT) {
-				XMLDocument xmlDocument = syncService.readSyncData(metaData);
+				XMLDataCollection xmlDataCollection = syncService.readSyncData(metaData);
 
-				if (xmlDocument != null) {
-					count++;
+				if (xmlDataCollection != null) {
+					List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
+					
+					for (XMLDocument xmlDocument: snapshotList) {
+						count++;
+						ItemCollection snapshot=XMLDocumentAdapter.putDocument(xmlDocument);
+												
+						// update snypoint
+						Date syncpointdate = snapshot.getItemValueDate("$modified");
+						logger.info("...data found - new syncpoint=" + syncpointdate.getTime());
 
-					ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
-
-					// update snypoint
-					Date syncpointdate = snapshot.getItemValueDate("$modified");
-					logger.info("...data found - new syncpoint=" + syncpointdate.getTime());
-
-					// store data into archive
-					documentService.saveDocument(snapshot);
-
-					metaData.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT, syncpointdate.getTime());
-
-					// update stats....
-
-					int syncs = metaData.getItemValue("_sync_count", Integer.class);
-					syncs++;
-					metaData.setItemValue("_sync_count", syncs);
+						// store data into archive
+						documentService.saveDocument(snapshot);
+						metaData.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT, syncpointdate.getTime());
+						// update stats....
+						int syncs = metaData.getItemValue("_sync_count", Integer.class);
+						syncs++;
+						metaData.setItemValue("_sync_count", syncs);
+					}
 
 				} else {
 					// no more syncpoints

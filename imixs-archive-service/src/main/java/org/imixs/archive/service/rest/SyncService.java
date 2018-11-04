@@ -14,7 +14,6 @@ import org.imixs.workflow.services.rest.FormAuthenticator;
 import org.imixs.workflow.services.rest.RestAPIException;
 import org.imixs.workflow.services.rest.RestClient;
 import org.imixs.workflow.xml.XMLDataCollection;
-import org.imixs.workflow.xml.XMLDocument;
 
 /**
  * The SyncService is used to establish a connection to Imixs-Worklfow remote
@@ -57,12 +56,12 @@ public class SyncService {
 	 * given syncpoint. If no data is available the method returns null.
 	 * 
 	 * 
-	 * @return an XMLDocument instance representing the data to sync or null if no
+	 * @return an XMLDataCollection instance representing the data to sync or null if no
 	 *         data form the given syncpoint is available.
 	 * @throws ArchiveException 
 	 * 
 	 */
-	public XMLDocument readSyncData(ItemCollection metaData) throws ArchiveException {
+	public XMLDataCollection readSyncData(ItemCollection metaData) throws ArchiveException {
 		XMLDataCollection result = null;
 		// load next document
 		long syncPoint = metaData.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
@@ -80,7 +79,7 @@ public class SyncService {
 		}
 
 		if (result != null && result.getDocument().length > 0) {
-			return result.getDocument()[0];
+			return result;
 		}
 		return null;
 	}

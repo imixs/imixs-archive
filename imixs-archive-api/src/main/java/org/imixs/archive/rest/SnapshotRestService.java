@@ -47,6 +47,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.imixs.archive.core.SnapshotException;
 import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.DocumentService;
@@ -55,8 +56,14 @@ import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDataCollectionAdapter;
 
 /**
- * The SnapshotRestService is a wrapper for the WorkflowRestService and provides
- * a method to get a file content based on the $uniqueid of the origin workitem.
+ * The SnapshotRestService provides methods to acces snapshot data.
+ * <p>
+ * The method getWorkitemFile is a wrapper for the WorkflowRestService and
+ * returns the file content based on the $uniqueid of the origin workitem.
+ * <p>
+ * The method getDocumentsBySyncPoint returns snapshot data from a given
+ * modified timestamp. This method is used by an external archive service to
+ * sync the snapshot data.
  * 
  * @author rsoika
  */
@@ -111,17 +118,19 @@ public class SnapshotRestService implements Serializable {
 	/**
 	 * This method retunrs the next workitem from a given syncpoint. A syncpoint is
 	 * defined in milliseconds after January 1, 1970 00:00:00 GMT.
-	 * 
-	 * The syncpoint is compared to the modified date. If not data is found, the
-	 * method returns null.
+	 * <p>
+	 * The syncpoint is compared to the internal modified date of the document
+	 * entity which can not be modified from businss logic.
+	 * <p>
+	 * If not data is found, the method returns null.
 	 * 
 	 * @param syncpoint
 	 * @return
 	 */
 	@GET
 	@Path("/syncpoint/{syncpoint}")
-	public XMLDataCollection getDocumentBySyncPoint(@PathParam("syncpoint") long lSyncpoint) {
-
+	public XMLDataCollection getDocumentsBySyncPoint(@PathParam("syncpoint") long lSyncpoint) {
+		List<ItemCollection> result = null;
 		Date syncpoint = new Date(lSyncpoint);
 
 		// ISO date time format: '2016-08-25 01:23:46.0',
@@ -132,21 +141,42 @@ public class SnapshotRestService implements Serializable {
 		query += " ORDER BY document.modified ASC";
 		logger.finest("......QUERY=" + query);
 
-		List<ItemCollection> result = documentService.getDocumentsByQuery(query, 1);
-
+		result = documentService.getDocumentsByQuery(query, 1);
+		// do we found new data?
 		if (result == null || result.size() == 0) {
+			// no
 			return null;
 		}
-		ItemCollection document = result.get(0);
-		return XMLDataCollectionAdapter.getDataCollection(document);
 
+		/*
+		 * In rare cases is would be possible that more than one snapshot has the same
+		 * modified timestamp. To look for this rare case we make a second select for
+		 * exactly the new timestamp and fill up the result if needed. If we found more
+		 * than 16 elements (which sould be in deed impossible!) than we trow an
+		 * exception.
+		 */
+		ItemCollection document = result.get(0);
+		syncpoint = document.getItemValueDate("$modified");
+		query = "SELECT document FROM Document AS document ";
+		query += " WHERE document.modified = '" + isoFormat.format(syncpoint) + "'";
+		query += " AND document.type LIKE '" + SnapshotService.TYPE_PRAFIX + "%' ";
+		logger.finest("......QUERY=" + query);
+		result = documentService.getDocumentsByQuery(query, 16 + 1);
+
+		// if more than 16 syncpoints with the same modifed time stamp exists we have in
+		// deed a problem
+		if (result.size() > 16) {
+			throw new SnapshotException(SnapshotException.INVALID_DATA,
+					"more than 16 document entites are found with the same modified timestamp. "
+							+ "We assumed that this case is impossible. Sync is not possible.");
+		}
+
+		return XMLDataCollectionAdapter.getDataCollection(result);
 	}
 
-	
-	
-	
 	/**
 	 * Ping service
+	 * 
 	 * @param lSyncpoint
 	 * @return
 	 */
@@ -155,5 +185,5 @@ public class SnapshotRestService implements Serializable {
 	public String ping() {
 		return "ping = " + System.currentTimeMillis();
 	}
-		
+
 }
