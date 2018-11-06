@@ -46,6 +46,7 @@ import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 
+import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
@@ -320,6 +321,32 @@ public class SnapshotService {
 		String query = "SELECT document FROM Document AS document WHERE document.id > '" + uniqueid
 				+ "-' AND document.id < '" + uniqueid + "-9999999999999' ORDER BY document.id DESC";
 		return documentService.getDocumentsByQuery(query, 999);
+	}
+
+	/**
+	 * This method returns the fileData from a snapshot by a given origin workItem
+	 * uniqueid.
+	 * 
+	 * @param uniqueid
+	 * @param file
+	 *            - file name
+	 * @return FileData object for the given filename.
+	 */
+	public FileData getWorkItemFile(String uniqueid, String file) {
+		ItemCollection workItem;
+		String snapshotID;
+
+		// load workitem
+		workItem = documentService.load(uniqueid);
+		// test if we have a $snapshotid
+		snapshotID = workItem.getItemValueString("$snapshotid");
+
+		ItemCollection snapshot = documentService.load(snapshotID);
+		if (snapshot != null) {
+			return snapshot.getFileData(file);
+		}
+		
+		return null;
 	}
 
 	/**
