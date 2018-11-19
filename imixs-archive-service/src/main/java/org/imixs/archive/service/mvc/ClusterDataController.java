@@ -1,24 +1,23 @@
 package org.imixs.archive.service.mvc;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
-import javax.enterprise.context.SessionScoped;
+import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.scheduler.SchedulerService;
-import org.imixs.workflow.ItemCollection;
+
+import com.datastax.driver.core.Session;
 
 /**
- * Session Scoped CID Bean to hold cluster configuration data.
+ * CID Bean provide  cluster configuration .
  * 
  * @author rsoika
  *
@@ -31,22 +30,20 @@ public class ClusterDataController implements Serializable {
 	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
 
 	Properties configurationProperties = null;
-	String contactPoints;
-	String keySpace;
-	String scheduler;
-
+	
+	
+	
 	int archiveCount;
 	long syncCount, errorCount, errorCountSync, errorCountObject;
-
-	ItemCollection configuration;
-	List<ItemCollection> configurations;
-
-	boolean connected;
 
 	
 	@EJB
 	ClusterService clusterService;
 
+	@Inject
+	ErrorController errorController;
+	
+	
 	public ClusterDataController() {
 		super();
 	}
@@ -77,51 +74,37 @@ public class ClusterDataController implements Serializable {
 			return;
 		}
 
-		// load environment setup..
-		contactPoints = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
-		keySpace = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
-		scheduler=clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, SchedulerService.DEFAULT_SCHEDULER_DEFINITION);
-		logger.info("......"+ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS + "=" + contactPoints);
-		logger.info("......"+ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE+ "=" + keySpace);
-
+		
+		
 		
 
 	}
 
 	
-	public ItemCollection getConfiguration() {
-		return configuration;
-	}
-
-	public void setConfiguration(ItemCollection configuration) {
-		this.configuration = configuration;
-	}
-
-	public List<ItemCollection> getConfigurations() {
-		if (configurations == null) {
-			// create empty list
-			configurations = new ArrayList<ItemCollection>();
-		}
-		return configurations;
-	}
-
-	public void setConfigurations(List<ItemCollection> configurations) {
-		this.configurations = configurations;
-	}
+	
 
 	public String getContactPoints() {
-		return contactPoints;
+		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
 	}
 
 
 
 	public String getKeySpace() {
-		return keySpace;
+		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 	}
 
 	
 	public String getScheduler() {
-		return scheduler;
+		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, SchedulerService.DEFAULT_SCHEDULER_DEFINITION);
+	}
+
+	public String getReplicationFactor() {
+		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, "1");
+		
+	}
+
+	public String getReplicationClass() {
+		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, "SimpleStrategy");
 	}
 
 	/**
@@ -130,7 +113,15 @@ public class ClusterDataController implements Serializable {
 	 * @return
 	 */
 	public boolean isConnected() {
-		return connected;
+		
+		Session _session;
+		try {
+			_session = clusterService.getArchiveSession();
+		} catch (ArchiveException e) {
+			errorController.setMessage(e.getMessage());
+			return false;
+		}
+		return _session!=null;
 	}
 
 	public int getArchiveCount() {

@@ -19,10 +19,10 @@
 			<div class="row">
 
 
-				<div class="col-3 monitor-portlet">
+				<div class="col-12 monitor-portlet">
 
 					<h1>Core Keyspace Status:</h1>
-					<table>
+					<table style="width:100%;">
 
 						<tr>
 							<td>Contact Points:</td>
@@ -30,16 +30,27 @@
 						</tr>
 
 
-							<tr>
+						<tr>
 							<td>Scheduler:</td>
 							<td>#{clusterDataController.scheduler}</td>
 						</tr>
 
 
 						<tr>
-							<td>Central KeySpace:</td>
+							<td>KeySpace:</td>
 							<td>#{clusterDataController.keySpace}</td>
 						</tr>
+
+
+						<tr>
+							<td>Replication Factor:</td>
+							<td>#{clusterDataController.replicationFactor}</td>
+						</tr>
+						<tr>
+							<td>Replication Class:</td>
+							<td>#{clusterDataController.replicationClass}</td>
+						</tr>
+
 
 						<tr>
 							<td>Connecton Status:</td>
@@ -57,13 +68,14 @@
 
 
 				</div>
+			</div>
+			<div class="row">
 
-				<div class="col-3 monitor-portlet">
 
-					<h1>
-						Scheduler Status: 
-						
-					</h1>
+
+				<div class="col-6 monitor-portlet">
+
+					<h1>Scheduler Status:</h1>
 					<ul>
 						<li>next timeout: .....</li>
 						<li>last run: xxxxx</li>
@@ -74,25 +86,21 @@
 
 
 
-				<div class="col-3 monitor-portlet">
+				<div class="col-5 monitor-portlet">
 
-					<h1>
-						Synchronisation Status: 
-					</h1>
+					<h1>Synchronisation Status:</h1>
 					<p class="lead">
 						<span class="typcn typcn-arrow-down-outline"></span>
-						#{clusterDataController.syncCount} <span style="font-size:0.3em">total</span>
+						#{clusterDataController.syncCount} <span style="font-size: 0.3em">total</span>
 					</p>
 
 					<p class="small">
-					Errors Object: #{clusterDataController.errorCountObject}
-					<br />
-					Errors Sync: #{clusterDataController.errorCountSync}
-					<br />
-					Errors Total: #{clusterDataController.errorCount}
-					
-					
-					
+						Errors Object: #{clusterDataController.errorCountObject} <br />
+						Errors Sync: #{clusterDataController.errorCountSync} <br />
+						Errors Total: #{clusterDataController.errorCount}
+
+
+
 					</p>
 
 
