@@ -24,7 +24,7 @@ services:
       DEBUG: "true"
       ARCHIVE_CLUSTER_CONTACTPOINTS: "cassandra"
       ARCHIVE_CLUSTER_KEYSPACE: "imixsdev"
-      # ARCHIVE_SCHEDULER_DEFINITION: "hour=*"
+      ARCHIVE_SCHEDULER_DEFINITION: "hour=*;minute=*/5"
       # ARCHIVE_CLUSTER_REPLICATION_FACTOR: "1"
       # ARCHIVE_CLUSTER_REPLICATION_CLASS: "SimpleStrategy"
       

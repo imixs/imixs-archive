@@ -5,6 +5,11 @@ The Imixs-Archive Service can be used to retrieve a single archived process inst
 
 The Imixs-Archive-Service is connected with a Imixs-Workflow instance via the Imixs-Rest API and runs as a single microservice. 
 
+
+## XML 
+
+All data archived by the _"Imixs-Archive-Service"_ is stored in platform and technology neutral XML format. This guaranties to access the data independent from a specific software version over a long period of time.   
+
 ## Syncpoint
 
 An Imixs Archive configuration holds a syncpoint. The syncpoint is the last successfull read form the source system in miliseconds. 
@@ -43,7 +48,7 @@ You can start the Imixs-Archive Web UI from the following URL:
 	http://localhost:8080/
 
 	 	 	
-Alternativly you can use the docker-compose-dev.yml file to start an extended development envionment including the following services:
+As an alternative you can use the docker-compose-dev.yml file to start an extended development envionment including the following services:
 
 * Cassandra - local cluster
 * Imixs-Archive-Service - Web Front-End (ports: 8080, 9990, 8787)

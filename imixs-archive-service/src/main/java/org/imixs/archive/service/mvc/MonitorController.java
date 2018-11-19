@@ -29,58 +29,32 @@ package org.imixs.archive.service.mvc;
 
 import java.util.logging.Logger;
 
-import javax.inject.Inject;
 import javax.mvc.annotation.Controller;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.imixs.archive.service.ArchiveException;
-
 /**
- * This Marty SetupController extends the Marty ConfigController and holds the
- * data from the configuration entity 'BASIC'. This is the general configuration
- * entity.
- * 
- * In addition the CDI bean verifies the setup of userDB and system models and
- * calls a init method if the system is not setup and the imixs.property param
- * 'setup.mode' is set to 'auto'.
- * 
- * The bean is triggered in the index.xhtml page
- * 
- * 
- * NOTE: A configuration entity provides a common way to manage application
- * specific complex config data. The configuration entity is database controlled
- * and more flexible as the file based imixs.properties provided by the Imixs
- * Workflow Engine.
+ * This mvc controller simply loads the monitor.xhml page to display the current
+ * status.
  * 
  * 
  * @author rsoika
  * 
  */
 @Controller
-@Path("monitor")
+@Path("/")
 public class MonitorController {
 
-	@Inject
-	ClusterDataController clusterDataController;
-	
+
+	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(MonitorController.class.getName());
 
-	/**
-	 * show connections
-	 * 
-	 * @return
-	 * @throws ArchiveException 
-	 */
-	@Path("/")
 	@GET
-	public String showSetupSettings() throws ArchiveException {
-		logger.finest("......show monitor...");
-		// refresh config....
-		//clusterDataController.refreshConfiguration();
+	public String home() {
 		return "monitor.xhtml";
 	}
-	
-	
 
+	
+	
+	
 }

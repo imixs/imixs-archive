@@ -8,11 +8,13 @@ import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
+import javax.enterprise.context.RequestScoped;
 import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
+import org.imixs.archive.service.scheduler.SchedulerService;
 import org.imixs.workflow.ItemCollection;
 
 /**
@@ -22,18 +24,16 @@ import org.imixs.workflow.ItemCollection;
  *
  */
 @Named
-@SessionScoped
+@RequestScoped
 public class ClusterDataController implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
 
-	public static int DEFAULT_PAGE_SIZE = 30;
-	public static String xPROPERTY_ARCHIVE_CLUSTER_KEYSPACE = "archive.cluster.keyspace";
-
 	Properties configurationProperties = null;
 	String contactPoints;
 	String keySpace;
+	String scheduler;
 
 	int archiveCount;
 	long syncCount, errorCount, errorCountSync, errorCountObject;
@@ -80,7 +80,7 @@ public class ClusterDataController implements Serializable {
 		// load environment setup..
 		contactPoints = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
 		keySpace = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
-
+		scheduler=clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, SchedulerService.DEFAULT_SCHEDULER_DEFINITION);
 		logger.info("......"+ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS + "=" + contactPoints);
 		logger.info("......"+ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE+ "=" + keySpace);
 
@@ -113,16 +113,15 @@ public class ClusterDataController implements Serializable {
 		return contactPoints;
 	}
 
-	public void setContactPoints(String contactPoints) {
-		this.contactPoints = contactPoints;
-	}
+
 
 	public String getKeySpace() {
 		return keySpace;
 	}
 
-	public void setKeySpace(String keySpace) {
-		this.keySpace = keySpace;
+	
+	public String getScheduler() {
+		return scheduler;
 	}
 
 	/**

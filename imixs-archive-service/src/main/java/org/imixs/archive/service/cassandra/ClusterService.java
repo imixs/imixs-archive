@@ -6,7 +6,6 @@ import javax.ejb.EJB;
 import javax.ejb.Stateless;
 
 import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.mvc.ArchiveController;
 import org.imixs.archive.service.scheduler.SchedulerService;
 
 import com.datastax.driver.core.Cluster;
@@ -30,6 +29,8 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
  */
 @Stateless
 public class ClusterService {
+
+	public static final String KEYSPACE_REGEX = "^[a-z_]*[^-]$";
 
 	// mandatory environment settings
 	public static final String ENV_ARCHIVE_CLUSTER_CONTACTPOINTS = "ARCHIVE_CLUSTER_CONTACTPOINTS";
@@ -201,7 +202,7 @@ public class ClusterService {
 			return false;
 		}
 
-		return keySpace.matches(ArchiveController.KEYSPACE_REGEX);
+		return keySpace.matches(KEYSPACE_REGEX);
 
 	}
 
