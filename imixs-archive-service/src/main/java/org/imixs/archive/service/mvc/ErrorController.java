@@ -18,7 +18,7 @@ public class ErrorController implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	String message = null;
-
+ 
 	public ErrorController() {
 		super();
 	}

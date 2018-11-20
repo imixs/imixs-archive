@@ -32,7 +32,7 @@ import javax.ejb.EJB;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
-import org.imixs.archive.service.cassandra.MetadataService;
+import org.imixs.archive.service.cassandra.DocumentService;
 
 /**
  * The Imixs-Archive-Service application setup
@@ -43,18 +43,9 @@ import org.imixs.archive.service.cassandra.MetadataService;
 
 @ApplicationPath("imixsarchive")
 public class ImixsArchiveApp extends Application {
-
-
-	public final static String ITEM_KEYSPACE = "keyspace";
-	public final static String ITEM_URL = "url";
-	public final static String ITEM_USERID = "userid";
-	public final static String ITEM_PASSWORD = "password";
-	public final static String ITEM_AUTHMETHOD = "authmethod";
-	public final static String ITEM_SYNCPOINT = "syncpoint";
-
 	
 	@EJB
-	MetadataService metadataService;
+	DocumentService documentService;
 
 	public ImixsArchiveApp() {
 		super();
@@ -65,8 +56,8 @@ public class ImixsArchiveApp extends Application {
 	 */
 	@PostConstruct
 	public void initialize() {
-		if (metadataService != null) {
-			metadataService.init();
+		if (documentService != null) {
+			documentService.startScheduler();
 		}
 	}
 }

@@ -13,6 +13,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.scheduler.SchedulerService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -48,6 +49,9 @@ public class DocumentService {
 
 	@EJB
 	ClusterService clusterService;
+
+	@EJB
+	SchedulerService schedulerService;
 
 	/**
 	 * This method saves a ItemCollection into a specific KeySpace.
@@ -168,6 +172,49 @@ public class DocumentService {
 	 */
 	public static boolean isSnapshotID(String uid) {
 		return uid.matches(REGEX_SNAPSHOTID);
+	}
+
+	
+	/**
+	 * Returns the sycpoint based on the last syncronized document 
+	 * @return
+	 */
+	public long getSyncpoint() {
+		logger.info("*** TODO compute syncpoint");
+		
+		return 0;
+	}
+	
+	
+	
+	/**
+	 * This method initializes the scheduler.
+	 * 
+	 */
+	public boolean startScheduler() {
+		Session session = null;
+		try {
+			logger.info("...init imixsarchive keyspace ...");
+			session = clusterService.getArchiveSession();
+			if (session != null) {
+				// start archive schedulers....
+				logger.info("...starting schedulers...");
+				schedulerService.start();
+				return true;
+			} else {
+				logger.warning("...Failed to initalize imixsarchive keyspace!");
+				return false;
+			}
+
+		} catch (Exception e) {
+			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
+			return false;
+
+		} finally {
+			if (session != null) {
+				session.close();
+			}
+		}
 	}
 
 }

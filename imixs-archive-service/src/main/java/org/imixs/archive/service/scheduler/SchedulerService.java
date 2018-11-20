@@ -41,10 +41,8 @@ import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 
 import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.ImixsArchiveApp;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DocumentService;
-import org.imixs.archive.service.cassandra.MetadataService;
 import org.imixs.archive.service.rest.SyncService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
@@ -98,9 +96,7 @@ public class SchedulerService {
 	@EJB
 	ClusterService clusterService;
 
-	@EJB
-	MetadataService metadataService;
-
+	
 	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
 	/**
@@ -125,10 +121,10 @@ public class SchedulerService {
 	 * @return updated configuration
 	 * @throws ArchiveException
 	 */
-	public ItemCollection start() throws ArchiveException {
+	public void start() throws ArchiveException {
 		Timer timer = null;
 
-		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		// try to cancel an existing timer for this workflowinstance
 		timer = findTimer(id);
 		if (timer != null) {
@@ -142,7 +138,6 @@ public class SchedulerService {
 			}
 		}
 
-		ItemCollection metaData = metadataService.loadMetadata();
 		try {
 			logger.info("...Scheduler Service " + id + " will be started...");
 			// New timer will be started on calendar confiugration
@@ -155,25 +150,15 @@ public class SchedulerService {
 				SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
 				String msg = "started at " + dateFormatDE.format(calNow.getTime()) + " by "
 						+ ctx.getCallerPrincipal().getName();
-				metaData.replaceItemValue("statusmessage", msg);
-
-				if (timer.isCalendarTimer()) {
-					metaData.replaceItemValue("Schedule", timer.getSchedule().toString());
-				} else {
-					metaData.replaceItemValue("Schedule", "");
-
-				}
-				logger.info("...Scheduler Service" + id + " (" + metaData.getItemValueString("txtName")
-						+ ") successfull started.");
+			
+				logger.info("...Scheduler Service" + id + " successfull started.");
 			}
 
 		} catch (ParseException e) {
 			throw new ArchiveException(SchedulerService.class.getName(), ArchiveException.INVALID_WORKITEM,
 					" failed to start timer: " + e.getMessage());
 		}
-		metaData.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
-		metaData.replaceItemValue("errormessage", "");
-		return metaData;
+		
 	}
 
 	/**
@@ -187,16 +172,16 @@ public class SchedulerService {
 	 * 
 	 * 
 	 */
-	public ItemCollection stop() throws ArchiveException {
-		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+	public void stop() throws ArchiveException {
+		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		Timer timer = findTimer(id);
-		return stop(timer);
+		 stop(timer);
 
 	}
 
-	public ItemCollection stop(Timer timer) throws ArchiveException {
-		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
-		ItemCollection metaData = metadataService.loadMetadata();
+	public void stop(Timer timer) throws ArchiveException {
+		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		//ItemCollection metaData = metadataService.loadMetadata();
 		if (timer != null) {
 			try {
 				timer.cancel();
@@ -213,17 +198,17 @@ public class SchedulerService {
 			if (name != null && !name.isEmpty() && !"anonymous".equals(name)) {
 				message += " by " + name;
 			}
-			metaData.replaceItemValue("statusmessage", message);
+			//metaData.replaceItemValue("statusmessage", message);
 
-			logger.info("... scheduler " + metaData.getItemValueString("txtName") + " stopped: " + id);
+			logger.info("... scheduler " + id+ " stopped: " + id);
 		} else {
 			String msg = "stopped";
-			metaData.replaceItemValue("statusmessage", msg);
+			//metaData.replaceItemValue("statusmessage", msg);
 
 		}
-		metaData.removeItem("nextTimeout");
-		metaData.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
-		return metaData;
+		//metaData.removeItem("nextTimeout");
+		//metaData.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
+		//return metaData;
 	}
 
 	/**
@@ -251,28 +236,20 @@ public class SchedulerService {
 	 * 
 	 * @param configuration - the current scheduler configuration to be updated.
 	 */
-	public void updateTimerDetails(ItemCollection configuration) {
-		if (configuration == null)
-			return;// configuration;
-
-		String id = configuration.getItemValueString(ImixsArchiveApp.ITEM_KEYSPACE);
-
+	public Date getNextTimeout() {
+		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		
 		Timer timer;
 		try {
 			timer = this.findTimer(id);
 			if (timer != null) {
 				// load current timer details
-				configuration.replaceItemValue("nextTimeout", timer.getNextTimeout());
-				configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, true);
-			} else {
-				configuration.removeItem("nextTimeout");
-				configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
+				return timer.getNextTimeout();
 			}
 		} catch (Exception e) {
 			logger.warning("unable to updateTimerDetails: " + e.getMessage());
-			configuration.removeItem("nextTimeout");
-			configuration.replaceItemValue(ITEM_SCHEDULER_ENABLED, false);
 		}
+		return null;
 	}
 
 	/**
@@ -297,12 +274,12 @@ public class SchedulerService {
 	Timer createTimerOnCalendar() throws ParseException, ArchiveException {
 
 		TimerConfig timerConfig = new TimerConfig();
-		String id = clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		timerConfig.setInfo(id);
 
 		ScheduleExpression scheduerExpression = new ScheduleExpression();
 
-		String sDefinition = clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION,
+		String sDefinition = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION,
 				DEFAULT_SCHEDULER_DEFINITION);
 		String calendarConfiguation[] = sDefinition.split("(\\r?\\n)|(;)|(,)");
 
@@ -370,7 +347,7 @@ public class SchedulerService {
 	@Timeout
 	void onTimeout(javax.ejb.Timer timer) throws Exception {
 		String errorMes = "";
-		ItemCollection metaData = null;
+		//ItemCollection metaData = null;
 		// start time....
 		long lProfiler = System.currentTimeMillis();
 		String keyspaceID = timer.getInfo().toString();
@@ -378,11 +355,12 @@ public class SchedulerService {
 		try {
 			// ...start processing
 			logger.info("...run scheduler '" + keyspaceID + "....");
-			metaData = metadataService.loadMetadata();
+			//metaData = metadataService.loadMetadata();
 			int count = 0;
 
 			while (count < MAX_COUNT) {
-				XMLDataCollection xmlDataCollection = syncService.readSyncData(metaData);
+				long syncPoint=documentService.getSyncpoint();
+				XMLDataCollection xmlDataCollection = syncService.readSyncData(syncPoint);
 
 				if (xmlDataCollection != null) {
 					List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
@@ -397,17 +375,17 @@ public class SchedulerService {
 
 						// store data into archive
 						documentService.saveDocument(snapshot);
-						metaData.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT, syncpointdate.getTime());
+						//metaData.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT, syncpointdate.getTime());
 						// update stats....
-						int syncs = metaData.getItemValue("_sync_count", Integer.class);
-						syncs++;
-						metaData.setItemValue("_sync_count", syncs);
+						//int syncs = metaData.getItemValue("_sync_count", Integer.class);
+						//syncs++;
+						//metaData.setItemValue("_sync_count", syncs);
 					}
 
 				} else {
 					// no more syncpoints
 					logger.info("...no more data found for syncpoint: "
-							+ metaData.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT));
+							+ syncPoint);
 					break;
 				}
 			}
@@ -425,12 +403,7 @@ public class SchedulerService {
 
 			stop(timer);
 		} finally {
-			// Save statistic in configuration
-			if (metaData != null) {
-				metaData.replaceItemValue("errormessage", errorMes);
-				metadataService.saveMetadata(metaData);
-
-			}
+			
 		}
 	}
 

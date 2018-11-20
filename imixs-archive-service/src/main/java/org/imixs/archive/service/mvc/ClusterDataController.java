@@ -1,6 +1,7 @@
 package org.imixs.archive.service.mvc;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -12,12 +13,13 @@ import javax.inject.Named;
 
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
+import org.imixs.archive.service.cassandra.DocumentService;
 import org.imixs.archive.service.scheduler.SchedulerService;
 
 import com.datastax.driver.core.Session;
 
 /**
- * CID Bean provide  cluster configuration .
+ * CID Bean provide cluster configuration .
  * 
  * @author rsoika
  *
@@ -30,27 +32,31 @@ public class ClusterDataController implements Serializable {
 	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
 
 	Properties configurationProperties = null;
-	
-	
-	
+
 	int archiveCount;
 	long syncCount, errorCount, errorCountSync, errorCountObject;
+	//Date nextTimeout;
 
-	
 	@EJB
 	ClusterService clusterService;
 
+	@EJB
+	DocumentService documentService;
+
+	@EJB
+	SchedulerService schedulerService;
+
 	@Inject
 	ErrorController errorController;
-	
-	
+
 	public ClusterDataController() {
 		super();
 	}
 
 	/**
 	 * This method verifies and initializes the core keyspace
-	 * @throws ArchiveException 
+	 * 
+	 * @throws ArchiveException
 	 * 
 	 *
 	 */
@@ -74,37 +80,47 @@ public class ClusterDataController implements Serializable {
 			return;
 		}
 
-		
-		
-		
-
 	}
 
-	
-	
+	/**
+	 * returns the syncpoint of the current configuration
+	 * 
+	 * @return
+	 */
+	public Date getSyncPoint() {
+
+		long lsyncPoint = documentService.getSyncpoint();
+
+		Date syncPoint = new Date(lsyncPoint);
+		return syncPoint;
+	}
 
 	public String getContactPoints() {
-		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
+		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
 	}
-
-
 
 	public String getKeySpace() {
-		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 	}
 
-	
 	public String getScheduler() {
-		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, SchedulerService.DEFAULT_SCHEDULER_DEFINITION);
+		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION,
+				SchedulerService.DEFAULT_SCHEDULER_DEFINITION);
 	}
 
 	public String getReplicationFactor() {
-		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, "1");
-		
+		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, "1");
+
 	}
 
 	public String getReplicationClass() {
-		return clusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, "SimpleStrategy");
+		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, "SimpleStrategy");
+	}
+
+	
+	
+	public Date getNextTimeout() {
+		return schedulerService.getNextTimeout();
 	}
 
 	/**
@@ -113,7 +129,7 @@ public class ClusterDataController implements Serializable {
 	 * @return
 	 */
 	public boolean isConnected() {
-		
+
 		Session _session;
 		try {
 			_session = clusterService.getArchiveSession();
@@ -121,7 +137,7 @@ public class ClusterDataController implements Serializable {
 			errorController.setMessage(e.getMessage());
 			return false;
 		}
-		return _session!=null;
+		return _session != null;
 	}
 
 	public int getArchiveCount() {
@@ -132,9 +148,6 @@ public class ClusterDataController implements Serializable {
 		this.archiveCount = archiveCount;
 	}
 
-	
-	
-	
 	public long getSyncCount() {
 		return syncCount;
 	}

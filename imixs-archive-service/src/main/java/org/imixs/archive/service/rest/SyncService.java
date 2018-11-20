@@ -7,8 +7,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
 import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.ImixsArchiveApp;
-import org.imixs.workflow.ItemCollection;
+import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.workflow.services.rest.BasicAuthenticator;
 import org.imixs.workflow.services.rest.FormAuthenticator;
 import org.imixs.workflow.services.rest.RestAPIException;
@@ -61,12 +60,11 @@ public class SyncService {
 	 * @throws ArchiveException 
 	 * 
 	 */
-	public XMLDataCollection readSyncData(ItemCollection metaData) throws ArchiveException {
+	public XMLDataCollection readSyncData(long syncPoint ) throws ArchiveException {
 		XMLDataCollection result = null;
 		// load next document
-		long syncPoint = metaData.getItemValueLong(ImixsArchiveApp.ITEM_SYNCPOINT);
-
-		RestClient workflowClient =initWorkflowClient(metaData);
+	
+		RestClient workflowClient =initWorkflowClient();
 		String url = SNAPSHOT_RESOURCE  + syncPoint;
 		logger.info("...... read data: " + url + "....");
 
@@ -90,28 +88,27 @@ public class SyncService {
 	 * Helper method to initalize a Melman Workflow Client based on the current
 	 * archive configuration.
 	 */
-	private RestClient initWorkflowClient(ItemCollection configuration) {
-		String url = configuration.getItemValueString(ImixsArchiveApp.ITEM_URL);
-		logger.info("...... init rest client - url = " + url);
+	private RestClient initWorkflowClient() {
+		String url = ClusterService.getEnv(ClusterService.WORKFLOW_SERVICE_ENDPOINT, null);
+		String autMethod = ClusterService.getEnv(ClusterService.WORKFLOW_SERVICE_AUTHMETHOD, null);
+		String user = ClusterService.getEnv(ClusterService.WORKFLOW_SERVICE_USER, null);
+		String password = ClusterService.getEnv(ClusterService.WORKFLOW_SERVICE_PASSWORD, null);
+				
+		logger.info("...... WORKFLOW_SERVICE_ENDPOINT = " + url);
 		
 		RestClient workflowClient = new RestClient(url);
 
 
-		
 		// Test authentication method
-		if ("Form".equalsIgnoreCase(configuration.getItemValueString(ImixsArchiveApp.ITEM_AUTHMETHOD))) {
+		if ("Form".equalsIgnoreCase(autMethod)) {
 			// default basic authenticator
-			FormAuthenticator formAuth = new FormAuthenticator(url,
-					configuration.getItemValueString(ImixsArchiveApp.ITEM_USERID),
-					configuration.getItemValueString(ImixsArchiveApp.ITEM_PASSWORD));
+			FormAuthenticator formAuth = new FormAuthenticator(url,user,password);
 			// register the authenticator
 			workflowClient.registerRequestFilter(formAuth);
 
 		} else {
 			// default basic authenticator
-			BasicAuthenticator basicAuth = new BasicAuthenticator(
-					configuration.getItemValueString(ImixsArchiveApp.ITEM_USERID),
-					configuration.getItemValueString(ImixsArchiveApp.ITEM_PASSWORD));
+			BasicAuthenticator basicAuth = new BasicAuthenticator(user,password);
 			// register the authenticator
 			workflowClient.registerRequestFilter(basicAuth);
 		}

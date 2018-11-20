@@ -25,7 +25,7 @@
 						<table style="width: 100%;">
 
 							<tr>
-								<td style="width:25%;">Contact Points:</td>
+								<td style="width: 25%;">Contact Points:</td>
 								<td>#{clusterDataController.contactPoints}</td>
 							</tr>
 
@@ -77,10 +77,19 @@
 					<div class="monitor-portlet">
 
 						<h1>Scheduler Status:</h1>
-						<ul>
-							<li>next timeout: .....</li>
-							<li>last run: xxxxx</li>
-						</ul>
+
+						<table style="width: 100%;">
+
+							<tr>
+								<td style="width: 25%;">next timeout:</td>
+								<td>#{clusterDataController.nextTimeout}</td>
+							</tr>
+							<tr>
+								<td style="width: 25%;">last run:</td>
+								<td>??</td>
+							</tr>
+
+						</table>
 
 
 					</div>

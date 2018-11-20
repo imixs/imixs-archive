@@ -32,6 +32,14 @@ The cluster replication can be configured by following optional parameters:
  * ARCHIVE\_CLUSTER\_REPLICATION\_CLASS = replicator strategy (default = 'SimpleStrategy')
  
  
+The workflow service endpoint to read data from is configured by the following parameters:
+
+ * WORKFLOW\_SERVICE\_ENDPOINT = rest url to read workflow data
+ * WORKFLOW\_SERVICE\_USER = user id to connnect rest service endpoint
+ * WORKFLOW\_SERVICE\_PASSWORD = password to connnect rest service endpoint
+ * WORKFLOW\_SERVICE\_AUTHMETHOD = authentication method for rest service enpoing (form,basic)
+
+ 
 # Docker Support
 
 The project includes a test environment based on a docker stack including the following components:

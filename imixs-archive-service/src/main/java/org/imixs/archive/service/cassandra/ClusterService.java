@@ -42,12 +42,24 @@ public class ClusterService {
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS = "ARCHIVE_CLUSTER_REPLICATION_CLASS";
 
 
+	// workflow rest service endpoint
+	public static final String WORKFLOW_SERVICE_ENDPOINT = "WORKFLOW_SERVICE_ENDPOINT";
+	public static final String WORKFLOW_SERVICE_USER = "WORKFLOW_SERVICE_USER";
+	public static final String WORKFLOW_SERVICE_PASSWORD = "WORKFLOW_SERVICE_PASSWORD";
+	public static final String WORKFLOW_SERVICE_AUTHMETHOD = "WORKFLOW_SERVICE_AUTHMETHOD";
+			
+	
+	
 	// archive table schemas
 	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID = "CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED = "CREATE TABLE IF NOT EXISTS snapshots_by_modified (modified date,snapshot text,PRIMARY KEY(modified, snapshot));";
 
-	private static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
+	public static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
+	
+	public static final String REGEX_KEYSPACE_NAME = "^[A-Z]{2}(?:[ ]?[0-9]){18,20}$";
+
+	
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
 	@EJB
@@ -131,7 +143,7 @@ public class ClusterService {
 	 * @param defaultValue - optional default value
 	 * @return value
 	 */
-	public String getEnv(String env, String defaultValue) {
+	public static String getEnv(String env, String defaultValue) {
 		String result = System.getenv(env);
 		if (result == null || result.isEmpty()) {
 			result = defaultValue;

@@ -37,7 +37,7 @@ public class ArchiveException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 
-	protected String errorContext = "UNDEFINED";
+	protected String errorContext = "UNDEFINED"; 
 	protected String errorCode = "UNDEFINED";
 
 	public static final String INVALID_DOCUMENT_OBJECT = "INVALID_DOCUMENT_OBJECT";
