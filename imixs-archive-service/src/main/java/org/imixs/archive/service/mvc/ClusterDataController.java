@@ -2,6 +2,7 @@ package org.imixs.archive.service.mvc;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -14,6 +15,7 @@ import javax.inject.Named;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DocumentService;
+import org.imixs.archive.service.scheduler.MessageService;
 import org.imixs.archive.service.scheduler.SchedulerService;
 
 import com.datastax.driver.core.Session;
@@ -46,6 +48,10 @@ public class ClusterDataController implements Serializable {
 	@EJB
 	SchedulerService schedulerService;
 
+	@EJB
+	MessageService messageService;
+
+	
 	@Inject
 	ErrorController errorController;
 
@@ -117,12 +123,20 @@ public class ClusterDataController implements Serializable {
 		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, "SimpleStrategy");
 	}
 
-	
+
+	public String getServiceEndpoint() {
+		return ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT,null);
+	}
 	
 	public Date getNextTimeout() {
 		return schedulerService.getNextTimeout();
 	}
 
+	
+	public List<String> getMessages() {
+		return messageService.getMessages();
+	}
+	
 	/**
 	 * returns true if a connection to the specified keySpace was successful
 	 * 

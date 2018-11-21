@@ -43,10 +43,10 @@ public class ClusterService {
 
 
 	// workflow rest service endpoint
-	public static final String WORKFLOW_SERVICE_ENDPOINT = "WORKFLOW_SERVICE_ENDPOINT";
-	public static final String WORKFLOW_SERVICE_USER = "WORKFLOW_SERVICE_USER";
-	public static final String WORKFLOW_SERVICE_PASSWORD = "WORKFLOW_SERVICE_PASSWORD";
-	public static final String WORKFLOW_SERVICE_AUTHMETHOD = "WORKFLOW_SERVICE_AUTHMETHOD";
+	public static final String ENV_WORKFLOW_SERVICE_ENDPOINT = "WORKFLOW_SERVICE_ENDPOINT";
+	public static final String ENV_WORKFLOW_SERVICE_USER = "WORKFLOW_SERVICE_USER";
+	public static final String ENV_WORKFLOW_SERVICE_PASSWORD = "WORKFLOW_SERVICE_PASSWORD";
+	public static final String ENV_WORKFLOW_SERVICE_AUTHMETHOD = "WORKFLOW_SERVICE_AUTHMETHOD";
 			
 	
 	

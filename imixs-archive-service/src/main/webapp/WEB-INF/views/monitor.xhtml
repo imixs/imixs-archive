@@ -80,14 +80,30 @@
 
 						<table style="width: 100%;">
 
+
 							<tr>
-								<td style="width: 25%;">next timeout:</td>
+								<td>Timer:</td>
+								<td><ui:fragment
+										rendered="#{!empty clusterDataController.nextTimeout}">
+							RUNNING <span class="typcn typcn-media-record"
+											style="font-size: 1.3em; color: #5c9e5c;"></span>
+									</ui:fragment> <ui:fragment
+										rendered="#{empty clusterDataController.nextTimeout}">
+							STOPPED <span class="typcn typcn-media-record"
+											style="font-size: 1.3em; color: #e84848;"></span>
+									</ui:fragment></td>
+							</tr>
+							<tr>
+								<td style="width: 25%;">Next Timeout:</td>
 								<td>#{clusterDataController.nextTimeout}</td>
 							</tr>
+
+
 							<tr>
-								<td style="width: 25%;">last run:</td>
-								<td>??</td>
+								<td style="width: 25%;">Endpoint:</td>
+								<td>#{clusterDataController.serviceEndpoint}</td>
 							</tr>
+
 
 						</table>
 
@@ -110,9 +126,6 @@
 							Errors Object: #{clusterDataController.errorCountObject} <br />
 							Errors Sync: #{clusterDataController.errorCountSync} <br />
 							Errors Total: #{clusterDataController.errorCount}
-
-
-
 						</p>
 
 
@@ -121,6 +134,25 @@
 
 			</div>
 
+
+
+			<div class="row">
+
+
+				<div class="col-12">
+					<div class="monitor-portlet">
+						<h1>Log:</h1>
+						<p class="small">
+							<ui:repeat var="entry"
+								value="#{clusterDataController.messages}">
+								#{entry}
+								<br />
+							</ui:repeat>
+						</p>
+					</div>
+				</div>
+
+			</div>
 		</div>
 	</ui:define>
 </ui:composition>
