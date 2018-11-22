@@ -1,7 +1,6 @@
 package org.imixs.workflow.archive.cassandra;
 
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.mvc.ArchiveController;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -34,16 +33,16 @@ public class TestRegex {
 		// validate keyspace pattern
 		
 		String keyspace="abc";	
-		Assert.assertTrue(keyspace.matches(ArchiveController.KEYSPACE_REGEX));
+		Assert.assertTrue(keyspace.matches(ClusterService.REGEX_KEYSPACE_NAME));
 		
 		keyspace="345";
-		Assert.assertFalse(keyspace.matches(ArchiveController.KEYSPACE_REGEX));
+		Assert.assertFalse(keyspace.matches(ClusterService.REGEX_KEYSPACE_NAME));
 		
 		keyspace="asdf_asdf";
-		Assert.assertTrue(keyspace.matches(ArchiveController.KEYSPACE_REGEX));
+		Assert.assertTrue(keyspace.matches(ClusterService.REGEX_KEYSPACE_NAME));
 		
 		keyspace="asdf-asdf";
-		Assert.assertFalse(keyspace.matches(ArchiveController.KEYSPACE_REGEX));
+		Assert.assertFalse(keyspace.matches(ClusterService.REGEX_KEYSPACE_NAME));
 	}
 	
 	

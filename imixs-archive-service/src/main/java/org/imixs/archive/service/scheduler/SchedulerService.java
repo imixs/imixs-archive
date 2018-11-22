@@ -49,6 +49,8 @@ import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
+import com.datastax.driver.core.Session;
+
 /**
  * The SchedulerService runns the TimerService based on the given configuration.
  * <p>
@@ -63,7 +65,8 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 @Stateless
 public class SchedulerService {
 
-	public final static String ITEM_SCHEDULER_ENABLED = "_scheduler_enabled";
+	public final static String ITEM_SYNCPOINT = "$sync_point";
+	public final static String ITEM_SYNCCOUNT = "$sync_count";
 	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
 
 	private final static int MAX_COUNT = 100;
@@ -89,110 +92,35 @@ public class SchedulerService {
 	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
 	/**
-	 * Starts a new Timer for the scheduler defined by the Configuration.
-	 * <p>
-	 * The Timer can be started based on a Calendar setting stored in the property
-	 * _scheduler_definition.
-	 * <p>
-	 * The item 'keyspace' of the configuration entity is the id of the timer to be
-	 * controlled.
-	 * <p>
-	 * The method throws an exception if the configuration entity contains invalid
-	 * attributes or values.
-	 * <p>
-	 * After the timer was started the configuration is updated with the latest
-	 * statusmessage. The item _schedueler_enabled will be set to 'true'.
-	 * <p>
-	 * The method returns the updated configuration. The configuration will not be
-	 * saved!
+	 * This method initializes the scheduler.
 	 * 
-	 * @param configuration - scheduler configuration
-	 * @return updated configuration
 	 * @throws ArchiveException
+	 * 
 	 */
-	public void start() throws ArchiveException {
-		Timer timer = null;
-
-		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
-		// try to cancel an existing timer for this workflowinstance
-		timer = findTimer(id);
-		if (timer != null) {
-			try {
-				timer.cancel();
-				timer = null;
-			} catch (Exception e) {
-				messageService.logMessage("...failed to stop existing timer for '" + id + "'!");
-				throw new ArchiveException(SchedulerService.class.getName(), ArchiveException.INVALID_WORKITEM,
-						" failed to cancle existing timer!");
-			}
-		}
-
+	public boolean startScheduler() throws ArchiveException {
+		Session session = null;
 		try {
-			logger.info("...Scheduler Service " + id + " will be started...");
-			// New timer will be started on calendar confiugration
-			timer = createTimerOnCalendar();
-
-			// start and set statusmessage
-			if (timer != null) {
-				messageService.logMessage("...Timer Service " + id + " successfull started.");
+			logger.info("...init imixsarchive keyspace ...");
+			session = clusterService.getArchiveSession();
+			if (session != null) {
+				// start archive schedulers....
+				logger.info("...starting schedulers...");
+				start();
+				return true;
+			} else {
+				logger.warning("...Failed to initalize imixsarchive keyspace!");
+				return false;
 			}
 
-		} catch (ParseException e) {
-			throw new ArchiveException(SchedulerService.class.getName(), ArchiveException.INVALID_WORKITEM,
-					" failed to start timer: " + e.getMessage());
-		}
+		} catch (Exception e) {
+			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
+			return false;
 
-	}
-
-	/**
-	 * Cancels a running timer instance. After cancel a timer the corresponding
-	 * timerDescripton (ItemCollection) is no longer valid.
-	 * <p>
-	 * The method returns the current configuration. The configuration will not be
-	 * saved!
-	 * 
-	 * @throws ArchiveException
-	 * 
-	 * 
-	 */
-	public void stop() throws ArchiveException {
-		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
-		Timer timer = findTimer(id);
-		stop(timer);
-
-	}
-
-	public void stop(Timer timer) throws ArchiveException {
-		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
-		if (timer != null) {
-			try {
-				timer.cancel();
-			} catch (Exception e) {
-				messageService.logMessage("...failed to stop Timer Service '" + id + "'!");
-
-			}
-
-			// update status message
-			messageService.logMessage("...Timer Service " + id + " stopped. ");
-		}
-	}
-
-	/**
-	 * This method returns a timer for a corresponding id if such a timer object
-	 * exists.
-	 * 
-	 * @param id
-	 * @return Timer
-	 * @throws Exception
-	 */
-	public Timer findTimer(String id) {
-		for (Object obj : timerService.getTimers()) {
-			Timer timer = (javax.ejb.Timer) obj;
-			if (id.equals(timer.getInfo())) {
-				return timer;
+		} finally {
+			if (clusterService.getCluster() != null) {
+				clusterService.getCluster().close();
 			}
 		}
-		return null;
 	}
 
 	/**
@@ -214,6 +142,97 @@ public class SchedulerService {
 			}
 		} catch (Exception e) {
 			logger.warning("unable to updateTimerDetails: " + e.getMessage());
+		}
+		return null;
+	}
+
+	/**
+	 * Starts a new Timer for the scheduler defined by the Configuration.
+	 * <p>
+	 * The Timer can be started based on a Calendar setting stored in the property
+	 * _scheduler_definition.
+	 * <p>
+	 * The item 'keyspace' of the configuration entity is the id of the timer to be
+	 * controlled.
+	 * <p>
+	 * The method throws an exception if the configuration entity contains invalid
+	 * attributes or values.
+	 * <p>
+	 * After the timer was started the configuration is updated with the latest
+	 * statusmessage. The item _schedueler_enabled will be set to 'true'.
+	 * <p>
+	 * The method returns the updated configuration. The configuration will not be
+	 * saved!
+	 * 
+	 * @param configuration - scheduler configuration
+	 * @return updated configuration
+	 * @throws ArchiveException
+	 */
+	private void start() throws ArchiveException {
+		Timer timer = null;
+
+		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		// try to cancel an existing timer for this workflowinstance
+		timer = findTimer(id);
+		if (timer != null) {
+			try {
+				timer.cancel();
+				timer = null;
+			} catch (Exception e) {
+				messageService.logMessage("Failed to stop existing timer - " + e.getMessage());
+				throw new ArchiveException(SchedulerService.class.getName(), ArchiveException.INVALID_WORKITEM,
+						" failed to cancle existing timer!");
+			}
+		}
+
+		try {
+			logger.info("...Scheduler Service " + id + " will be started...");
+			// New timer will be started on calendar confiugration
+			timer = createTimerOnCalendar();
+
+			// start and set statusmessage
+			if (timer != null) {
+				messageService.logMessage("Timer started.");
+			}
+
+		} catch (ParseException e) {
+			throw new ArchiveException(SchedulerService.class.getName(), ArchiveException.INVALID_WORKITEM,
+					" failed to start timer: " + e.getMessage());
+		}
+
+	}
+
+	/**
+	 * Cancels the running timer instance.
+	 * 
+	 * @throws ArchiveException
+	 */
+	private void stop(Timer timer) throws ArchiveException {
+		if (timer != null) {
+			try {
+				timer.cancel();
+			} catch (Exception e) {
+				messageService.logMessage("Failed to stop timer - " + e.getMessage());
+			}
+			// update status message
+			messageService.logMessage("Timer stopped. ");
+		}
+	}
+
+	/**
+	 * This method returns a timer for a corresponding id if such a timer object
+	 * exists.
+	 * 
+	 * @param id
+	 * @return Timer
+	 * @throws Exception
+	 */
+	private Timer findTimer(String id) {
+		for (Object obj : timerService.getTimers()) {
+			Timer timer = (javax.ejb.Timer) obj;
+			if (id.equals(timer.getInfo())) {
+				return timer;
+			}
 		}
 		return null;
 	}
@@ -312,8 +331,12 @@ public class SchedulerService {
 	 */
 	@Timeout
 	void onTimeout(javax.ejb.Timer timer) throws Exception {
-		String errorMes = "";
-		// ItemCollection metaData = null;
+		long syncPoint = 0;
+		int count = 0;
+		long totalCount = 0;
+		Session session = null;
+		ItemCollection metaData = null;
+
 		// start time....
 		long lProfiler = System.currentTimeMillis();
 		String keyspaceID = timer.getInfo().toString();
@@ -321,32 +344,38 @@ public class SchedulerService {
 		try {
 			// ...start processing
 			logger.info("...run scheduler '" + keyspaceID + "....");
-			// metaData = metadataService.loadMetadata();
-			int count = 0;
+
+			session = clusterService.getArchiveSession();
+			// load metadata and get last syncpoint
+			metaData = documentService.loadMetadata(session);
+			syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
+			totalCount = metaData.getItemValueLong(ITEM_SYNCCOUNT);
 
 			while (count < MAX_COUNT) {
-				long syncPoint = documentService.getSyncpoint();
+
 				XMLDataCollection xmlDataCollection = syncService.readSyncData(syncPoint);
 
 				if (xmlDataCollection != null) {
 					List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
 
 					for (XMLDocument xmlDocument : snapshotList) {
-						count++;
+						
 						ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
 
 						// update snypoint
 						Date syncpointdate = snapshot.getItemValueDate("$modified");
-						logger.info("...data found - new syncpoint=" + syncpointdate.getTime());
+						syncPoint = syncpointdate.getTime();
+						logger.info("...data found - new syncpoint=" + syncPoint);
 
 						// store data into archive
-						documentService.saveDocument(snapshot);
-						// metaData.setItemValue(ImixsArchiveApp.ITEM_SYNCPOINT,
-						// syncpointdate.getTime());
-						// update stats....
-						// int syncs = metaData.getItemValue("_sync_count", Integer.class);
-						// syncs++;
-						// metaData.setItemValue("_sync_count", syncs);
+						documentService.saveDocument(snapshot, session);
+
+						count++;
+						totalCount++;
+						// update metadata
+						metaData.setItemValue(ITEM_SYNCPOINT, syncPoint);
+						metaData.setItemValue(ITEM_SYNCCOUNT, totalCount);
+						documentService.saveMetadata(metaData, session);
 					}
 
 				} else {
@@ -356,20 +385,28 @@ public class SchedulerService {
 				}
 			}
 
-			messageService.logMessage("...scheduler  '" + keyspaceID + "' finished - " + count + " snapshots synchronized in: "
-					+ ((System.currentTimeMillis()) - lProfiler) + " ms");
+			// print log message if data was synced
+			if (count > 0) {
+				messageService.logMessage(
+						count + " snapshots synchronized in: " + ((System.currentTimeMillis()) - lProfiler) + " ms");
+			} else {
+				// just a message on the log
+				logger.finest("......synchronized in: " + ((System.currentTimeMillis()) - lProfiler) + " ms");
+			}
 
 		} catch (ArchiveException | RuntimeException e) {
 			// in case of an exception we did not cancel the Timer service
 			if (logger.isLoggable(Level.FINEST)) {
 				e.printStackTrace();
 			}
-			errorMes = e.getMessage();
-			messageService.logMessage("Scheduler '" + keyspaceID + "' failed: " + errorMes);
+
+			messageService.logMessage("Scheduler failed: " + e.getMessage());
 
 			stop(timer);
 		} finally {
-
+			if (clusterService.getCluster() != null) {
+				clusterService.getCluster().close();
+			}
 		}
 	}
 

@@ -16,8 +16,7 @@ The project pursues the following main objectives:
 ### Apache Cassandra  
 
 Imixs-Archive is based based on [Apache Cassandra](http://cassandra.apache.org/) which offers a highly available Big Data Platform .
-_"Imixs-Archive"_  provides an optimized data model to archive process instances into a Cassandra cluster. Read the section [datamodel](docs/DATAMODEL.md) for further information.
-
+_"Imixs-Archive"_  provides an optimized data model to archive process instances into a Cassandra cluster.
 
 [Apache Cassandra](http://cassandra.apache.org/)
 

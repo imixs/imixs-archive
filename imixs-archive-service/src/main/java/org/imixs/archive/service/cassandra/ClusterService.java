@@ -54,7 +54,7 @@ public class ClusterService {
 	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID = "CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED = "CREATE TABLE IF NOT EXISTS snapshots_by_modified (modified date,snapshot text,PRIMARY KEY(modified, snapshot));";
-
+	
 	public static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
 	
 	public static final String REGEX_KEYSPACE_NAME = "^[A-Z]{2}(?:[ ]?[0-9]){18,20}$";
@@ -86,7 +86,7 @@ public class ClusterService {
 	 */
 	public Session getArchiveSession() throws ArchiveException {
 
-		String keySpace = this.getEnv(ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		String keySpace = ClusterService.getEnv(ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		if (!isValidKeyspaceName(keySpace)) {
 			throw new ArchiveException(ArchiveException.INVALID_KEYSPACE, "keyspace '" + keySpace + "' name invalid.");
 		}

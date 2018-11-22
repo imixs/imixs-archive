@@ -32,7 +32,8 @@ import javax.ejb.EJB;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
-import org.imixs.archive.service.cassandra.DocumentService;
+import org.imixs.archive.service.scheduler.MessageService;
+import org.imixs.archive.service.scheduler.SchedulerService;
 
 /**
  * The Imixs-Archive-Service application setup
@@ -45,8 +46,12 @@ import org.imixs.archive.service.cassandra.DocumentService;
 public class ImixsArchiveApp extends Application {
 	
 	@EJB
-	DocumentService documentService;
+	SchedulerService schedulerService;
 
+	@EJB
+	MessageService messageService;
+
+	
 	public ImixsArchiveApp() {
 		super();
 	}
@@ -56,8 +61,13 @@ public class ImixsArchiveApp extends Application {
 	 */
 	@PostConstruct
 	public void initialize() {
-		if (documentService != null) {
-			documentService.startScheduler();
+		if (schedulerService != null) {
+			try {
+				schedulerService.startScheduler();
+			} catch (ArchiveException e) {
+				messageService.logMessage("Failed to start scheduler - " + e.getMessage());
+				e.printStackTrace();
+			}
 		}
 	}
 }

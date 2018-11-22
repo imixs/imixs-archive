@@ -21,6 +21,8 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
 /**
@@ -46,6 +48,7 @@ public class DocumentService {
 	public static final String STATEMENT_UPSET_SNAPSHOTS = "insert into snapshots (snapshot, data) values (?, ?)";
 	public static final String STATEMENT_UPSET_SNAPSHOTS_BY_UNIQUEID = "insert into snapshots_by_uniqueid (uniqueid, snapshot) values (?, ?)";
 	public static final String STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED = "insert into snapshots_by_modified (modified, snapshot) values (?, ?)";
+	public static final String STATEMENT_SELECT_METADATA = "select * from snapshots where snapshot='0'";
 
 	@EJB
 	ClusterService clusterService;
@@ -55,12 +58,15 @@ public class DocumentService {
 
 	/**
 	 * This method saves a ItemCollection into a specific KeySpace.
+	 * <p>
+	 * The method expects a valid session instance which must be closed by the
+	 * client.
 	 * 
 	 * @param itemCol
-	 * @param session
+	 * @param session - cassandra session
 	 * @throws ArchiveException
 	 */
-	public void saveDocument(ItemCollection itemCol) throws ArchiveException {
+	public void saveDocument(ItemCollection itemCol, Session session) throws ArchiveException {
 
 		PreparedStatement statement = null;
 		BoundStatement bound = null;
@@ -77,39 +83,85 @@ public class DocumentService {
 		}
 
 		// extract $snapshotid 2de78aec-6f14-4345-8acf-dd37ae84875d-1530315900599
-		//String[] snapshotSegments = snapshotID.split("-");
+		// String[] snapshotSegments = snapshotID.split("-");
 		// String snapshotDigits = snapshotSegments[snapshotSegments.length - 1];
 		String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
 
-		Session session = null;
-		try {
-			// get session from archive....
-			session = clusterService.getArchiveSession();
+		// upset document....
+		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS);
+		bound = statement.bind().setString(COLUMN_SNAPSHOT, itemCol.getUniqueID()).setBytes(COLUMN_DATA,
+				ByteBuffer.wrap(getRawData(itemCol)));
+		session.execute(bound);
 
-			// upset document....
-			statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS);
-			bound = statement.bind().setString(COLUMN_SNAPSHOT, itemCol.getUniqueID()).setBytes(COLUMN_DATA,
-					ByteBuffer.wrap(getRawData(itemCol)));
-			session.execute(bound);
+		// upset document_snapshots....
+		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_UNIQUEID);
+		bound = statement.bind().setString(COLUMN_UNIQUEID, originUnqiueID).setString(COLUMN_SNAPSHOT,
+				itemCol.getUniqueID());
+		session.execute(bound);
 
-			// upset document_snapshots....
-			statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_UNIQUEID);
-			bound = statement.bind().setString(COLUMN_UNIQUEID, originUnqiueID).setString(COLUMN_SNAPSHOT,
-					itemCol.getUniqueID());
-			session.execute(bound);
+		// upset document_modified....
+		LocalDate ld = LocalDate.fromMillisSinceEpoch(itemCol.getItemValueDate("$modified").getTime());
+		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED);
+		bound = statement.bind().setDate(COLUMN_MODIFIED, ld).setString(COLUMN_SNAPSHOT, itemCol.getUniqueID());
+		session.execute(bound);
 
-			// upset document_modified....
-			LocalDate ld = LocalDate.fromMillisSinceEpoch(itemCol.getItemValueDate("$modified").getTime());
-			statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED);
-			bound = statement.bind().setDate(COLUMN_MODIFIED, ld).setString(COLUMN_SNAPSHOT, itemCol.getUniqueID());
-			session.execute(bound);
+	}
 
-		} finally {
-			if (session != null) {
-				session.close();
+	/**
+	 * This method saves the metadata represented by an ItemCollection. The snapshot
+	 * id for the metadata object is always "0". This id is reserverd for metadata
+	 * only.
+	 * <p>
+	 * The method expects a valid session instance which must be closed by the
+	 * client.
+	 * 
+	 * @param itemCol - metadata
+	 * @throws ArchiveException
+	 */
+	public void saveMetadata(ItemCollection metadata, Session session) throws ArchiveException {
+		PreparedStatement statement = null;
+		BoundStatement bound = null;
+		// upset document....
+		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS);
+		bound = statement.bind().setString(COLUMN_SNAPSHOT, "0").setBytes(COLUMN_DATA,
+				ByteBuffer.wrap(getRawData(metadata)));
+		session.execute(bound);
+	}
+
+	/**
+	 * This method loads the metadata object represended by an ItemCollection. The
+	 * snapshot id for the metadata object is always "0". This id is reserverd for
+	 * metadata only.
+	 * <p>
+	 * If no metadata object yet exists, the method returns an empty ItemCollection.
+	 * <p>
+	 * The method expects a valid session instance which must be closed by the
+	 * client.
+	 * 
+	 * @return metadata object
+	 * @throws ArchiveException
+	 */
+	public ItemCollection loadMetadata(Session session) throws ArchiveException {
+
+		ItemCollection metadata = null;
+
+		// upset document....
+		ResultSet rs = session.execute(STATEMENT_SELECT_METADATA);
+		Row row = rs.one();
+		if (row != null) {
+			// load ItemCollection object
+			ByteBuffer data = row.getBytes(COLUMN_DATA);
+			if (data.hasArray()) {
+				metadata = DocumentService.getItemCollection(data.array());
+			} else {
+				throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT, "can not read data object!");
 			}
+		} else {
+			// no data found - create empty object
+			metadata = new ItemCollection();
 		}
 
+		return metadata;
 	}
 
 	/**
@@ -140,7 +192,8 @@ public class DocumentService {
 	/**
 	 * Converts a byte array into a XMLDocument and returns the ItemCollection
 	 * object.
-	 * @throws ArchiveException 
+	 * 
+	 * @throws ArchiveException
 	 *
 	 */
 	public static ItemCollection getItemCollection(byte[] source) throws ArchiveException {
@@ -160,7 +213,6 @@ public class DocumentService {
 			throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
 		}
 
-		
 	}
 
 	/**
@@ -175,44 +227,36 @@ public class DocumentService {
 	}
 
 	
-	/**
-	 * Returns the sycpoint based on the last syncronized document 
-	 * @return
-	 */
-	public long getSyncpoint() {
-		logger.info("*** TODO compute syncpoint");
-		
-		return 0;
-	}
-	
-	
-	
-	/**
-	 * This method initializes the scheduler.
-	 * 
-	 */
-	public boolean startScheduler() {
+	public long getSyncPoint() throws ArchiveException {
 		Session session = null;
 		try {
-			logger.info("...init imixsarchive keyspace ...");
+			// get session from archive....
 			session = clusterService.getArchiveSession();
-			if (session != null) {
-				// start archive schedulers....
-				logger.info("...starting schedulers...");
-				schedulerService.start();
-				return true;
-			} else {
-				logger.warning("...Failed to initalize imixsarchive keyspace!");
-				return false;
-			}
 
-		} catch (Exception e) {
-			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
-			return false;
-
+			ItemCollection metadata = loadMetadata(session);
+			return metadata.getItemValueLong(SchedulerService.ITEM_SYNCPOINT);
 		} finally {
-			if (session != null) {
-				session.close();
+			if (clusterService.getCluster() != null) {
+				clusterService.getCluster().close();
+			}
+		}
+		
+
+	}
+
+	
+	
+	public long getSyncCount() throws ArchiveException {
+		Session session = null;
+		try {
+			// get session from archive....
+			session = clusterService.getArchiveSession();
+
+			ItemCollection metadata = loadMetadata(session);
+			return metadata.getItemValueLong(SchedulerService.ITEM_SYNCCOUNT);
+		} finally {
+			if (clusterService.getCluster() != null) {
+				clusterService.getCluster().close();
 			}
 		}
 	}

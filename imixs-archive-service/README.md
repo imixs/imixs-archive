@@ -90,6 +90,9 @@ If you have not yet a Imixs-Archive-Service container, you can build the applica
 The Imixs-Archive provides a denormalized data schema to optimize storrage and access of archive data. 
 Snapshot data is stored in the main table space named "_snapshots_". The primary and partion key for this table is the $uniqueid of the snapshot. 
 
+ Read the section [datamodel](docs/DATAMODEL.md) for further information.
+
+
 **Note:** The Imixs-Archive-Service application creates the schemas in background. So a manual creation of schemas is not necessary. 
 
 To access archived data the $uniqueid of the snapshot is mandatory.
