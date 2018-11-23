@@ -6,7 +6,7 @@ import javax.ejb.EJB;
 import javax.ejb.Stateless;
 
 import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.scheduler.SchedulerService;
+import org.imixs.archive.service.scheduler.SyncService;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -63,7 +63,7 @@ public class ClusterService {
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
 	@EJB
-	SchedulerService schedulerService;
+	SyncService schedulerService;
 
 	/**
 	 * This method returns true if the given id is a valid Snapshot id (UUI +

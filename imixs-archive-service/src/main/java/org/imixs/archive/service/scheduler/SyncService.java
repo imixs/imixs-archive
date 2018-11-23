@@ -33,18 +33,21 @@ import java.util.logging.Logger;
 import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.ScheduleExpression;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 
 import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DocumentService;
-import org.imixs.archive.service.rest.SyncService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
+import org.imixs.workflow.services.rest.BasicAuthenticator;
+import org.imixs.workflow.services.rest.FormAuthenticator;
+import org.imixs.workflow.services.rest.RestAPIException;
+import org.imixs.workflow.services.rest.RestClient;
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -52,33 +55,32 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 import com.datastax.driver.core.Session;
 
 /**
- * The SchedulerService runns the TimerService based on the given configuration.
+ * The SyncService synchronizes the workflow data with the data stored in the
+ * cassandra cluster. The service class runns a TimerService based on the given
+ * scheduler configuration.
  * <p>
- * The service provides a message log which can be used to monitor the timer
- * status.
+ * The scheduler configuration is based on the chron format. E.g:
  * 
+ * <code>
+ *    hour=*;minute=30;
+ * </code>
  * 
+ * @version 1.0
  * @author rsoika
- * 
  */
 
 @Stateless
-public class SchedulerService {
+public class SyncService {
 
 	public final static String ITEM_SYNCPOINT = "$sync_point";
 	public final static String ITEM_SYNCCOUNT = "$sync_count";
 	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
+	public final static String SNAPSHOT_RESOURCE = "snapshot/syncpoint/";
 
 	private final static int MAX_COUNT = 100;
 
 	@Resource
-	SessionContext ctx;
-
-	@Resource
 	javax.ejb.TimerService timerService;
-
-	@EJB
-	SyncService syncService;
 
 	@EJB
 	DocumentService documentService;
@@ -89,7 +91,7 @@ public class SchedulerService {
 	@EJB
 	MessageService messageService;
 
-	private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
+	private static Logger logger = Logger.getLogger(SyncService.class.getName());
 
 	/**
 	 * This method initializes the scheduler.
@@ -180,7 +182,7 @@ public class SchedulerService {
 				timer = null;
 			} catch (Exception e) {
 				messageService.logMessage("Failed to stop existing timer - " + e.getMessage());
-				throw new ArchiveException(SchedulerService.class.getName(), ArchiveException.INVALID_WORKITEM,
+				throw new ArchiveException(SyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
 						" failed to cancle existing timer!");
 			}
 		}
@@ -196,7 +198,7 @@ public class SchedulerService {
 			}
 
 		} catch (ParseException e) {
-			throw new ArchiveException(SchedulerService.class.getName(), ArchiveException.INVALID_WORKITEM,
+			throw new ArchiveException(SyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
 					" failed to start timer: " + e.getMessage());
 		}
 
@@ -353,13 +355,13 @@ public class SchedulerService {
 
 			while (count < MAX_COUNT) {
 
-				XMLDataCollection xmlDataCollection = syncService.readSyncData(syncPoint);
+				XMLDataCollection xmlDataCollection = readSyncData(syncPoint);
 
 				if (xmlDataCollection != null) {
 					List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
 
 					for (XMLDocument xmlDocument : snapshotList) {
-						
+
 						ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
 
 						// update snypoint
@@ -410,4 +412,65 @@ public class SchedulerService {
 		}
 	}
 
+	/**
+	 * This method read sync data. The method returns the first workitem from the
+	 * given syncpoint. If no data is available the method returns null.
+	 * 
+	 * 
+	 * @return an XMLDataCollection instance representing the data to sync or null
+	 *         if no data form the given syncpoint is available.
+	 * @throws ArchiveException
+	 * 
+	 */
+	XMLDataCollection readSyncData(long syncPoint) throws ArchiveException {
+		XMLDataCollection result = null;
+		// load next document
+
+		RestClient workflowClient = initWorkflowClient();
+		String url = SNAPSHOT_RESOURCE + syncPoint;
+		logger.info("...... read data: " + url + "....");
+
+		try {
+			result = workflowClient.getXMLDataCollection(url);
+		} catch (RestAPIException e) {
+			String errorMessage = "...failed to readSyncData : " + e.getMessage();
+			messageService.logMessage(errorMessage);
+			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
+		}
+
+		if (result != null && result.getDocument().length > 0) {
+			return result;
+		}
+		return null;
+	}
+
+	/**
+	 * Helper method to initalize a Melman Workflow Client based on the current
+	 * archive configuration.
+	 */
+	RestClient initWorkflowClient() {
+		String url = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, null);
+		String autMethod = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_AUTHMETHOD, null);
+		String user = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_USER, null);
+		String password = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_PASSWORD, null);
+
+		logger.info("...... WORKFLOW_SERVICE_ENDPOINT = " + url);
+
+		RestClient workflowClient = new RestClient(url);
+
+		// Test authentication method
+		if ("Form".equalsIgnoreCase(autMethod)) {
+			// default basic authenticator
+			FormAuthenticator formAuth = new FormAuthenticator(url, user, password);
+			// register the authenticator
+			workflowClient.registerRequestFilter(formAuth);
+
+		} else {
+			// default basic authenticator
+			BasicAuthenticator basicAuth = new BasicAuthenticator(user, password);
+			// register the authenticator
+			workflowClient.registerRequestFilter(basicAuth);
+		}
+		return workflowClient;
+	}
 }

@@ -12,10 +12,10 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DocumentService;
-import org.imixs.archive.service.scheduler.MessageService;
-import org.imixs.archive.service.scheduler.SchedulerService;
+import org.imixs.archive.service.scheduler.SyncService;
 
 import com.datastax.driver.core.Session;
 
@@ -40,7 +40,7 @@ public class ClusterDataController implements Serializable {
 	DocumentService documentService;
 
 	@EJB
-	SchedulerService schedulerService;
+	SyncService schedulerService;
 
 	@EJB
 	MessageService messageService;
@@ -103,7 +103,7 @@ public class ClusterDataController implements Serializable {
 
 	public String getScheduler() {
 		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION,
-				SchedulerService.DEFAULT_SCHEDULER_DEFINITION);
+				SyncService.DEFAULT_SCHEDULER_DEFINITION);
 	}
 
 	public String getReplicationFactor() {

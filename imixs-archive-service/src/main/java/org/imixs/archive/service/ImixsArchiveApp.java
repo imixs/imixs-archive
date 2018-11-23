@@ -32,8 +32,7 @@ import javax.ejb.EJB;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
-import org.imixs.archive.service.scheduler.MessageService;
-import org.imixs.archive.service.scheduler.SchedulerService;
+import org.imixs.archive.service.scheduler.SyncService;
 
 /**
  * The Imixs-Archive-Service application setup
@@ -46,7 +45,7 @@ import org.imixs.archive.service.scheduler.SchedulerService;
 public class ImixsArchiveApp extends Application {
 	
 	@EJB
-	SchedulerService schedulerService;
+	SyncService schedulerService;
 
 	@EJB
 	MessageService messageService;

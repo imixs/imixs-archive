@@ -13,7 +13,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.scheduler.SchedulerService;
+import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -54,7 +54,7 @@ public class DocumentService {
 	ClusterService clusterService;
 
 	@EJB
-	SchedulerService schedulerService;
+	SyncService schedulerService;
 
 	/**
 	 * This method saves a ItemCollection into a specific KeySpace.
@@ -234,7 +234,7 @@ public class DocumentService {
 			session = clusterService.getArchiveSession();
 
 			ItemCollection metadata = loadMetadata(session);
-			return metadata.getItemValueLong(SchedulerService.ITEM_SYNCPOINT);
+			return metadata.getItemValueLong(SyncService.ITEM_SYNCPOINT);
 		} finally {
 			if (clusterService.getCluster() != null) {
 				clusterService.getCluster().close();
@@ -253,7 +253,7 @@ public class DocumentService {
 			session = clusterService.getArchiveSession();
 
 			ItemCollection metadata = loadMetadata(session);
-			return metadata.getItemValueLong(SchedulerService.ITEM_SYNCCOUNT);
+			return metadata.getItemValueLong(SyncService.ITEM_SYNCCOUNT);
 		} finally {
 			if (clusterService.getCluster() != null) {
 				clusterService.getCluster().close();
