@@ -186,17 +186,7 @@
 			<artifactId>imixs-workflow-core</artifactId>
 			<scope>compile</scope>
 		</dependency>
-		<!-- mvc-api -->
-		<dependency>
-			<groupId>javax.mvc</groupId>
-			<artifactId>javax.mvc-api</artifactId>
-			<version>1.0-pr</version>
-		</dependency>
-		<dependency>
-			<groupId>org.mvc-spec.ozark</groupId>
-			<artifactId>ozark-resteasy</artifactId>
-			<version>1.0.0-m03</version>
-		</dependency>
+		
 		<!-- DaraStax Java Driver -->
 		<dependency>
 			<groupId>com.datastax.cassandra</groupId>
