@@ -8,6 +8,7 @@ The Imixs-Archive-Service is connected with a Imixs-Workflow instance via the Im
 
 ## XML 
 
+
 All data archived by the _"Imixs-Archive-Service"_ is stored in platform and technology neutral XML format. This guaranties to access the data independent from a specific software version over a long period of time.   
 
 ## Syncpoint
