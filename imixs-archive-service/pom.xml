@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.imixs.workflow</groupId>
@@ -70,7 +72,8 @@
 										<exec executable="docker">
 											<arg value="build" />
 											<arg value="-t" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
 											<arg value="./." />
 										</exec>
 									</target>
@@ -102,17 +105,21 @@
 										<exec executable="docker">
 											<arg value="build" />
 											<arg value="-t" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
 											<arg value="./" />
 										</exec>
 										<exec executable="docker">
 											<arg value="tag" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
-											<arg value="${org.imixs.docker.registry}/imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="${org.imixs.docker.registry}/imixs/imixs-archive-service:${project.version}" />
 										</exec>
 										<exec executable="docker">
 											<arg value="push" />
-											<arg value="${org.imixs.docker.registry}/imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="${org.imixs.docker.registry}/imixs/imixs-archive-service:${project.version}" />
 										</exec>
 									</target>
 								</configuration>
@@ -186,7 +193,7 @@
 			<artifactId>imixs-workflow-core</artifactId>
 			<scope>compile</scope>
 		</dependency>
-		
+
 		<!-- DaraStax Java Driver -->
 		<dependency>
 			<groupId>com.datastax.cassandra</groupId>
@@ -196,15 +203,11 @@
 		</dependency>
 
 
-		<!-- Microprofile 
-		<dependency>
-			<groupId>org.eclipse.microprofile</groupId>
-			<artifactId>microprofile</artifactId>
-			<version>2.0.1</version>
-			<type>pom</type>
-			<scope>provided</scope>
-		</dependency>
-		-->
+		<!-- Microprofile <dependency> <groupId>org.eclipse.microprofile</groupId> 
+			<artifactId>microprofile</artifactId> <version>2.0.1</version> <type>pom</type> 
+			<scope>provided</scope> </dependency> -->
+
+
 
 		<!-- Java EE dependencies -->
 		<dependency>
