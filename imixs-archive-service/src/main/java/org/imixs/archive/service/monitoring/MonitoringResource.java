@@ -23,16 +23,27 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
-
 /**
- * This is a monitoring resource for  Prometheus
+ * This is a monitoring resource for Prometheus
  * 
  * This class exports metries in prometheus text format.
  * https://prometheus.io/docs/instrumenting/exposition_formats/
+ * https://www.oreilly.com/library/view/prometheus-up/9781492034131/ch04.html
  * 
  * To avoid dependencies, we implement the prometheus exposition text format you
  * ourself.
  * 
+ * 
+ * The coutner will always increase. To extract the values in prometheus use
+ * rate - Exmaple:
+ * 
+ * rate(http_requests_total[5m])
+ * 
+ * See: https://www.robustperception.io/how-does-a-prometheus-counter-work
+ * 
+ * 
+ * 
+ * General architecture: 
  * 
  * See:
  * http://www.adam-bien.com/roller/abien/entry/singleton_the_simplest_possible_jmx
@@ -60,14 +71,14 @@ public class MonitoringResource {
 
 	private ObjectName objectName = null;
 
-	private AtomicLong exceptionCount;
-
-	
+	private AtomicLong count1;
+	private AtomicLong count2;
 
 	@PostConstruct
 	public void registerInJMX() {
-		
-		this.exceptionCount = new AtomicLong();
+
+		this.count1 = new AtomicLong();
+		this.count2 = new AtomicLong();
 		try {
 
 		} catch (Exception e) {
@@ -91,25 +102,29 @@ public class MonitoringResource {
 	@Produces({ "text/plain; version=0.0.4" })
 	public Response getDiagnostics() {
 
-		
 		StreamingOutput stream = new StreamingOutput() {
 			@Override
 			public void write(OutputStream os) throws IOException, WebApplicationException {
 				Writer writer = new BufferedWriter(new OutputStreamWriter(os));
 
-				long time = System.currentTimeMillis();
 				Random rand = new Random();
-				int x = rand.nextInt((2000 - 1000) + 1) + 1000;
-				int y = rand.nextInt((500 - 10) + 1) + 10;
 
+				int x = rand.nextInt((20 - 0) + 1) + 0;
+				int y = rand.nextInt((5 - 0) + 1) + 0;
+				count1.addAndGet(x);
+				count2.addAndGet(y);
+
+				// Timestamps in the exposition format should generally be avoided
 				writer.write("# HELP http_requests_total The total number of HTTP requests." + "\n");
 				writer.write("# TYPE http_requests_total counter" + "\n");
-				writer.write("http_requests_total{method=\"post\",code=\"200\"}  " + x + " " + time + "\n");
-				writer.write("http_requests_total{method=\"post\",code=\"400\"}  " + y + " " + time + "\n");
+				writer.write("http_requests_total{method=\"post\",code=\"200\"}  " + count1.get() + "\n");
+				writer.write("http_requests_total{method=\"post\",code=\"400\"}  " + count2.get() + "\n");
 
-				
-				// note: The last line must end with a line feed character. Empty lines are ignored.
+				// note: The last line must end with a line feed character. Empty lines are
+				// ignored.
 				writer.flush();
+
+				System.out.println("...........Count1 ist jetz bei " + count1.get());
 			}
 		};
 

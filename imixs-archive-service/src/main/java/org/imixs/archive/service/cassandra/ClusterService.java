@@ -15,12 +15,12 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
 /**
  * The ClusterService provides methods to persist the content of a Imixs
  * Document into a Cassandra keystore.
- * 
+ * <p>
  * The service saves the content in XML format. The size of an XML
  * representation of a Imixs document is only slightly different in size from
  * the serialized map object. This is the reason why we do not store the
  * document map in a serialized object format.
- * 
+ * <p>
  * The ClusterService creates a Core-KeySpace automatically which is used for
  * the internal management.
  * 
@@ -35,31 +35,27 @@ public class ClusterService {
 	// mandatory environment settings
 	public static final String ENV_ARCHIVE_CLUSTER_CONTACTPOINTS = "ARCHIVE_CLUSTER_CONTACTPOINTS";
 	public static final String ENV_ARCHIVE_CLUSTER_KEYSPACE = "ARCHIVE_CLUSTER_KEYSPACE";
-	
+
 	// optional environment settings
 	public static final String ENV_ARCHIVE_SCHEDULER_DEFINITION = "ARCHIVE_SCHEDULER_DEFINITION";
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "ARCHIVE_CLUSTER_REPLICATION_FACTOR";
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS = "ARCHIVE_CLUSTER_REPLICATION_CLASS";
-
 
 	// workflow rest service endpoint
 	public static final String ENV_WORKFLOW_SERVICE_ENDPOINT = "WORKFLOW_SERVICE_ENDPOINT";
 	public static final String ENV_WORKFLOW_SERVICE_USER = "WORKFLOW_SERVICE_USER";
 	public static final String ENV_WORKFLOW_SERVICE_PASSWORD = "WORKFLOW_SERVICE_PASSWORD";
 	public static final String ENV_WORKFLOW_SERVICE_AUTHMETHOD = "WORKFLOW_SERVICE_AUTHMETHOD";
-			
-	
-	
+
 	// archive table schemas
 	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID = "CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED = "CREATE TABLE IF NOT EXISTS snapshots_by_modified (modified date,snapshot text,PRIMARY KEY(modified, snapshot));";
-	
+
 	public static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
-	
+
 	public static final String REGEX_KEYSPACE_NAME = "^[A-Z]{2}(?:[ ]?[0-9]){18,20}$";
 
-	
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
 	@EJB
@@ -139,8 +135,10 @@ public class ClusterService {
 	 * System property. If not available in the system variables than the method
 	 * verifies the imixs.properties field.
 	 * 
-	 * @param env          - environment variable name
-	 * @param defaultValue - optional default value
+	 * @param env
+	 *            - environment variable name
+	 * @param defaultValue
+	 *            - optional default value
 	 * @return value
 	 */
 	public static String getEnv(String env, String defaultValue) {

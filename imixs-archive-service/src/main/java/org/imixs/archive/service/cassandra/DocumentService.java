@@ -26,7 +26,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
 /**
- * The DocumentService is used to store a imixs document into the cluster
+ * The DocumentService is used to store a imixs document instance into the cluster
  * keyspace.
  * 
  * @author rsoika
