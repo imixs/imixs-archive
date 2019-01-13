@@ -54,8 +54,6 @@ public class ClusterService {
 
 	public static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
 
-	public static final String REGEX_KEYSPACE_NAME = "^[A-Z]{2}(?:[ ]?[0-9]){18,20}$";
-
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
 	@EJB
