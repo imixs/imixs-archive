@@ -52,6 +52,7 @@ import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 
 /**
@@ -95,32 +96,39 @@ public class SyncService {
 
 	/**
 	 * This method initializes the scheduler.
+	 * <p>
+	 * The method also verifies the existence of the archive keyspace by loading the
+	 * archive session object.
 	 * 
 	 * @throws ArchiveException
-	 * 
 	 */
 	public boolean startScheduler() throws ArchiveException {
 		Session session = null;
+		Cluster cluster = null;
 		try {
 			logger.info("...init imixsarchive keyspace ...");
-			session = clusterService.getArchiveSession();
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
 			if (session != null) {
 				// start archive schedulers....
 				logger.info("...starting schedulers...");
 				start();
 				return true;
 			} else {
-				logger.warning("...Failed to initalize imixsarchive keyspace!");
+				logger.warning("...Failed to initalize imixs-archive keyspace!");
 				return false;
 			}
-
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return false;
 
-		} finally {
-			if (clusterService.getCluster() != null) {
-				clusterService.getCluster().close();
+		} finally { 
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
 			}
 		}
 	}
@@ -130,7 +138,8 @@ public class SyncService {
 	 * properties netxtTimeout and store them into the timer configuration.
 	 * 
 	 * 
-	 * @param configuration - the current scheduler configuration to be updated.
+	 * @param configuration
+	 *            - the current scheduler configuration to be updated.
 	 */
 	public Date getNextTimeout() {
 		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
@@ -166,7 +175,8 @@ public class SyncService {
 	 * The method returns the updated configuration. The configuration will not be
 	 * saved!
 	 * 
-	 * @param configuration - scheduler configuration
+	 * @param configuration
+	 *            - scheduler configuration
 	 * @return updated configuration
 	 * @throws ArchiveException
 	 */
@@ -337,6 +347,7 @@ public class SyncService {
 		int count = 0;
 		long totalCount = 0;
 		Session session = null;
+		Cluster cluster = null;
 		ItemCollection metaData = null;
 
 		// start time....
@@ -347,7 +358,9 @@ public class SyncService {
 			// ...start processing
 			logger.info("...run scheduler '" + keyspaceID + "....");
 
-			session = clusterService.getArchiveSession();
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
+
 			// load metadata and get last syncpoint
 			metaData = documentService.loadMetadata(session);
 			syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
@@ -406,8 +419,12 @@ public class SyncService {
 
 			stop(timer);
 		} finally {
-			if (clusterService.getCluster() != null) {
-				clusterService.getCluster().close();
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
 			}
 		}
 	}

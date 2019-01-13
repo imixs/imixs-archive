@@ -41,7 +41,7 @@ import org.imixs.archive.service.scheduler.SyncService;
  * 
  */
 
-@ApplicationPath("imixsarchive")
+@ApplicationPath("api")
 public class ImixsArchiveApp extends Application {
 	
 	@EJB

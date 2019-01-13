@@ -241,35 +241,8 @@ public class DocumentService {
 		return uid.matches(REGEX_SNAPSHOTID);
 	}
 
-	public long getSyncPoint() throws ArchiveException {
-		Session session = null;
-		try {
-			// get session from archive....
-			session = clusterService.getArchiveSession();
+	
+	
 
-			ItemCollection metadata = loadMetadata(session);
-			return metadata.getItemValueLong(SyncService.ITEM_SYNCPOINT);
-		} finally {
-			if (clusterService.getCluster() != null) {
-				clusterService.getCluster().close();
-			}
-		}
-
-	}
-
-	public long getSyncCount() throws ArchiveException {
-		Session session = null;
-		try {
-			// get session from archive....
-			session = clusterService.getArchiveSession();
-
-			ItemCollection metadata = loadMetadata(session);
-			return metadata.getItemValueLong(SyncService.ITEM_SYNCCOUNT);
-		} finally {
-			if (clusterService.getCluster() != null) {
-				clusterService.getCluster().close();
-			}
-		}
-	}
 
 }

@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.imixs.archive.service.ArchiveException;
@@ -16,7 +16,9 @@ import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DocumentService;
 import org.imixs.archive.service.scheduler.SyncService;
+import org.imixs.workflow.ItemCollection;
 
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 
 /**
@@ -32,7 +34,9 @@ public class ClusterDataController implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
 
-	
+	Cluster cluster = null;
+	Session session = null;
+
 	@EJB
 	ClusterService clusterService;
 
@@ -45,23 +49,47 @@ public class ClusterDataController implements Serializable {
 	@EJB
 	MessageService messageService;
 
-	@Inject
-	ErrorController errorController;
-
 	public ClusterDataController() {
 		super();
 	}
 
 	/**
-	 * This method verifies and initializes the core keyspace
+	 * This method initializes a cluster and session obejct.
 	 * 
 	 * @throws ArchiveException
-	 * 
-	 *
+	 * @see {@link ClusterDataController#close()}
 	 */
 	@PostConstruct
-	public void init() throws ArchiveException {
-		logger.info("...initial setup: reading environment....");
+	void init() throws ArchiveException {
+		logger.info("...initial session....");
+		cluster = clusterService.getCluster();
+		session = clusterService.getArchiveSession(cluster);
+	}
+
+	/**
+	 * This method closes the session and cluster object.
+	 * 
+	 * @see {@link ClusterDataController#init()}
+	 */
+	@PreDestroy
+	void close() {
+		logger.info("...closing session....");
+		// close session and cluster object
+		if (session != null) {
+			session.close();
+		}
+		if (cluster != null) {
+			cluster.close();
+		}
+	}
+
+	/**
+	 * Returns true if a connection to the specified keySpace was successful
+	 * 
+	 * @return true if session was successfull established. 
+	 */
+	public boolean isConnected() {
+		return (session != null);
 	}
 
 	/**
@@ -72,7 +100,9 @@ public class ClusterDataController implements Serializable {
 	public Date getSyncPoint() {
 		long lsyncPoint;
 		try {
-			lsyncPoint = documentService.getSyncPoint();
+			ItemCollection metadata = documentService.loadMetadata(session);
+			lsyncPoint = metadata.getItemValueLong(SyncService.ITEM_SYNCPOINT);
+
 		} catch (ArchiveException e) {
 			logger.severe("unable to read syncpoint - " + e.getMessage());
 			lsyncPoint = 0;
@@ -80,16 +110,17 @@ public class ClusterDataController implements Serializable {
 		Date syncPoint = new Date(lsyncPoint);
 		return syncPoint;
 	}
-	
+
 	public long getSyncCount() {
 		long l;
 		try {
-			l = documentService.getSyncCount();
+			ItemCollection metadata = documentService.loadMetadata(session);
+			l = metadata.getItemValueLong(SyncService.ITEM_SYNCCOUNT);
+
 		} catch (ArchiveException e) {
 			logger.severe("unable to read syncpoint - " + e.getMessage());
 			l = 0;
 		}
-	
 		return l;
 	}
 
@@ -126,22 +157,4 @@ public class ClusterDataController implements Serializable {
 	public List<String> getMessages() {
 		return messageService.getMessages();
 	}
-
-	/**
-	 * returns true if a connection to the specified keySpace was successful
-	 * 
-	 * @return
-	 */
-	public boolean isConnected() {
-
-		Session _session;
-		try {
-			_session = clusterService.getArchiveSession();
-		} catch (ArchiveException e) {
-			errorController.setMessage(e.getMessage());
-			return false;
-		}
-		return _session != null;
-	}
-
 }

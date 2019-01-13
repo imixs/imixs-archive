@@ -94,7 +94,7 @@ public class MetricService {
 				// Timestamps in the exposition format should generally be avoided
 
 				// write documents metrics
-				writer.write("# HELP documents_total The total number of accessed documents." + "\n");
+				writer.write("# HELP documents_total The total number of archived documents." + "\n");
 				writer.write("# TYPE documents_total counter" + "\n");
 				// iterate over all collected metrics....
 

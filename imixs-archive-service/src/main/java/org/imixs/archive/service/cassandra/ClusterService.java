@@ -2,11 +2,9 @@ package org.imixs.archive.service.cassandra;
 
 import java.util.logging.Logger;
 
-import javax.ejb.EJB;
 import javax.ejb.Stateless;
 
 import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.scheduler.SyncService;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -56,9 +54,7 @@ public class ClusterService {
 
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
-	@EJB
-	SyncService schedulerService;
-
+	
 	/**
 	 * This method returns true if the given id is a valid Snapshot id (UUI +
 	 * timestamp
@@ -78,14 +74,13 @@ public class ClusterService {
 	 * 
 	 * @throws ArchiveException
 	 */
-	public Session getArchiveSession() throws ArchiveException {
+	public Session getArchiveSession(Cluster cluster) throws ArchiveException {
 
 		String keySpace = ClusterService.getEnv(ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		if (!isValidKeyspaceName(keySpace)) {
 			throw new ArchiveException(ArchiveException.INVALID_KEYSPACE, "keyspace '" + keySpace + "' name invalid.");
 		}
 
-		Cluster cluster = getCluster();
 		// try to open keySpace
 		logger.finest("......conecting keyspace '" + keySpace + "'...");
 		Session session = null;
