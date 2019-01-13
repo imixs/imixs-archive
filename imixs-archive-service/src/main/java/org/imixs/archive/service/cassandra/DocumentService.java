@@ -7,6 +7,8 @@ import java.util.logging.Logger;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
+import javax.inject.Inject;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -26,8 +28,8 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
 /**
- * The DocumentService is used to store a imixs document instance into the cluster
- * keyspace.
+ * The DocumentService is used to store a imixs document instance into the
+ * cluster keyspace.
  * 
  * @author rsoika
  * 
@@ -56,6 +58,9 @@ public class DocumentService {
 	@EJB
 	SyncService schedulerService;
 
+	@Inject
+	protected Event<ArchiveEvent> events;
+
 	/**
 	 * This method saves a ItemCollection into a specific KeySpace.
 	 * <p>
@@ -63,7 +68,8 @@ public class DocumentService {
 	 * client.
 	 * 
 	 * @param itemCol
-	 * @param session - cassandra session
+	 * @param session
+	 *            - cassandra session
 	 * @throws ArchiveException
 	 */
 	public void saveDocument(ItemCollection itemCol, Session session) throws ArchiveException {
@@ -105,6 +111,13 @@ public class DocumentService {
 		bound = statement.bind().setDate(COLUMN_MODIFIED, ld).setString(COLUMN_SNAPSHOT, itemCol.getUniqueID());
 		session.execute(bound);
 
+		// Finally we fire the DocumentEvent ON_DOCUMENT_SAVE
+		if (events != null) {
+			events.fire(new ArchiveEvent(itemCol, ArchiveEvent.ON_ARCHIVE));
+		} else {
+			logger.warning("Missing CDI support for Event<ArchiveEvent> !");
+		}
+
 	}
 
 	/**
@@ -115,7 +128,8 @@ public class DocumentService {
 	 * The method expects a valid session instance which must be closed by the
 	 * client.
 	 * 
-	 * @param itemCol - metadata
+	 * @param itemCol
+	 *            - metadata
 	 * @throws ArchiveException
 	 */
 	public void saveMetadata(ItemCollection metadata, Session session) throws ArchiveException {
@@ -161,6 +175,7 @@ public class DocumentService {
 			metadata = new ItemCollection();
 		}
 
+	
 		return metadata;
 	}
 
@@ -226,7 +241,6 @@ public class DocumentService {
 		return uid.matches(REGEX_SNAPSHOTID);
 	}
 
-	
 	public long getSyncPoint() throws ArchiveException {
 		Session session = null;
 		try {
@@ -240,12 +254,9 @@ public class DocumentService {
 				clusterService.getCluster().close();
 			}
 		}
-		
 
 	}
 
-	
-	
 	public long getSyncCount() throws ArchiveException {
 		Session session = null;
 		try {
