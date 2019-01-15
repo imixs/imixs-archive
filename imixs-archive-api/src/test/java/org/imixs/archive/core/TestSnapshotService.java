@@ -4,7 +4,6 @@ import static org.mockito.Mockito.when;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
-import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -124,7 +123,7 @@ public class TestSnapshotService {
 	 * This test simulates a split event which results in a version of the origin
 	 * workitem. The file content must be migrated from the origin workitem also
 	 * into the version.
-	 * 
+	 * <p>
 	 * We simulate this here with a second call of snapshotService.onSave(). This is
 	 * a little bit ugly but I think the test integration is deep enough.
 	 * 
@@ -145,8 +144,10 @@ public class TestSnapshotService {
 
 		byte[] data = "This is a test".getBytes();
 		// we attache a file....
-		workitem.addFile(data, "test.txt", null);
-
+		//workitem.addFile(data, "test.txt", null);
+		workitem.addFileData(new FileData("test.txt", data, null, null));
+		
+		
 		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
 		snapshotService.onSave(documentEvent);
 		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
@@ -165,9 +166,9 @@ public class TestSnapshotService {
 		Assert.assertNotNull(snapshotworkitem);
 
 		// test the file content
-		List<Object> fileData = snapshotworkitem.getFile("test.txt");
-		byte[] content = (byte[]) fileData.get(1);
-		Assert.assertEquals("This is a test", new String(content));
+		//List<Object> fileData = snapshotworkitem.getFile("test.txt");
+		FileData fileData=snapshotworkitem.getFileData("test.txt");
+		Assert.assertEquals("This is a test", new String(fileData.getContent()));
 
 		/*
 		 * Now we trigger a second event to create a version be we remove the file
@@ -208,18 +209,19 @@ public class TestSnapshotService {
 		Assert.assertNotNull(snapshotworkitemVersion);
 
 		// test the file content
-		List<Object> fileDataVersion = snapshotworkitemVersion.getFile("test.txt");
-		byte[] contentVersion = (byte[]) fileDataVersion.get(1);
-		Assert.assertEquals("This is a test", new String(contentVersion));
+		//List<Object> fileDataVersion = snapshotworkitemVersion.getFile("test.txt");
+		FileData fileDataVersion=snapshotworkitemVersion.getFileData("test.txt");
+		//byte[] contentVersion = (byte[]) fileDataVersion.get(1);
+		Assert.assertEquals("This is a test", new String(fileDataVersion.getContent()));
 
 	}
 
 	/**
 	 * This test simulates a simple workflow process which generates a new
 	 * Snapshot-Workitem.
-	 * 
+	 * <p>
 	 * The method adds a file and tests the fileData of the workitem and the
-	 * snapshot as also the dms item
+	 * snapshot as also the custom attributes
 	 * 
 	 * @throws ProcessingErrorException
 	 * @throws AccessDeniedException
@@ -237,7 +239,7 @@ public class TestSnapshotService {
 
 		// add file...
 		byte[] dummyContent = { 1, 2, 3 };
-		FileData filedata = new FileData("test.txt", dummyContent, "text");
+		FileData filedata = new FileData("test.txt", dummyContent, "text",null);
 		workitem.addFileData(filedata);
 
 		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
@@ -260,23 +262,23 @@ public class TestSnapshotService {
 		Assert.assertNotNull(snapshotworkitem);
 
 		// test the file data of workitem
-		FileData testfiledata = workitem.getFileData("test.txt");
-		Assert.assertEquals(filedata.getName(), testfiledata.getName());
-		Assert.assertEquals(filedata.getContentType(), testfiledata.getContentType());
-		Assert.assertTrue(testfiledata.getContent().length == 0);
+		FileData testfiledataOrigin = workitem.getFileData("test.txt");
+		Assert.assertEquals(filedata.getName(), testfiledataOrigin.getName());
+		Assert.assertEquals(filedata.getContentType(), testfiledataOrigin.getContentType());
+		Assert.assertTrue(testfiledataOrigin.getContent().length == 0);
 
 		// test the file data of snapshot
-		testfiledata = snapshotworkitem.getFileData("test.txt");
-		Assert.assertEquals(filedata.getName(), testfiledata.getName());
-		Assert.assertEquals(filedata.getContentType(), testfiledata.getContentType());
-		Assert.assertTrue(testfiledata.getContent().length == 3);
+		FileData testfiledataSnapshot = snapshotworkitem.getFileData("test.txt");
+		Assert.assertEquals(filedata.getName(), testfiledataSnapshot.getName());
+		Assert.assertEquals(filedata.getContentType(), testfiledataSnapshot.getContentType());
+		Assert.assertTrue(testfiledataSnapshot.getContent().length == 3);
 
 		// now test the DMS item
-		ItemCollection dmsItemCol = DMSHandler.getDMSEntry("test.txt", workitem);
+		ItemCollection dmsItemCol =new ItemCollection(testfiledataOrigin.getAttributes());
 		Assert.assertNotNull(dmsItemCol);
 		Assert.assertEquals(3, dmsItemCol.getItemValueInteger("size"));
 		try {
-			Assert.assertTrue(DMSHandler.validateMD5(dmsItemCol.getItemValueString("md5checksum"), dummyContent));
+			Assert.assertTrue(testfiledataSnapshot.validateMD5(dmsItemCol.getItemValueString("md5checksum")));
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			Assert.fail();
