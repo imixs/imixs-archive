@@ -122,10 +122,10 @@ public class SnapshotService {
 	public static final String SNAPSHOTID = "$snapshotid";
 	public static final String TYPE_PRAFIX = "snapshot-";
 	public static final String NOSNAPSHOT = "$nosnapshot"; // ignore snapshots
-	
+
 	public final static String DMS_FILE_NAMES = "dms_names"; // list of files
 	public final static String DMS_FILE_COUNT = "dms_count"; // count of files
-	
+
 	public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
 	public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
 	public static final String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
@@ -207,7 +207,7 @@ public class SnapshotService {
 		// method docmentService.load() does fetch a newly saved document by its primary
 		// key within the same transaction.
 		ItemCollection lastSnapshot = documentService.load(documentEvent.getDocument().getItemValueString(SNAPSHOTID));
-		boolean isBlobWorkitem=false; // support deprecated $blobWorkitems...
+		boolean isBlobWorkitem = false; // support deprecated $blobWorkitems...
 
 		// in case that we have no snapshot but a UNIQUEIDSOURCE we can lookup here the
 		// snapshot from the origin version
@@ -228,35 +228,28 @@ public class SnapshotService {
 			if (lastSnapshot != null) {
 				logger.info("migrating file content from deprecated blobWorkitem '"
 						+ documentEvent.getDocument().getUniqueID() + "' ....");
-				isBlobWorkitem=true; // support deprecated $blobWorkitems...
+				isBlobWorkitem = true; // support deprecated $blobWorkitems...
 			}
 		}
 
 		if (lastSnapshot != null) {
 			// copy content from the last found snapshot....
-			copyFilesFromItemCollection(lastSnapshot, snapshot, documentEvent.getDocument(), overwriteFileContent,isBlobWorkitem);
+			copyFilesFromItemCollection(lastSnapshot, snapshot, documentEvent.getDocument(), overwriteFileContent,
+					isBlobWorkitem);
 		}
 
 		// 5. remove file content form the origin-workitem
-		//Map<String, List<Object>> files = documentEvent.getDocument().getFiles();
 		List<FileData> files = documentEvent.getDocument().getFileData();
-		//if (files != null) {
-			// empty data...
-			byte[] empty = {};
-			for (FileData fileData : files) {
-				//String aFilename = entry.getKey();
-				//List<?> file = entry.getValue();
-				// remove content if size > 1....
-				//String contentType = (String) file.get(0);
-				//byte[] fileContent = (byte[]) file.get(1);
-				if (fileData.getContent() != null && fileData.getContent().length > 0) {
-					// update the file name with empty data
-					logger.fine("drop content for file '" + fileData.getName() + "'");
-					//documentEvent.getDocument().addFile(empty, aFilename, contentType);
-					documentEvent.getDocument().addFileData(new FileData(fileData.getName(), empty, fileData.getContentType(), fileData.getAttributes()));
-				}
+		// empty data...
+		byte[] empty = {};
+		for (FileData fileData : files) {
+			if (fileData.getContent() != null && fileData.getContent().length > 0) {
+				// update the file name with empty data
+				logger.fine("drop content for file '" + fileData.getName() + "'");
+				documentEvent.getDocument().addFileData(
+						new FileData(fileData.getName(), empty, fileData.getContentType(), fileData.getAttributes()));
 			}
-		//}
+		}
 
 		// 6. store the snapshot uniqeId into the origin-workitem ($snapshotID)
 		documentEvent.getDocument().replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
@@ -350,7 +343,7 @@ public class SnapshotService {
 		if (snapshot != null) {
 			return snapshot.getFileData(file);
 		}
-		
+
 		return null;
 	}
 
@@ -405,12 +398,12 @@ public class SnapshotService {
 	}
 
 	/**
-	 * This helper method copies the $files content from a source workitem (last snapshot) into a
-	 * target workitem (current snapshot) if no content for the same file exists in the target
-	 * workitem.
+	 * This helper method copies the $files content from a source workitem (last
+	 * snapshot) into a target workitem (current snapshot) if no content for the
+	 * same file exists in the target workitem.
 	 * <p>
-	 * If 'overwriteFileContent' is set to 'false' than in case a file with the same name
-	 * already exits, will be 'archived' with a time-stamp-sufix:
+	 * If 'overwriteFileContent' is set to 'false' than in case a file with the same
+	 * name already exits, will be 'archived' with a time-stamp-sufix:
 	 * <p>
 	 * e.g.: 'ejb_obj.gif' => 'ejb_obj-1514410113556.gif'
 	 * <p>
@@ -421,196 +414,146 @@ public class SnapshotService {
 	 */
 	private void copyFilesFromItemCollection(ItemCollection source, ItemCollection target, ItemCollection origin,
 			boolean overwriteFileContent, boolean blobWorkitem) {
-		
-		//Map<String, List<Object>> files = target.getFiles();
+
 		List<FileData> files = target.getFileData();
-		if (files != null) {
-			//for (Map.Entry<String, List<Object>> entry : files.entrySet()) {
-			for (FileData fileData : files) {	
-				String fileName = fileData.getName();
-				//List<Object> file = entry.getValue();
-				// test if the content of the file is empty. In this case we copy
-				// the content from the last snapshot (source)
-				byte[] content = fileData.getContent();
-				if (content.length == 0 || (blobWorkitem && content.length <= 2)) { // <= 2 migration issue from blob-workitem (size can
-																	// be 1 byte)
-					// fetch the old content from source...
-					if (source != null) {
-						//List<Object> oldFile = source.getFile(fileName);
-						FileData oldFileData = source.getFileData(fileName);
-						if (oldFileData != null) {
-							logger.fine("copy file content '" + fileName + "' from: " + source.getUniqueID());
-							
-							target.addFileData(new FileData(fileName, oldFileData.getContent(), oldFileData.getContentType(), oldFileData.getAttributes()));
-							
-							//target.addFile((byte[]) oldFile.get(1), fileName, (String) oldFile.get(0));
-						} else {
-							logger.warning("Missing file content!");
-						}
+
+		for (FileData fileData : files) {
+			String fileName = fileData.getName();
+			// test if the content of the file is empty. In this case we copy
+			// the content from the last snapshot (source)
+			byte[] content = fileData.getContent();
+			if (content.length == 0 || (blobWorkitem && content.length <= 2)) { // <= 2 migration issue from
+																				// blob-workitem (size can be 1 byte)
+				// fetch the old content from source...
+				if (source != null) {
+					FileData oldFileData = source.getFileData(fileName);
+					if (oldFileData != null) {
+						logger.fine("copy file content '" + fileName + "' from: " + source.getUniqueID());
+
+						target.addFileData(new FileData(fileName, oldFileData.getContent(),
+								oldFileData.getContentType(), oldFileData.getAttributes()));
 					} else {
 						logger.warning("Missing file content!");
 					}
 				} else {
-					// in case 'overwriteFileContent' is set to 'false' we protect existing content of
-					// files with the same name, but extend the name of the old file with a sufix
-					if (!overwriteFileContent) {
-						//List<Object> oldFile = source.getFile(fileName);
-						FileData oldFileData = source.getFileData(fileName);
-						if (oldFileData != null) {
-							// we need to sufix the last file with the same name here to protect the
-							// content.
+					logger.warning("Missing file content!");
+				}
+			} else {
+				// in case 'overwriteFileContent' is set to 'false' we protect existing content
+				// of
+				// files with the same name, but extend the name of the old file with a sufix
+				if (!overwriteFileContent) {
+					FileData oldFileData = source.getFileData(fileName);
+					if (oldFileData != null) {
+						// we need to sufix the last file with the same name here to protect the
+						// content.
+						ItemCollection dmsColOrigin = new ItemCollection(fileData.getAttributes());
+						ItemCollection dmsColOld = new ItemCollection(oldFileData.getAttributes());
+						// compare MD5Checksum
+						if ((dmsColOrigin != null && dmsColOld != null)
+								&& (!dmsColOrigin.getItemValueString("md5checksum")
+										.equals(dmsColOld.getItemValueString("md5checksum")))) {
 
-							// compare MD5Checksum
-							//ItemCollection dmsColOrigin = DMSHandler.getDMSEntry(fileName, origin);
-							ItemCollection dmsColOrigin =new ItemCollection(fileData.getAttributes());
-							//ItemCollection dmsColSource = DMSHandler.getDMSEntry(fileName, source);
-							ItemCollection dmsColOld = new ItemCollection(oldFileData.getAttributes());
-							if ((dmsColOrigin != null && dmsColOld != null)
-									&& (!dmsColOrigin.getItemValueString("md5checksum")
-											.equals(dmsColOld.getItemValueString("md5checksum")))) {
-
-								// compute timestamp from $modifeid or $created date if available....
-								// Note: $modified will be set by method updateCustomAttributes()
-								Date fileDate = dmsColOld.getItemValueDate("$modified");
-								if (fileDate==null) {
-									fileDate = dmsColOld.getItemValueDate("$created");
-								}
-								if (fileDate == null) {
-									// should not happen that the $created does not exist (just for backward compatibility)
-									fileDate = new Date();
-								}
-								TimeZone tz = TimeZone.getTimeZone("UTC");
-								DateFormat df = new SimpleDateFormat("[yyyy-MM-dd'T'HH:mm:ss.SSS'Z']"); // Quoted "Z" to
-																										// indicate UTC,
-																										// no timezone
-																										// offset
-								df.setTimeZone(tz);
-								// construct new unique filename....
-								String sTimeStamp = df.format(fileDate);
-								String protectedFileName = null;
-								int iFileDot = fileName.lastIndexOf('.');
-								if (iFileDot > 0) {
-									protectedFileName = fileName.substring(0, iFileDot) + "-" + sTimeStamp
-											+ fileName.substring(iFileDot);
-								} else {
-									protectedFileName = fileName + "-" + sTimeStamp;
-								}
-								
-								// add filename with empty data to origin
-								byte[] empty = {};
-								//origin.addFile(empty, protectedFileName, (String) oldFile.get(0));
-								dmsColOld.replaceItemValue("txtname", protectedFileName);
-								//target.addFileData(new FileData(protectedFileName, oldFileData.getContent(), oldFileData.getContentType(), oldFileData.getAttributes()));
-								target.addFileData(new FileData(protectedFileName, oldFileData.getContent(), oldFileData.getContentType(), dmsColOld.getAllItems()));
-
-								origin.addFileData(new FileData(protectedFileName, empty, oldFileData.getContentType(), dmsColOld.getAllItems()));
-								//target.addFileData(new FileData(protectedFileName, oldFileData.getContent(), oldFileData.getContentType(), dmsColOld.getAllItems()));
-								
-								
-								// update the DMS entry
-								
-								// dmsColOrigin.replaceItemValue("md5checksum"
-								//DMSHandler.putDMSEntry(dmsColSource, target);
-								//DMSHandler.putDMSEntry(dmsColSource, origin);
+							// compute timestamp from $modifeid or $created date if available....
+							// Note: $modified will be set by method updateCustomAttributes()
+							Date fileDate = dmsColOld.getItemValueDate("$modified");
+							if (fileDate == null) {
+								fileDate = dmsColOld.getItemValueDate("$created");
 							}
+							if (fileDate == null) {
+								// should not happen that the $created does not exist (just for backward
+								// compatibility)
+								fileDate = new Date();
+							}
+							TimeZone tz = TimeZone.getTimeZone("UTC");
+							DateFormat df = new SimpleDateFormat("[yyyy-MM-dd'T'HH:mm:ss.SSS'Z']"); // Quoted "Z" to
+																									// indicate UTC,
+																									// no timezone
+																									// offset
+							df.setTimeZone(tz);
+							// construct new unique filename....
+							String sTimeStamp = df.format(fileDate);
+							String protectedFileName = null;
+							int iFileDot = fileName.lastIndexOf('.');
+							if (iFileDot > 0) {
+								protectedFileName = fileName.substring(0, iFileDot) + "-" + sTimeStamp
+										+ fileName.substring(iFileDot);
+							} else {
+								protectedFileName = fileName + "-" + sTimeStamp;
+							}
+
+							// add filename with empty data to origin
+							byte[] empty = {};
+							dmsColOld.replaceItemValue("txtname", protectedFileName);
+							target.addFileData(new FileData(protectedFileName, oldFileData.getContent(),
+									oldFileData.getContentType(), dmsColOld.getAllItems()));
+							origin.addFileData(new FileData(protectedFileName, empty, oldFileData.getContentType(),
+									dmsColOld.getAllItems()));
 						}
 					}
 				}
 			}
 		}
+
 	}
 
-	
-	
-	
 	/**
-	 * This method updates the property customAttributes for each file of the current workitem with the meta
-	 * data of attached files or links.
+	 * This method updates the property customAttributes for each file of the
+	 * current workitem with the meta data of attached files or links.
 	 * <p>
-	 * In addition the method generates the items 'dms_count' and 'dms_names' with the number of attachments and a list of all filenames.
+	 * In addition the method generates the items 'dms_count' and 'dms_names' with
+	 * the number of attachments and a list of all filenames.
 	 * 
 	 * 
-	 * @param workitem - target workitem
+	 * @param workitem
+	 *            - target workitem
 	 * @param username
 	 *            - optional username
 	 * @throws NoSuchAlgorithmException
 	 * 
 	 */
-	//@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void updateCustomAttributes(ItemCollection workitem, String username) throws NoSuchAlgorithmException {
-		
-		//List<Map> currentDmsList = workitem.getItemValue(DMS_ITEM);
-		//List<String> currentFileNames = workitem.getFileNames();
-		//Map<String, List<Object>> currentFileData = workitem.getFiles();
+
 		List<FileData> currentFileData = workitem.getFileData();
-
-		// first we remove all DMS entries which did not have a matching
-		// $File-Entry and are not from type link
-//		for (Iterator<Map> iterator = currentDmsList.iterator(); iterator.hasNext();) {
-//			Map dmsEntry = iterator.next();
-//			String sName = getStringValueFromMap(dmsEntry, "txtname");
-//			String sURL = getStringValueFromMap(dmsEntry, "url");
-//			if (sURL.isEmpty() && !currentFileNames.contains(sName)) {
-//				// Remove the current element from the iterator and the list.
-//				logger.fine("remove dms entry '" + sName + "'");
-//				iterator.remove();
-//			}
-//		}
-
 		// now we test for each file entry if a dms meta data entry
 		// exists. If not we create a new one...
-		//if (currentFileData != null) {
-			for (FileData fileData: currentFileData) {
-//				String fileName = entry.getKey();
-//				List<?> fileData = entry.getValue();
-//				ItemCollection dmsEntry = getDMSEntry(fileName, workitem);
-//
-//				if (dmsEntry == null) {
-//					dmsEntry = createDMSEntry(fileName, fileData, username);
-//					putDMSEntry(dmsEntry, workitem);
-//				} else {
-				
-				if (fileData.getAttributes().isEmpty()
-						&& fileData.getContent() != null && fileData.getContent().length > 1) {
-					// no dms entry exists...
-					ItemCollection dmsEntry = new ItemCollection();
-					
+		for (FileData fileData : currentFileData) {
+			if (fileData.getAttributes().isEmpty() && fileData.getContent() != null
+					&& fileData.getContent().length > 1) {
+				// no dms entry exists...
+				ItemCollection dmsEntry = new ItemCollection();
+
+				String checksum = fileData.generateMD5();
+				dmsEntry.replaceItemValue("md5checksum", checksum);
+				dmsEntry.replaceItemValue("size", fileData.getContent().length);
+				dmsEntry.replaceItemValue("txtname", fileData.getName());
+				dmsEntry.replaceItemValue("$created", new Date());
+				dmsEntry.replaceItemValue("$creator", username);
+				dmsEntry.replaceItemValue("namcreator", username);
+				fileData.setAttributes(dmsEntry.getAllItems());
+
+				workitem.addFileData(fileData);
+
+			} else {
+				ItemCollection dmsEntry = new ItemCollection(fileData.getAttributes());
+
+				// verify checksum if new content was uploaded....
+				String oldchecksum = dmsEntry.getItemValueString("md5checksum");
+				if (fileData.getContent().length > 0 && (oldchecksum.isEmpty() || !fileData.validateMD5(oldchecksum))) {
+					// update checksum, size and editor!
 					String checksum = fileData.generateMD5();
 					dmsEntry.replaceItemValue("md5checksum", checksum);
 					dmsEntry.replaceItemValue("size", fileData.getContent().length);
-					dmsEntry.replaceItemValue("txtname", fileData.getName());
-							
-					dmsEntry.replaceItemValue("$created", new Date());
-					dmsEntry.replaceItemValue("$creator", username);
+					dmsEntry.replaceItemValue("$modified", new Date());
+					dmsEntry.replaceItemValue("$editor", username);
 					dmsEntry.replaceItemValue("namcreator", username);
 					fileData.setAttributes(dmsEntry.getAllItems());
-							//putDMSEntry(dmsEntry, workitem);
 					workitem.addFileData(fileData);
-					
-					
-
-				} else {
-					ItemCollection dmsEntry = new ItemCollection(fileData.getAttributes());
-				
-					// verify checksum if new content was uploaded.... 
-					String oldchecksum=dmsEntry.getItemValueString("md5checksum");
-					if (fileData.getContent().length>0 
-							&& (oldchecksum.isEmpty() || !fileData.validateMD5(oldchecksum))) {
-						// update checksum, size and editor!
-						String checksum = fileData.generateMD5();
-						dmsEntry.replaceItemValue("md5checksum", checksum);
-						dmsEntry.replaceItemValue("size", fileData.getContent().length);
-						dmsEntry.replaceItemValue("$modified", new Date());
-						dmsEntry.replaceItemValue("$editor", username);
-						dmsEntry.replaceItemValue("namcreator", username);
-						fileData.setAttributes(dmsEntry.getAllItems());
-						workitem.addFileData(fileData);
-					}
-					
 				}
 
 			}
-		//}
+
+		}
 
 		// add $filecount
 		workitem.replaceItemValue(DMS_FILE_COUNT, workitem.getFileNames().size());
