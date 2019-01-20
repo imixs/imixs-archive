@@ -43,6 +43,7 @@ public class ArchiveException extends Exception {
 	public static final String INVALID_DOCUMENT_OBJECT = "INVALID_DOCUMENT_OBJECT";
 	public static final String INVALID_KEYSPACE = "INVALID_KEYSPACE";
 	public static final String INVALID_WORKITEM = "INVALID_WORKITEM";
+	public static final String MD5_ERROR = "MD5_ERROR";
 
 
 	public static final String MISSING_CONTACTPOINT = "MISSING_CONTACTPOINT";

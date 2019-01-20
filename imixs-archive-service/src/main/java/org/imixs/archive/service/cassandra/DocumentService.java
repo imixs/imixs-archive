@@ -3,6 +3,8 @@ package org.imixs.archive.service.cassandra;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
@@ -16,6 +18,7 @@ import javax.xml.bind.Unmarshaller;
 
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.scheduler.SyncService;
+import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -26,6 +29,8 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.querybuilder.Select;
 
 /**
  * The DocumentService is used to store a imixs document instance into the
@@ -45,12 +50,16 @@ public class DocumentService {
 	public static final String COLUMN_MODIFIED = "modified";
 	public static final String COLUMN_UNIQUEID = "uniqueid";
 	public static final String COLUMN_DATA = "data";
+	public static final String COLUMN_MD5 = "md5";
 
 	// cqlsh statements
 	public static final String STATEMENT_UPSET_SNAPSHOTS = "insert into snapshots (snapshot, data) values (?, ?)";
 	public static final String STATEMENT_UPSET_SNAPSHOTS_BY_UNIQUEID = "insert into snapshots_by_uniqueid (uniqueid, snapshot) values (?, ?)";
 	public static final String STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED = "insert into snapshots_by_modified (modified, snapshot) values (?, ?)";
+	public static final String STATEMENT_UPSET_DOCUMENTS = "insert into documents (md5, data) values (?, ?)";
 	public static final String STATEMENT_SELECT_METADATA = "select * from snapshots where snapshot='0'";
+	public static final String STATEMENT_SELECT_MD5 = "select md5 from documents where md5='?'";
+	public static final String STATEMENT_SELECT_DOCUMENT = "select * from documents where md5='?'";
 
 	@EJB
 	ClusterService clusterService;
@@ -89,23 +98,26 @@ public class DocumentService {
 		}
 
 		// extract $snapshotid 2de78aec-6f14-4345-8acf-dd37ae84875d-1530315900599
-		// String[] snapshotSegments = snapshotID.split("-");
-		// String snapshotDigits = snapshotSegments[snapshotSegments.length - 1];
 		String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
+		
+		// extract $file content into the table 'documents'....
+		extractDocuments(itemCol,session);
 
-		// upset document....
+		// upset snapshot....
 		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS);
 		bound = statement.bind().setString(COLUMN_SNAPSHOT, itemCol.getUniqueID()).setBytes(COLUMN_DATA,
 				ByteBuffer.wrap(getRawData(itemCol)));
 		session.execute(bound);
 
-		// upset document_snapshots....
+		
+		
+		// upset snapshots_by_uniqueid....
 		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_UNIQUEID);
 		bound = statement.bind().setString(COLUMN_UNIQUEID, originUnqiueID).setString(COLUMN_SNAPSHOT,
 				itemCol.getUniqueID());
 		session.execute(bound);
 
-		// upset document_modified....
+		// upset snapshots_by_modified....
 		LocalDate ld = LocalDate.fromMillisSinceEpoch(itemCol.getItemValueDate("$modified").getTime());
 		statement = session.prepare(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED);
 		bound = statement.bind().setDate(COLUMN_MODIFIED, ld).setString(COLUMN_SNAPSHOT, itemCol.getUniqueID());
@@ -118,6 +130,50 @@ public class DocumentService {
 			logger.warning("Missing CDI support for Event<ArchiveEvent> !");
 		}
 
+	}
+
+	/**
+	 * This helper method extracts the content of attached documents and stors the
+	 * content into the documents table space. A document is uniquely identified by
+	 * its md5 checksum.
+	 * 
+	 * @param itemCol
+	 * @throws ArchiveException
+	 */
+	private void extractDocuments(ItemCollection itemCol, Session session) throws ArchiveException {
+		// empty data...
+		byte[] empty = {};
+		List<FileData> files = itemCol.getFileData();
+		for (FileData fileData : files) {
+			// first verify if content is already stored.
+
+			try {
+				if (fileData.getContent() != null && fileData.getContent().length > 0) {
+					String md5 = fileData.generateMD5();
+
+					// test if md5 already stored....
+					String sql=STATEMENT_SELECT_MD5;
+					sql=sql.replace("'?'", "'" + md5 + "'");
+					ResultSet rs = session.execute(sql);
+					Row row = rs.one();
+					if (row == null) {
+						// not yet stored so extract the conent
+						PreparedStatement statement = session.prepare(STATEMENT_UPSET_DOCUMENTS);
+						BoundStatement bound = statement.bind().setString(COLUMN_MD5, md5).setBytes(COLUMN_DATA,
+								ByteBuffer.wrap(fileData.getContent()));
+						session.execute(bound);
+
+					}
+					// remove file content from itemCol
+					logger.fine("drop content for file '" + fileData.getName() + "'");
+					itemCol.addFileData(new FileData(fileData.getName(), empty, fileData.getContentType(),
+							fileData.getAttributes()));
+				}
+			} catch (NoSuchAlgorithmException e) {
+				throw new ArchiveException(ArchiveException.MD5_ERROR,
+						"can not compute md5 of document - " + e.getMessage());
+			}
+		}
 	}
 
 	/**
@@ -159,7 +215,7 @@ public class DocumentService {
 
 		ItemCollection metadata = null;
 
-		// upset document....
+		// select metadata ....
 		ResultSet rs = session.execute(STATEMENT_SELECT_METADATA);
 		Row row = rs.one();
 		if (row != null) {
@@ -175,7 +231,6 @@ public class DocumentService {
 			metadata = new ItemCollection();
 		}
 
-	
 		return metadata;
 	}
 
@@ -240,9 +295,5 @@ public class DocumentService {
 	public static boolean isSnapshotID(String uid) {
 		return uid.matches(REGEX_SNAPSHOTID);
 	}
-
-	
-	
-
 
 }

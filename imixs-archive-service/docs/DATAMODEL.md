@@ -1,6 +1,6 @@
 # The Archive Data Model
 
-All data of a single Imixs-Workflow instance is archived into a Cassandra keystore. Each keystore consists of a set of tables storing the business process data and documents. To make the data of an Imixs-Workflow Instance high available, the data is typically replicated over several data nodes in the same Cassandra cluster. Each replica holds the full data of a single Imxis-Workflow instance. Thus, all data from one instance is stored redundantly over all data nodes in a cluster.  See the [Apache Cassandra Project](http://cassandra.apache.org/) for more information about how Cassandra stores data in a cluster.
+All data of a single Imixs-Workflow instance is archived into a Cassandra keystore. Each keystore consists of a set of tables storing the business process data and documents. To make the data of an Imixs-Workflow Instance high available, the data is typically replicated over several data nodes in the same Cassandra cluster. Each replica holds the full data of a single Imxis-Workflow instance. Thus, all data from one instance is stored redundantly over all data nodes in a cluster. See the [Apache Cassandra Project](http://cassandra.apache.org/) for more information about how Cassandra stores data in a cluster.
 
 ## The Table Model
 
@@ -17,6 +17,8 @@ The Imixs-Archive provides a denormalized data schema to optimize storrage and a
 Snapshot data is stored in the main table space named "_snapshots_". The primary and partion key for this table is the $uniqueid of the snapshot. 
 
 The tables "_snapshots\_by\_uniqueid_" and "_snapshots\_by\_modified_" are used to access archived data by the uniqueid of a running process instance or by modifed date. 
+
+AImixs Worklfow instance can also include attached documents. These documents are detached from the workflow instance before the it is stored into the _snapshots_ table and persisted in a separate document table called '_documents_'. This table space uses the MD5checksum of a document as the primary key. This means one and the same document attached to several snapshots is only stored once in the cassandra cluster. 
 
 The table schema is defined as followed: 
 
@@ -35,6 +37,12 @@ The table schema is defined as followed:
 		modified date,
 		snapshot text,
 		PRIMARY KEY(modified, snapshot));
+
+	CREATE TABLE IF NOT EXISTS documents (
+		md5 text,
+		data blob,
+		PRIMARY KEY(md5));
+
 
 **Note:** The imixs-archive-cassandra application creates the schemas in background. So a manual creation of schemas is not necessary. 
 

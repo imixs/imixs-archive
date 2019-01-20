@@ -49,6 +49,7 @@ public class ClusterService {
 	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID = "CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED = "CREATE TABLE IF NOT EXISTS snapshots_by_modified (modified date,snapshot text,PRIMARY KEY(modified, snapshot));";
+	public static final String TABLE_SCHEMA_DOCUMENTS = "CREATE TABLE IF NOT EXISTS documents (md5 text, data blob, PRIMARY KEY (md5))";
 
 	public static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
 
@@ -191,6 +192,9 @@ public class ClusterService {
 
 		logger.info(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
 		session.execute(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
+		
+		logger.info(TABLE_SCHEMA_DOCUMENTS);
+		session.execute(TABLE_SCHEMA_DOCUMENTS);
 
 	}
 
