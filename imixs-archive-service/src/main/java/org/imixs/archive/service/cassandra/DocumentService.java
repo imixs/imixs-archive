@@ -169,7 +169,7 @@ public class DocumentService {
 					}
 					
 					// upset mda by uniqueid (needed for deletion)
-					logger.warning("**** UPSET MDA by document - TBD! -> Issue #46");
+					logger.warning("**** UPSET MD5 by snaptshotID - TBD! -> Issue #46");
 					
 					
 					// remove file content from itemCol
