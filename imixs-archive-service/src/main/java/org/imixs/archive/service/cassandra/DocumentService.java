@@ -162,8 +162,16 @@ public class DocumentService {
 						BoundStatement bound = statement.bind().setString(COLUMN_MD5, md5).setBytes(COLUMN_DATA,
 								ByteBuffer.wrap(fileData.getContent()));
 						session.execute(bound);
+						
+						
+						
 
 					}
+					
+					// upset mda by uniqueid (needed for deletion)
+					logger.warning("**** UPSET MDA by document - TBD! -> Issue #46");
+					
+					
 					// remove file content from itemCol
 					logger.fine("drop content for file '" + fileData.getName() + "'");
 					itemCol.addFileData(new FileData(fileData.getName(), empty, fileData.getContentType(),
