@@ -50,8 +50,7 @@ public class ClusterService {
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID = "CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED = "CREATE TABLE IF NOT EXISTS snapshots_by_modified (modified date,snapshot text,PRIMARY KEY(modified, snapshot));";
 	public static final String TABLE_SCHEMA_DOCUMENTS = "CREATE TABLE IF NOT EXISTS documents (md5 text, data blob, PRIMARY KEY (md5))";
-
-	public static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
+	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_DOCUMENT= "CREATE TABLE IF NOT EXISTS snapshots_by_document (md5 text,snapshot text, PRIMARY KEY(md5, snapshot));";
 
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
@@ -63,9 +62,9 @@ public class ClusterService {
 	 * @param uid
 	 * @return
 	 */
-	public static boolean isSnapshotID(String uid) {
-		return uid.matches(REGEX_SNAPSHOTID);
-	}
+//	public static boolean isSnapshotID(String uid) {
+//		return uid.matches(REGEX_SNAPSHOTID);
+//	}
 
 	/**
 	 * Returns a cassandra session for the archive KeySpace. The keyspace is defined
@@ -122,6 +121,21 @@ public class ClusterService {
 		logger.finest("......cluster conection status = OK");
 		return cluster;
 
+	}
+
+	/**
+	 * Test if the keyspace name is valid.
+	 * 
+	 * @param keySpace
+	 * @return
+	 */
+	public boolean isValidKeyspaceName(String keySpace) {
+		if (keySpace == null || keySpace.isEmpty()) {
+			return false;
+		}
+	
+		return keySpace.matches(KEYSPACE_REGEX);
+	
 	}
 
 	/**
@@ -195,21 +209,9 @@ public class ClusterService {
 		
 		logger.info(TABLE_SCHEMA_DOCUMENTS);
 		session.execute(TABLE_SCHEMA_DOCUMENTS);
-
-	}
-
-	/**
-	 * Test if the keyspace name is valid.
-	 * 
-	 * @param keySpace
-	 * @return
-	 */
-	public boolean isValidKeyspaceName(String keySpace) {
-		if (keySpace == null || keySpace.isEmpty()) {
-			return false;
-		}
-
-		return keySpace.matches(KEYSPACE_REGEX);
+		
+		logger.info(TABLE_SCHEMA_SNAPSHOTS_BY_DOCUMENT);
+		session.execute(TABLE_SCHEMA_SNAPSHOTS_BY_DOCUMENT);
 
 	}
 

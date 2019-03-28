@@ -383,7 +383,7 @@ public class SyncService {
 						logger.info("...data found - new syncpoint=" + syncPoint);
 
 						// store data into archive
-						documentService.saveDocument(snapshot, session);
+						documentService.saveSnapshot(snapshot, session);
 
 						count++;
 						totalCount++;
