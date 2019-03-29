@@ -116,7 +116,7 @@ public class SnapshotRestService implements Serializable {
 	}
 
 	/**
-	 * This method retunrs the next workitem from a given syncpoint. A syncpoint is
+	 * This method returns the next workitem from a given syncpoint. A syncpoint is
 	 * defined in milliseconds after January 1, 1970 00:00:00 GMT.
 	 * <p>
 	 * The syncpoint is compared to the internal modified date of the document
@@ -152,7 +152,7 @@ public class SnapshotRestService implements Serializable {
 		 * In rare cases is would be possible that more than one snapshot has the same
 		 * modified timestamp. To look for this rare case we make a second select for
 		 * exactly the new timestamp and fill up the result if needed. If we found more
-		 * than 16 elements (which sould be in deed impossible!) than we trow an
+		 * than 16 elements (which sould be in deed impossible!) than we throw an
 		 * exception.
 		 */
 		ItemCollection document = result.get(0);

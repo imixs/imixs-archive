@@ -4,13 +4,10 @@ import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
-import javax.enterprise.context.RequestScoped;
 import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 
@@ -38,7 +35,8 @@ import com.datastax.driver.core.Session;
 @SessionScoped
 public class ResyncController implements Serializable {
 
-	public static final String ISO_DATETIME_FORMAT = "yyyy-mm-dd'T'hh:mm:ss";
+	public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+	
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(ResyncController.class.getName());
 

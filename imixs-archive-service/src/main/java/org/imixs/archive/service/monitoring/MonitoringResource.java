@@ -107,6 +107,7 @@ public class MonitoringResource {
 			public void write(OutputStream os) throws IOException, WebApplicationException {
 				Writer writer = new BufferedWriter(new OutputStreamWriter(os));
 
+				// DUMMY implementation !
 				Random rand = new Random();
 
 				int x = rand.nextInt((20 - 0) + 1) + 0;
@@ -131,12 +132,5 @@ public class MonitoringResource {
 		return Response.ok(stream).build();
 	}
 
-	@PreDestroy
-	public void unregisterFromJMX() {
-		try {
 
-		} catch (Exception e) {
-			throw new IllegalStateException("Problem during unregistration of Monitoringservice:" + e);
-		}
-	}
 }

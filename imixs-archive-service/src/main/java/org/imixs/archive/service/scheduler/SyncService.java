@@ -198,7 +198,7 @@ public class SyncService {
 		}
 
 		try {
-			logger.info("...Scheduler Service " + id + " will be started...");
+			logger.info("...starting scheduler service " + id + " ...");
 			// New timer will be started on calendar confiugration
 			timer = createTimerOnCalendar();
 
@@ -355,8 +355,8 @@ public class SyncService {
 		String keyspaceID = timer.getInfo().toString();
 
 		try {
-			// ...start processing
-			logger.info("...run scheduler '" + keyspaceID + "....");
+			// ...start sync
+			logger.fine("...sync: '" + keyspaceID + "....");
 
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
@@ -380,7 +380,7 @@ public class SyncService {
 						// update snypoint
 						Date syncpointdate = snapshot.getItemValueDate("$modified");
 						syncPoint = syncpointdate.getTime();
-						logger.info("...data found - new syncpoint=" + syncPoint);
+						logger.fine("...data found - new syncpoint=" + syncPoint);
 
 						// store data into archive
 						documentService.saveSnapshot(snapshot, session);
@@ -395,7 +395,7 @@ public class SyncService {
 
 				} else {
 					// no more syncpoints
-					logger.info("...no more data found for syncpoint: " + syncPoint);
+					logger.finest("......no more data found for syncpoint: " + syncPoint);
 					break;
 				}
 			}
@@ -406,7 +406,7 @@ public class SyncService {
 						count + " snapshots synchronized in: " + ((System.currentTimeMillis()) - lProfiler) + " ms");
 			} else {
 				// just a message on the log
-				logger.finest("......synchronized in: " + ((System.currentTimeMillis()) - lProfiler) + " ms");
+				logger.fine("...sync: '" + keyspaceID + " finished in: " + ((System.currentTimeMillis()) - lProfiler) + " ms");
 			}
 
 		} catch (ArchiveException | RuntimeException e) {
@@ -445,7 +445,7 @@ public class SyncService {
 
 		RestClient workflowClient = initWorkflowClient();
 		String url = SNAPSHOT_RESOURCE + syncPoint;
-		logger.info("...... read data: " + url + "....");
+		logger.finest("...... read data: " + url + "....");
 
 		try {
 			result = workflowClient.getXMLDataCollection(url);
@@ -471,7 +471,7 @@ public class SyncService {
 		String user = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_USER, null);
 		String password = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_PASSWORD, null);
 
-		logger.info("...... WORKFLOW_SERVICE_ENDPOINT = " + url);
+		logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + url);
 
 		RestClient workflowClient = new RestClient(url);
 
