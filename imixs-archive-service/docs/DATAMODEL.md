@@ -42,6 +42,12 @@ The table schema is defined as followed:
 		md5 text,
 		data blob,
 		PRIMARY KEY(md5));
+		
+	CREATE TABLE IF NOT EXISTS snapshots_by_document (
+		md5 text,
+		snapshot text, 
+		PRIMARY KEY(md5, snapshot));
+
 
 
 **Note:** The imixs-archive-cassandra application creates the schemas in background. So a manual creation of schemas is not necessary. 
@@ -115,3 +121,18 @@ To see the latest upsets of an archive use:
 	cqlsh> use my_archive;
 	cqlsh> select * from snapshots;
 	 
+
+	 
+### Delete data from a table
+
+TRUNCATE removes all data from the specified table immediately and irreversibly, and removes all data from any materialized views derived from that table.
+
+Delete all data from a keyspace:
+
+	cqlsh>TRUNCATE snapshots_by_document;
+	cqlsh>TRUNCATE documents;
+	cqlsh>TRUNCATE snapshots_by_modified;
+	cqlsh>TRUNCATE snapshots_by_uniqueid;
+	cqlsh>TRUNCATE snapshots;
+	
+	

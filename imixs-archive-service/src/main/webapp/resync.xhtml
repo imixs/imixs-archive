@@ -1,0 +1,61 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	template="/layout/template.xhtml">
+
+
+	<ui:define name="content">
+
+
+		<div class="imixs-form">
+			<div class="imixs-header">
+				<h1>
+					<span class="typcn typcn-arrow-sync-outline"></span>Resync
+				</h1>
+			</div>
+
+			<div class="row">
+
+
+				<div class="col-12">
+					<div class="monitor-portlet">
+						<h1>Archive Status:</h1>
+
+						<p class="small">Use the RESYNC command to perform a full or
+							partial resynchronization of the workflow instance.</p>
+
+						<table style="width: 100%;">
+
+							<tr>
+								<td style="width: 25%;">Last Syncpoint:</td>
+								<td>#{clusterDataController.syncPoint}</td>
+							</tr>
+
+							<tr>
+								<td>New Syncpoint:</td>
+								<td><input type="text" /> Format: 2019-12-31T06:00</td>
+							</tr>
+
+
+
+						</table>
+
+
+
+
+					</div>
+				</div>
+
+
+
+			</div>
+
+			<p style="margin-left:10px;">
+				<h:commandButton value="submit"></h:commandButton>
+			</p>
+
+		</div>
+	</ui:define>
+</ui:composition>
