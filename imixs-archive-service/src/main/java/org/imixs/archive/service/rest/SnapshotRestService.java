@@ -39,7 +39,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.DocumentService;
+import org.imixs.archive.service.cassandra.SnapshotService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDataCollectionAdapter;
@@ -62,7 +62,7 @@ public class SnapshotRestService {
 	ClusterService clusterService;
 
 	@EJB
-	DocumentService documentService;
+	SnapshotService documentService;
 
 	@javax.ws.rs.core.Context
 	private static HttpServletRequest servletRequest;
@@ -70,14 +70,14 @@ public class SnapshotRestService {
 	private static Logger logger = Logger.getLogger(SnapshotRestService.class.getName());
 
 	/**
-	 * Ping test
+	 * Loads a snapshot from the archive.
 	 * 
-	 * @return time
-	 * @throws Exception
+	 * @param id - snapshot id
+	 * @return XMLDataCollection
 	 */
 	@GET
-	@Path("/{uniqueid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
-	public XMLDataCollection getSnapshot(@PathParam("snapshotidid") String id) {
+	@Path("/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
+	public XMLDataCollection getSnapshot(@PathParam("snapshotid") String id) {
 		Session session = null;
 		Cluster cluster = null;
 		try {

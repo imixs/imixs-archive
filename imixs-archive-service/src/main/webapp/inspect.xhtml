@@ -52,7 +52,14 @@
 										<td>#{id}</td>
 										<td style="text-align: center;">#{inspectController.getTime(id)}</td>
 										<td><a target="_blank" class="button"
-											href="/api/snapshot/#{id}">load</a></td>
+											href="/api/snapshot/#{id}">load</a>
+											
+											
+											<h:commandButton
+											value="restore"
+											actionListener="#{inspectController.restpreSnapshot(id)}"></h:commandButton>
+											
+											</td>
 									</tr>
 								</c:forEach>
 							</table>

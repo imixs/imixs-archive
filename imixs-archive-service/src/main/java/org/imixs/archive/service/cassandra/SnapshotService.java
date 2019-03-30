@@ -32,21 +32,19 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
-//import com.datastax.driver.core.querybuilder.QueryBuilder;
-//import com.datastax.driver.core.querybuilder.Select;
 
 /**
- * The DocumentService is used to store a imixs document instance into the
+ * The SnapshotService is used to store a imixs snapshot into the
  * cluster keyspace.
  * 
  * @author rsoika
  * 
  */
 @Stateless
-public class DocumentService {
+public class SnapshotService {
 
 	private static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
-	private static Logger logger = Logger.getLogger(DocumentService.class.getName());
+	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
 	// table columns
 	public static final String COLUMN_SNAPSHOT = "snapshot";

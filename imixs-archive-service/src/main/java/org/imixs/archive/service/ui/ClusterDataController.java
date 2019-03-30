@@ -14,7 +14,7 @@ import javax.inject.Named;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.DocumentService;
+import org.imixs.archive.service.cassandra.SnapshotService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 
@@ -41,7 +41,7 @@ public class ClusterDataController implements Serializable {
 	ClusterService clusterService;
 
 	@EJB
-	DocumentService documentService;
+	SnapshotService documentService;
 
 	@EJB
 	SyncService schedulerService;

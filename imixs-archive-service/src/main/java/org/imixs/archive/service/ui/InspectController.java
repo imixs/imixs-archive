@@ -16,7 +16,8 @@ import javax.inject.Named;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.DocumentService;
+import org.imixs.archive.service.cassandra.SnapshotService;
+import org.imixs.workflow.ItemCollection;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -46,7 +47,7 @@ public class InspectController implements Serializable {
 	ClusterService clusterService;
 
 	@EJB
-	DocumentService documentService;
+	SnapshotService documentService;
 
 	@EJB
 	MessageService messageService;
@@ -117,6 +118,36 @@ public class InspectController implements Serializable {
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
 			snapshotIDs = documentService.loadSnapshotsByUnqiueID(uniqueid, session);
+
+		} catch (ArchiveException e) {
+			logger.severe("failed to load snapshot ids: " + e.getMessage());
+
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
+		}
+
+	}
+	
+	
+	
+	/**
+	 * This method loads all existing snapshot ids of a given unqiueid
+	 * 
+	 * @throws ArchiveException
+	 */
+	public void restoreSnapshot(String id) {
+		try {
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
+			logger.info("......load snsaphosts for " + uniqueid + "...");
+
+			ItemCollection snapshot = documentService.loadSnapshot(id, session);
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());

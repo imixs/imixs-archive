@@ -42,7 +42,7 @@ import javax.ejb.TimerConfig;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.DocumentService;
+import org.imixs.archive.service.cassandra.SnapshotService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
 import org.imixs.workflow.services.rest.BasicAuthenticator;

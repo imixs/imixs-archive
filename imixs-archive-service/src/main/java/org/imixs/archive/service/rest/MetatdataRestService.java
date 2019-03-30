@@ -38,7 +38,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.DocumentService;
+import org.imixs.archive.service.cassandra.SnapshotService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 
@@ -61,7 +61,7 @@ public class MetatdataRestService {
 	ClusterService clusterService;
 	
 	@EJB
-	DocumentService documentService;
+	SnapshotService documentService;
 
 	@javax.ws.rs.core.Context
 	private static HttpServletRequest servletRequest;
