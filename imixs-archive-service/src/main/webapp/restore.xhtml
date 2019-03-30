@@ -10,17 +10,16 @@
 			<div class="imixs-form">
 				<div class="imixs-header">
 					<h1>
-						<span class="typcn typcn-arrow-sync-outline"></span>Resync
+						<span class="typcn typcn-database"></span>Restore
 					</h1>
 				</div>
 
 				<div class="row">
 					<div class="col-12">
 						<div class="monitor-portlet">
-							<h1>Set a New Syncpoint:</h1>
+							<h1>Restore Snapshots:</h1>
 
-							<p class="small">Define a new syncpoint to perform a full or
-								partial resynchronization of the workflow instance.</p>
+							<p class="small">Define a Syncpoint to start a restore of existing snapshots into the workflow instance.</p>
 							<table style="width: 100%;">
 
 								<tr>
@@ -29,8 +28,8 @@
 								</tr>
 
 								<tr>
-									<td>New Syncpoint:</td>
-									<td><h:inputText value="#{resyncController.syncPoint}"></h:inputText>
+									<td>Restore from Syncpoint:</td>
+									<td><h:inputText value="#{restoreController.syncPoint}"></h:inputText>
 										Format: yyyy-MM-dd'T'HH:mm:ss</td>
 								</tr>
 							</table>
@@ -41,7 +40,7 @@
 
 				<p style="margin-left: 10px;">
 					<h:commandButton value="submit" action="monitor.xhtml"
-						actionListener="#{resyncController.updateSyncPoint()}"></h:commandButton>
+						actionListener="#{restoreController.startRestore()}"></h:commandButton>
 				</p>
 
 			</div>

@@ -22,6 +22,7 @@
  *******************************************************************************/
 package org.imixs.archive.service.scheduler;
 
+import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -53,7 +54,10 @@ import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
 
 /**
  * The SyncService synchronizes the workflow data with the data stored in the
@@ -122,7 +126,7 @@ public class SyncService {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return false;
 
-		} finally { 
+		} finally {
 			// close session and cluster object
 			if (session != null) {
 				session.close();
@@ -382,11 +386,20 @@ public class SyncService {
 						syncPoint = syncpointdate.getTime();
 						logger.fine("...data found - new syncpoint=" + syncPoint);
 
-						// store data into archive
-						documentService.saveSnapshot(snapshot, session);
+						// verify if this snapshot is not already stored - if so, we do not overwrite
+						// the origin data
+						if (!documentService.existSnapshot(snapshot.getUniqueID(), session)) {
+							// store data into archive
+							documentService.saveSnapshot(snapshot, session);
+							count++;
+							totalCount++;
+						} else {
+							// This is because in case of a restore, the same snapshot takes a new $modified
+							// item. And we do not want to re-import the snapshot in the next sync cycle.
+							// see issue #40
+							logger.info("...snapshot '" + snapshot.getUniqueID() + "' alredy exits....");
+						}
 
-						count++;
-						totalCount++;
 						// update metadata
 						metaData.setItemValue(ITEM_SYNCPOINT, syncPoint);
 						metaData.setItemValue(ITEM_SYNCCOUNT, totalCount);
@@ -406,7 +419,8 @@ public class SyncService {
 						count + " snapshots synchronized in: " + ((System.currentTimeMillis()) - lProfiler) + " ms");
 			} else {
 				// just a message on the log
-				logger.fine("...sync: '" + keyspaceID + " finished in: " + ((System.currentTimeMillis()) - lProfiler) + " ms");
+				logger.fine("...sync: '" + keyspaceID + " finished in: " + ((System.currentTimeMillis()) - lProfiler)
+						+ " ms");
 			}
 
 		} catch (ArchiveException | RuntimeException e) {

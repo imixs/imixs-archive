@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -62,9 +64,13 @@ public class DocumentService {
 
 	public static final String STATEMENT_UPSET_SNAPSHOTS_BY_DOCUMENT = "insert into snapshots_by_document (md5, snapshot) values (?, ?)";
 
+	public static final String STATEMENT_SELECT_SNAPSHOT = "select * from snapshots where snapshot='?'";
 	public static final String STATEMENT_SELECT_METADATA = "select * from snapshots where snapshot='0'";
+	public static final String STATEMENT_SELECT_SNAPSHOT_ID = "select snapshot from snapshots where snapshot='?'";
 	public static final String STATEMENT_SELECT_MD5 = "select md5 from documents where md5='?'";
 	public static final String STATEMENT_SELECT_DOCUMENT = "select * from documents where md5='?'";
+
+	public static final String STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID = "select * from snapshots_by_uniqueid where uniqueid='?'";
 
 	@EJB
 	ClusterService clusterService;
@@ -185,6 +191,87 @@ public class DocumentService {
 	}
 
 	/**
+	 * This method test if a snapshot recored with a given ID already exists.
+	 * 
+	 * @param snapshotID
+	 * @return true if the snapshot exists.
+	 */
+	public boolean existSnapshot(String snapshotID, Session session) {
+		String sql = STATEMENT_SELECT_SNAPSHOT_ID;
+		sql = sql.replace("'?'", "'" + snapshotID + "'");
+		logger.finest("......search snapshot id: " + sql);
+		ResultSet rs = session.execute(sql);
+		Row row = rs.one();
+		return (row != null);
+	}
+
+	public ItemCollection loadSnapshot(String snapshotID, Session session) throws ArchiveException {
+		ItemCollection snapshot = new ItemCollection();
+
+		// select snapshot...
+
+		String sql = STATEMENT_SELECT_SNAPSHOT;
+		sql = sql.replace("'?'", "'" + snapshotID + "'");
+		logger.finest("......search snapshot id: " + sql);
+		ResultSet rs = session.execute(sql);
+		Row row = rs.one();
+		if (row != null) {
+			// load ItemCollection object
+			ByteBuffer data = row.getBytes(COLUMN_DATA);
+			if (data.hasArray()) {
+				snapshot = getItemCollection(data.array());
+			}
+		} else {
+			// does not exist - create empty object
+			snapshot = new ItemCollection();
+		}
+		return snapshot;
+	}
+
+	/**
+	 * This method loads the metadata object represended by an ItemCollection. The
+	 * snapshot id for the metadata object is always "0". This id is reserverd for
+	 * metadata only.
+	 * <p>
+	 * If no metadata object yet exists, the method returns an empty ItemCollection.
+	 * <p>
+	 * The method expects a valid session instance which must be closed by the
+	 * client.
+	 * 
+	 * @return metadata object
+	 * @throws ArchiveException
+	 */
+	public ItemCollection loadMetadata(Session session) throws ArchiveException {
+		return loadSnapshot("0",session);
+	}
+
+	/**
+	 * This method loads all exsting snapshotIDs for a given unqiueID
+	 * 
+	 * @param uniqueID
+	 * @return list of snapshots
+	 */
+	public List<String> loadSnapshotsByUnqiueID(String uniqueID, Session session) {
+		List<String> result = new ArrayList<String>();
+		String sql = STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
+		sql = sql.replace("'?'", "'" + uniqueID + "'");
+		logger.finest("......search snapshot id: " + sql);
+		ResultSet rs = session.execute(sql);
+
+		// iterate over result
+
+		Iterator<Row> resultIter = rs.iterator();
+
+		while (resultIter.hasNext()) {
+			Row row = resultIter.next();
+			String snapshotID = row.getString(1);
+			result.add(snapshotID);
+		}
+
+		return result;
+	}
+
+	/**
 	 * This method saves the metadata represented by an ItemCollection. The snapshot
 	 * id for the metadata object is always "0". This id is reserverd for metadata
 	 * only.
@@ -219,42 +306,6 @@ public class DocumentService {
 
 		// TODO
 		logger.warning("need to delete document content if no longer refered by other snapshots");
-	}
-
-	/**
-	 * This method loads the metadata object represended by an ItemCollection. The
-	 * snapshot id for the metadata object is always "0". This id is reserverd for
-	 * metadata only.
-	 * <p>
-	 * If no metadata object yet exists, the method returns an empty ItemCollection.
-	 * <p>
-	 * The method expects a valid session instance which must be closed by the
-	 * client.
-	 * 
-	 * @return metadata object
-	 * @throws ArchiveException
-	 */
-	public ItemCollection loadMetadata(Session session) throws ArchiveException {
-
-		ItemCollection metadata = null;
-
-		// select metadata ....
-		ResultSet rs = session.execute(STATEMENT_SELECT_METADATA);
-		Row row = rs.one();
-		if (row != null) {
-			// load ItemCollection object
-			ByteBuffer data = row.getBytes(COLUMN_DATA);
-			if (data.hasArray()) {
-				metadata = DocumentService.getItemCollection(data.array());
-			} else {
-				throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT, "can not read data object!");
-			}
-		} else {
-			// no data found - create empty object
-			metadata = new ItemCollection();
-		}
-
-		return metadata;
 	}
 
 	/**
