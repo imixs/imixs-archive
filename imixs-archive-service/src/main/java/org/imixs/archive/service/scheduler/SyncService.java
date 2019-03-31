@@ -76,7 +76,8 @@ public class SyncService {
 	public final static String ITEM_SYNCPOINT = "$sync_point";
 	public final static String ITEM_SYNCCOUNT = "$sync_count";
 	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
-	public final static String SNAPSHOT_RESOURCE = "snapshot/syncpoint/";
+	public final static String SNAPSHOT_SYNCPOINT_RESOURCE = "snapshot/syncpoint/";
+	public final static String SNAPSHOT_RESOURCE = "snapshot/";
 
 	private final static int MAX_COUNT = 100;
 
@@ -454,7 +455,7 @@ public class SyncService {
 		// load next document
 
 		RestClient workflowClient = initWorkflowClient();
-		String url = SNAPSHOT_RESOURCE + syncPoint;
+		String url = SNAPSHOT_SYNCPOINT_RESOURCE + syncPoint;
 		logger.finest("...... read data: " + url + "....");
 
 		try {
@@ -469,6 +470,22 @@ public class SyncService {
 			return result;
 		}
 		return null;
+	}
+	
+	
+	
+	public void restoreSnapshot(ItemCollection snapshot) throws ArchiveException {
+		RestClient restClient = initWorkflowClient();
+		String url = SNAPSHOT_RESOURCE;
+		logger.finest("...... post data: " + url + "....");
+		try {
+			  restClient.postDocument(url, snapshot);
+		} catch (RestAPIException e) {
+			String errorMessage = "...failed to restoreSnapshot: " + e.getMessage();
+			messageService.logMessage(errorMessage);
+			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
+		}
+
 	}
 
 	/**

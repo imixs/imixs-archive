@@ -53,10 +53,10 @@ import com.datastax.driver.core.Session;
  * @author rsoika
  * 
  */
-@Path("/snapshot")
+@Path("/archive")
 @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_HTML, MediaType.APPLICATION_XML, MediaType.TEXT_XML })
 @Stateless
-public class SnapshotRestService {
+public class ArchiveRestService {
 
  
 	@EJB
@@ -68,7 +68,7 @@ public class SnapshotRestService {
 	@javax.ws.rs.core.Context
 	private static HttpServletRequest servletRequest;
 
-	private static Logger logger = Logger.getLogger(SnapshotRestService.class.getName());
+	private static Logger logger = Logger.getLogger(ArchiveRestService.class.getName());
 
 	/**
 	 * Loads a snapshot from the archive.
@@ -78,7 +78,7 @@ public class SnapshotRestService {
 	 * @return XMLDataCollection
 	 */
 	@GET
-	@Path("/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
+	@Path("/snapshot/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
 	public XMLDocument getSnapshot(@PathParam("snapshotid") String id) {
 		Session session = null;
 		Cluster cluster = null;
@@ -116,7 +116,7 @@ public class SnapshotRestService {
 	 */
 	@GET
 	@Produces({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
-	@Path("/xml/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
+	@Path("/snapshot/xml/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
 	public XMLDocument getSnapshotXML(@PathParam("snapshotid") String id) {
 		Session session = null;
 		Cluster cluster = null;

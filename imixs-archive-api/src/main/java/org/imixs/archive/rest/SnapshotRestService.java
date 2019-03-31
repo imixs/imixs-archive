@@ -37,8 +37,11 @@ import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.Encoded;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -49,11 +52,17 @@ import javax.ws.rs.core.UriInfo;
 
 import org.imixs.archive.core.SnapshotException;
 import org.imixs.archive.core.SnapshotService;
+import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentService;
+import org.imixs.workflow.exceptions.AccessDeniedException;
+import org.imixs.workflow.exceptions.InvalidAccessException;
 import org.imixs.workflow.jaxrs.WorkflowRestService;
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDataCollectionAdapter;
+import org.imixs.workflow.xml.XMLDocument;
+import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
  * The SnapshotRestService provides methods to acces snapshot data.
@@ -75,6 +84,9 @@ public class SnapshotRestService implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
+	@javax.ws.rs.core.Context
+	private HttpServletRequest servletRequest;
+
 	@EJB
 	DocumentService documentService;
 
@@ -91,7 +103,8 @@ public class SnapshotRestService implements Serializable {
 	 * Finally the method calls the origin method getWorkItemFile
 	 * 
 	 * @param uniqueid
-	 * @param file     - file name
+	 * @param file
+	 *            - file name
 	 * @return byte stream with file data.
 	 */
 	@GET
@@ -175,6 +188,84 @@ public class SnapshotRestService implements Serializable {
 	}
 
 	/**
+	 * The method restores a snapshot provided in xml format.
+	 * <p>
+	 * The method updates the origin document as also the snapshot data if needed.
+	 * 
+	 * @param xmlworkitem
+	 *            - entity to be saved
+	 * @return
+	 */
+	@POST
+	@Produces(MediaType.APPLICATION_XML)
+	@Consumes({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
+	public Response postSnapshot(XMLDocument xmlworkitem) {
+		if (servletRequest.isUserInRole("org.imixs.ACCESSLEVEL.MANAGERACCESS") == false) {
+			return Response.status(Response.Status.UNAUTHORIZED).build();
+		}
+		ItemCollection snapshot;
+		snapshot = XMLDocumentAdapter.putDocument(xmlworkitem);
+
+		if (snapshot == null) {
+			return Response.status(Response.Status.NOT_ACCEPTABLE).build();
+		}
+
+		try {
+
+			// first we restore the snapshot entity.....
+			snapshot = documentService.save(snapshot);
+			logger.finest("......restored snapshot '" + snapshot.getUniqueID() + "'");
+			
+			// now we update the origin document....
+			
+			ItemCollection document=new ItemCollection(snapshot);
+			// modify uniqueid
+			String snapshotID=snapshot.getUniqueID();
+			String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
+			document.setItemValue(WorkflowKernel.UNIQUEID,originUnqiueID);
+			// remove file content...
+			List<FileData> files = document.getFileData();
+			// empty data...
+			byte[] empty = {};
+			for (FileData fileData : files) {
+				if (fileData.getContent() != null && fileData.getContent().length > 0) {
+					// update the file name with empty data
+					logger.fine("drop content for file '" + fileData.getName() + "'");
+					document.addFileData(
+							new FileData(fileData.getName(), empty, fileData.getContentType(), fileData.getAttributes()));
+				}
+			}
+			// add skipsnapshot flag
+			document.setItemValue(SnapshotService.SKIPSNAPSHOT, true);
+			document.setItemValue(SnapshotService.SNAPSHOTID,snapshotID);
+			
+			document = documentService.save(document);
+			logger.info("......Snapshot '" + snapshotID + "' sucessfull restored.");
+			
+			return Response.status(Response.Status.OK).build();
+		} catch (AccessDeniedException e) {
+			logger.severe(e.getMessage());
+			snapshot = this.addErrorMessage(e, snapshot);
+		} catch (RuntimeException e) {
+			logger.severe(e.getMessage());
+			snapshot = this.addErrorMessage(e, snapshot);
+		}
+
+		// return workitem
+		try {
+			if (snapshot.hasItem("$error_code"))
+				return Response.ok(XMLDataCollectionAdapter.getDataCollection(snapshot), MediaType.APPLICATION_XML)
+						.status(Response.Status.NOT_ACCEPTABLE).build();
+			else
+				return Response.ok(XMLDataCollectionAdapter.getDataCollection(snapshot), MediaType.APPLICATION_XML)
+						.build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return Response.status(Response.Status.NOT_ACCEPTABLE).build();
+		}
+	}
+
+	/**
 	 * Ping service
 	 * 
 	 * @param lSyncpoint
@@ -184,6 +275,31 @@ public class SnapshotRestService implements Serializable {
 	@Path("/ping")
 	public String ping() {
 		return "ping = " + System.currentTimeMillis();
+	}
+
+	/**
+	 * This helper method adds a error message to the given entity, based on the
+	 * data in a Exception. This kind of error message can be displayed in a page
+	 * evaluating the properties '$error_code' and '$error_message'. These
+	 * attributes will not be stored.
+	 * 
+	 * @param pe
+	 */
+	private ItemCollection addErrorMessage(Exception pe, ItemCollection aworkitem) {
+
+		if (pe instanceof RuntimeException && pe.getCause() != null) {
+			pe = (RuntimeException) pe.getCause();
+		}
+
+		if (pe instanceof InvalidAccessException) {
+			aworkitem.replaceItemValue("$error_code", ((InvalidAccessException) pe).getErrorCode());
+			aworkitem.replaceItemValue("$error_message", pe.getMessage());
+		} else {
+			aworkitem.replaceItemValue("$error_code", "INTERNAL ERROR");
+			aworkitem.replaceItemValue("$error_message", pe.getMessage());
+		}
+
+		return aworkitem;
 	}
 
 }

@@ -17,6 +17,7 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
+import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 
 import com.datastax.driver.core.Cluster;
@@ -48,6 +49,9 @@ public class InspectController implements Serializable {
 
 	@EJB
 	DataService dataService;
+	
+	@EJB
+	SyncService syncService;
 
 	@EJB
 	MessageService messageService;
@@ -155,6 +159,7 @@ public class InspectController implements Serializable {
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
 			ItemCollection snapshot = dataService.loadSnapshot(id, session);
+			syncService.restoreSnapshot(snapshot);
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());

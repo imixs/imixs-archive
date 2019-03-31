@@ -54,14 +54,14 @@
 										<td>
 											<!-- html -->
 											<a target="_blank" class="button"
-											href="/api/snapshot/#{id}">load</a> 
+											href="/api/archive/snapshot/#{id}">load</a> 
 											<!-- xml -->
 											<a target="_blank"
-											class="button" href="/api/snapshot/xml/#{id}">XML</a> 
+											class="button" href="/api/archive/snapshot/xml/#{id}">XML</a> 
 											<!-- restore -->
 											<h:commandButton
 												value="restore"
-												actionListener="#{inspectController.restpreSnapshot(id)}"></h:commandButton>
+												actionListener="#{inspectController.restoreSnapshot(id)}"></h:commandButton>
 
 										</td>
 									</tr>
