@@ -76,8 +76,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<org.imixs.workflow.version>4.5.1</org.imixs.workflow.version>
-		<org.imixs.melman.version>1.0.4</org.imixs.melman.version>
+		<org.imixs.workflow.version>4.5.4-SNAPSHOT</org.imixs.workflow.version>
+		<!-- <org.imixs.melman.version>1.0.4</org.imixs.melman.version>  -->
 		<!-- imixs-github-repo on github - see ~/.m2/settings.xml -->
 		<github.global.server>imixs-github-repo</github.global.server>
 	</properties>
@@ -215,13 +215,15 @@
 				<version>${org.imixs.marty.version}</version>
 				<scope>provided</scope>
 			</dependency>
+			
+			<!-- 
 			<dependency>
 				<groupId>org.imixs.workflow</groupId>
 				<artifactId>imixs-melman</artifactId>
 				<version>${org.imixs.melman.version}</version>
 				<scope>provided</scope>
 			</dependency>
-
+ -->
 
 		</dependencies>
 	</dependencyManagement>
