@@ -62,9 +62,11 @@ The access to archive data, written into the Imixs-Archive, is controlled comple
 
 Each snapshot-workitem is flagged as '_$immutable=true_' and '_$noindex=true_'. This guarantees that the snapshot can not be changed subsequently by the workflow system or is searchable through the lucene index. 
 
-## NOSNAPSHOT Flag
+## NOSNAPSHOT AND SKIPSNAPSHOT Flags
 
-It is possible to prohibit the creation of a snapshot when a document is saved. In this case the item "$nosnapshot" must be set to 'true'. This can be useful is some rare situations. Use this flag carefully!
+It is possible to prohibit the creation of a snapshot when a document is saved. In this case the item "$nosnapshot" must be set to 'true'. This can be useful is some rare situations. Use this flag carefully! The item "$nosnapshot" is persisted and will avoid future snapshots until the flag is removed or set to false.
+
+An Alternaitve is the flg "$skipsnapshot". This flag is temporarily and will be removed by the snapshot api. This flag is used by the snapshot restore mechanism which recovers a document entity by a snapshot instance. 
 
 
 ## CDI Events

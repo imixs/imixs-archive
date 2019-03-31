@@ -83,14 +83,11 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
  * <p>
  * During the snapshot creation the snapshot-uniquId is stored into the origin
  * workitem.
- * 
+ * <p>
  * The SnapshotService implements the CDI Observer pattern provided from the
  * DocumentService.
- * 
- * 
  * <p>
  * Model entries are not part of the snapshot concept
- * 
  * <p>
  * Note: The SnapshotService replaces the BlobWorkitems mechanism which was
  * earlier part of the DMSPlugin from the imixs-marty project. The
@@ -99,7 +96,7 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
  * documents from the type 'workitemlob' will be saved, the SnapshotService
  * throws a SnapshotException.
  * 
- * @version 1.0
+ * @version 1.1
  * @author rsoika
  */
 @Stateless
@@ -108,8 +105,8 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 public class SnapshotService {
 
-	public final static String ITEM_MD5_CHECKSUM="md5checksum";
-	
+	public final static String ITEM_MD5_CHECKSUM = "md5checksum";
+
 	@Resource
 	SessionContext ejbCtx;
 
@@ -124,6 +121,7 @@ public class SnapshotService {
 	public static final String SNAPSHOTID = "$snapshotid";
 	public static final String TYPE_PRAFIX = "snapshot-";
 	public static final String NOSNAPSHOT = "$nosnapshot"; // ignore snapshots
+	public static final String SKIPSNAPSHOT = "$skipsnapshot"; // skip snapshot creation
 
 	public final static String DMS_FILE_NAMES = "dms_names"; // list of files
 	public final static String DMS_FILE_COUNT = "dms_count"; // count of files
@@ -158,7 +156,14 @@ public class SnapshotService {
 			// skip if NOSNAPSHOT is true
 			return;
 		}
-
+		
+		if (documentEvent.getDocument().getItemValueBoolean(SKIPSNAPSHOT)) {
+			// skip snaphsot creation and clear flag imediatly.
+			documentEvent.getDocument().removeItem(SKIPSNAPSHOT);
+			return;
+		}
+		
+		
 		// throw SnapshotException if a deprecated workitemlob is saved....
 		if ("workitemlob".equals(type)) {
 			// in case of snapshot.workitemlob_suport=true
@@ -562,6 +567,5 @@ public class SnapshotService {
 		// add $filenames
 		workitem.replaceItemValue(DMS_FILE_NAMES, workitem.getFileNames());
 	}
-	
-	
+
 }
