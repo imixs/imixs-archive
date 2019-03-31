@@ -212,17 +212,21 @@ public class SnapshotRestService implements Serializable {
 
 		try {
 
-			// first we restore the snapshot entity.....
-			snapshot = documentService.save(snapshot);
-			logger.finest("......restored snapshot '" + snapshot.getUniqueID() + "'");
-			
+			// first we restore the snapshot entity if not exists....
+			if (documentService.load(snapshot.getUniqueID())==null) {
+				snapshot = documentService.save(snapshot);
+				logger.info("......snapshot '" + snapshot.getUniqueID() + "' restored.");
+			}
 			// now we update the origin document....
-			
 			ItemCollection document=new ItemCollection(snapshot);
 			// modify uniqueid
 			String snapshotID=snapshot.getUniqueID();
 			String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
 			document.setItemValue(WorkflowKernel.UNIQUEID,originUnqiueID);
+			// remove version, immutable and noindex flags...
+			document.removeItem(DocumentService.NOINDEX);
+			document.removeItem(DocumentService.IMMUTABLE);
+			document.removeItem(DocumentService.VERSION);
 			// remove file content...
 			List<FileData> files = document.getFileData();
 			// empty data...
@@ -235,14 +239,22 @@ public class SnapshotRestService implements Serializable {
 							new FileData(fileData.getName(), empty, fileData.getContentType(), fileData.getAttributes()));
 				}
 			}
+			// fix type item - remove snapshot- praefix
+			String type=document.getType();
+			if (type.startsWith(SnapshotService.TYPE_PRAFIX)) {
+				type=type.substring(SnapshotService.TYPE_PRAFIX.length());
+				document.setItemValue("type", type);
+			}
 			// add skipsnapshot flag
 			document.setItemValue(SnapshotService.SKIPSNAPSHOT, true);
+			// update snapshotid...
 			document.setItemValue(SnapshotService.SNAPSHOTID,snapshotID);
-			
+			// save origin document...
 			document = documentService.save(document);
-			logger.info("......Snapshot '" + snapshotID + "' sucessfull restored.");
+			logger.info("......document '" + originUnqiueID + "' restored.");
+			return Response.ok(XMLDataCollectionAdapter.getDataCollection(document), MediaType.APPLICATION_XML)
+					.build();
 			
-			return Response.status(Response.Status.OK).build();
 		} catch (AccessDeniedException e) {
 			logger.severe(e.getMessage());
 			snapshot = this.addErrorMessage(e, snapshot);
