@@ -22,38 +22,9 @@
  *******************************************************************************/
 package org.imixs.archive.service.scheduler;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Resource;
-import javax.ejb.EJB;
-import javax.ejb.ScheduleExpression;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
-import javax.ejb.Timeout;
-import javax.ejb.Timer;
-import javax.ejb.TimerConfig;
-
-import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.MessageService;
-import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.SnapshotService;
-import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.exceptions.QueryException;
-import org.imixs.workflow.services.rest.BasicAuthenticator;
-import org.imixs.workflow.services.rest.FormAuthenticator;
-import org.imixs.workflow.services.rest.RestAPIException;
-import org.imixs.workflow.services.rest.RestClient;
-import org.imixs.workflow.xml.XMLDataCollection;
-import org.imixs.workflow.xml.XMLDocument;
-import org.imixs.workflow.xml.XMLDocumentAdapter;
-
-import com.datastax.driver.core.Session;
 
 /**
  * The RecoveryService recovers the workflow data stored in the cassandra

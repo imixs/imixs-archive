@@ -51,15 +51,19 @@
 									<tr>
 										<td>#{id}</td>
 										<td style="text-align: center;">#{inspectController.getTime(id)}</td>
-										<td><a target="_blank" class="button"
-											href="/api/snapshot/#{id}">load</a>
-											
-											
+										<td>
+											<!-- html -->
+											<a target="_blank" class="button"
+											href="/api/snapshot/#{id}">load</a> 
+											<!-- xml -->
+											<a target="_blank"
+											class="button" href="/api/snapshot/xml/#{id}">XML</a> 
+											<!-- restore -->
 											<h:commandButton
-											value="restore"
-											actionListener="#{inspectController.restpreSnapshot(id)}"></h:commandButton>
-											
-											</td>
+												value="restore"
+												actionListener="#{inspectController.restpreSnapshot(id)}"></h:commandButton>
+
+										</td>
 									</tr>
 								</c:forEach>
 							</table>

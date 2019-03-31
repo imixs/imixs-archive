@@ -14,7 +14,7 @@ import javax.inject.Named;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.SnapshotService;
+import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 
@@ -49,7 +49,7 @@ public class RestoreController implements Serializable {
 	ClusterService clusterService;
 
 	@EJB
-	SnapshotService documentService;
+	DataService dataService;
 
 	@EJB
 	MessageService messageService;
@@ -93,7 +93,7 @@ public class RestoreController implements Serializable {
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
 			logger.info("......load syncpoint...");
-			ItemCollection metaData = documentService.loadMetadata(session);
+			ItemCollection metaData = dataService.loadMetadata(session);
 			
 			return metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
 

@@ -38,7 +38,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.SnapshotService;
+import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 
@@ -59,9 +59,9 @@ public class MetatdataRestService {
 
 	@EJB
 	ClusterService clusterService;
-	
+
 	@EJB
-	SnapshotService documentService;
+	DataService dataService;
 
 	@javax.ws.rs.core.Context
 	private static HttpServletRequest servletRequest;
@@ -83,12 +83,11 @@ public class MetatdataRestService {
 			logger.info("...read metadata...");
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
-			
-			ItemCollection metadata=documentService.loadMetadata(session);
-			
-			
-			String result="syncpoint=" + metadata.getItemValueString(SyncService.ITEM_SYNCPOINT);
-			result=result+"\ncount="+ metadata.getItemValueString(SyncService.ITEM_SYNCCOUNT);
+
+			ItemCollection metadata = dataService.loadMetadata(session);
+
+			String result = "syncpoint=" + metadata.getItemValueString(SyncService.ITEM_SYNCPOINT);
+			result = result + "\ncount=" + metadata.getItemValueString(SyncService.ITEM_SYNCCOUNT);
 
 			return result;
 

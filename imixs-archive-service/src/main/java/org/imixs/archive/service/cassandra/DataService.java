@@ -34,17 +34,19 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
 
 /**
- * The SnapshotService is used to store a imixs snapshot into the
- * cluster keyspace.
+ * The SnapshotService is used to store a imixs snapshot into the cluster
+ * keyspace.
  * 
  * @author rsoika
  * 
  */
 @Stateless
-public class SnapshotService {
+public class DataService {
+
+	public final static String ITEM_MD5_CHECKSUM = "md5checksum";
 
 	private static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
-	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
+	private static Logger logger = Logger.getLogger(DataService.class.getName());
 
 	// table columns
 	public static final String COLUMN_SNAPSHOT = "snapshot";
@@ -189,6 +191,48 @@ public class SnapshotService {
 	}
 
 	/**
+	 * This helper method merges the content of attached documents into a
+	 * itemCollection. A document is uniquely identified by its md5 checksum.
+	 * 
+	 * @param itemCol
+	 * @throws ArchiveException
+	 */
+	private void mergeDocumentData(ItemCollection itemCol, Session session) throws ArchiveException {
+		List<FileData> files = itemCol.getFileData();
+		for (FileData fileData : files) {
+			// first verify if content is already stored.
+
+			logger.finest("... merge fileData objects: " + files.size() + " fileData objects defined....");
+			// add document if not exists
+			if (fileData.getContent() == null || fileData.getContent().length == 0) {
+				// read md5 form custom attributes
+				ItemCollection customAttributes = new ItemCollection(fileData.getAttributes());
+				String md5 = customAttributes.getItemValueString(ITEM_MD5_CHECKSUM);
+
+				// test if md5 exits...
+				String sql = STATEMENT_SELECT_DOCUMENT;
+				sql = sql.replace("'?'", "'" + md5 + "'");
+
+				logger.finest("......search MD5 entry: " + sql);
+
+				ResultSet rs = session.execute(sql);
+				Row row = rs.one();
+				if (row != null) {
+					logger.finest("......merge fildata: " + md5 + "...");
+
+					// get byte data...
+					ByteBuffer byteData = row.getBytes(1);
+					itemCol.addFileData(new FileData(fileData.getName(), byteData.array(), fileData.getContentType(),
+							fileData.getAttributes()));
+				} else {
+					logger.warning("Document Data missing: " + itemCol.getUniqueID() + " MD5:" + md5);
+				}
+			}
+
+		}
+	}
+
+	/**
 	 * This method test if a snapshot recored with a given ID already exists.
 	 * 
 	 * @param snapshotID
@@ -218,6 +262,9 @@ public class SnapshotService {
 			ByteBuffer data = row.getBytes(COLUMN_DATA);
 			if (data.hasArray()) {
 				snapshot = getItemCollection(data.array());
+
+				// next we need to load the document data if exists...
+				mergeDocumentData(snapshot, session);
 			}
 		} else {
 			// does not exist - create empty object
@@ -240,12 +287,12 @@ public class SnapshotService {
 	 * @throws ArchiveException
 	 */
 	public ItemCollection loadMetadata(Session session) throws ArchiveException {
-		return loadSnapshot("0",session);
+		return loadSnapshot("0", session);
 	}
 
 	/**
-	 * This method loads all exsting snapshotIDs for a given unqiueID
-	 * 
+	 * This method loads all exsting snapshotIDs for a given unqiueID.
+ * 
 	 * @param uniqueID
 	 * @return list of snapshots
 	 */

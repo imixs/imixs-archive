@@ -14,7 +14,7 @@ import javax.inject.Named;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.SnapshotService;
+import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 
@@ -41,7 +41,7 @@ public class ClusterDataController implements Serializable {
 	ClusterService clusterService;
 
 	@EJB
-	SnapshotService documentService;
+	DataService dataService;
 
 	@EJB
 	SyncService schedulerService;
@@ -100,7 +100,7 @@ public class ClusterDataController implements Serializable {
 	public Date getSyncPoint() {
 		long lsyncPoint;
 		try {
-			ItemCollection metadata = documentService.loadMetadata(session);
+			ItemCollection metadata = dataService.loadMetadata(session);
 			lsyncPoint = metadata.getItemValueLong(SyncService.ITEM_SYNCPOINT);
 
 		} catch (ArchiveException e) {
@@ -114,7 +114,7 @@ public class ClusterDataController implements Serializable {
 	public long getSyncCount() {
 		long l;
 		try {
-			ItemCollection metadata = documentService.loadMetadata(session);
+			ItemCollection metadata = dataService.loadMetadata(session);
 			l = metadata.getItemValueLong(SyncService.ITEM_SYNCCOUNT);
 
 		} catch (ArchiveException e) {

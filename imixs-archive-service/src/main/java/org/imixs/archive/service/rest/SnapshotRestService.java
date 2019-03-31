@@ -39,10 +39,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.SnapshotService;
+import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.xml.XMLDataCollection;
-import org.imixs.workflow.xml.XMLDataCollectionAdapter;
+import org.imixs.workflow.xml.XMLDocument;
+import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -54,15 +54,16 @@ import com.datastax.driver.core.Session;
  * 
  */
 @Path("/snapshot")
-@Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_HTML, MediaType.TEXT_XML })
+@Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_HTML, MediaType.APPLICATION_XML, MediaType.TEXT_XML })
 @Stateless
 public class SnapshotRestService {
 
+ 
 	@EJB
 	ClusterService clusterService;
 
 	@EJB
-	SnapshotService documentService;
+	DataService dataService;
 
 	@javax.ws.rs.core.Context
 	private static HttpServletRequest servletRequest;
@@ -72,12 +73,13 @@ public class SnapshotRestService {
 	/**
 	 * Loads a snapshot from the archive.
 	 * 
-	 * @param id - snapshot id
+	 * @param id
+	 *            - snapshot id
 	 * @return XMLDataCollection
 	 */
 	@GET
 	@Path("/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
-	public XMLDataCollection getSnapshot(@PathParam("snapshotid") String id) {
+	public XMLDocument getSnapshot(@PathParam("snapshotid") String id) {
 		Session session = null;
 		Cluster cluster = null;
 		try {
@@ -85,9 +87,47 @@ public class SnapshotRestService {
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
 
-			ItemCollection snapshot = documentService.loadSnapshot(id, session);
+			ItemCollection snapshot = dataService.loadSnapshot(id, session);
 
-			return XMLDataCollectionAdapter.getDataCollection(snapshot);
+			//return XMLDataCollectionAdapter.getDataCollection(snapshot);
+			return XMLDocumentAdapter.getDocument(snapshot);
+		} catch (Exception e) {
+			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
+			return null;
+
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
+		}
+	}
+
+	/**
+	 * Loads a snapshot from the archive and returns a xml representation (also in
+	 * web browser)
+	 * 
+	 * @param id
+	 *            - snapshot id
+	 * @return XMLDataCollection
+	 */
+	@GET
+	@Produces({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
+	@Path("/xml/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
+	public XMLDocument getSnapshotXML(@PathParam("snapshotid") String id) {
+		Session session = null;
+		Cluster cluster = null;
+		try {
+			logger.info("...read snapshot...");
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
+
+			ItemCollection snapshot = dataService.loadSnapshot(id, session);
+
+			return XMLDocumentAdapter.getDocument(snapshot);
 
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
@@ -102,7 +142,5 @@ public class SnapshotRestService {
 				cluster.close();
 			}
 		}
-
 	}
-
 }

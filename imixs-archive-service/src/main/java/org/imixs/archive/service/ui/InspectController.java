@@ -1,9 +1,9 @@
 package org.imixs.archive.service.ui;
 
 import java.io.Serializable;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
@@ -16,7 +16,7 @@ import javax.inject.Named;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.SnapshotService;
+import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.workflow.ItemCollection;
 
 import com.datastax.driver.core.Cluster;
@@ -47,7 +47,7 @@ public class InspectController implements Serializable {
 	ClusterService clusterService;
 
 	@EJB
-	SnapshotService documentService;
+	DataService dataService;
 
 	@EJB
 	MessageService messageService;
@@ -108,7 +108,9 @@ public class InspectController implements Serializable {
 
 	/**
 	 * This method loads all existing snapshot ids of a given unqiueid
-	 * 
+	 * 	 * <p>
+	 * The result list is sorted creation date descending (newest snapshot first)
+	
 	 * @throws ArchiveException
 	 */
 	public void loadSnapshotIDs() {
@@ -117,7 +119,12 @@ public class InspectController implements Serializable {
 			session = clusterService.getArchiveSession(cluster);
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
-			snapshotIDs = documentService.loadSnapshotsByUnqiueID(uniqueid, session);
+			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid, session);
+			
+			Collections.sort(snapshotIDs, Collections.reverseOrder());
+
+		
+			
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());
@@ -147,7 +154,7 @@ public class InspectController implements Serializable {
 			session = clusterService.getArchiveSession(cluster);
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
-			ItemCollection snapshot = documentService.loadSnapshot(id, session);
+			ItemCollection snapshot = dataService.loadSnapshot(id, session);
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());

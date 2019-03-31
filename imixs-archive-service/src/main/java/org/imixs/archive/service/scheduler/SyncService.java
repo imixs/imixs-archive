@@ -22,7 +22,6 @@
  *******************************************************************************/
 package org.imixs.archive.service.scheduler;
 
-import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -42,7 +41,7 @@ import javax.ejb.TimerConfig;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.SnapshotService;
+import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
 import org.imixs.workflow.services.rest.BasicAuthenticator;
@@ -54,10 +53,7 @@ import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SimpleStatement;
 
 /**
  * The SyncService synchronizes the workflow data with the data stored in the
@@ -88,7 +84,7 @@ public class SyncService {
 	javax.ejb.TimerService timerService;
 
 	@EJB
-	SnapshotService documentService;
+	DataService dataService;
 
 	@EJB
 	ClusterService clusterService;
@@ -366,7 +362,7 @@ public class SyncService {
 			session = clusterService.getArchiveSession(cluster);
 
 			// load metadata and get last syncpoint
-			metaData = documentService.loadMetadata(session);
+			metaData = dataService.loadMetadata(session);
 			syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
 			totalCount = metaData.getItemValueLong(ITEM_SYNCCOUNT);
 
@@ -388,9 +384,9 @@ public class SyncService {
 
 						// verify if this snapshot is not already stored - if so, we do not overwrite
 						// the origin data
-						if (!documentService.existSnapshot(snapshot.getUniqueID(), session)) {
+						if (!dataService.existSnapshot(snapshot.getUniqueID(), session)) {
 							// store data into archive
-							documentService.saveSnapshot(snapshot, session);
+							dataService.saveSnapshot(snapshot, session);
 							count++;
 							totalCount++;
 						} else {
@@ -403,7 +399,7 @@ public class SyncService {
 						// update metadata
 						metaData.setItemValue(ITEM_SYNCPOINT, syncPoint);
 						metaData.setItemValue(ITEM_SYNCCOUNT, totalCount);
-						documentService.saveMetadata(metaData, session);
+						dataService.saveMetadata(metaData, session);
 					}
 
 				} else {

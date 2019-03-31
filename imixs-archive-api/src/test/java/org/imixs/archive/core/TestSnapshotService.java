@@ -37,7 +37,7 @@ import junit.framework.Assert;
  */
 public class TestSnapshotService {
 	private final static Logger logger = Logger.getLogger(TestSnapshotService.class.getName());
-
+ 
 	@Spy
 	SnapshotService snapshotService;
 

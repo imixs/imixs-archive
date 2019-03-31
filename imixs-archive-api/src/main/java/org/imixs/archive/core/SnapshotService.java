@@ -108,6 +108,8 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 public class SnapshotService {
 
+	public final static String ITEM_MD5_CHECKSUM="md5checksum";
+	
 	@Resource
 	SessionContext ejbCtx;
 
@@ -451,8 +453,8 @@ public class SnapshotService {
 						ItemCollection dmsColOld = new ItemCollection(oldFileData.getAttributes());
 						// compare MD5Checksum
 						if ((dmsColOrigin != null && dmsColOld != null)
-								&& (!dmsColOrigin.getItemValueString("md5checksum")
-										.equals(dmsColOld.getItemValueString("md5checksum")))) {
+								&& (!dmsColOrigin.getItemValueString(ITEM_MD5_CHECKSUM)
+										.equals(dmsColOld.getItemValueString(ITEM_MD5_CHECKSUM)))) {
 
 							// compute timestamp from $modifeid or $created date if available....
 							// Note: $modified will be set by method updateCustomAttributes()
@@ -524,7 +526,7 @@ public class SnapshotService {
 				ItemCollection dmsEntry = new ItemCollection();
 
 				String checksum = fileData.generateMD5();
-				dmsEntry.replaceItemValue("md5checksum", checksum);
+				dmsEntry.replaceItemValue(ITEM_MD5_CHECKSUM, checksum);
 				dmsEntry.replaceItemValue("size", fileData.getContent().length);
 				dmsEntry.replaceItemValue("txtname", fileData.getName());
 				dmsEntry.replaceItemValue("$created", new Date());
@@ -538,11 +540,11 @@ public class SnapshotService {
 				ItemCollection dmsEntry = new ItemCollection(fileData.getAttributes());
 
 				// verify checksum if new content was uploaded....
-				String oldchecksum = dmsEntry.getItemValueString("md5checksum");
+				String oldchecksum = dmsEntry.getItemValueString(ITEM_MD5_CHECKSUM);
 				if (fileData.getContent().length > 0 && (oldchecksum.isEmpty() || !fileData.validateMD5(oldchecksum))) {
 					// update checksum, size and editor!
 					String checksum = fileData.generateMD5();
-					dmsEntry.replaceItemValue("md5checksum", checksum);
+					dmsEntry.replaceItemValue(ITEM_MD5_CHECKSUM, checksum);
 					dmsEntry.replaceItemValue("size", fileData.getContent().length);
 					dmsEntry.replaceItemValue("$modified", new Date());
 					dmsEntry.replaceItemValue("$editor", username);
@@ -560,4 +562,6 @@ public class SnapshotService {
 		// add $filenames
 		workitem.replaceItemValue(DMS_FILE_NAMES, workitem.getFileNames());
 	}
+	
+	
 }
