@@ -15,6 +15,7 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
+import org.imixs.archive.service.scheduler.RestoreService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 
@@ -43,13 +44,17 @@ public class RestoreController implements Serializable {
 	Cluster cluster = null;
 	Session session = null;
 	// String syncPoint=null;
-	Date syncDate = null;
+	Date syncDateFrom = null;
+	Date syncDateTo = null;
 
 	@EJB
 	ClusterService clusterService;
 
 	@EJB
 	DataService dataService;
+	
+	@EJB
+	RestoreService restoreService;
 
 	@EJB
 	MessageService messageService;
@@ -65,18 +70,32 @@ public class RestoreController implements Serializable {
 	@PostConstruct
 	void init() {
 		long lSync=loadSyncPoint();
-		syncDate = new Date(lSync);
+		syncDateFrom = new Date(lSync);
+		
+		syncDateTo = new Date();
 	}
 
-	public String getSyncPoint() {
+	public String getSyncPointFrom() {
 		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-		return dt.format(syncDate);
+		return dt.format(syncDateFrom);
 	}
 
-	public void setSyncPoint(String syncPoint) throws ParseException {
+	public void setSyncPointFrom(String syncPoint) throws ParseException {
 		// update sync date...
 		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-		syncDate = dt.parse(syncPoint);
+		syncDateFrom = dt.parse(syncPoint);
+
+	}
+	
+	public String getSyncPointTo() {
+		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+		return dt.format(syncDateTo);
+	}
+
+	public void setSyncPointTo(String syncPoint) throws ParseException {
+		// update sync date...
+		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+		syncDateTo = dt.parse(syncPoint);
 
 	}
 	
@@ -121,23 +140,20 @@ public class RestoreController implements Serializable {
 	 */
 	public void startRestore() {
 		try {
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
-			logger.info("......init restore process: syncpoint=" + this.getSyncPoint());
+			
+			logger.info("......init restore process: " + this.getSyncPointFrom() + " to " + this.getSyncPointTo());
+			
+			restoreService.start(syncDateFrom, syncDateTo);
 			
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to start restore process: " + e.getMessage());
-		} finally {
-			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
-		}
+		} 
 
 	}
+	
+	
+	
+	
 
 }

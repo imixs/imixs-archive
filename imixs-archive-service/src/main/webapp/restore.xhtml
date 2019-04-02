@@ -28,8 +28,14 @@
 								</tr>
 
 								<tr>
-									<td>Restore from Syncpoint:</td>
-									<td><h:inputText value="#{restoreController.syncPoint}"></h:inputText>
+									<td>Restore from:</td>
+									<td><h:inputText value="#{restoreController.syncPointFrom}"></h:inputText>
+										Format: yyyy-MM-dd'T'HH:mm:ss</td>
+								</tr>
+								
+								<tr>
+									<td>Restore to:</td>
+									<td><h:inputText value="#{restoreController.syncPointTo}"></h:inputText>
 										Format: yyyy-MM-dd'T'HH:mm:ss</td>
 								</tr>
 							</table>
