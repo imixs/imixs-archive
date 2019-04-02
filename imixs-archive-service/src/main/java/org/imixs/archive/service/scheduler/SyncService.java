@@ -78,6 +78,7 @@ public class SyncService {
 	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
 	public final static String SNAPSHOT_SYNCPOINT_RESOURCE = "snapshot/syncpoint/";
 	public final static String SNAPSHOT_RESOURCE = "snapshot/";
+	public final static String DOCUMENTS_RESOURCE = "documents/";
 
 	private final static int MAX_COUNT = 100;
 
@@ -470,6 +471,40 @@ public class SyncService {
 			return result;
 		}
 		return null;
+	}
+	
+	
+	
+	/**
+	 * This method read the current snapshot id for a given UnqiueID. 
+	 * This information can be used to verify the sync satus of a singel process instance.
+	 * 
+	 * @return the current snapshotid 
+	 * @throws ArchiveException
+	 * 
+	 */
+	public String readSnapshotIDByUniqueID(String uniqueid) throws ArchiveException {
+		String result = null;
+		// load single document
+		RestClient workflowClient = initWorkflowClient();
+		String url = DOCUMENTS_RESOURCE + uniqueid + "?items=$snapshotid";
+		logger.finest("...... read snapshotid: " + url + "....");
+
+		try {
+			XMLDataCollection xmlDocument = workflowClient.getXMLDataCollection(url);
+			if (xmlDocument!=null && xmlDocument.getDocument().length>0) {
+				ItemCollection document=XMLDocumentAdapter.putDocument(xmlDocument.getDocument()[0]);
+				result=document.getItemValueString("$snapshotid");
+			}
+			
+		} catch (RestAPIException e) {
+			String errorMessage = "...failed to readSyncData : " + e.getMessage();
+			messageService.logMessage(errorMessage);
+			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
+		}
+
+	
+		return result;
 	}
 	
 	

@@ -43,13 +43,14 @@ public class InspectController implements Serializable {
 	Session session = null;
 	String uniqueid = null;
 	List<String> snapshotIDs = null;
+	String currentSnapshotID=null;
 
 	@EJB
 	ClusterService clusterService;
 
 	@EJB
 	DataService dataService;
-	
+
 	@EJB
 	SyncService syncService;
 
@@ -89,32 +90,41 @@ public class InspectController implements Serializable {
 	}
 
 	/**
-	 * this method returns the snapshot timestamp by a snapshot id
+	 * returns the current snapshot id form the workflow instance.
+	 * @return
+	 */
+	public String getCurrentSnapshotID() {
+		return currentSnapshotID;
+	}
+
+	public void setCurrentSnapshotID(String currentSnapshotID) {
+		this.currentSnapshotID = currentSnapshotID;
+	}
+
+	/**
+	 * This method returns the snapshot timestamp by a snapshot id.
+	 * 
 	 * 
 	 * @param id
 	 * @return
 	 */
 	public String getTime(String id) {
-		String result;
-
 		// cut last segment
 		String sTime = id.substring(id.lastIndexOf('-') + 1);
 
 		long time = Long.parseLong(sTime);
 		Date date = new Date(time);
 
-		SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss:SSS");
-
-		result = dateFormatDE.format(date);
-
-		return result;
+		return date.toString();
 	}
 
 	/**
 	 * This method loads all existing snapshot ids of a given unqiueid
-	 * 	 * <p>
+	 * <p>
 	 * The result list is sorted creation date descending (newest snapshot first)
-	
+	 * <p>
+	 * The method also verifies the actual snapshot in the workflow instance and creats an indicator
+	 * 
 	 * @throws ArchiveException
 	 */
 	public void loadSnapshotIDs() {
@@ -124,11 +134,11 @@ public class InspectController implements Serializable {
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
 			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid, session);
-			
-			Collections.sort(snapshotIDs, Collections.reverseOrder());
 
-		
+			Collections.sort(snapshotIDs, Collections.reverseOrder());
 			
+			// test the current snapshot from the live system!
+			setCurrentSnapshotID(syncService.readSnapshotIDByUniqueID(uniqueid));
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());
@@ -142,11 +152,12 @@ public class InspectController implements Serializable {
 				cluster.close();
 			}
 		}
+		
+		
+		
 
 	}
-	
-	
-	
+
 	/**
 	 * This method loads all existing snapshot ids of a given unqiueid
 	 * 
@@ -160,6 +171,13 @@ public class InspectController implements Serializable {
 
 			ItemCollection snapshot = dataService.loadSnapshot(id, session);
 			syncService.restoreSnapshot(snapshot);
+			
+			// refresh snapshot list....
+			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid, session);
+			Collections.sort(snapshotIDs, Collections.reverseOrder());
+			// test the current snapshot from the live system!
+			setCurrentSnapshotID(syncService.readSnapshotIDByUniqueID(uniqueid));
+
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());
@@ -173,6 +191,7 @@ public class InspectController implements Serializable {
 				cluster.close();
 			}
 		}
+		
 
 	}
 

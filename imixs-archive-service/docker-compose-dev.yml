@@ -9,6 +9,7 @@ services:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "adminadmin"
       POSTGRES_CONNECTION: "jdbc:postgresql://postgresoffice/office"
+      TZ: "Europe/Berlin"  
     ports:
       - "8081:8080"
       - "9991:9990"
@@ -29,6 +30,7 @@ services:
       WORKFLOW_SERVICE_USER: "admin"
       WORKFLOW_SERVICE_PASSWORD: "adminadmin"
       WORKFLOW_SERVICE_AUTHMETHOD: "form"
+      TZ: "Europe/Berlin"
       # ARCHIVE_CLUSTER_REPLICATION_FACTOR: "1"
       # ARCHIVE_CLUSTER_REPLICATION_CLASS: "SimpleStrategy"
       

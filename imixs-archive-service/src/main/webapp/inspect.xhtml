@@ -20,7 +20,10 @@
 							<h1>Inspect a single process instance:</h1>
 
 							<p class="small">Enter the UniqueID of a process instance to
-								load all existing snapshots.</p>
+								load all existing snapshots.
+								The <span class="typcn typcn-media-record" style="font-size: 1.3em; color: #5c9e5c;" title="active snapshot"></span> 
+								indicates the active snapshot. 
+								</p>
 							<table style="width: 100%;">
 
 								<tr>
@@ -43,13 +46,28 @@
 							<h1>Snapshots:</h1>
 							<table style="width: 100%;">
 								<tr>
-									<th style="width: 400px;">SnapshotID</th>
-									<th style="width: 200px;">created</th>
+									<th style="width: 430px;">SnapshotID</th>
+									<th style="width: 250px;">created</th>
 									<th></th>
 								</tr>
 								<c:forEach items="#{inspectController.snapshotIDs}" var="id">
 									<tr>
-										<td>#{id}</td>
+										<td>#{id}
+										
+										
+										
+										<!-- indicator for current workflow instance -->
+										<ui:fragment
+											rendered="#{! empty inspectController.currentSnapshotID and inspectController.currentSnapshotID eq id}">
+											<span class="typcn typcn-media-record" style="font-size: 1.3em; color: #5c9e5c;" title="active snapshot"></span>
+										</ui:fragment> 
+										<ui:fragment rendered="#{empty inspectController.currentSnapshotID or inspectController.currentSnapshotID ne id}">
+											<span class="typcn typcn-media-record" style="font-size: 1.3em; color: #c0c0c0;" title="archived"></span>
+										</ui:fragment>
+										
+										
+										
+										</td>
 										<td style="text-align: center;">#{inspectController.getTime(id)}</td>
 										<td>
 											<!-- html -->
