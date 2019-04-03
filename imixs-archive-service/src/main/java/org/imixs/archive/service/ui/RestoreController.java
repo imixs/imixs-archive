@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
+import javax.ejb.Timer;
 import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 
@@ -37,7 +38,7 @@ import com.datastax.driver.core.Session;
 public class RestoreController implements Serializable {
 
 	public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
-	
+
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(RestoreController.class.getName());
 
@@ -52,7 +53,7 @@ public class RestoreController implements Serializable {
 
 	@EJB
 	DataService dataService;
-	
+
 	@EJB
 	RestoreService restoreService;
 
@@ -69,10 +70,9 @@ public class RestoreController implements Serializable {
 	 */
 	@PostConstruct
 	void init() {
-		long lSync=loadSyncPoint();
+		long lSync = loadSyncPoint();
 		syncDateFrom = new Date(lSync);
-		
-		syncDateTo = new Date();
+		syncDateTo = null;
 	}
 
 	public String getSyncPointFrom() {
@@ -86,10 +86,14 @@ public class RestoreController implements Serializable {
 		syncDateFrom = dt.parse(syncPoint);
 
 	}
-	
+
 	public String getSyncPointTo() {
-		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-		return dt.format(syncDateTo);
+		if (syncDateTo != null) {
+			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+			return dt.format(syncDateTo);
+		} else {
+			return "";
+		}
 	}
 
 	public void setSyncPointTo(String syncPoint) throws ParseException {
@@ -98,9 +102,6 @@ public class RestoreController implements Serializable {
 		syncDateTo = dt.parse(syncPoint);
 
 	}
-	
-	
-	
 
 	/**
 	 * This method loads the current synpoint from the methdata object
@@ -113,7 +114,7 @@ public class RestoreController implements Serializable {
 			session = clusterService.getArchiveSession(cluster);
 			logger.info("......load syncpoint...");
 			ItemCollection metaData = dataService.loadMetadata(session);
-			
+
 			return metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
 
 		} catch (ArchiveException e) {
@@ -131,8 +132,6 @@ public class RestoreController implements Serializable {
 
 	}
 
-	
-
 	/**
 	 * This method starts a restore process
 	 * 
@@ -140,20 +139,25 @@ public class RestoreController implements Serializable {
 	 */
 	public void startRestore() {
 		try {
-			
+
 			logger.info("......init restore process: " + this.getSyncPointFrom() + " to " + this.getSyncPointTo());
-			
+
 			restoreService.start(syncDateFrom, syncDateTo);
-			
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to start restore process: " + e.getMessage());
-		} 
+		}
 
 	}
-	
-	
-	
-	
+
+	/**
+	 * Returns true if a restore is running.
+	 * 
+	 * @return
+	 */
+	public boolean isRunning() {
+		Timer timer = restoreService.findTimer();
+		return (timer!=null);
+	}
 
 }

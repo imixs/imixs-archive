@@ -100,7 +100,7 @@ public class RestoreService {
 		Timer timer = null;
 
 		// try to cancel an existing timer for this workflowinstance
-		timer = findTimer(TIMER_ID);
+		timer = findTimer();
 		if (timer != null) {
 			try {
 				timer.cancel();
@@ -162,10 +162,10 @@ public class RestoreService {
 	 * @return Timer
 	 * @throws Exception
 	 */
-	private Timer findTimer(String id) {
+	public Timer findTimer() {
 		for (Object obj : timerService.getTimers()) {
 			Timer timer = (javax.ejb.Timer) obj;
-			if (id.equals(timer.getInfo())) {
+			if (TIMER_ID.equals(timer.getInfo())) {
 				return timer;
 			}
 		}

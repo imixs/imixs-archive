@@ -52,6 +52,8 @@ public class ClusterDataController implements Serializable {
 	public ClusterDataController() {
 		super();
 	}
+	
+	String syncSizeUnit=null;
 
 	/**
 	 * This method initializes a cluster and session obejct.
@@ -124,6 +126,42 @@ public class ClusterDataController implements Serializable {
 		return l;
 	}
 
+	public String getSyncSize() {
+		long l;
+		try {
+			ItemCollection metadata = dataService.loadMetadata(session);
+			l = metadata.getItemValueLong(SyncService.ITEM_SYNCSIZE);
+
+		} catch (ArchiveException e) {
+			logger.severe("unable to read syncsize - " + e.getMessage());
+			l = 0;
+		}
+		String result= userFriendlyBytes(l);
+		
+		String[] parts = result.split(" ");
+		syncSizeUnit=parts[1];
+		return parts[0];
+	}
+	
+	public String getSyncSizeUnit() {
+		return syncSizeUnit;
+	}
+
+	/**
+	 * Computes the file size into a user friendly format
+	 * @param size
+	 * @return
+	 */
+	public String userFriendlyBytes(long bytes) {
+		boolean si=true;
+		int unit = si ? 1000 : 1024;
+	    if (bytes < unit) return bytes + " B";
+	    int exp = (int) (Math.log(bytes) / Math.log(unit));
+	    String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
+	    return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+	}
+	
+	
 	public String getContactPoints() {
 		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
 	}

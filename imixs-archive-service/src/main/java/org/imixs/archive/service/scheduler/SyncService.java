@@ -22,6 +22,10 @@
  *******************************************************************************/
 package org.imixs.archive.service.scheduler;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -51,6 +55,7 @@ import org.imixs.workflow.services.rest.RestClient;
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
+import org.imixs.workflow.xml.XMLItem;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -75,6 +80,7 @@ public class SyncService {
 
 	public final static String ITEM_SYNCPOINT = "$sync_point";
 	public final static String ITEM_SYNCCOUNT = "$sync_count";
+	public final static String ITEM_SYNCSIZE = "$sync_size";
 	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
 	public final static String SNAPSHOT_SYNCPOINT_RESOURCE = "snapshot/syncpoint/";
 	public final static String SNAPSHOT_RESOURCE = "snapshot/";
@@ -348,6 +354,7 @@ public class SyncService {
 		long syncPoint = 0;
 		int count = 0;
 		long totalCount = 0;
+		long totalSize = 0;
 		Session session = null;
 		Cluster cluster = null;
 		ItemCollection metaData = null;
@@ -367,6 +374,7 @@ public class SyncService {
 			metaData = dataService.loadMetadata(session);
 			syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
 			totalCount = metaData.getItemValueLong(ITEM_SYNCCOUNT);
+			totalSize = metaData.getItemValueLong(ITEM_SYNCSIZE);
 
 			while (count < MAX_COUNT) {
 
@@ -391,6 +399,7 @@ public class SyncService {
 							dataService.saveSnapshot(snapshot, session);
 							count++;
 							totalCount++;
+							totalSize = totalSize + calculateSize(xmlDocument);
 						} else {
 							// This is because in case of a restore, the same snapshot takes a new $modified
 							// item. And we do not want to re-import the snapshot in the next sync cycle.
@@ -401,6 +410,9 @@ public class SyncService {
 						// update metadata
 						metaData.setItemValue(ITEM_SYNCPOINT, syncPoint);
 						metaData.setItemValue(ITEM_SYNCCOUNT, totalCount);
+
+						metaData.setItemValue(ITEM_SYNCSIZE, totalSize);
+
 						dataService.saveMetadata(metaData, session);
 					}
 
@@ -472,14 +484,13 @@ public class SyncService {
 		}
 		return null;
 	}
-	
-	
-	
+
 	/**
-	 * This method read the current snapshot id for a given UnqiueID. 
-	 * This information can be used to verify the sync satus of a singel process instance.
+	 * This method read the current snapshot id for a given UnqiueID. This
+	 * information can be used to verify the sync satus of a singel process
+	 * instance.
 	 * 
-	 * @return the current snapshotid 
+	 * @return the current snapshotid
 	 * @throws ArchiveException
 	 * 
 	 */
@@ -492,29 +503,26 @@ public class SyncService {
 
 		try {
 			XMLDataCollection xmlDocument = workflowClient.getXMLDataCollection(url);
-			if (xmlDocument!=null && xmlDocument.getDocument().length>0) {
-				ItemCollection document=XMLDocumentAdapter.putDocument(xmlDocument.getDocument()[0]);
-				result=document.getItemValueString("$snapshotid");
+			if (xmlDocument != null && xmlDocument.getDocument().length > 0) {
+				ItemCollection document = XMLDocumentAdapter.putDocument(xmlDocument.getDocument()[0]);
+				result = document.getItemValueString("$snapshotid");
 			}
-			
+
 		} catch (RestAPIException e) {
 			String errorMessage = "...failed to readSyncData : " + e.getMessage();
 			messageService.logMessage(errorMessage);
 			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
 		}
 
-	
 		return result;
 	}
-	
-	
-	
+
 	public void restoreSnapshot(ItemCollection snapshot) throws ArchiveException {
 		RestClient restClient = initWorkflowClient();
 		String url = SNAPSHOT_RESOURCE;
 		logger.finest("...... post data: " + url + "....");
 		try {
-			  restClient.postDocument(url, snapshot);
+			restClient.postDocument(url, snapshot);
 		} catch (RestAPIException e) {
 			String errorMessage = "...failed to restoreSnapshot: " + e.getMessage();
 			messageService.logMessage(errorMessage);
@@ -551,5 +559,28 @@ public class SyncService {
 			workflowClient.registerRequestFilter(basicAuth);
 		}
 		return workflowClient;
+	}
+
+	/**
+	 * count total value size...
+	 * 
+	 * @param xmldoc
+	 * @return
+	 */
+	long calculateSize(XMLDocument xmldoc) {
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ObjectOutputStream oos;
+		try {
+			oos = new ObjectOutputStream(baos);
+			oos.writeObject(xmldoc);
+			oos.close();
+			return baos.size();
+		} catch (IOException e) {
+			logger.warning("...unable to calculate document size!");
+		}
+
+		return 0;
+
 	}
 }

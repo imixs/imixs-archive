@@ -19,7 +19,8 @@
 						<div class="monitor-portlet">
 							<h1>Restore Snapshots:</h1>
 
-							<p class="small">Define a Syncpoint to start a restore of existing snapshots into the workflow instance.</p>
+							<p class="small">Define a Syncpoint to start a restore of
+								existing snapshots into the workflow instance.</p>
 							<table style="width: 100%;">
 
 								<tr>
@@ -29,10 +30,11 @@
 
 								<tr>
 									<td>Restore from:</td>
-									<td><h:inputText value="#{restoreController.syncPointFrom}"></h:inputText>
+									<td><h:inputText
+											value="#{restoreController.syncPointFrom}"></h:inputText>
 										Format: yyyy-MM-dd'T'HH:mm:ss</td>
 								</tr>
-								
+
 								<tr>
 									<td>Restore to:</td>
 									<td><h:inputText value="#{restoreController.syncPointTo}"></h:inputText>
@@ -45,9 +47,13 @@
 				</div>
 
 				<p style="margin-left: 10px;">
-					<h:commandButton value="submit" action="monitor.xhtml"
+					<h:commandButton value="start" action="monitor.xhtml" rendered="#{! restoreController.isRunning()}"
 						actionListener="#{restoreController.startRestore()}"></h:commandButton>
+						
+						<h:commandButton value="stop" action="monitor.xhtml"  rendered="#{restoreController.isRunning()}"
+						actionListener="#{restoreController.startRestore()}"></h:commandButton>	
 				</p>
+
 
 			</div>
 		</h:form>

@@ -117,9 +117,15 @@
 					<div class="monitor-portlet">
 
 						<h1>Synchronisation Status:</h1>
-						<p class="lead">
+						<p class="lead" style="float:left; width:48%;">
 							<span class="typcn typcn-arrow-repeat-outline" style="color: #5c9e5c;"></span>
 							#{clusterDataController.syncCount} <span style="font-size: 0.3em">total syncs</span>
+						</p>
+						
+						
+						<p class="lead" style="">
+							<span class="typcn typcn-shopping-cart" style="color: #5c9e5c;"></span>
+							#{clusterDataController.syncSize} <span style="font-size: 0.3em">#{clusterDataController.syncSizeUnit}</span>
 						</p>
 
 						<p class="small">Last Syncpoint:
