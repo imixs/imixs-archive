@@ -22,7 +22,9 @@
  *******************************************************************************/
 package org.imixs.archive.service.scheduler;
 
+import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
@@ -37,16 +39,32 @@ import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
-import org.imixs.workflow.xml.XMLDocument;
-import org.imixs.workflow.xml.XMLDocumentAdapter;
+
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
 
 /**
  * The RestoreService restores the workflow data stored in the cassandra cluster
- * into the workflow system. The service class runns a TimerService based on the
- * given scheduler configuration.
+ * into the workflow system. The service class runns in the background as a
+ * TimerService.
  * <p>
- * The scheduler configuration contains a timeout intervall
- * 
+ * The scheduler configuration is stored in the Metadata object of the cassandra
+ * keyspace. The following attributes are defining the restore procedure:
+ * <p>
+ * <strong>restore.from</strong>: the eariest snapshot syncpoint to be restored
+ * (can be 0)
+ * <p>
+ * <strong>restore.to</strong>: the latest snapshot syncpoint to be restored
+ * <p>
+ * <strong>restore.$sync_point</strong>: the current snapshot syncpoint. This
+ * date is used to select snapshots by date in a cassandra partion.
+ * <p>
+ * <strong>restore.$sync_count</strong>: count of restored snapshots
+ * <p>
+ * <strong>restore.$sync_size</strong>: bytes of restored snapshot data
+ * <p>
+ * The timer is stoped after all snapshots in the restore ragnge (restore.from -
+ * restore.to) are restored.
  * 
  * 
  * @version 1.0
@@ -56,8 +74,14 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 @Stateless
 public class RestoreService {
 
-	public final static String TIMER_ID = "IMIXS_ARCHIVE_RESTORE_TIMER";
+	public final static String TIMER_ID_RESTORESERVICE = "IMIXS_ARCHIVE_RESTORE_TIMER";
 	public final static long TIMER_INTERVAL_DURATION = 60000;
+
+	public final static String ITEM_RESTORE_FROM = "restore.from";
+	public final static String ITEM_RESTORE_TO = "restore.to";
+	public final static String ITEM_RESTORE_SYNCPOINT = "restore.$sync_point";
+	public final static String ITEM_RESTORE_SYNCCOUNT = "restore.$sync_count";
+	public final static String ITEM_RESTORE_SYNCSIZE = "restore.$sync_size";
 
 	private static Logger logger = Logger.getLogger(RestoreService.class.getName());
 
@@ -74,26 +98,21 @@ public class RestoreService {
 	javax.ejb.TimerService timerService;
 
 	/**
-	 * Starts a new Timer for the scheduler defined by the Configuration.
+	 * Starts a new restore process with a EJB TimerService
 	 * <p>
-	 * The Timer can be started based on a Calendar setting stored in the property
-	 * _scheduler_definition.
+	 * The Timer will be started imediatly with a intervall duration defined by the
+	 * constante TIMER_INTERVAL_DURATION
 	 * <p>
-	 * The item 'keyspace' of the configuration entity is the id of the timer to be
-	 * controlled.
+	 * The meta data for the restore process is stored in the metadata object.
 	 * <p>
-	 * The method throws an exception if the configuration entity contains invalid
-	 * attributes or values.
-	 * <p>
-	 * After the timer was started the configuration is updated with the latest
-	 * statusmessage. The item _schedueler_enabled will be set to 'true'.
-	 * <p>
-	 * The method returns the updated configuration. The configuration will not be
-	 * saved!
+	 * The restore process selects snapshot data by date (SNAPSHOTS_BY_MODIFIED).
+	 * The current date is stored in the meta data. The meta data is updated after
+	 * each iteration.
 	 * 
-	 * @param configuration
-	 *            - scheduler configuration
-	 * @return updated configuration
+	 * @param datFrom
+	 *            - syncpoint from
+	 * @param datTo
+	 *            - syncpoint to
 	 * @throws ArchiveException
 	 */
 	public void start(Date datFrom, Date datTo) throws ArchiveException {
@@ -112,17 +131,56 @@ public class RestoreService {
 			}
 		}
 
-		logger.info("...starting scheduler service " + TIMER_ID + " ...");
-		// New timer will be started imediatly
-		ItemCollection timerInfo = new ItemCollection();
-		timerInfo.setItemValue("syncpoint.from", datFrom);
-		timerInfo.setItemValue("syncpoint.to", datTo);
-		timer = timerService.createTimer(new Date(), TIMER_INTERVAL_DURATION,
-				XMLDocumentAdapter.getDocument(timerInfo));
+		logger.info("...starting scheduler restore-service...");
+		
+		if (datTo==null) {
+			// set now
+			datTo=new Date();
+		}
+		
+		// if datFrom is empty set 1.1.1970
+		if (datFrom==null) {
+			// set 1.1.1970
+			datFrom=new Date(0);
+		}
+		
 
-		// start and set statusmessage
-		if (timer != null) {
-			messageService.logMessage("Timer started.");
+		// store information into metdata object
+		Session session = null;
+		Cluster cluster = null;
+		try {
+			// ...start sync
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
+			ItemCollection metaData = dataService.loadMetadata(session);
+
+			metaData.setItemValue(ITEM_RESTORE_FROM, datFrom.getTime());
+			metaData.setItemValue(ITEM_RESTORE_TO, datTo.getTime());
+
+			metaData.setItemValue(ITEM_RESTORE_SYNCPOINT, datFrom.getTime());
+			metaData.setItemValue(ITEM_RESTORE_SYNCCOUNT, 0);
+			metaData.setItemValue(ITEM_RESTORE_SYNCSIZE, 0);
+
+			// update metadata
+			dataService.saveMetadata(metaData, session);
+
+			timer = timerService.createTimer(new Date(), TIMER_INTERVAL_DURATION, TIMER_ID_RESTORESERVICE);
+
+			// start and set statusmessage
+			if (timer != null) {
+				messageService.logMessage("Timer started.");
+			}
+		} catch (Exception e) {
+			logger.warning("...Failed to update metadata: " + e.getMessage());
+
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
 		}
 
 	}
@@ -141,16 +199,73 @@ public class RestoreService {
 	 */
 	@Timeout
 	void onTimeout(javax.ejb.Timer timer) throws Exception {
-		
-		// get config info
-		XMLDocument xmlDocument=(XMLDocument) timer.getInfo();
-		ItemCollection config=XMLDocumentAdapter.putDocument(xmlDocument);
-		
-		// TODO ....
-		
-		
-		// update timer info
-		
+		Session session = null;
+		Cluster cluster = null;
+		ItemCollection metadata = null;
+		Calendar calSyncDate;
+		Calendar calSyncDateTo;
+		long syncpoint;
+		try {
+			// ...start sync
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
+			// read the metdata
+			metadata = dataService.loadMetadata(session);
+			// compute current restore day....
+			syncpoint = metadata.getItemValueLong(ITEM_RESTORE_SYNCPOINT);
+			calSyncDate = Calendar.getInstance();
+			calSyncDate.setTime(new Date(syncpoint));
+
+			// compute to date....
+			long syncpointTo = metadata.getItemValueLong(ITEM_RESTORE_TO);
+			calSyncDateTo = Calendar.getInstance();
+			calSyncDateTo.setTime(new Date(syncpointTo));
+			logger.info("......starting restore from " + calSyncDate.getTime() + " to " + calSyncDateTo.getTime());
+
+			// we search for snapshotIDs until we found one or the syncdate is after the
+			// snypoint.to
+			while (true) {
+
+				List<String> snapshotIDs = dataService.loadSnapshotsByDate(calSyncDate.getTime(), session);
+
+				if (snapshotIDs.isEmpty()) {
+					// adjust snyncdate for one day....
+					calSyncDate.add(Calendar.DAY_OF_MONTH, 1);
+					// test if we still behind the sync.to date...
+					if (calSyncDate.after(calSyncDateTo)) {
+						logger.info("...final syncdate " + calSyncDateTo.getTime() + " found!");
+						break;
+					}
+				} else {
+					logger.info("......restore snapshot data from " + calSyncDate.getTime());
+					// print out the snapshotIDs we found
+					for (String snapshotID : snapshotIDs) {
+
+						logger.info("...now we need to verify the snapshot: " + snapshotID);
+					}
+					
+					// cancel for testing.....
+					break;
+				}
+			}
+
+			logger.info("...restore finished at Syncpoint: "+calSyncDate.getTime());
+
+			timer.cancel();
+
+		} catch (Exception e) {
+			logger.severe("Failed to restore data: " + e.getMessage());
+			// cancle timer
+			timer.cancel();
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
+		}
 
 	}
 
@@ -165,7 +280,7 @@ public class RestoreService {
 	public Timer findTimer() {
 		for (Object obj : timerService.getTimers()) {
 			Timer timer = (javax.ejb.Timer) obj;
-			if (TIMER_ID.equals(timer.getInfo())) {
+			if (TIMER_ID_RESTORESERVICE.equals(timer.getInfo())) {
 				return timer;
 			}
 		}

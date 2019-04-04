@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
@@ -71,6 +72,7 @@ public class DataService {
 	public static final String STATEMENT_SELECT_DOCUMENT = "select * from documents where md5='?'";
 
 	public static final String STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID = "select * from snapshots_by_uniqueid where uniqueid='?'";
+	public static final String STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED = "select * from snapshots_by_modified where modified='?'";
 
 	@EJB
 	ClusterService clusterService;
@@ -292,7 +294,7 @@ public class DataService {
 
 	/**
 	 * This method loads all exsting snapshotIDs for a given unqiueID.
- * 
+	 * 
 	 * @param uniqueID
 	 * @return list of snapshots
 	 */
@@ -313,6 +315,32 @@ public class DataService {
 			result.add(snapshotID);
 		}
 
+		return result;
+	}
+
+	/**
+	 * This method loads all exsting snapshotIDs for a given date.
+	 * 
+	 * @param date 
+	 * @return list of snapshots
+	 */
+	public List<String> loadSnapshotsByDate(Date date, Session session) {
+		List<String> result = new ArrayList<String>();
+		
+		
+		// select snapshotIds by day...
+		LocalDate ld = LocalDate.fromMillisSinceEpoch(date.getTime());
+		String sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED;
+		sql = sql.replace("'?'", "'" + ld + "'");
+		logger.finest("......SQL: " + sql);
+		ResultSet rs = session.execute(sql);
+		// iterate over result
+		Iterator<Row> resultIter = rs.iterator();
+		while (resultIter.hasNext()) {
+			Row row = resultIter.next();
+			String snapshotID = row.getString(1);
+			result.add(snapshotID);
+		}
 		return result;
 	}
 
