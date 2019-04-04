@@ -25,7 +25,6 @@ package org.imixs.archive.service.scheduler;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -55,7 +54,6 @@ import org.imixs.workflow.services.rest.RestClient;
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
-import org.imixs.workflow.xml.XMLItem;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -78,6 +76,8 @@ import com.datastax.driver.core.Session;
 @Stateless
 public class SyncService {
 
+	public final static String TIMER_ID_SYNCSERVICE = "IMIXS_ARCHIVE_SYNC_TIMER";
+		
 	public final static String ITEM_SYNCPOINT = "$sync_point";
 	public final static String ITEM_SYNCCOUNT = "$sync_count";
 	public final static String ITEM_SYNCSIZE = "$sync_size";
@@ -150,11 +150,9 @@ public class SyncService {
 	 *            - the current scheduler configuration to be updated.
 	 */
 	public Date getNextTimeout() {
-		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
-
 		Timer timer;
 		try {
-			timer = this.findTimer(id);
+			timer = this.findTimer();
 			if (timer != null) {
 				// load current timer details
 				return timer.getNextTimeout();
@@ -191,9 +189,8 @@ public class SyncService {
 	private void start() throws ArchiveException {
 		Timer timer = null;
 
-		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
 		// try to cancel an existing timer for this workflowinstance
-		timer = findTimer(id);
+		timer = findTimer();
 		if (timer != null) {
 			try {
 				timer.cancel();
@@ -206,7 +203,7 @@ public class SyncService {
 		}
 
 		try {
-			logger.info("...starting scheduler service " + id + " ...");
+			logger.info("...starting scheduler sync-service ...");
 			// New timer will be started on calendar confiugration
 			timer = createTimerOnCalendar();
 
@@ -247,10 +244,10 @@ public class SyncService {
 	 * @return Timer
 	 * @throws Exception
 	 */
-	private Timer findTimer(String id) {
+	private Timer findTimer() {
 		for (Object obj : timerService.getTimers()) {
 			Timer timer = (javax.ejb.Timer) obj;
-			if (id.equals(timer.getInfo())) {
+			if (TIMER_ID_SYNCSERVICE.equals(timer.getInfo())) {
 				return timer;
 			}
 		}
@@ -279,9 +276,8 @@ public class SyncService {
 	Timer createTimerOnCalendar() throws ParseException, ArchiveException {
 
 		TimerConfig timerConfig = new TimerConfig();
-		String id = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
-		timerConfig.setInfo(id);
-
+		
+		timerConfig.setInfo(TIMER_ID_SYNCSERVICE);
 		ScheduleExpression scheduerExpression = new ScheduleExpression();
 
 		String sDefinition = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION,
