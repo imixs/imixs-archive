@@ -32,13 +32,11 @@ import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
 
 /**
- * 
  * This service provides a message log which can be used to monitor the timer
  * status.
  * 
  * 
  * @author rsoika
- * 
  */
 
 @Singleton
@@ -92,4 +90,20 @@ public class MessageService {
 			messages.remove(0);
 		}
 	}
+	
+	
+	/**
+	 * Computes the file size into a user friendly format
+	 * @param size
+	 * @return
+	 */
+	public static String userFriendlyBytes(long bytes) {
+		boolean si=true;
+		int unit = si ? 1000 : 1024;
+	    if (bytes < unit) return bytes + " B";
+	    int exp = (int) (Math.log(bytes) / Math.log(unit));
+	    String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
+	    return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+	}
+	
 }

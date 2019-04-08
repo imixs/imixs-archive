@@ -4,11 +4,14 @@ import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.ejb.Timer;
+import javax.enterprise.context.RequestScoped;
 import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 
@@ -34,7 +37,7 @@ import com.datastax.driver.core.Session;
  *
  */
 @Named
-@SessionScoped
+@RequestScoped
 public class RestoreController implements Serializable {
 
 	public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
@@ -47,6 +50,9 @@ public class RestoreController implements Serializable {
 	// String syncPoint=null;
 	Date syncDateFrom = null;
 	Date syncDateTo = null;
+
+	String restoreSizeUnit = null;
+	ItemCollection metaData = null;
 
 	@EJB
 	ClusterService clusterService;
@@ -69,10 +75,32 @@ public class RestoreController implements Serializable {
 	 * 
 	 */
 	@PostConstruct
-	void init() {
-		long lSync = loadSyncPoint();
-		syncDateTo = new Date(lSync);
-		syncDateFrom = null;
+	void init() throws ArchiveException {
+		cluster = clusterService.getCluster();
+		session = clusterService.getArchiveSession(cluster);
+
+		// load metadata
+		metaData = dataService.loadMetadata(session);
+	
+	
+		
+	}
+
+	/**
+	 * This method closes the session and cluster object.
+	 * 
+	 * @see {@link ClusterDataController#init()}
+	 */
+	@PreDestroy
+	void close() {
+		logger.info("...closing session....");
+		// close session and cluster object
+		if (session != null) {
+			session.close();
+		}
+		if (cluster != null) {
+			cluster.close();
+		}
 	}
 
 	public String getSyncPointFrom() {
@@ -86,7 +114,7 @@ public class RestoreController implements Serializable {
 
 	public void setSyncPointFrom(String syncPoint) throws ParseException {
 		// update sync date...
-		
+
 		if (syncPoint != null && !syncPoint.isEmpty()) {
 			// update sync date...
 			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
@@ -118,36 +146,40 @@ public class RestoreController implements Serializable {
 			}
 		}
 	}
+	
 
 	/**
-	 * This method loads the current synpoint from the methdata object
+	 * returns the syncpoint of the current configuration
 	 * 
-	 * @throws ArchiveException
+	 * @return
 	 */
-	public long loadSyncPoint() {
-		try {
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
-			logger.info("......load syncpoint...");
-			ItemCollection metaData = dataService.loadMetadata(session);
-
-			return metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
-
-		} catch (ArchiveException e) {
-			logger.severe("failed to load syncpoint: " + e.getMessage());
-			return 0;
-		} finally {
-			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
-		}
-
+	public Date getSyncPoint() {
+		long lsyncPoint;
+		lsyncPoint = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCPOINT);
+		Date syncPoint = new Date(lsyncPoint);
+		return syncPoint;
 	}
 
+
+	public long getRestoreCount() {
+		return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCCOUNT);
+	}
+
+	public String getRestoreSize() {
+		long l = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCSIZE);
+
+		String result = MessageService.userFriendlyBytes(l);
+
+		String[] parts = result.split(" ");
+		restoreSizeUnit = parts[1];
+		return parts[0];
+	}
+
+	public String getRestoreSizeUnit() {
+		return restoreSizeUnit;
+	}
+
+	
 	/**
 	 * This method starts a restore process
 	 * 
@@ -155,11 +187,8 @@ public class RestoreController implements Serializable {
 	 */
 	public void startRestore() {
 		try {
-
 			logger.info("......init restore process: " + this.getSyncPointFrom() + " to " + this.getSyncPointTo());
-
 			restoreService.start(syncDateFrom, syncDateTo);
-
 		} catch (ArchiveException e) {
 			logger.severe("failed to start restore process: " + e.getMessage());
 		}
@@ -176,4 +205,7 @@ public class RestoreController implements Serializable {
 		return (timer != null);
 	}
 
+	public List<String> getMessages() {
+		return messageService.getMessages();
+	}
 }

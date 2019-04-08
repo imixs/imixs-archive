@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
+import javax.enterprise.context.RequestScoped;
 import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 
@@ -24,7 +25,7 @@ import com.datastax.driver.core.Session;
 /**
  * CID Bean for the resync service.
  * <p>
- * The syncpoint is managed as a string in the format 2019-12-31T06:00
+ * The new syncpoint is managed as a string in the format 2019-12-31T06:00
  * 
  * 
  * 
@@ -32,18 +33,19 @@ import com.datastax.driver.core.Session;
  *
  */
 @Named
-@SessionScoped
+@RequestScoped
 public class ResyncController implements Serializable {
 
 	public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
-	
+
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(ResyncController.class.getName());
 
 	Cluster cluster = null;
 	Session session = null;
-	// String syncPoint=null;
-	Date syncDate = null;
+
+	ItemCollection metaData = null;
+	String newSyncPoint = null;
 
 	@EJB
 	ClusterService clusterService;
@@ -61,58 +63,36 @@ public class ResyncController implements Serializable {
 	/**
 	 * This method initializes the default sync date
 	 * 
-	 */
-	@PostConstruct
-	void init() {
-		long lSync=loadSyncPoint();
-		syncDate = new Date(lSync);
-	}
-
-	public String getSyncPoint() {
-		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-		return dt.format(syncDate);
-	}
-
-	public void setSyncPoint(String syncPoint) throws ParseException {
-		// update sync date...
-		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-		syncDate = dt.parse(syncPoint);
-
-	}
-	
-	
-	
-
-	/**
-	 * This method loads the current synpoint from the methdata object
-	 * 
 	 * @throws ArchiveException
 	 */
-	public long loadSyncPoint() {
-		try {
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
-			logger.info("......load syncpoint...");
-			ItemCollection metaData = dataService.loadMetadata(session);
-			
-			return metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
+	@PostConstruct
+	void init() throws ArchiveException {
+		logger.info("...initial session....");
+		cluster = clusterService.getCluster();
+		session = clusterService.getArchiveSession(cluster);
 
-		} catch (ArchiveException e) {
-			logger.severe("failed to load syncpoint: " + e.getMessage());
-			return 0;
-		} finally {
-			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
-		}
-
+		// load metadata
+		metaData = dataService.loadMetadata(session);
 	}
 
-	
+	public String getNewSyncPoint() {
+		return newSyncPoint;
+	}
+
+	public void setNewSyncPoint(String newSyncPoint) {
+		this.newSyncPoint = newSyncPoint;
+	}
+
+	/**
+	 * returns the syncpoint of the current configuration
+	 * 
+	 * @return
+	 */
+	public Date getSyncPoint() {
+		long lsyncPoint = metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
+		Date syncPoint = new Date(lsyncPoint);
+		return syncPoint;
+	}
 
 	/**
 	 * This method updates the current synpoint
@@ -121,23 +101,16 @@ public class ResyncController implements Serializable {
 	 */
 	public void updateSyncPoint() {
 		try {
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
-			logger.info("......updateing syncpoint=" + this.getSyncPoint());
-			ItemCollection metaData = dataService.loadMetadata(session);
+			// update sync date...
+			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+			Date syncDate = dt.parse(newSyncPoint);
+
+			logger.info("......updateing syncpoint=" + this.newSyncPoint);
 			metaData.setItemValue(SyncService.ITEM_SYNCPOINT, syncDate.getTime());
 			dataService.saveMetadata(metaData, session);
 
-		} catch (ArchiveException e) {
+		} catch (ArchiveException | ParseException e) {
 			logger.severe("failed to set new syncpoint: " + e.getMessage());
-		} finally {
-			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
 		}
 
 	}

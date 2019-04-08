@@ -22,7 +22,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 
 /**
- * CID Bean provide cluster configuration .
+ * CID Bean provide cluster configuration.
  * 
  * @author rsoika
  *
@@ -36,6 +36,8 @@ public class ClusterDataController implements Serializable {
 
 	Cluster cluster = null;
 	Session session = null;
+	String syncSizeUnit=null;
+	ItemCollection metaData=null;
 
 	@EJB
 	ClusterService clusterService;
@@ -44,7 +46,7 @@ public class ClusterDataController implements Serializable {
 	DataService dataService;
 
 	@EJB
-	SyncService schedulerService;
+	SyncService syncService;
 
 	@EJB
 	MessageService messageService;
@@ -53,8 +55,6 @@ public class ClusterDataController implements Serializable {
 		super();
 	}
 	
-	String syncSizeUnit=null;
-
 	/**
 	 * This method initializes a cluster and session obejct.
 	 * 
@@ -66,6 +66,9 @@ public class ClusterDataController implements Serializable {
 		logger.info("...initial session....");
 		cluster = clusterService.getCluster();
 		session = clusterService.getArchiveSession(cluster);
+		
+		// load metadata
+		metaData = dataService.loadMetadata(session);
 	}
 
 	/**
@@ -100,43 +103,18 @@ public class ClusterDataController implements Serializable {
 	 * @return
 	 */
 	public Date getSyncPoint() {
-		long lsyncPoint;
-		try {
-			ItemCollection metadata = dataService.loadMetadata(session);
-			lsyncPoint = metadata.getItemValueLong(SyncService.ITEM_SYNCPOINT);
-
-		} catch (ArchiveException e) {
-			logger.severe("unable to read syncpoint - " + e.getMessage());
-			lsyncPoint = 0;
-		}
+		long lsyncPoint = metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
 		Date syncPoint = new Date(lsyncPoint);
 		return syncPoint;
 	}
 
 	public long getSyncCount() {
-		long l;
-		try {
-			ItemCollection metadata = dataService.loadMetadata(session);
-			l = metadata.getItemValueLong(SyncService.ITEM_SYNCCOUNT);
-
-		} catch (ArchiveException e) {
-			logger.severe("unable to read syncpoint - " + e.getMessage());
-			l = 0;
-		}
-		return l;
+		return metaData.getItemValueLong(SyncService.ITEM_SYNCCOUNT);
 	}
 
 	public String getSyncSize() {
-		long l;
-		try {
-			ItemCollection metadata = dataService.loadMetadata(session);
-			l = metadata.getItemValueLong(SyncService.ITEM_SYNCSIZE);
-
-		} catch (ArchiveException e) {
-			logger.severe("unable to read syncsize - " + e.getMessage());
-			l = 0;
-		}
-		String result= userFriendlyBytes(l);
+		long l = metaData.getItemValueLong(SyncService.ITEM_SYNCSIZE);
+		String result= MessageService.userFriendlyBytes(l);
 		
 		String[] parts = result.split(" ");
 		syncSizeUnit=parts[1];
@@ -147,20 +125,7 @@ public class ClusterDataController implements Serializable {
 		return syncSizeUnit;
 	}
 
-	/**
-	 * Computes the file size into a user friendly format
-	 * @param size
-	 * @return
-	 */
-	public String userFriendlyBytes(long bytes) {
-		boolean si=true;
-		int unit = si ? 1000 : 1024;
-	    if (bytes < unit) return bytes + " B";
-	    int exp = (int) (Math.log(bytes) / Math.log(unit));
-	    String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
-	    return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
-	}
-	
+
 	
 	public String getContactPoints() {
 		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
@@ -189,7 +154,7 @@ public class ClusterDataController implements Serializable {
 	}
 
 	public Date getNextTimeout() {
-		return schedulerService.getNextTimeout();
+		return syncService.getNextTimeout();
 	}
 
 	public List<String> getMessages() {

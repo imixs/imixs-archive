@@ -25,7 +25,7 @@
 
 								<tr>
 									<td style="width: 25%;">Last Syncpoint:</td>
-									<td>#{clusterDataController.syncPoint}</td>
+									<td>#{restoreController.syncPoint}</td>
 								</tr>
 
 								<tr>
@@ -46,13 +46,62 @@
 
 				</div>
 
+
+
+				<div class="row">
+
+
+					<div class="col-12">
+						<div class="monitor-portlet">
+
+							<h1>Restore Status:</h1>
+							
+							<p class="lead" style="float: left; width: 32%;">
+								<span class="typcn typcn-cloud-storage-outline" style="color: #5c9e5c;"></span>
+								#{restoreController.restoreSize} <span style="font-size: 0.3em">#{restoreDataController.syncSizeUnit}</span>
+							</p>
+							
+							
+							
+							<p class="lead" style="float: left; width: 32%;">
+								<span class="typcn typcn-arrow-repeat-outline"
+									style="color: #5c9e5c;"></span>
+								#{restoreController.restoreCount} <span
+									style="font-size: 0.3em">total syncs</span>
+							</p>
+
+
+							
+							
+							<p class="lead" style="">
+								<span class="typcn typcn-flash-outline" style="color: #dd4929;"></span>
+								#{restoreController.restoreSize} <span style="font-size: 0.3em">Errors</span>
+							</p>
+
+							<p class="small">Last Syncpoint:
+								#{restoreController.syncPoint}</p>
+
+
+						</div>
+
+					</div>
+
+
+					
+				</div>
+
 				<p style="margin-left: 10px;">
-					<h:commandButton value="start" action="monitor.xhtml" rendered="#{! restoreController.isRunning()}"
+					<h:commandButton value="start" action="monitor.xhtml"
+						rendered="#{! restoreController.isRunning()}"
 						actionListener="#{restoreController.startRestore()}"></h:commandButton>
-						
-						<h:commandButton value="stop" action="monitor.xhtml"  rendered="#{restoreController.isRunning()}"
-						actionListener="#{restoreController.startRestore()}"></h:commandButton>	
+
+					<h:commandButton value="stop" action="monitor.xhtml"
+						rendered="#{restoreController.isRunning()}"
+						actionListener="#{restoreController.startRestore()}"></h:commandButton>
 				</p>
+
+
+
 
 
 			</div>
