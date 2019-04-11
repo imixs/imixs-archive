@@ -138,11 +138,17 @@ a.button {
 	padding: 0.15em 0.75em;
 	border-radius: 3px;
 }
-button, input[type="button"]:hover, input[type="submit"]:hover, .button:hover,
-	a.button:hover, .imixs-button:hover {
+input[type="button"]:hover, input[type="submit"]:hover, .button:hover,	a.button:hover, .imixs-button:hover  {
 	background: #31b1dc;
 	color: #ddd !important;
 }
+
+input[type="button"]:active, input[type="submit"]:active,a.button:active,a.button:focus, input[type="button"]:focus, input[type="submit"]:focus  {
+	background: #31b1dc;
+	color: #ddd !important;
+}
+
+
 
 #imixs-content {
 	padding-bottom:80px;

@@ -75,7 +75,18 @@ public class ResyncController implements Serializable {
 		metaData = dataService.loadMetadata(session);
 	}
 
+	/**
+	 * Returns the newSyncPoint and computes the default value
+	 * 
+	 * @return
+	 */
 	public String getNewSyncPoint() {
+		if (newSyncPoint==null) {
+			// compute default
+			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+			newSyncPoint=dt.format(getSyncPoint());
+			
+		}
 		return newSyncPoint;
 	}
 

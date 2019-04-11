@@ -17,6 +17,8 @@ An Imixs Archive configuration holds a syncpoint. The syncpoint is the last succ
 When the syncpoint is reset it is set to January 1, 1970 00:00:00 GMT.
 After each successfull sync the syncpoint will be set to the modidfied timestamp of the synced workitem. 
 
+**Note:** In case the time zone changes on the workflow server or the database server the syncpoint need to be reset. Otherwise, the offset can result in a loss of snapshot data. 
+
 
 ## Configuration
 
