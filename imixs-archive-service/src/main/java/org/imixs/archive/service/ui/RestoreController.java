@@ -48,8 +48,8 @@ public class RestoreController implements Serializable {
 	Cluster cluster = null;
 	Session session = null;
 	// String syncPoint=null;
-	Date syncDateFrom = null;
-	Date syncDateTo = null;
+	Date restoreDateFrom = null;
+	Date restoreDateTo = null;
 
 	String restoreSizeUnit = null;
 	ItemCollection metaData = null;
@@ -81,9 +81,7 @@ public class RestoreController implements Serializable {
 
 		// load metadata
 		metaData = dataService.loadMetadata(session);
-	
-	
-		
+
 	}
 
 	/**
@@ -103,63 +101,59 @@ public class RestoreController implements Serializable {
 		}
 	}
 
-	public String getSyncPointFrom() {
-		if (syncDateFrom != null) {
+	public String getRestoreFrom() {
+		if (restoreDateFrom != null) {
 			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-			return dt.format(syncDateFrom);
+			return dt.format(restoreDateFrom);
 		} else {
 			return "";
 		}
 	}
 
-	public void setSyncPointFrom(String syncPoint) throws ParseException {
-		// update sync date...
-
-		if (syncPoint != null && !syncPoint.isEmpty()) {
+	public void setRestoreFrom(String restorePoint) throws ParseException {
+		if (restorePoint != null && !restorePoint.isEmpty()) {
 			// update sync date...
 			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
 			try {
-				syncDateFrom = dt.parse(syncPoint);
+				restoreDateFrom = dt.parse(restorePoint);
 			} catch (ParseException e) {
 				logger.severe("Unable to parse syncdate: " + e.getMessage());
 			}
 		}
 	}
 
-	public String getSyncPointTo() {
-		if (syncDateTo != null) {
-			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-			return dt.format(syncDateTo);
-		} else {
-			return "";
+	public String getRestoreTo() {
+		if (restoreDateTo == null) {
+			// default current syncpoint
+			restoreDateTo = getSyncPoint();
 		}
+		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+		return dt.format(restoreDateTo);
 	}
 
-	public void setSyncPointTo(String syncPoint) {
-		if (syncPoint != null && !syncPoint.isEmpty()) {
+	public void setRestoreTo(String restorePoint) {
+		if (restorePoint != null && !restorePoint.isEmpty()) {
 			// update sync date...
 			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
 			try {
-				syncDateTo = dt.parse(syncPoint);
+				restoreDateTo = dt.parse(restorePoint);
 			} catch (ParseException e) {
 				logger.severe("Unable to parse syncdate: " + e.getMessage());
 			}
 		}
 	}
-	
 
 	/**
 	 * returns the syncpoint of the current configuration
 	 * 
 	 * @return
 	 */
-	public Date getSyncPoint() {
+	public Date getRestoreSyncPoint() {
 		long lsyncPoint;
 		lsyncPoint = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCPOINT);
 		Date syncPoint = new Date(lsyncPoint);
 		return syncPoint;
 	}
-
 
 	public long getRestoreCount() {
 		return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCCOUNT);
@@ -181,14 +175,25 @@ public class RestoreController implements Serializable {
 
 	
 	/**
+	 * returns the syncpoint of the current configuration
+	 * 
+	 * @return
+	 */
+	public Date getSyncPoint() {
+		long lsyncPoint = metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
+		Date syncPoint = new Date(lsyncPoint);
+		return syncPoint;
+	}
+	
+	/**
 	 * This method starts a restore process
 	 * 
 	 * 
 	 */
 	public void startRestore() {
 		try {
-			logger.info("......init restore process: " + this.getSyncPointFrom() + " to " + this.getSyncPointTo());
-			restoreService.start(syncDateFrom, syncDateTo);
+			logger.info("......init restore process: " + this.getRestoreFrom() + " to " + this.getRestoreTo());
+			restoreService.start(restoreDateFrom, restoreDateTo);
 		} catch (ArchiveException e) {
 			logger.severe("failed to start restore process: " + e.getMessage());
 		}

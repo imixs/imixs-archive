@@ -24,20 +24,19 @@
 							<table style="width: 100%;">
 
 								<tr>
-									<td style="width: 25%;">Last Syncpoint:</td>
+									<td style="width: 25%;">Last Archive Syncpoint:</td>
 									<td>#{restoreController.syncPoint}</td>
 								</tr>
 
 								<tr>
 									<td>Restore from:</td>
-									<td><h:inputText
-											value="#{restoreController.syncPointFrom}"></h:inputText>
+									<td><h:inputText value="#{restoreController.restoreFrom}"></h:inputText>
 										Format: yyyy-MM-dd'T'HH:mm:ss</td>
 								</tr>
 
 								<tr>
 									<td>Restore to:</td>
-									<td><h:inputText value="#{restoreController.syncPointTo}"></h:inputText>
+									<td><h:inputText value="#{restoreController.restoreTo}"></h:inputText>
 										Format: yyyy-MM-dd'T'HH:mm:ss</td>
 								</tr>
 							</table>
@@ -55,31 +54,32 @@
 						<div class="monitor-portlet">
 
 							<h1>Restore Status:</h1>
-							
+
 							<p class="lead" style="float: left; width: 32%;">
-								<span class="typcn typcn-cloud-storage-outline" style="color: #5c9e5c;"></span>
+								<span class="typcn typcn-cloud-storage-outline"
+									style="color: #5c9e5c;"></span>
 								#{restoreController.restoreSize} <span style="font-size: 0.3em">#{restoreDataController.syncSizeUnit}</span>
 							</p>
-							
-							
-							
+
+
+
 							<p class="lead" style="float: left; width: 32%;">
 								<span class="typcn typcn-arrow-repeat-outline"
 									style="color: #5c9e5c;"></span>
-								#{restoreController.restoreCount} <span
-									style="font-size: 0.3em">total syncs</span>
+								#{restoreController.restoreCount} <span style="font-size: 0.3em">total
+									syncs</span>
 							</p>
 
 
-							
-							
+
+
 							<p class="lead" style="">
 								<span class="typcn typcn-flash-outline" style="color: #dd4929;"></span>
 								#{restoreController.restoreSize} <span style="font-size: 0.3em">Errors</span>
 							</p>
 
-							<p class="small">Last Syncpoint:
-								#{restoreController.syncPoint}</p>
+							<p class="small">Last Restore Syncpoint:
+								#{restoreController.restoreSyncPoint}</p>
 
 
 						</div>
@@ -87,7 +87,7 @@
 					</div>
 
 
-					
+
 				</div>
 
 				<p style="margin-left: 10px;">

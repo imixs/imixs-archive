@@ -4,7 +4,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -112,7 +114,7 @@ public class DataService {
 		}
 
 		// extract $snapshotid 2de78aec-6f14-4345-8acf-dd37ae84875d-1530315900599
-		String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
+		String originUnqiueID = getUniqueID(snapshotID);
 
 		// extract $file content into the table 'documents'....
 		extractDocuments(snapshot, session);
@@ -315,19 +317,20 @@ public class DataService {
 			result.add(snapshotID);
 		}
 
+		// sort result....
+		result.sort(Comparator.reverseOrder()); // .naturalOrder());
 		return result;
 	}
 
 	/**
 	 * This method loads all exsting snapshotIDs for a given date.
 	 * 
-	 * @param date 
+	 * @param date
 	 * @return list of snapshots
 	 */
 	public List<String> loadSnapshotsByDate(Date date, Session session) {
 		List<String> result = new ArrayList<String>();
-		
-		
+
 		// select snapshotIds by day...
 		LocalDate ld = LocalDate.fromMillisSinceEpoch(date.getTime());
 		String sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED;
@@ -443,4 +446,32 @@ public class DataService {
 		return uid.matches(REGEX_SNAPSHOTID);
 	}
 
+	/**
+	 * Returns the $uniqueID from a $SnapshotID
+	 * 
+	 * @param snapshotID
+	 * @return $uniqueid
+	 */
+	public static String getUniqueID(String snapshotID) {
+		if (snapshotID != null && snapshotID.contains("-")) {
+			return snapshotID.substring(0, snapshotID.lastIndexOf("-"));
+		}
+		return null;
+
+	}
+
+	/**
+	 * Returns the snapshot time stamp of a $SnapshotID
+	 * 
+	 * @param snapshotID
+	 * @return date - snapshot time
+	 */
+	public static Date getSnapshotTime(String snapshotID) {
+		if (snapshotID != null && snapshotID.contains("-")) {
+			String sTime=snapshotID.substring(snapshotID.lastIndexOf("-")+1);
+			return new Date(Long.parseLong(sTime));
+		}
+		return null;
+
+	}
 }

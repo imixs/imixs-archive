@@ -45,7 +45,7 @@ import com.datastax.driver.core.Session;
 
 /**
  * The RestoreService restores the workflow data stored in the cassandra cluster
- * into the workflow system. The service class runns in the background as a
+ * into the workflow system. The service class runs in the background as a
  * TimerService.
  * <p>
  * The scheduler configuration is stored in the Metadata object of the cassandra
@@ -63,8 +63,8 @@ import com.datastax.driver.core.Session;
  * <p>
  * <strong>restore.$sync_size</strong>: bytes of restored snapshot data
  * <p>
- * The timer is stoped after all snapshots in the restore ragnge (restore.from -
- * restore.to) are restored.
+ * The timer is stoped after all snapshots in the restore timerange
+ * (restore.from - restore.to) are restored.
  * 
  * 
  * @version 1.0
@@ -85,7 +85,6 @@ public class RestoreService {
 
 	private static Logger logger = Logger.getLogger(RestoreService.class.getName());
 
-	
 	@EJB
 	DataService dataService;
 
@@ -133,18 +132,17 @@ public class RestoreService {
 		}
 
 		logger.info("...starting scheduler restore-service...");
-		
-		if (datTo==null) {
+
+		if (datTo == null) {
 			// set now
-			datTo=new Date();
+			datTo = new Date();
 		}
-		
+
 		// if datFrom is empty set 1.1.1970
-		if (datFrom==null) {
+		if (datFrom == null) {
 			// set 1.1.1970
-			datFrom=new Date(0);
+			datFrom = new Date(0);
 		}
-		
 
 		// store information into metdata object
 		Session session = null;
@@ -190,8 +188,13 @@ public class RestoreService {
 	 * This is the method which processes the timeout event depending on the running
 	 * timer settings.
 	 * <p>
-	 * The method reads MAX_COUNT snapshot workitems to be restored into a imixs
-	 * workflow instance.
+	 * The method reads all snapshotIDs from the day defined in the item
+	 * restore.from (yy-mm-dd). If no snapshotIDs were found for the current restore
+	 * day, the restore day will be adjusted for one day.
+	 * <p>
+	 * If snapshotIDs for the current restore day exists, than for each
+	 * corresponding UniqueID all avaialable snapshotIDs are loded. The latest
+	 * snapshotID will be the one to be resotored.
 	 * 
 	 * 
 	 * @param timer
@@ -225,32 +228,49 @@ public class RestoreService {
 
 			// we search for snapshotIDs until we found one or the syncdate is after the
 			// snypoint.to
-			while (true) {
+			while (calSyncDate.before(calSyncDateTo)) {
 
 				List<String> snapshotIDs = dataService.loadSnapshotsByDate(calSyncDate.getTime(), session);
 
-				if (snapshotIDs.isEmpty()) {
-					// adjust snyncdate for one day....
-					calSyncDate.add(Calendar.DAY_OF_MONTH, 1);
-					// test if we still behind the sync.to date...
-					if (calSyncDate.after(calSyncDateTo)) {
-						logger.info("...final syncdate " + calSyncDateTo.getTime() + " found!");
-						break;
-					}
-				} else {
+				if (!snapshotIDs.isEmpty()) {
+					
 					logger.info("......restore snapshot data from " + calSyncDate.getTime());
 					// print out the snapshotIDs we found
 					for (String snapshotID : snapshotIDs) {
+						String uniqueID = DataService.getUniqueID(snapshotID);
 
-						logger.info("...now we need to verify the snapshot: " + snapshotID);
+						logger.info("...verify uniqueID:" + uniqueID);
+
+						List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(uniqueID, session);
+
+						for (String _tmpSnapshotID : _tmpSnapshots) {
+							logger.info(".......           :" + _tmpSnapshotID);
+
+							// if the timestamp of this snapshot is not before our restore.to timepoint, we
+							// need to restore this one....
+							Date time=DataService.getSnapshotTime(_tmpSnapshotID);
+							Calendar calTime=Calendar.getInstance();
+							calTime.setTime(time);
+							if (!calTime.after(calSyncDateTo)) {
+								// restore this one!
+								logger.info("we restore : " + _tmpSnapshotID);
+								// TODO
+								break;
+							}
+						}
+
 					}
-					
-					// cancel for testing.....
-					break;
 				}
+				
+				// adjust snyncdate for one day....
+				calSyncDate.add(Calendar.DAY_OF_MONTH, 1);
+				// update metadata...
+				metadata.setItemValue(ITEM_RESTORE_SYNCPOINT,calSyncDate.getTimeInMillis());
+				dataService.saveMetadata(metadata, session);
+				
 			}
 
-			logger.info("...restore finished at Syncpoint: "+calSyncDate.getTime());
+			logger.info("...restore finished at Syncpoint: " + calSyncDate.getTime());
 
 			timer.cancel();
 

@@ -22,7 +22,7 @@
 				<div class="col-12">
 					<div class="monitor-portlet">
 						<h1>Archive Status:</h1>
-						<table style="width: 100%;">
+						<table style="width: 100%; margin-bottom: 10px;">
 
 							<tr>
 								<td style="width: 25%;">Cluster Contact Points:</td>
@@ -63,6 +63,14 @@
 							</tr>
 
 						</table>
+
+
+						<!-- load meta data -->
+						<!-- html -->
+						<a target="_blank" class="button" href="/api/archive/metadata">Metadata</a>
+						<!-- xml -->
+						<a target="_blank" class="button" href="/api/archive/metadata/xml">Metadata
+							XML</a>
 
 
 					</div>
@@ -117,19 +125,21 @@
 					<div class="monitor-portlet">
 
 						<h1>Synchronisation Status:</h1>
-						
-						<p class="lead" style="float:left; width:48%;">
+
+						<p class="lead" style="float: left; width: 48%;">
 							<span class="typcn typcn-shopping-cart" style="color: #5c9e5c;"></span>
 							#{clusterDataController.syncSize} <span style="font-size: 0.3em">#{clusterDataController.syncSizeUnit}</span>
 						</p>
-						
+
 						<p class="lead" style="">
-							<span class="typcn typcn-arrow-repeat-outline" style="color: #5c9e5c;"></span>
-							#{clusterDataController.syncCount} <span style="font-size: 0.3em">total syncs</span>
+							<span class="typcn typcn-arrow-repeat-outline"
+								style="color: #5c9e5c;"></span>
+							#{clusterDataController.syncCount} <span style="font-size: 0.3em">total
+								syncs</span>
 						</p>
-						
-						
-					
+
+
+
 
 						<p class="small">Last Syncpoint:
 							#{clusterDataController.syncPoint}</p>

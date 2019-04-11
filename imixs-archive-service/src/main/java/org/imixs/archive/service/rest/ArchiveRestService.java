@@ -58,7 +58,6 @@ import com.datastax.driver.core.Session;
 @Stateless
 public class ArchiveRestService {
 
- 
 	@EJB
 	ClusterService clusterService;
 
@@ -71,7 +70,7 @@ public class ArchiveRestService {
 	private static Logger logger = Logger.getLogger(ArchiveRestService.class.getName());
 
 	/**
-	 * Loads a snapshot from the archive.
+	 * Loads a snapshot from the archive and returns a HTML representation.
 	 * 
 	 * @param id
 	 *            - snapshot id
@@ -89,7 +88,7 @@ public class ArchiveRestService {
 
 			ItemCollection snapshot = dataService.loadSnapshot(id, session);
 
-			//return XMLDataCollectionAdapter.getDataCollection(snapshot);
+			// return XMLDataCollectionAdapter.getDataCollection(snapshot);
 			return XMLDocumentAdapter.getDocument(snapshot);
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
@@ -107,7 +106,7 @@ public class ArchiveRestService {
 	}
 
 	/**
-	 * Loads a snapshot from the archive and returns a xml representation (also in
+	 * Loads a snapshot from the archive and returns a XML representation (also in
 	 * web browser)
 	 * 
 	 * @param id
@@ -126,6 +125,76 @@ public class ArchiveRestService {
 			session = clusterService.getArchiveSession(cluster);
 
 			ItemCollection snapshot = dataService.loadSnapshot(id, session);
+
+			return XMLDocumentAdapter.getDocument(snapshot);
+
+		} catch (Exception e) {
+			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
+			return null;
+
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
+		}
+	}
+
+	/**
+	 * Loads the metadata from the archive and returns a HTML representation.
+	 * 
+	 * @return XMLDataCollection
+	 */
+	@GET
+	@Path("/metadata")
+	public XMLDocument getMetadata() {
+		Session session = null;
+		Cluster cluster = null;
+		try {
+			logger.info("...read snapshot...");
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
+
+			ItemCollection snapshot = dataService.loadMetadata(session);
+
+			// return XMLDataCollectionAdapter.getDataCollection(snapshot);
+			return XMLDocumentAdapter.getDocument(snapshot);
+		} catch (Exception e) {
+			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
+			return null;
+
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
+		}
+	}
+
+	/**
+	 * Loads the metadata from the archive and returns a XML representation (also in
+	 * web browser)
+	 * 
+	 * @return XMLDataCollection
+	 */
+	@GET
+	@Produces({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
+	@Path("/metadata/xml")
+	public XMLDocument getMetadataXML() {
+		Session session = null;
+		Cluster cluster = null;
+		try {
+			logger.info("...read snapshot...");
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
+
+			ItemCollection snapshot = dataService.loadMetadata(session);
 
 			return XMLDocumentAdapter.getDocument(snapshot);
 
