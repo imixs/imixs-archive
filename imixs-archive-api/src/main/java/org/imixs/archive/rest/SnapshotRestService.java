@@ -183,6 +183,11 @@ public class SnapshotRestService implements Serializable {
 					"more than 16 document entites are found with the same modified timestamp. "
 							+ "We assumed that this case is impossible. Sync is not possible.");
 		}
+		if (result.size() == 0) {
+			throw new SnapshotException(SnapshotException.INVALID_DATA,
+					"failed to load snapshot by modified timestamp. "
+							+ "We assumed that this case is impossible. Sync is not possible.");
+		}
 
 		return XMLDataCollectionAdapter.getDataCollection(result);
 	}
