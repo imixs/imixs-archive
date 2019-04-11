@@ -28,11 +28,11 @@
 package org.imixs.archive.plugins;
 
 import java.util.List;
-import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.logging.Logger;
 
 import org.imixs.archive.core.SnapshotService;
+import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 
 /**
@@ -71,12 +71,12 @@ public class SplitAndJoinPlugin extends org.imixs.workflow.engine.plugins.SplitA
 				String snapshotID = source.getItemValueString(SnapshotService.SNAPSHOTID);
 				ItemCollection sourceSnapshot = this.getWorkflowService().getWorkItem(snapshotID);
 				if (sourceSnapshot != null) {
-					Map<String, List<Object>> files = sourceSnapshot.getFiles();
-					if (files != null) {
-						for (String filename : files.keySet()) {
-							target.addFileData(sourceSnapshot.getFileData(filename));
-						}
+					
+					List<FileData> files = sourceSnapshot.getFileData();
+					for (FileData snapshotFiledata : files) {
+						target.addFileData(snapshotFiledata);
 					}
+					
 				} else {
 					logger.warning("unable to load snapshot workitem '" + snapshotID + "'. Can't copy $file content!");
 				}
