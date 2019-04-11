@@ -77,7 +77,7 @@ import com.datastax.driver.core.Session;
 public class SyncService {
 
 	public final static String TIMER_ID_SYNCSERVICE = "IMIXS_ARCHIVE_SYNC_TIMER";
-		
+
 	public final static String ITEM_SYNCPOINT = "$sync_point";
 	public final static String ITEM_SYNCCOUNT = "$sync_count";
 	public final static String ITEM_SYNCSIZE = "$sync_size";
@@ -276,7 +276,7 @@ public class SyncService {
 	Timer createTimerOnCalendar() throws ParseException, ArchiveException {
 
 		TimerConfig timerConfig = new TimerConfig();
-		
+
 		timerConfig.setInfo(TIMER_ID_SYNCSERVICE);
 		ScheduleExpression scheduerExpression = new ScheduleExpression();
 
@@ -371,6 +371,15 @@ public class SyncService {
 			syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
 			totalCount = metaData.getItemValueLong(ITEM_SYNCCOUNT);
 			totalSize = metaData.getItemValueLong(ITEM_SYNCSIZE);
+
+			// Daylight Saving Time Correction
+			// issue #53
+			Date now = new Date();
+			if (syncPoint > now.getTime()) {
+				logger.warning("...current syncpoint (" + syncPoint + ") is in the future! Adjust Syncpoint to now ("
+						+ now.getTime() + ")....");
+				syncPoint = now.getTime();
+			}
 
 			while (count < MAX_COUNT) {
 
