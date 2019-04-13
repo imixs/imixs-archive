@@ -1,7 +1,6 @@
 package org.imixs.archive.service.ui;
 
 import java.io.Serializable;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -17,6 +16,7 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
+import org.imixs.archive.service.scheduler.RemoteAPIService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 
@@ -138,7 +138,7 @@ public class InspectController implements Serializable {
 			Collections.sort(snapshotIDs, Collections.reverseOrder());
 			
 			// test the current snapshot from the live system!
-			setCurrentSnapshotID(syncService.readSnapshotIDByUniqueID(uniqueid));
+			setCurrentSnapshotID(RemoteAPIService.readSnapshotIDByUniqueID(uniqueid));
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());
@@ -170,13 +170,13 @@ public class InspectController implements Serializable {
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
 			ItemCollection snapshot = dataService.loadSnapshot(id, session);
-			syncService.restoreSnapshot(snapshot);
+			RemoteAPIService.restoreSnapshot(snapshot);
 			
 			// refresh snapshot list....
 			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid, session);
 			Collections.sort(snapshotIDs, Collections.reverseOrder());
 			// test the current snapshot from the live system!
-			setCurrentSnapshotID(syncService.readSnapshotIDByUniqueID(uniqueid));
+			setCurrentSnapshotID(RemoteAPIService.readSnapshotIDByUniqueID(uniqueid));
 
 
 		} catch (ArchiveException e) {

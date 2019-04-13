@@ -47,10 +47,8 @@ public class RestoreController implements Serializable {
 
 	Cluster cluster = null;
 	Session session = null;
-	// String syncPoint=null;
-	Date restoreDateFrom = null;
-	Date restoreDateTo = null;
-
+	long restoreDateFrom;
+	long restoreDateTo;
 	String restoreSizeUnit = null;
 	ItemCollection metaData = null;
 
@@ -102,12 +100,10 @@ public class RestoreController implements Serializable {
 	}
 
 	public String getRestoreFrom() {
-		if (restoreDateFrom != null) {
-			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-			return dt.format(restoreDateFrom);
-		} else {
-			return "";
-		}
+
+		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+		return dt.format(restoreDateFrom);
+
 	}
 
 	public void setRestoreFrom(String restorePoint) throws ParseException {
@@ -115,7 +111,7 @@ public class RestoreController implements Serializable {
 			// update sync date...
 			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
 			try {
-				restoreDateFrom = dt.parse(restorePoint);
+				restoreDateFrom = dt.parse(restorePoint).getTime();
 			} catch (ParseException e) {
 				logger.severe("Unable to parse syncdate: " + e.getMessage());
 			}
@@ -123,9 +119,16 @@ public class RestoreController implements Serializable {
 	}
 
 	public String getRestoreTo() {
-		if (restoreDateTo == null) {
+		if (restoreDateTo == 0) {
 			// default current syncpoint
 			restoreDateTo = getSyncPoint();
+
+			// NOTE:
+			// Because the current syncPoint has milisecont precission, but we format the
+			// restoreTo date in seconds only, we need to ajust the restoreTo timestamp per
+			// 1 second! Otherwise the last snaspshot is typically excluded from the restore
+			// because of its milisecond precission.
+			restoreDateTo=restoreDateTo+1000; // !!
 		}
 		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
 		return dt.format(restoreDateTo);
@@ -136,7 +139,7 @@ public class RestoreController implements Serializable {
 			// update sync date...
 			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
 			try {
-				restoreDateTo = dt.parse(restorePoint);
+				restoreDateTo = dt.parse(restorePoint).getTime();
 			} catch (ParseException e) {
 				logger.severe("Unable to parse syncdate: " + e.getMessage());
 			}
@@ -161,9 +164,7 @@ public class RestoreController implements Serializable {
 
 	public String getRestoreSize() {
 		long l = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCSIZE);
-
 		String result = MessageService.userFriendlyBytes(l);
-
 		String[] parts = result.split(" ");
 		restoreSizeUnit = parts[1];
 		return parts[0];
@@ -173,18 +174,26 @@ public class RestoreController implements Serializable {
 		return restoreSizeUnit;
 	}
 
-	
 	/**
 	 * returns the syncpoint of the current configuration
 	 * 
 	 * @return
 	 */
-	public Date getSyncPoint() {
-		long lsyncPoint = metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
-		Date syncPoint = new Date(lsyncPoint);
-		return syncPoint;
+	public long getSyncPoint() {
+		return metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
 	}
-	
+
+	/**
+	 * returns the syncpoint of the current configuration
+	 * 
+	 * @return
+	 */
+	public String getSyncPointISO() {
+		SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+		Date date = new Date(getSyncPoint());
+		return dt.format(date);
+	}
+
 	/**
 	 * This method starts a restore process
 	 * 

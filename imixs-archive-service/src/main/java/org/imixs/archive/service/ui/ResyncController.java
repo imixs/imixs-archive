@@ -115,7 +115,6 @@ public class ResyncController implements Serializable {
 			// update sync date...
 			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
 			Date syncDate = dt.parse(newSyncPoint);
-
 			logger.info("......updateing syncpoint=" + this.newSyncPoint);
 			metaData.setItemValue(SyncService.ITEM_SYNCPOINT, syncDate.getTime());
 			dataService.saveMetadata(metaData, session);

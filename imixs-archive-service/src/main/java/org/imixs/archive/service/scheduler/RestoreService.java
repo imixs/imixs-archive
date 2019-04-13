@@ -23,6 +23,7 @@
 package org.imixs.archive.service.scheduler;
 
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
@@ -115,7 +116,7 @@ public class RestoreService {
 	 *            - syncpoint to
 	 * @throws ArchiveException
 	 */
-	public void start(Date datFrom, Date datTo) throws ArchiveException {
+	public void start(long restoreFrom, long restoreTo) throws ArchiveException {
 		Timer timer = null;
 
 		// try to cancel an existing timer for this workflowinstance
@@ -133,17 +134,6 @@ public class RestoreService {
 
 		logger.info("...starting scheduler restore-service...");
 
-		if (datTo == null) {
-			// set now
-			datTo = new Date();
-		}
-
-		// if datFrom is empty set 1.1.1970
-		if (datFrom == null) {
-			// set 1.1.1970
-			datFrom = new Date(0);
-		}
-
 		// store information into metdata object
 		Session session = null;
 		Cluster cluster = null;
@@ -152,17 +142,14 @@ public class RestoreService {
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
 			ItemCollection metaData = dataService.loadMetadata(session);
-
-			metaData.setItemValue(ITEM_RESTORE_FROM, datFrom.getTime());
-			metaData.setItemValue(ITEM_RESTORE_TO, datTo.getTime());
-
-			metaData.setItemValue(ITEM_RESTORE_SYNCPOINT, datFrom.getTime());
+			metaData.setItemValue(ITEM_RESTORE_FROM, restoreFrom);
+			metaData.setItemValue(ITEM_RESTORE_TO, restoreTo);
+			metaData.setItemValue(ITEM_RESTORE_SYNCPOINT, restoreFrom);
 			metaData.setItemValue(ITEM_RESTORE_SYNCCOUNT, 0);
 			metaData.setItemValue(ITEM_RESTORE_SYNCSIZE, 0);
 
 			// update metadata
 			dataService.saveMetadata(metaData, session);
-
 			timer = timerService.createTimer(new Date(), TIMER_INTERVAL_DURATION, TIMER_ID_RESTORESERVICE);
 
 			// start and set statusmessage
@@ -185,17 +172,15 @@ public class RestoreService {
 	}
 
 	/**
-	 * This is the method which processes the timeout event depending on the running
-	 * timer settings.
+	 * This method processes the timeout event. The method reads all snapshotIDs per
+	 * day between the restore time range restore.from - restore.to.
 	 * <p>
-	 * The method reads all snapshotIDs from the day defined in the item
-	 * restore.from (yy-mm-dd). If no snapshotIDs were found for the current restore
-	 * day, the restore day will be adjusted for one day.
+	 * If no snapshotIDs were found for a day, the syncpoint will be adjusted for
+	 * one day.
 	 * <p>
-	 * If snapshotIDs for the current restore day exists, than for each
-	 * corresponding UniqueID all avaialable snapshotIDs are loded. The latest
-	 * snapshotID will be the one to be resotored.
-	 * 
+	 * If snapshotIDs for a day exists, than the method tests if a snapshot is the
+	 * latest one for the requested restore timerange. If so, than the snapshot will
+	 * be resotored.
 	 * 
 	 * @param timer
 	 * @throws Exception
@@ -206,9 +191,10 @@ public class RestoreService {
 		Session session = null;
 		Cluster cluster = null;
 		ItemCollection metadata = null;
-		Calendar calSyncDate;
-		Calendar calSyncDateTo;
+		Calendar calendarSyncPoint;
 		long syncpoint;
+		int restoreCount = 0;
+		int restoreSize = 0;
 		try {
 			// ...start sync
 			cluster = clusterService.getCluster();
@@ -217,60 +203,98 @@ public class RestoreService {
 			metadata = dataService.loadMetadata(session);
 			// compute current restore day....
 			syncpoint = metadata.getItemValueLong(ITEM_RESTORE_SYNCPOINT);
-			calSyncDate = Calendar.getInstance();
-			calSyncDate.setTime(new Date(syncpoint));
+			calendarSyncPoint = Calendar.getInstance();
+			calendarSyncPoint.setTime(new Date(syncpoint));
+			// reset hour, minute, second, ms
+			calendarSyncPoint.set(Calendar.HOUR, 0);
+			calendarSyncPoint.set(Calendar.MINUTE, 0);
+			calendarSyncPoint.set(Calendar.SECOND, 0);
+			calendarSyncPoint.set(Calendar.MILLISECOND, 0);
+			// adjust one day - 1ms - so we have 1970-01-01 59:59:59:999
+			calendarSyncPoint.add(Calendar.DAY_OF_MONTH, 1);
+			calendarSyncPoint.add(Calendar.MILLISECOND, -1);
 
 			// compute to date....
-			long syncpointTo = metadata.getItemValueLong(ITEM_RESTORE_TO);
-			calSyncDateTo = Calendar.getInstance();
-			calSyncDateTo.setTime(new Date(syncpointTo));
-			logger.info("......starting restore from " + calSyncDate.getTime() + " to " + calSyncDateTo.getTime());
+			long restoreFrom = metadata.getItemValueLong(ITEM_RESTORE_FROM);
+			long restoreTo = metadata.getItemValueLong(ITEM_RESTORE_TO);
+
+			logger.info("......starting restore:    from " + new Date(restoreFrom) + " to " + new Date(restoreTo));
+			logger.info("......starting syncpoint:  " + calendarSyncPoint.getTime());
 
 			// we search for snapshotIDs until we found one or the syncdate is after the
-			// snypoint.to
-			while (calSyncDate.before(calSyncDateTo)) {
+			// restore.to point.
+			while (calendarSyncPoint.getTimeInMillis() < restoreTo) {
 
-				List<String> snapshotIDs = dataService.loadSnapshotsByDate(calSyncDate.getTime(), session);
-
+				List<String> snapshotIDs = dataService.loadSnapshotsByDate(calendarSyncPoint.getTime(), session);
+				// verify all snapshots of this day....
 				if (!snapshotIDs.isEmpty()) {
-					
-					logger.info("......restore snapshot data from " + calSyncDate.getTime());
+					logger.info("......analyze snapshotIDs from " + calendarSyncPoint.getTime());
 					// print out the snapshotIDs we found
 					for (String snapshotID : snapshotIDs) {
-						String uniqueID = DataService.getUniqueID(snapshotID);
 
-						logger.info("...verify uniqueID:" + uniqueID);
+						long currentSnapshotTime = DataService.getSnapshotTime(snapshotID);
+						if (snapshotID.startsWith("0fc6595e-9bfd-4e92-8442-1c5b36ee9240")) {
+							logger.info(" debug - current Snapshot time=" + new Date(currentSnapshotTime));
+						}
 
-						List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(uniqueID, session);
+						List<String> _tmpSnapshots = dataService
+								.loadSnapshotsByUnqiueID(DataService.getUniqueID(snapshotID), session);
 
+						// --- special logging....
 						for (String _tmpSnapshotID : _tmpSnapshots) {
 							logger.info(".......           :" + _tmpSnapshotID);
+						}
 
-							// if the timestamp of this snapshot is not before our restore.to timepoint, we
-							// need to restore this one....
-							Date time=DataService.getSnapshotTime(_tmpSnapshotID);
-							Calendar calTime=Calendar.getInstance();
-							calTime.setTime(time);
-							if (!calTime.after(calSyncDateTo)) {
-								// restore this one!
-								logger.info("we restore : " + _tmpSnapshotID);
-								// TODO
-								break;
+						// find the latest snapshot within the restore time range.....
+						String latestSnapshot = null;
+						for (String _tmpSnapshotID : _tmpSnapshots) {
+							long _tmpSnapshotTime = DataService.getSnapshotTime(_tmpSnapshotID);
+							// check restore time range
+							if (_tmpSnapshotTime >= restoreFrom && _tmpSnapshotTime <= restoreTo) {
+
+								if (_tmpSnapshotTime > DataService.getSnapshotTime(latestSnapshot)) {
+									latestSnapshot = _tmpSnapshotID;
+								}
+							} else {
+								// this snapshot is out of scope because it is not in range
+								logger.info(".... skip snapshot (out of range): "+_tmpSnapshotID);
 							}
+
+						}
+
+						// did we found a snapshot to restore?
+						if (latestSnapshot != null) {
+							// yes!
+							// lets see if this snapshot is alredy restored or synced?
+							String remoteSnapshotID = RemoteAPIService
+									.readSnapshotIDByUniqueID(DataService.getUniqueID(latestSnapshot));
+							if (latestSnapshot.equals(remoteSnapshotID)) {
+								logger.info(" no need to restore - snapshot:" + latestSnapshot + " is up to date!");
+							} else {
+								logger.info("......restoring: " + snapshotID);
+								
+								ItemCollection snapshot=dataService.loadSnapshot(latestSnapshot, session);
+								RemoteAPIService.restoreSnapshot(snapshot);
+								restoreCount++;
+							}
+						} else {
+							
+							logger.info(".... Stange  we found not latest snapthost matching our restore time range!");
 						}
 
 					}
 				}
-				
+
 				// adjust snyncdate for one day....
-				calSyncDate.add(Calendar.DAY_OF_MONTH, 1);
+				calendarSyncPoint.add(Calendar.DAY_OF_MONTH, 1);
 				// update metadata...
-				metadata.setItemValue(ITEM_RESTORE_SYNCPOINT,calSyncDate.getTimeInMillis());
+				metadata.setItemValue(ITEM_RESTORE_SYNCPOINT, calendarSyncPoint.getTimeInMillis());
 				dataService.saveMetadata(metadata, session);
-				
+
 			}
 
-			logger.info("...restore finished at Syncpoint: " + calSyncDate.getTime());
+			logger.info("...restore finished at Syncpoint: " + calendarSyncPoint.getTime());
+			logger.info("..." + restoreCount + " snapshots restored");
 
 			timer.cancel();
 
@@ -288,6 +312,58 @@ public class RestoreService {
 			}
 		}
 
+	}
+
+	/**
+	 * This method loads all snapshots for a given uniqueid.
+	 * 
+	 * If the latest snapshot in the list if before the given CalSyncDay and after
+	 * the given Restore.From timepoint, the snapshotid will be returned.
+	 * 
+	 * @param uniqueID
+	 *            - a given uniqueid to be analyzed
+	 * @param calRestoreFrom
+	 *            - the erliest point of time a restore is requested
+	 * @param calSyncDay
+	 *            - the current restore sync point.
+	 * @param session
+	 *            - archive session
+	 * @return
+	 */
+	@Deprecated
+	public String findRestoreSnapshot(String uniqueID, long restoreFrom, long restoreTo, long restoreSyncPoint,
+			Session session) {
+		logger.info("...verify uniqueID:" + uniqueID);
+		// verify all snapshots for this uniqueid...
+		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(uniqueID, session);
+		// sort result in reverse order....
+		_tmpSnapshots.sort(Comparator.reverseOrder()); // .naturalOrder());
+
+		// special logging....
+		for (String _tmpSnapshotID : _tmpSnapshots) {
+			logger.info(".......           :" + _tmpSnapshotID);
+		}
+
+		// iterate over all snapshots found for the given UnqiueID....
+		for (String _tmpSnapshotID : _tmpSnapshots) {
+			long snapshotTime = DataService.getSnapshotTime(_tmpSnapshotID);
+			// if the snapshotTime is in range.....
+			if (snapshotTime >= restoreFrom && snapshotTime <= restoreSyncPoint) {
+				// ... but after the current restoreSyncPoint....
+				if (snapshotTime > restoreSyncPoint) {
+					// ... than we skip this snapshot (it will be restored later...)
+					logger.info("---skipp: " + _tmpSnapshotID);
+					break;
+				} else {
+					// this is the one we need testore!
+					logger.info(" => restore : " + _tmpSnapshotID + " from: " + new Date(snapshotTime));
+					return _tmpSnapshotID;
+				}
+			}
+		}
+
+		// no match
+		return null;
 	}
 
 	/**

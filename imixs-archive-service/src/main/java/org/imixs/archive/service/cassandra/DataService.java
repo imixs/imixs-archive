@@ -316,9 +316,7 @@ public class DataService {
 			String snapshotID = row.getString(1);
 			result.add(snapshotID);
 		}
-
-		// sort result....
-		result.sort(Comparator.reverseOrder()); // .naturalOrder());
+		
 		return result;
 	}
 
@@ -461,17 +459,17 @@ public class DataService {
 	}
 
 	/**
-	 * Returns the snapshot time stamp of a $SnapshotID
+	 * Returns the snapshot time n milis of a $SnapshotID
 	 * 
 	 * @param snapshotID
-	 * @return date - snapshot time
+	 * @return long - snapshot time
 	 */
-	public static Date getSnapshotTime(String snapshotID) {
+	public static long getSnapshotTime(String snapshotID) {
 		if (snapshotID != null && snapshotID.contains("-")) {
 			String sTime=snapshotID.substring(snapshotID.lastIndexOf("-")+1);
-			return new Date(Long.parseLong(sTime));
+			return Long.parseLong(sTime);
 		}
-		return null;
+		return 0;
 
 	}
 }

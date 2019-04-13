@@ -25,7 +25,8 @@
 
 								<tr>
 									<td style="width: 25%;">Last Archive Syncpoint:</td>
-									<td>#{restoreController.syncPoint}</td>
+									<!-- format in ms -->
+									<td>#{restoreController.syncPointISO}</td>
 								</tr>
 
 								<tr>
@@ -37,7 +38,11 @@
 								<tr>
 									<td>Restore to:</td>
 									<td><h:inputText value="#{restoreController.restoreTo}"></h:inputText>
-										Format: yyyy-MM-dd'T'HH:mm:ss</td>
+										Format: yyyy-MM-dd'T'HH:mm:ss
+										
+										
+										ACHTUNG RUNDUNGSFehler um 1sec
+										</td>
 								</tr>
 							</table>
 						</div>

@@ -47,10 +47,6 @@ import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
-import org.imixs.workflow.services.rest.BasicAuthenticator;
-import org.imixs.workflow.services.rest.FormAuthenticator;
-import org.imixs.workflow.services.rest.RestAPIException;
-import org.imixs.workflow.services.rest.RestClient;
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -82,10 +78,7 @@ public class SyncService {
 	public final static String ITEM_SYNCCOUNT = "$sync_count";
 	public final static String ITEM_SYNCSIZE = "$sync_size";
 	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
-	public final static String SNAPSHOT_SYNCPOINT_RESOURCE = "snapshot/syncpoint/";
-	public final static String SNAPSHOT_RESOURCE = "snapshot/";
-	public final static String DOCUMENTS_RESOURCE = "documents/";
-
+		
 	private final static int MAX_COUNT = 100;
 
 	@Resource
@@ -383,7 +376,7 @@ public class SyncService {
 
 			while (count < MAX_COUNT) {
 
-				XMLDataCollection xmlDataCollection = readSyncData(syncPoint);
+				XMLDataCollection xmlDataCollection = RemoteAPIService.readSyncData(syncPoint);
 
 				if (xmlDataCollection != null) {
 					List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
@@ -458,113 +451,8 @@ public class SyncService {
 		}
 	}
 
-	/**
-	 * This method read sync data. The method returns the first workitem from the
-	 * given syncpoint. If no data is available the method returns null.
-	 * 
-	 * 
-	 * @return an XMLDataCollection instance representing the data to sync or null
-	 *         if no data form the given syncpoint is available.
-	 * @throws ArchiveException
-	 * 
-	 */
-	XMLDataCollection readSyncData(long syncPoint) throws ArchiveException {
-		XMLDataCollection result = null;
-		// load next document
-
-		RestClient workflowClient = initWorkflowClient();
-		String url = SNAPSHOT_SYNCPOINT_RESOURCE + syncPoint;
-		logger.finest("...... read data: " + url + "....");
-
-		try {
-			result = workflowClient.getXMLDataCollection(url);
-		} catch (RestAPIException e) {
-			String errorMessage = "...failed to readSyncData : " + e.getMessage();
-			messageService.logMessage(errorMessage);
-			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
-		}
-
-		if (result != null && result.getDocument().length > 0) {
-			return result;
-		}
-		return null;
-	}
-
-	/**
-	 * This method read the current snapshot id for a given UnqiueID. This
-	 * information can be used to verify the sync satus of a singel process
-	 * instance.
-	 * 
-	 * @return the current snapshotid
-	 * @throws ArchiveException
-	 * 
-	 */
-	public String readSnapshotIDByUniqueID(String uniqueid) throws ArchiveException {
-		String result = null;
-		// load single document
-		RestClient workflowClient = initWorkflowClient();
-		String url = DOCUMENTS_RESOURCE + uniqueid + "?items=$snapshotid";
-		logger.finest("...... read snapshotid: " + url + "....");
-
-		try {
-			XMLDataCollection xmlDocument = workflowClient.getXMLDataCollection(url);
-			if (xmlDocument != null && xmlDocument.getDocument().length > 0) {
-				ItemCollection document = XMLDocumentAdapter.putDocument(xmlDocument.getDocument()[0]);
-				result = document.getItemValueString("$snapshotid");
-			}
-
-		} catch (RestAPIException e) {
-			String errorMessage = "...failed to readSyncData : " + e.getMessage();
-			messageService.logMessage(errorMessage);
-			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
-		}
-
-		return result;
-	}
-
-	public void restoreSnapshot(ItemCollection snapshot) throws ArchiveException {
-		RestClient restClient = initWorkflowClient();
-		String url = SNAPSHOT_RESOURCE;
-		logger.finest("...... post data: " + url + "....");
-		try {
-			restClient.postDocument(url, snapshot);
-		} catch (RestAPIException e) {
-			String errorMessage = "...failed to restoreSnapshot: " + e.getMessage();
-			messageService.logMessage(errorMessage);
-			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
-		}
-
-	}
-
-	/**
-	 * Helper method to initalize a Melman Workflow Client based on the current
-	 * archive configuration.
-	 */
-	RestClient initWorkflowClient() {
-		String url = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, null);
-		String autMethod = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_AUTHMETHOD, null);
-		String user = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_USER, null);
-		String password = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_PASSWORD, null);
-
-		logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + url);
-
-		RestClient workflowClient = new RestClient(url);
-
-		// Test authentication method
-		if ("Form".equalsIgnoreCase(autMethod)) {
-			// default basic authenticator
-			FormAuthenticator formAuth = new FormAuthenticator(url, user, password);
-			// register the authenticator
-			workflowClient.registerRequestFilter(formAuth);
-
-		} else {
-			// default basic authenticator
-			BasicAuthenticator basicAuth = new BasicAuthenticator(user, password);
-			// register the authenticator
-			workflowClient.registerRequestFilter(basicAuth);
-		}
-		return workflowClient;
-	}
+	
+	
 
 	/**
 	 * count total value size...
