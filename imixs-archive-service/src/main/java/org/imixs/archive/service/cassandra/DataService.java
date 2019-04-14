@@ -6,9 +6,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -524,6 +522,15 @@ public class DataService {
 			return baos.size();
 		} catch (IOException e) {
 			logger.warning("...unable to calculate document size!");
+		} finally {
+			if (baos!=null) {
+				try {
+					baos.close();
+				} catch (IOException e) {
+					logger.warning("failed to close stream");
+					e.printStackTrace();
+				}
+			}
 		}
 
 		return 0;

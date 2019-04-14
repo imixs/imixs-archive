@@ -8,6 +8,9 @@
 	template="/layout/template.xhtml">
 
 	<ui:define name="content">
+	
+		<ui:param name="isrunning" value="#{restoreController.isRunning()}"></ui:param>
+	
 		<h:form>
 			<div class="imixs-form">
 				<div class="imixs-header">
@@ -33,13 +36,13 @@
 
 								<tr>
 									<td>Restore from:</td>
-									<td><h:inputText value="#{restoreController.restoreFrom}"></h:inputText>
+									<td><h:inputText disabled="#{isrunning}" value="#{restoreController.restoreFrom}"></h:inputText>
 										Format: yyyy-MM-dd'T'HH:mm:ss</td>
 								</tr>
 
 								<tr>
 									<td>Restore to:</td>
-									<td><h:inputText value="#{restoreController.restoreTo}"></h:inputText>
+									<td><h:inputText disabled="#{isrunning}" value="#{restoreController.restoreTo}"></h:inputText>
 										Format: yyyy-MM-dd'T'HH:mm:ss</td>
 								</tr>
 							</table>
@@ -93,12 +96,12 @@
 				</div>
 
 				<p style="margin-left: 10px;">
-					<h:commandButton value="start" action="monitor.xhtml"
-						rendered="#{! restoreController.isRunning()}"
+					<h:commandButton value="start"
+						rendered="#{!isrunning}"
 						actionListener="#{restoreController.startRestore()}"></h:commandButton>
 
-					<h:commandButton value="stop" action="monitor.xhtml"
-						rendered="#{restoreController.isRunning()}"
+					<h:commandButton value="stop"
+						rendered="#{isrunning}"
 						actionListener="#{restoreController.startRestore()}"></h:commandButton>
 				</p>
 			</div>

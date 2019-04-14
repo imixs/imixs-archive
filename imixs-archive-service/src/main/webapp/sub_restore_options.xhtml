@@ -7,6 +7,8 @@
 	xmlns:fn="http://xmlns.jcp.org/jsp/jstl/functions">
 
 
+	<ui:param name="isrunning" value="#{restoreController.isRunning()}"></ui:param>
+	
 	<h:panelGroup layout="block" styleClass="imixs-form-section"
 		id="optionlist"  binding="#{optionlistContainer}">
 
@@ -25,10 +27,10 @@
 				<ui:repeat var="option" value="#{restoreController.options}">
 					<tr>
 						<!-- itemname -->
-						<td><h:inputText value="#{option.item['name']}" style="width:170px;" /></td>
+						<td><h:inputText disabled="#{isrunning}" value="#{option.item['name']}" style="width:170px;" /></td>
 
 						<!-- filter -->
-						<td><h:inputText value="#{option.item['filter']}" style="width:100%;" /></td>
+						<td><h:inputText disabled="#{isrunning}" value="#{option.item['filter']}" style="width:100%;" /></td>
 						
 					
 						<td><h:commandLink
@@ -43,10 +45,14 @@
 
 			</table>
 			<!-- add button -->
-			<h:commandButton value="#{message.add}" pt:data-id="addposbutton_id"
+			<h:commandButton disabled="#{isrunning}" value="#{message.add}" pt:data-id="addposbutton_id"
 				actionListener="#{restoreController.addOption}">
 			</h:commandButton>
 		</f:ajax>
+		
+		<p class="small">
+			Example: type=(process$)|(space$)  - matches all documents with the type ending on 'process' or 'space'
+		</p>
 	</h:panelGroup>
 
 
