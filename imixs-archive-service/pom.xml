@@ -186,6 +186,11 @@
 			<artifactId>imixs-workflow-core</artifactId>
 			<scope>compile</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-melman</artifactId>
+			<scope>compile</scope>
+		</dependency>
 
 		<!-- DaraStax Java Driver -->
 		<dependency>

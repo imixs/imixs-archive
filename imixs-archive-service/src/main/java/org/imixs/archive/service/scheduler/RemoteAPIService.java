@@ -28,11 +28,12 @@ import javax.ejb.Stateless;
 
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
+import org.imixs.melman.BasicAuthenticator;
+import org.imixs.melman.DocumentClient;
+import org.imixs.melman.FormAuthenticator;
+import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.services.rest.BasicAuthenticator;
-import org.imixs.workflow.services.rest.FormAuthenticator;
-import org.imixs.workflow.services.rest.RestAPIException;
-import org.imixs.workflow.services.rest.RestClient;
+
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
@@ -67,12 +68,12 @@ public class RemoteAPIService {
 		XMLDataCollection result = null;
 		// load next document
 
-		RestClient workflowClient = initWorkflowClient();
+		DocumentClient documentClient = initWorkflowClient();
 		String url = SNAPSHOT_SYNCPOINT_RESOURCE + syncPoint;
 		logger.finest("...... read data: " + url + "....");
 
 		try {
-			result = workflowClient.getXMLDataCollection(url);
+			result = documentClient.getCustomResourceXML(url);
 		} catch (RestAPIException e) {
 			String errorMessage = "...failed to readSyncData : " + e.getMessage();
 			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
@@ -96,12 +97,12 @@ public class RemoteAPIService {
 	public static String readSnapshotIDByUniqueID(String uniqueid) throws ArchiveException {
 		String result = null;
 		// load single document
-		RestClient workflowClient = initWorkflowClient();
+		DocumentClient documentClient = initWorkflowClient();
 		String url = DOCUMENTS_RESOURCE + uniqueid + "?items=$snapshotid";
 		logger.finest("...... read snapshotid: " + url + "....");
 
 		try {
-			XMLDataCollection xmlDocument = workflowClient.getXMLDataCollection(url);
+			XMLDataCollection xmlDocument = documentClient.getCustomResourceXML(url);
 			if (xmlDocument != null && xmlDocument.getDocument().length > 0) {
 				ItemCollection document = XMLDocumentAdapter.putDocument(xmlDocument.getDocument()[0]);
 				result = document.getItemValueString("$snapshotid");
@@ -116,11 +117,12 @@ public class RemoteAPIService {
 	}
 
 	public static void restoreSnapshot(ItemCollection snapshot) throws ArchiveException {
-		RestClient restClient = initWorkflowClient();
+		DocumentClient documentClient = initWorkflowClient();
 		String url = SNAPSHOT_RESOURCE;
 		logger.finest("...... post data: " + url + "....");
 		try {
-			restClient.postDocument(url, snapshot);
+			//documentClient.postDocument(url, snapshot);
+			documentClient.postXMLDocument(url, XMLDocumentAdapter.getDocument(snapshot));
 		} catch (RestAPIException e) {
 			String errorMessage = "...failed to restoreSnapshot: " + e.getMessage();
 			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
@@ -132,7 +134,7 @@ public class RemoteAPIService {
 	 * Helper method to initalize a Melman Workflow Client based on the current
 	 * archive configuration.
 	 */
-	static RestClient initWorkflowClient() {
+	static DocumentClient initWorkflowClient() {
 		String url = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, null);
 		String autMethod = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_AUTHMETHOD, null);
 		String user = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_USER, null);
@@ -140,21 +142,21 @@ public class RemoteAPIService {
 
 		logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + url);
 
-		RestClient workflowClient = new RestClient(url);
+		DocumentClient documentClient = new DocumentClient(url);
 
 		// Test authentication method
 		if ("Form".equalsIgnoreCase(autMethod)) {
 			// default basic authenticator
 			FormAuthenticator formAuth = new FormAuthenticator(url, user, password);
 			// register the authenticator
-			workflowClient.registerRequestFilter(formAuth);
+			documentClient.registerClientRequestFilter(formAuth);
 
 		} else {
 			// default basic authenticator
 			BasicAuthenticator basicAuth = new BasicAuthenticator(user, password);
 			// register the authenticator
-			workflowClient.registerRequestFilter(basicAuth);
+			documentClient.registerClientRequestFilter(basicAuth);
 		}
-		return workflowClient;
+		return documentClient;
 	}
 }

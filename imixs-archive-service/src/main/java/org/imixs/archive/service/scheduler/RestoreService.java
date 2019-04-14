@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import javax.annotation.Resource;
 import javax.ejb.EJB;
@@ -203,7 +204,7 @@ public class RestoreService {
 		Calendar calendarSyncPoint;
 		long syncpoint;
 		int restoreCount = 0;
-		int restoreErrors=0;
+		int restoreErrors = 0;
 		long restoreSize = 0;
 		long startTime = System.currentTimeMillis();
 		try {
@@ -240,7 +241,7 @@ public class RestoreService {
 				List<String> snapshotIDs = dataService.loadSnapshotsByDate(calendarSyncPoint.getTime(), session);
 				// verify all snapshots of this day....
 				if (!snapshotIDs.isEmpty()) {
-					logger.info("......analyze snapshotIDs from " + calendarSyncPoint.getTime());
+					logger.finest("......analyze snapshotIDs from " + calendarSyncPoint.getTime());
 					// print out the snapshotIDs we found
 					for (String snapshotID : snapshotIDs) {
 
@@ -254,20 +255,36 @@ public class RestoreService {
 							String remoteSnapshotID = RemoteAPIService
 									.readSnapshotIDByUniqueID(DataService.getUniqueID(latestSnapshot));
 							if (latestSnapshot.equals(remoteSnapshotID)) {
-								logger.info(" no need to restore - snapshot:" + latestSnapshot + " is up to date!");
+								logger.finest("......no need to restore - snapshot:" + latestSnapshot + " is up to date!");
 							} else {
 								// test the filter options
 								if (matchFilterOptions(latestSnapshot, options, session)) {
-									logger.info("......restoring: " + latestSnapshot);
-									snapshot = dataService.loadSnapshot(latestSnapshot, session);
-									RemoteAPIService.restoreSnapshot(snapshot);
-									restoreSize = restoreSize
-											+ DataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
-									restoreCount++;
+									long _tmpSize = -1;
+									try {
+										logger.info("......restoring: " + latestSnapshot);
+										snapshot = dataService.loadSnapshot(latestSnapshot, session);
+										_tmpSize = DataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
+										logger.info("......size=: " + _tmpSize);
+
+										if (_tmpSize==30506895) {
+											logger.info("......debug size=: " + _tmpSize);
+										}
+										RemoteAPIService.restoreSnapshot(snapshot);
+										
+										
+										
+										restoreSize = restoreSize + _tmpSize;
+										restoreCount++;
+										snapshot = null;
+									} catch (Exception e) {
+										logger.severe("...Failed to restore '" + latestSnapshot + "' ("
+												+ MessageService.userFriendlyBytes(_tmpSize) + ") - "+e.getMessage());
+										restoreErrors++;
+									}
 								}
 							}
 						} else {
-							logger.info(".... Stange  we found no latest snapthost matching our restore time range!");
+							logger.warning(".... unexpected data situation:  we found no latest snapthost matching our restore time range!");
 						}
 
 					}
@@ -280,8 +297,7 @@ public class RestoreService {
 				metadata.setItemValue(ITEM_RESTORE_SYNCCOUNT, restoreCount);
 				metadata.setItemValue(ITEM_RESTORE_SYNCSIZE, restoreSize);
 				metadata.setItemValue(ITEM_RESTORE_SYNCERRORS, restoreErrors);
-				
-				
+
 				dataService.saveMetadata(metadata, session);
 
 			}
@@ -333,7 +349,7 @@ public class RestoreService {
 
 		// --- special debug logging....
 		for (String _tmpSnapshotID : _tmpSnapshots) {
-			logger.info(".......           :" + _tmpSnapshotID);
+			logger.finest(".......           :" + _tmpSnapshotID);
 		}
 
 		// find the latest snapshot within the restore time range.....
@@ -348,7 +364,7 @@ public class RestoreService {
 				}
 			} else {
 				// this snapshot is out of scope because it is not in range
-				logger.info(".... skip snapshot (out of range): " + _tmpSnapshotID);
+				logger.finest(".... skip snapshot (out of sync range): " + _tmpSnapshotID);
 			}
 
 		}
@@ -384,75 +400,25 @@ public class RestoreService {
 
 		// load snapshot data without document data and verify the options
 		_tmp_snapshot_data = dataService.loadSnapshot(snapshotID, false, session);
-
 		for (ItemCollection option : options) {
 			String itemName = option.getItemValueString("name");
-			String regex = option.getItemValueString("filter");
+			Pattern regexPattern = Pattern.compile(option.getItemValueString("filter").trim());
 
 			// did the filter match al values?
 			List<String> valueList = _tmp_snapshot_data.getItemValueList(itemName, String.class);
 			for (String value : valueList) {
-				if (!value.matches(regex)) {
-					logger.info(" snapshot value '" + value + "' did not match filter option '" + regex + "'");
+				if (!regexPattern.matcher(value).find()) {
+					logger.fine(" snapshot value '" + value + "' did not match filter option '" + regexPattern + "'");
+					_tmp_snapshot_data = null;
 					return false;
 				}
 			}
 		}
 		// all filter did match!
+		_tmp_snapshot_data = null;
 		return true;
 	}
 
-	/**
-	 * This method loads all snapshots for a given uniqueid.
-	 * 
-	 * If the latest snapshot in the list if before the given CalSyncDay and after
-	 * the given Restore.From timepoint, the snapshotid will be returned.
-	 * 
-	 * @param uniqueID
-	 *            - a given uniqueid to be analyzed
-	 * @param calRestoreFrom
-	 *            - the erliest point of time a restore is requested
-	 * @param calSyncDay
-	 *            - the current restore sync point.
-	 * @param session
-	 *            - archive session
-	 * @return
-	 */
-	@Deprecated
-	public String findRestoreSnapshot(String uniqueID, long restoreFrom, long restoreTo, long restoreSyncPoint,
-			Session session) {
-		logger.info("...verify uniqueID:" + uniqueID);
-		// verify all snapshots for this uniqueid...
-		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(uniqueID, session);
-		// sort result in reverse order....
-		_tmpSnapshots.sort(Comparator.reverseOrder()); // .naturalOrder());
-
-		// special logging....
-		for (String _tmpSnapshotID : _tmpSnapshots) {
-			logger.info(".......           :" + _tmpSnapshotID);
-		}
-
-		// iterate over all snapshots found for the given UnqiueID....
-		for (String _tmpSnapshotID : _tmpSnapshots) {
-			long snapshotTime = DataService.getSnapshotTime(_tmpSnapshotID);
-			// if the snapshotTime is in range.....
-			if (snapshotTime >= restoreFrom && snapshotTime <= restoreSyncPoint) {
-				// ... but after the current restoreSyncPoint....
-				if (snapshotTime > restoreSyncPoint) {
-					// ... than we skip this snapshot (it will be restored later...)
-					logger.info("---skipp: " + _tmpSnapshotID);
-					break;
-				} else {
-					// this is the one we need testore!
-					logger.info(" => restore : " + _tmpSnapshotID + " from: " + new Date(snapshotTime));
-					return _tmpSnapshotID;
-				}
-			}
-		}
-
-		// no match
-		return null;
-	}
 
 	/**
 	 * This method returns a timer for a corresponding id if such a timer object

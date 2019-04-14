@@ -155,4 +155,18 @@ The method _findSnapshotsByUnqiueID_ or _findSnapshotsByDate_ can be used select
 
  	
 
+# Wildfly max-post-size
 
+In wildfly server there is a default max-post-size of 24mb. This can be a problem if you need to restore snapshot with large data. But you can overwrite the max-post-size in the standalone xml file:
+
+	<server name="default-server">
+        	<!-- max-post-size="25485760" -->
+            <http-listener name="default" max-post-size="104857600" socket-binding="http" redirect-socket="https" enable-http2="true"/>
+            <https-listener name="https" socket-binding="https" security-realm="ApplicationRealm" enable-http2="true"/>
+            <host name="default-host" alias="localhost">
+                <location name="/" handler="welcome-content"/>
+                <http-invoker security-realm="ApplicationRealm"/>
+            </host>
+        </server>
+
+**Note:** This change need to be made on the server side of your imixs-workflow instance. The Imixs-Archive Service is not affected from this issue.         

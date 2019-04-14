@@ -10,6 +10,8 @@ services:
       # ARCHIVE_SCHEDULER_DEFINITION: "hour=*"
       # ARCHIVE_CLUSTER_REPLICATION_FACTOR: "1"
       # ARCHIVE_CLUSTER_REPLICATION_CLASS: "SimpleStrategy"
+      TZ: "Europe/Berlin"
+      # JAVA_OPTS: "-Xms512m -Xmx1g -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=$JBOSS_MODULES_SYSTEM_PKGS -Djava.awt.headless=true"
     ports:
       - "8080:8080"
 

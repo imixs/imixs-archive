@@ -15,7 +15,7 @@
 			<div class="imixs-form">
 				<div class="imixs-header">
 					<h1>
-						<span class="typcn typcn-database"></span>Restore
+						<span class="typcn typcn-database"></span>Restore <h:outputText rendered="#{isrunning}" value=" - In Progress"  />
 					</h1>
 				</div>
 
@@ -96,11 +96,11 @@
 				</div>
 
 				<p style="margin-left: 10px;">
-					<h:commandButton value="start"
+					<h:commandButton value="start" action="restore?faces-redirect=true"
 						rendered="#{!isrunning}"
 						actionListener="#{restoreController.startRestore()}"></h:commandButton>
 
-					<h:commandButton value="stop"
+					<h:commandButton value="stop"  action="restore?faces-redirect=true"
 						rendered="#{isrunning}"
 						actionListener="#{restoreController.startRestore()}"></h:commandButton>
 				</p>
