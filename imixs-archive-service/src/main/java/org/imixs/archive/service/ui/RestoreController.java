@@ -84,8 +84,7 @@ public class RestoreController implements Serializable {
 		// load metadata
 		metaData = dataService.loadMetadata(session);
 		// load options
-		explodeOptions();
-
+		options = restoreService.getOptions(metaData);
 	}
 
 	/**
@@ -167,6 +166,10 @@ public class RestoreController implements Serializable {
 	public long getRestoreCount() {
 		return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCCOUNT);
 	}
+	
+	public long getRestoreErrors() {
+		return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCERRORS);
+	}
 
 	public String getRestoreSize() {
 		long l = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCSIZE);
@@ -209,7 +212,7 @@ public class RestoreController implements Serializable {
 	public void startRestore() {
 		try {
 			logger.info("......init restore process: " + this.getRestoreFrom() + " to " + this.getRestoreTo());
-			implodeOptions();
+			restoreService.setOptions(options, metaData);
 			restoreService.start(restoreDateFrom, restoreDateTo,
 					metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS));
 		} catch (ArchiveException e) {
@@ -256,11 +259,11 @@ public class RestoreController implements Serializable {
 		if (options == null) {
 			options = new ArrayList<ItemCollection>();
 		}
-	
+
 		ItemCollection itemCol = new ItemCollection();
 		itemCol.replaceItemValue("type", "filter");
 		options.add(itemCol);
-	
+
 	}
 
 	/**
@@ -270,7 +273,7 @@ public class RestoreController implements Serializable {
 	 */
 	public void removeOption(String optionName) {
 		if (options != null) {
-	
+
 			int iPos = 0;
 			for (ItemCollection item : options) {
 				if (optionName.equals(item.getItemValueString("name"))) {
@@ -282,42 +285,5 @@ public class RestoreController implements Serializable {
 		}
 	}
 
-	/**
-	 * Convert the List of ItemCollections back into a List of Map elements
-	 * 
-	 * @param workitem
-	 */
-	@SuppressWarnings({ "rawtypes" })
-	protected void implodeOptions() {
-		List<Map> mapOrderItems = new ArrayList<Map>();
-		// convert the child ItemCollection elements into a List of Map
-		if (options != null) {
-			logger.fine("Convert option items into Map...");
-			// iterate over all order items..
-			for (ItemCollection orderItem : options) {
-				mapOrderItems.add(orderItem.getAllItems());
-			}
-			metaData.replaceItemValue(RestoreService.ITEM_RESTORE_OPTIONS, mapOrderItems);
-		}
-	}
-
-	/**
-	 * converts the Map List of the options, stored in the metadata object, into a
-	 * List of ItemCollectons
-	 */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	protected void explodeOptions() {
-		// convert current list of childItems into ItemCollection elements
-		options = new ArrayList<ItemCollection>();
-
-		List<Object> mapOrderItems = metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS);
-		for (Object mapOderItem : mapOrderItems) {
-			if (mapOderItem instanceof Map) {
-				ItemCollection itemCol = new ItemCollection((Map) mapOderItem);
-
-				options.add(itemCol);
-			}
-		}
-	}
-
+	
 }

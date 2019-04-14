@@ -2,6 +2,8 @@ package org.imixs.archive.service.cassandra;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
@@ -251,7 +253,39 @@ public class DataService {
 		return (row != null);
 	}
 
+	/**
+	 * This method loads a snapshot form the cassandra cluster. The snapshot data
+	 * includes also the accociated document data. In case you need only the
+	 * snapshotdata without documents use loadSnapshot(id,false,session).
+	 * 
+	 * @param snapshotID
+	 *            - snapshot id
+	 * @param session
+	 *            - cassandra session
+	 * @return snapshot data including documents
+	 * @throws ArchiveException
+	 */
 	public ItemCollection loadSnapshot(String snapshotID, Session session) throws ArchiveException {
+		return loadSnapshot(snapshotID, true, session);
+	}
+
+	/**
+	 * Thist method loads a snapshot form the cassandra cluster.
+	 * <p>
+	 * 
+	 * @param snapshotID
+	 *            - snapshot id
+	 * @param mergeDocuments
+	 *            - boolean, if true the accociated document data will be loaded and
+	 *            merged into the snapshot data object.
+	 * 
+	 * @param session
+	 *            - cassandra session
+	 * @return snapshot data
+	 * @throws ArchiveException
+	 */
+	public ItemCollection loadSnapshot(String snapshotID, boolean mergeDocuments, Session session)
+			throws ArchiveException {
 		ItemCollection snapshot = new ItemCollection();
 
 		// select snapshot...
@@ -316,7 +350,7 @@ public class DataService {
 			String snapshotID = row.getString(1);
 			result.add(snapshotID);
 		}
-		
+
 		return result;
 	}
 
@@ -466,9 +500,32 @@ public class DataService {
 	 */
 	public static long getSnapshotTime(String snapshotID) {
 		if (snapshotID != null && snapshotID.contains("-")) {
-			String sTime=snapshotID.substring(snapshotID.lastIndexOf("-")+1);
+			String sTime = snapshotID.substring(snapshotID.lastIndexOf("-") + 1);
 			return Long.parseLong(sTime);
 		}
+		return 0;
+
+	}
+	
+	/**
+	 * count total value size...
+	 * 
+	 * @param xmldoc
+	 * @return
+	 */
+	public static long calculateSize(XMLDocument xmldoc) {
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ObjectOutputStream oos;
+		try {
+			oos = new ObjectOutputStream(baos);
+			oos.writeObject(xmldoc);
+			oos.close();
+			return baos.size();
+		} catch (IOException e) {
+			logger.warning("...unable to calculate document size!");
+		}
+
 		return 0;
 
 	}

@@ -397,7 +397,7 @@ public class SyncService {
 							dataService.saveSnapshot(snapshot, session);
 							count++;
 							totalCount++;
-							totalSize = totalSize + calculateSize(xmlDocument);
+							totalSize = totalSize + DataService.calculateSize(xmlDocument);
 						} else {
 							// This is because in case of a restore, the same snapshot takes a new $modified
 							// item. And we do not want to re-import the snapshot in the next sync cycle.
@@ -454,26 +454,5 @@ public class SyncService {
 	
 	
 
-	/**
-	 * count total value size...
-	 * 
-	 * @param xmldoc
-	 * @return
-	 */
-	long calculateSize(XMLDocument xmldoc) {
-
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ObjectOutputStream oos;
-		try {
-			oos = new ObjectOutputStream(baos);
-			oos.writeObject(xmldoc);
-			oos.close();
-			return baos.size();
-		} catch (IOException e) {
-			logger.warning("...unable to calculate document size!");
-		}
-
-		return 0;
-
-	}
+	
 }
