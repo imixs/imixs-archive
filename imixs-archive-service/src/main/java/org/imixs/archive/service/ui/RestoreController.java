@@ -3,16 +3,17 @@ package org.imixs.archive.service.ui;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.ejb.Timer;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.context.SessionScoped;
+import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 
 import org.imixs.archive.service.ArchiveException;
@@ -37,7 +38,8 @@ import com.datastax.driver.core.Session;
  *
  */
 @Named
-@RequestScoped
+// @RequestScoped
+@ViewScoped
 public class RestoreController implements Serializable {
 
 	public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
@@ -51,6 +53,8 @@ public class RestoreController implements Serializable {
 	long restoreDateTo;
 	String restoreSizeUnit = null;
 	ItemCollection metaData = null;
+
+	protected List<ItemCollection> options = null;
 
 	@EJB
 	ClusterService clusterService;
@@ -79,6 +83,8 @@ public class RestoreController implements Serializable {
 
 		// load metadata
 		metaData = dataService.loadMetadata(session);
+		// load options
+		explodeOptions();
 
 	}
 
@@ -128,7 +134,7 @@ public class RestoreController implements Serializable {
 			// restoreTo date in seconds only, we need to ajust the restoreTo timestamp per
 			// 1 second! Otherwise the last snaspshot is typically excluded from the restore
 			// because of its milisecond precission.
-			restoreDateTo=restoreDateTo+1000; // !!
+			restoreDateTo = restoreDateTo + 1000; // !!
 		}
 		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
 		return dt.format(restoreDateTo);
@@ -199,10 +205,13 @@ public class RestoreController implements Serializable {
 	 * 
 	 * 
 	 */
+	@SuppressWarnings("unchecked")
 	public void startRestore() {
 		try {
 			logger.info("......init restore process: " + this.getRestoreFrom() + " to " + this.getRestoreTo());
-			restoreService.start(restoreDateFrom, restoreDateTo);
+			implodeOptions();
+			restoreService.start(restoreDateFrom, restoreDateTo,
+					metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS));
 		} catch (ArchiveException e) {
 			logger.severe("failed to start restore process: " + e.getMessage());
 		}
@@ -222,4 +231,93 @@ public class RestoreController implements Serializable {
 	public List<String> getMessages() {
 		return messageService.getMessages();
 	}
+
+	/**
+	 * This methd returns a ItemCollection for each option
+	 * 
+	 * Example: <code>
+	 *   #{restoreController.options}
+	 * </code>
+	 * 
+	 * @return
+	 */
+	public List<ItemCollection> getOptions() {
+		return options;
+	}
+
+	public void setOptions(List<ItemCollection> options) {
+		this.options = options;
+	}
+
+	/**
+	 * Adds a new filter option
+	 */
+	public void addOption() {
+		if (options == null) {
+			options = new ArrayList<ItemCollection>();
+		}
+	
+		ItemCollection itemCol = new ItemCollection();
+		itemCol.replaceItemValue("type", "filter");
+		options.add(itemCol);
+	
+	}
+
+	/**
+	 * Removes an option by name
+	 * 
+	 * @param optionName
+	 */
+	public void removeOption(String optionName) {
+		if (options != null) {
+	
+			int iPos = 0;
+			for (ItemCollection item : options) {
+				if (optionName.equals(item.getItemValueString("name"))) {
+					options.remove(iPos);
+					break;
+				}
+				iPos++;
+			}
+		}
+	}
+
+	/**
+	 * Convert the List of ItemCollections back into a List of Map elements
+	 * 
+	 * @param workitem
+	 */
+	@SuppressWarnings({ "rawtypes" })
+	protected void implodeOptions() {
+		List<Map> mapOrderItems = new ArrayList<Map>();
+		// convert the child ItemCollection elements into a List of Map
+		if (options != null) {
+			logger.fine("Convert option items into Map...");
+			// iterate over all order items..
+			for (ItemCollection orderItem : options) {
+				mapOrderItems.add(orderItem.getAllItems());
+			}
+			metaData.replaceItemValue(RestoreService.ITEM_RESTORE_OPTIONS, mapOrderItems);
+		}
+	}
+
+	/**
+	 * converts the Map List of the options, stored in the metadata object, into a
+	 * List of ItemCollectons
+	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	protected void explodeOptions() {
+		// convert current list of childItems into ItemCollection elements
+		options = new ArrayList<ItemCollection>();
+
+		List<Object> mapOrderItems = metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS);
+		for (Object mapOderItem : mapOrderItems) {
+			if (mapOderItem instanceof Map) {
+				ItemCollection itemCol = new ItemCollection((Map) mapOderItem);
+
+				options.add(itemCol);
+			}
+		}
+	}
+
 }

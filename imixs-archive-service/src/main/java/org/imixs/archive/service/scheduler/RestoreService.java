@@ -26,6 +26,7 @@ import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
@@ -83,6 +84,8 @@ public class RestoreService {
 	public final static String ITEM_RESTORE_SYNCPOINT = "restore.$sync_point";
 	public final static String ITEM_RESTORE_SYNCCOUNT = "restore.$sync_count";
 	public final static String ITEM_RESTORE_SYNCSIZE = "restore.$sync_size";
+	public final static String ITEM_RESTORE_OPTIONS = "restore.options";
+	
 
 	private static Logger logger = Logger.getLogger(RestoreService.class.getName());
 
@@ -114,9 +117,11 @@ public class RestoreService {
 	 *            - syncpoint from
 	 * @param datTo
 	 *            - syncpoint to
+	 * @param options - optional list of item map. 
 	 * @throws ArchiveException
 	 */
-	public void start(long restoreFrom, long restoreTo) throws ArchiveException {
+	@SuppressWarnings("rawtypes")
+	public void start(long restoreFrom, long restoreTo,List<Map> options) throws ArchiveException {
 		Timer timer = null;
 
 		// try to cancel an existing timer for this workflowinstance
@@ -147,6 +152,8 @@ public class RestoreService {
 			metaData.setItemValue(ITEM_RESTORE_SYNCPOINT, restoreFrom);
 			metaData.setItemValue(ITEM_RESTORE_SYNCCOUNT, 0);
 			metaData.setItemValue(ITEM_RESTORE_SYNCSIZE, 0);
+			metaData.setItemValue(ITEM_RESTORE_OPTIONS,options);
+			
 
 			// update metadata
 			dataService.saveMetadata(metaData, session);

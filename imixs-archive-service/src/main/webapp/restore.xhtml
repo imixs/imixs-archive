@@ -1,8 +1,10 @@
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
-	xmlns:ui="http://java.sun.com/jsf/facelets"
-	xmlns:f="http://java.sun.com/jsf/core"
-	xmlns:c="http://java.sun.com/jsp/jstl/core"
-	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://xmlns.jcp.org/jsf/core"
+	xmlns:h="http://xmlns.jcp.org/jsf/html"
+	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
+	xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+	xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
+	xmlns:fn="http://xmlns.jcp.org/jsp/jstl/functions"
 	template="/layout/template.xhtml">
 
 	<ui:define name="content">
@@ -38,11 +40,7 @@
 								<tr>
 									<td>Restore to:</td>
 									<td><h:inputText value="#{restoreController.restoreTo}"></h:inputText>
-										Format: yyyy-MM-dd'T'HH:mm:ss
-										
-										
-										ACHTUNG RUNDUNGSFehler um 1sec
-										</td>
+										Format: yyyy-MM-dd'T'HH:mm:ss</td>
 								</tr>
 							</table>
 						</div>
@@ -51,22 +49,30 @@
 				</div>
 
 
-
+				<!-- Options -->
 				<div class="row">
-
-
 					<div class="col-12">
 						<div class="monitor-portlet">
+							<h1>Restore Options:</h1>
+							<f:subview>
+								<ui:include src="/sub_restore_options.xhtml" />
+							</f:subview>
+						</div>
+					</div>
+				</div>
 
+
+
+				<!-- Status -->
+				<div class="row">
+					<div class="col-12">
+						<div class="monitor-portlet">
 							<h1>Restore Status:</h1>
-
 							<p class="lead" style="float: left; width: 32%;">
 								<span class="typcn typcn-cloud-storage-outline"
 									style="color: #5c9e5c;"></span>
 								#{restoreController.restoreSize} <span style="font-size: 0.3em">#{restoreDataController.syncSizeUnit}</span>
 							</p>
-
-
 
 							<p class="lead" style="float: left; width: 32%;">
 								<span class="typcn typcn-arrow-repeat-outline"
@@ -75,9 +81,6 @@
 									syncs</span>
 							</p>
 
-
-
-
 							<p class="lead" style="">
 								<span class="typcn typcn-flash-outline" style="color: #dd4929;"></span>
 								#{restoreController.restoreSize} <span style="font-size: 0.3em">Errors</span>
@@ -85,14 +88,8 @@
 
 							<p class="small">Last Restore Syncpoint:
 								#{restoreController.restoreSyncPoint}</p>
-
-
 						</div>
-
 					</div>
-
-
-
 				</div>
 
 				<p style="margin-left: 10px;">
@@ -104,12 +101,9 @@
 						rendered="#{restoreController.isRunning()}"
 						actionListener="#{restoreController.startRestore()}"></h:commandButton>
 				</p>
-
-
-
-
-
 			</div>
+
+
 		</h:form>
 	</ui:define>
 </ui:composition>

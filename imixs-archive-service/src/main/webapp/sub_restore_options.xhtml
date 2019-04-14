@@ -1,0 +1,76 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://xmlns.jcp.org/jsf/core"
+	xmlns:h="http://xmlns.jcp.org/jsf/html"
+	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
+	xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+	xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
+	xmlns:fn="http://xmlns.jcp.org/jsp/jstl/functions">
+
+
+	<h:panelGroup layout="block" styleClass="imixs-form-section"
+		id="optionlist"  binding="#{optionlistContainer}">
+
+
+		<f:ajax render="optionlist" onevent="updateOptions">
+			<table class="imixsdatatable restore-options" style="width:100%;">
+
+				<tr>
+					<th style="width: 180px;">Item</th>
+					<th>Filter (Regex)</th>
+					<th style="width: 10px;">
+						<!-- delete -->
+					</th>
+				</tr>
+
+				<ui:repeat var="option" value="#{restoreController.options}">
+					<tr>
+						<!-- itemname -->
+						<td><h:inputText value="#{option.item['name']}" style="width:170px;" /></td>
+
+						<!-- filter -->
+						<td><h:inputText value="#{option.item['filter']}" style="width:100%;" /></td>
+						
+					
+						<td><h:commandLink
+								actionListener="#{restoreController.removeOption(option.item['name'])}">
+								<span class="typcn typcn-trash imixs-state-info"></span>
+								<f:ajax render="#{optionlistContainer.clientId}"
+									onevent="updateOptions" />
+							</h:commandLink>
+						</td>
+					</tr>
+				</ui:repeat>
+
+			</table>
+			<!-- add button -->
+			<h:commandButton value="#{message.add}" pt:data-id="addposbutton_id"
+				actionListener="#{restoreController.addOption}">
+			</h:commandButton>
+		</f:ajax>
+	</h:panelGroup>
+
+
+
+
+
+	<script type="text/javascript">
+		/*<![CDATA[*/
+
+		// display summary
+		$(document).ready(function() {
+		});
+
+		// This method refreshs the layout 
+		function updateOptions(data) {
+			if (data.status === 'success') {
+				$('[id$=optionlist]').imixsLayout();
+			}
+		}
+
+		
+		/*]]>*/
+	</script>
+
+
+
+</ui:composition>

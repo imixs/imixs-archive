@@ -182,6 +182,23 @@ th {
 	color: #428bca !important;
 }
 
+.restore-options input {
+	border: 1px solid #fff;
+}
+
+.restore-options input:hover, .restore-options input:active,.restore-options input:focus {
+	border:1px solid #ccc;
+}
+	
+.restore-options:hover {
+	background: #fff;
+}
+
+.restore-options tr:hover td {
+	background: #fff !important;
+}
+
+
 .danger-zone {
 	border: 1px solid #cb2431;
 	border-radius: 4px;
