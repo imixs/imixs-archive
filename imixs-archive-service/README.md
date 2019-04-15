@@ -1,6 +1,7 @@
 # The Imixs-Archive Service
-The _"Imixs-Archive-Service"_ project allows to store the data of an Imixs-Workflow instance into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). 
-The Service is connected to a Cassandra cluster consisting of multiple Data Nodes, which is a highly available and resilient storrage solution. 
+The _"Imixs-Archive-Service"_ project allows to store the data of an Imixs-Workflow instance into a highly available Big Data Platform 
+based on [Apache Cassandra](http://cassandra.apache.org/). 
+The Service is connected to a Cassandra cluster consisting of multiple Data Nodes, which is a highly available and resilient storage solution. 
 
 _Imixs-Archive-Service_ automatically pulls all business process data and documents on a scheduled basis into the Cassandra Cluster.
 You can retrieve a single process instance based on a timeline or restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
@@ -13,7 +14,7 @@ The service prvides a Web UI to control and monitor the archive service:
 
 	http://localhost:8080/
  
-<img src="https://github.com/imixs/imixs-archive/raw/master/imixs-archive-service/imixs-archive-001.png" />	
+<img style="width:80%;" src="https://github.com/imixs/imixs-archive/raw/master/imixs-archive-service/imixs-archive-001.png" />	
 
 
  
