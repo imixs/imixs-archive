@@ -428,6 +428,8 @@ public class SyncService {
 			if (syncread > 0) {
 				messageService.logMessage("... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
 						+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint " + new Date(syncPoint));
+			} else {
+				logger.info("...no data found at syncpoint " + new Date(syncPoint) + "...");
 			}
 		} catch (ArchiveException | RuntimeException e) {
 			// in case of an exception we did not cancel the Timer service
