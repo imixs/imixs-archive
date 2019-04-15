@@ -341,7 +341,8 @@ public class SyncService {
 	@Timeout
 	void onTimeout(javax.ejb.Timer timer) throws Exception {
 		long syncPoint = 0;
-		int count = 0;
+		int syncupdate = 0;
+		int syncread = 0;
 		long totalCount = 0;
 		long totalSize = 0;
 		Session session = null;
@@ -350,8 +351,7 @@ public class SyncService {
 
 		// start time....
 		long lProfiler = System.currentTimeMillis();
-		String keyspaceID = timer.getInfo().toString();
-
+	
 		try {
 
 			cluster = clusterService.getCluster();
@@ -375,7 +375,7 @@ public class SyncService {
 				syncPoint = now.getTime();
 			}
 
-			while (count < MAX_COUNT) {
+			while (syncread < MAX_COUNT) {
 
 				XMLDataCollection xmlDataCollection = RemoteAPIService.readSyncData(syncPoint);
 
@@ -396,7 +396,7 @@ public class SyncService {
 						if (!dataService.existSnapshot(snapshot.getUniqueID(), session)) {
 							// store data into archive
 							dataService.saveSnapshot(snapshot, session);
-							count++;
+							syncupdate++;
 							totalCount++;
 							totalSize = totalSize + DataService.calculateSize(xmlDocument);
 						} else {
@@ -405,6 +405,8 @@ public class SyncService {
 							// see issue #40
 							logger.fine("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
 						}
+
+						syncread++;
 
 						// update metadata
 						metaData.setItemValue(ITEM_SYNCPOINT, syncPoint);
@@ -423,14 +425,8 @@ public class SyncService {
 			}
 
 			// print log message if data was synced
-			if (count > 0) {
-				messageService.logMessage("... "+count + " snapshots synchronized in: "
-						+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint " + new Date(syncPoint));
-			} else {
-				// just a message on the log
-				logger.fine("...sync: '" + keyspaceID + "...finished in: " + ((System.currentTimeMillis()) - lProfiler)
-						+ " ms");
-			}
+			messageService.logMessage("... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
+					+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint " + new Date(syncPoint));
 
 		} catch (ArchiveException | RuntimeException e) {
 			// in case of an exception we did not cancel the Timer service
