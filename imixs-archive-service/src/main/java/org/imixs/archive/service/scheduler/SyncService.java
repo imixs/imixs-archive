@@ -353,8 +353,6 @@ public class SyncService {
 		String keyspaceID = timer.getInfo().toString();
 
 		try {
-			// ...start sync
-			logger.info("...start syncronizing: '" + keyspaceID + "....");
 
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
@@ -364,6 +362,9 @@ public class SyncService {
 			syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
 			totalCount = metaData.getItemValueLong(ITEM_SYNCCOUNT);
 			totalSize = metaData.getItemValueLong(ITEM_SYNCSIZE);
+
+			// ...start sync
+			logger.info("...start syncronizing at syncpoint " + new Date(syncPoint) + "...");
 
 			// Daylight Saving Time Correction
 			// issue #53
@@ -423,8 +424,8 @@ public class SyncService {
 
 			// print log message if data was synced
 			if (count > 0) {
-				messageService.logMessage(count + "...snapshots synchronized in: "
-						+ ((System.currentTimeMillis()) - lProfiler) + " ms - next syncpoint=" + new Date(syncPoint));
+				messageService.logMessage("... "+count + " snapshots synchronized in: "
+						+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint " + new Date(syncPoint));
 			} else {
 				// just a message on the log
 				logger.fine("...sync: '" + keyspaceID + "...finished in: " + ((System.currentTimeMillis()) - lProfiler)
