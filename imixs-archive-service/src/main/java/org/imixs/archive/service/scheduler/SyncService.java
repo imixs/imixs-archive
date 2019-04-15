@@ -78,7 +78,7 @@ public class SyncService {
 	public final static String ITEM_SYNCCOUNT = "$sync_count";
 	public final static String ITEM_SYNCSIZE = "$sync_size";
 	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
-		
+
 	private final static int MAX_COUNT = 100;
 
 	@Resource
@@ -354,7 +354,7 @@ public class SyncService {
 
 		try {
 			// ...start sync
-			logger.fine("...sync: '" + keyspaceID + "....");
+			logger.info("...start syncronizing: '" + keyspaceID + "....");
 
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
@@ -388,7 +388,7 @@ public class SyncService {
 						// update snypoint
 						Date syncpointdate = snapshot.getItemValueDate("$modified");
 						syncPoint = syncpointdate.getTime();
-						logger.fine("...data found - new syncpoint=" + syncPoint);
+						logger.fine("......data found - new syncpoint=" + syncPoint);
 
 						// verify if this snapshot is not already stored - if so, we do not overwrite
 						// the origin data
@@ -423,11 +423,11 @@ public class SyncService {
 
 			// print log message if data was synced
 			if (count > 0) {
-				messageService.logMessage(
-						count + " snapshots synchronized in: " + ((System.currentTimeMillis()) - lProfiler) + " ms");
+				messageService.logMessage(count + "...snapshots synchronized in: "
+						+ ((System.currentTimeMillis()) - lProfiler) + " ms - next syncpoint=" + new Date(syncPoint));
 			} else {
 				// just a message on the log
-				logger.fine("...sync: '" + keyspaceID + " finished in: " + ((System.currentTimeMillis()) - lProfiler)
+				logger.fine("...sync: '" + keyspaceID + "...finished in: " + ((System.currentTimeMillis()) - lProfiler)
 						+ " ms");
 			}
 
@@ -451,8 +451,4 @@ public class SyncService {
 		}
 	}
 
-	
-	
-
-	
 }

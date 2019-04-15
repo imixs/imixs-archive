@@ -49,6 +49,8 @@ public class DataService {
 	public final static String ITEM_MD5_CHECKSUM = "md5checksum";
 
 	private static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
+	private static final String REGEX_OLD_SNAPSHOTID = "([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)";
+
 	private static Logger logger = Logger.getLogger(DataService.class.getName());
 
 	// table columns
@@ -99,18 +101,15 @@ public class DataService {
 	 */
 	public void saveSnapshot(ItemCollection snapshot, Session session) throws ArchiveException {
 
-		// PreparedStatement statement = null;
-		// BoundStatement bound = null;
-
 		String snapshotID = snapshot.getUniqueID();
 
 		if (!isSnapshotID(snapshotID)) {
-			throw new IllegalArgumentException("invalid item '$snapshotid'");
+			throw new IllegalArgumentException("unexpected '$snapshotid' fromat: " + snapshotID);
 		}
 		logger.finest("......save document" + snapshotID);
 
 		if (!snapshot.hasItem("$modified")) {
-			throw new IllegalArgumentException("missing item '$modified'");
+			throw new IllegalArgumentException("missing item '$modified' for snapshot " + snapshotID);
 		}
 
 		// extract $snapshotid 2de78aec-6f14-4345-8acf-dd37ae84875d-1530315900599
@@ -468,12 +467,23 @@ public class DataService {
 	/**
 	 * This method returns true if the given id is a valid Snapshot id (UUI +
 	 * timestamp
+	 * <p>
+	 * We also need to support the old snapshto format
+	 * <code>4832b09a1a-20c38abd-1519421083952</code>
 	 * 
 	 * @param uid
 	 * @return
 	 */
 	public static boolean isSnapshotID(String uid) {
-		return uid.matches(REGEX_SNAPSHOTID);
+		boolean valid = uid.matches(REGEX_SNAPSHOTID);
+
+		if (!valid) {
+			logger.fine("...validate old snapshot id format...");
+			// check old snapshto format
+			valid = uid.matches(REGEX_OLD_SNAPSHOTID);
+		}
+
+		return valid;
 	}
 
 	/**
@@ -504,7 +514,7 @@ public class DataService {
 		return 0;
 
 	}
-	
+
 	/**
 	 * count total value size...
 	 * 
@@ -523,7 +533,7 @@ public class DataService {
 		} catch (IOException e) {
 			logger.warning("...unable to calculate document size!");
 		} finally {
-			if (baos!=null) {
+			if (baos != null) {
 				try {
 					baos.close();
 				} catch (IOException e) {
