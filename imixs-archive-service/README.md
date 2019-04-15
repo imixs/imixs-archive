@@ -13,7 +13,7 @@ The service prvides a Web UI to control and monitor the archive service:
 
 	http://localhost:8080/
  
-<img src="imixs-archive-001.png" />	
+<img src="https://raw.githubusercontent.com/imixs/imixs-archive/master/imixs-archive-service/imixs-archive-001.png" />	
 
 
  
