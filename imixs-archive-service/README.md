@@ -14,7 +14,7 @@ The service prvides a Web UI to control and monitor the archive service:
 
 	http://localhost:8080/
  
-<img style="width:80%;" src="https://github.com/imixs/imixs-archive/raw/master/imixs-archive-service/imixs-archive-001.png" />	
+<img src="https://github.com/imixs/imixs-archive/raw/master/imixs-archive-service/imixs-archive-001.png" width="800"/>	
 
 
  
