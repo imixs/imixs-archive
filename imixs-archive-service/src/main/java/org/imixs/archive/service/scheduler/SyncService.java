@@ -351,7 +351,7 @@ public class SyncService {
 
 		// start time....
 		long lProfiler = System.currentTimeMillis();
-	
+
 		try {
 
 			cluster = clusterService.getCluster();
@@ -425,9 +425,10 @@ public class SyncService {
 			}
 
 			// print log message if data was synced
-			messageService.logMessage("... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
-					+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint " + new Date(syncPoint));
-
+			if (syncread > 0) {
+				messageService.logMessage("... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
+						+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint " + new Date(syncPoint));
+			}
 		} catch (ArchiveException | RuntimeException e) {
 			// in case of an exception we did not cancel the Timer service
 			if (logger.isLoggable(Level.FINEST)) {
