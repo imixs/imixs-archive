@@ -1,4 +1,4 @@
-version: "3.1"
+version: "3.2"
 services:
 
   imixsarchiveservice:
@@ -7,6 +7,11 @@ services:
       WILDFLY_PASS: adminadmin
       ARCHIVE_CLUSTER_CONTACTPOINTS: "cassandra"
       ARCHIVE_CLUSTER_KEYSPACE: "imixsdev"
+      ARCHIVE_SCHEDULER_DEFINITION: "hour=*;minute=*"
+      WORKFLOW_SERVICE_ENDPOINT: http://imixs-workflow:8080/api
+      WORKFLOW_SERVICE_USER: "admin"
+      WORKFLOW_SERVICE_PASSWORD: "adminadmin"
+      WORKFLOW_SERVICE_AUTHMETHOD: "form"
       # ARCHIVE_SCHEDULER_DEFINITION: "hour=*"
       # ARCHIVE_CLUSTER_REPLICATION_FACTOR: "1"
       # ARCHIVE_CLUSTER_REPLICATION_CLASS: "SimpleStrategy"
