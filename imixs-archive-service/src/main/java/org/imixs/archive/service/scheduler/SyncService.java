@@ -391,7 +391,7 @@ public class SyncService {
 						syncPoint = syncpointdate.getTime();
 						logger.fine("......data found - new syncpoint=" + syncPoint);
 
-						// verify if this snapshot is not already stored - if so, we do not overwrite
+						// verify if this snapshot is already stored - if so, we do not overwrite
 						// the origin data
 						if (!dataService.existSnapshot(snapshot.getUniqueID(), session)) {
 							// store data into archive
@@ -403,7 +403,7 @@ public class SyncService {
 							// This is because in case of a restore, the same snapshot takes a new $modified
 							// item. And we do not want to re-import the snapshot in the next sync cycle.
 							// see issue #40
-							logger.info("...snapshot '" + snapshot.getUniqueID() + "' alredy exits....");
+							logger.fine("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
 						}
 
 						// update metadata
