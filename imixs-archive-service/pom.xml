@@ -143,12 +143,14 @@
 										<exec executable="docker">
 											<arg value="build" />
 											<arg value="-t" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
 											<arg value="./" />
 										</exec>
 										<exec executable="docker">
 											<arg value="push" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
 										</exec>
 									</target>
 								</configuration>
