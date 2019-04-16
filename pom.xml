@@ -1,17 +1,18 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.imixs.workflow</groupId>
 	<artifactId>imixs-archive</artifactId>
 	<packaging>pom</packaging>
+	<name>Imixs-Archive</name>
+	<version>1.2.3-SNAPSHOT</version>
 
 	<modules>
 		<module>imixs-archive-api</module>
 		<module>imixs-archive-service</module>
 	</modules>
 
-
-	<name>Imixs-Archive</name>
-	<version>1.2.3-SNAPSHOT</version>
 	<description>Imixs Workflow Archive </description>
 	<url>https://github.com/imixs-docker/imixs-archive</url>
 	<organization>
@@ -56,6 +57,14 @@
 		<tag>HEAD</tag>
 	</scm>
 
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/imixs-docker/imixs-archive/issues</url>
+	</issueManagement>
+
+	<mailingLists>
+		<!-- no mailing lists supported -->
+	</mailingLists>
 
 	<licenses>
 		<license>
@@ -67,10 +76,6 @@
 	</licenses>
 
 
-	<issueManagement>
-		<system>GitHub</system>
-		<url>https://github.com/imixs-docker/imixs-archive/issues</url>
-	</issueManagement>
 
 
 
@@ -81,16 +86,6 @@
 	</properties>
 
 
-	<repositories>
-		<repository>
-			<id>imixs-mvn-repo</id>
-			<url>https://raw.githubusercontent.com/imixs/imixs-mvn-repo/master/</url>
-			<snapshots>
-				<enabled>false</enabled>
-				<updatePolicy>always</updatePolicy>
-			</snapshots>
-		</repository>
-	</repositories>
 	<build>
 		<plugins>
 			<plugin>
@@ -103,29 +98,7 @@
 				</configuration>
 			</plugin>
 
-			
-			<!-- release management -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-release-plugin</artifactId>
-				<version>2.5.3</version>
-				<configuration>
-					<autoVersionSubmodules>true</autoVersionSubmodules>
-					<useReleaseProfile>false</useReleaseProfile>
-					<releaseProfiles>release</releaseProfiles>
-					<goals>deploy</goals>
-				</configuration>
-			</plugin>
-
-			<!-- Maven Deployment -->
-			<plugin>
-				<artifactId>maven-deploy-plugin</artifactId>
-				<version>2.8.1</version>
-				<configuration>
-					<altDeploymentRepository>internal.repo::default::file://${project.build.directory}/mvn-repo</altDeploymentRepository>
-				</configuration>
-			</plugin>
-			<plugin>
+<plugin>
 				<groupId>com.github.github</groupId>
 				<artifactId>site-maven-plugin</artifactId>
 				<version>0.12</version>
@@ -160,18 +133,97 @@
 				</executions>
 			</plugin>
 
-		
-			<!--  temporarily fix issue #442  -->
+			<!-- release management -->
 			<plugin>
-	            <groupId>org.apache.maven.plugins</groupId>
-	            <artifactId>maven-surefire-plugin</artifactId>
-	            <configuration>
-	                <useSystemClassLoader>false</useSystemClassLoader>
-	            </configuration>
-	            <version>2.22.1</version>
-	        </plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.5.3</version>
+				<configuration>
+					<autoVersionSubmodules>true</autoVersionSubmodules>
+					<useReleaseProfile>false</useReleaseProfile>
+					<releaseProfiles>release</releaseProfiles>
+					<goals>deploy</goals>
+				</configuration>
+			</plugin>
+			<!-- release to Maven central -->
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<version>1.6.8</version>
+				<extensions>true</extensions>
+				<configuration>
+					<serverId>ossrh</serverId>
+					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+					<autoReleaseAfterClose>true</autoReleaseAfterClose>
+				</configuration>
+			</plugin>
+
+			<!-- temporarily fix issue #442 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<useSystemClassLoader>false</useSystemClassLoader>
+				</configuration>
+				<version>2.22.1</version>
+			</plugin>
 		</plugins>
 	</build>
+	
+	
+	<profiles>
+		<!-- Activate using the release property -->
+		<profile>
+			<id>release</id>
+			<build>
+				<plugins>
+					<!-- To generate javadoc -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<version>3.0.1</version>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar-no-fork</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<version>2.10.4</version>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<!-- To sign the artifacts -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.6</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 	<dependencyManagement>
 		<dependencies>
@@ -213,21 +265,17 @@
 				<version>${org.imixs.marty.version}</version>
 				<scope>provided</scope>
 			</dependency>
-			
-			<!--  -->
+
+			<!-- -->
 			<dependency>
 				<groupId>org.imixs.workflow</groupId>
 				<artifactId>imixs-melman</artifactId>
 				<version>${org.imixs.melman.version}</version>
 				<scope>provided</scope>
 			</dependency>
-
-
 		</dependencies>
+
 	</dependencyManagement>
-
-
-
 
 	<dependencies>
 		<!-- JEE Dependencies -->
@@ -253,5 +301,17 @@
 		</dependency>
 	</dependencies>
 
+
+	<!-- Distributen Management oss.sonatype.org -->
+	<distributionManagement>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+		<repository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+	</distributionManagement>
 
 </project>
