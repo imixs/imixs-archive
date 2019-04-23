@@ -14,7 +14,7 @@ import org.imixs.workflow.exceptions.PluginException;
 import org.xml.sax.SAXException;
 
 /**
- * The DocumentParserPlugin parses the content of .pdf and ms-doc documents and
+ * The DocumentTikaParserPlugin parses the content of .pdf and ms-doc documents and
  * store the information into the item 'content' of the dms field. This
  * information can be used by plugins to analyze the textual information of a
  * document.
