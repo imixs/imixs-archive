@@ -123,8 +123,9 @@ public class SnapshotService {
 	public static final String NOSNAPSHOT = "$nosnapshot"; // ignore snapshots
 	public static final String SKIPSNAPSHOT = "$skipsnapshot"; // skip snapshot creation
 
-	public final static String DMS_FILE_NAMES = "dms_names"; // list of files
-	public final static String DMS_FILE_COUNT = "dms_count"; // count of files
+	public final static String ITEM_DMS_FILE_NAMES = "dms_names"; // list of files
+	public final static String ITEM_DMS_FILE_COUNT = "dms_count"; // count of files
+	public final static String ITEM_DMS = "dms"; // optional custom content to be indexed by lucene
 
 	public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
 	public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
@@ -156,14 +157,13 @@ public class SnapshotService {
 			// skip if NOSNAPSHOT is true
 			return;
 		}
-		
+
 		if (documentEvent.getDocument().getItemValueBoolean(SKIPSNAPSHOT)) {
 			// skip snaphsot creation and clear flag imediatly.
 			documentEvent.getDocument().removeItem(SKIPSNAPSHOT);
 			return;
 		}
-		
-		
+
 		// throw SnapshotException if a deprecated workitemlob is saved....
 		if ("workitemlob".equals(type)) {
 			// in case of snapshot.workitemlob_suport=true
@@ -510,7 +510,9 @@ public class SnapshotService {
 	 * <p>
 	 * In addition the method generates the items 'dms_count' and 'dms_names' with
 	 * the number of attachments and a list of all filenames.
-	 * 
+	 * <p>
+	 * Also the item 'dms' is filled with all optional content stored in the custom
+	 * Attributes. This allows a client to add for example OCR data to a workitem.
 	 * 
 	 * @param workitem
 	 *            - target workitem
@@ -522,50 +524,48 @@ public class SnapshotService {
 	private void updateCustomAttributes(ItemCollection workitem, String username) throws NoSuchAlgorithmException {
 
 		List<FileData> currentFileData = workitem.getFileData();
-		// now we test for each file entry if a dms meta data entry
-		// exists. If not we create a new one...
+		String customContent="";
+		// now we test for each file entry if a new content was uploaded....
 		for (FileData fileData : currentFileData) {
-			if (fileData.getAttributes().isEmpty() && fileData.getContent() != null
-					&& fileData.getContent().length > 1) {
-				// no dms entry exists...
-				ItemCollection dmsEntry = new ItemCollection();
 
-				String checksum = fileData.generateMD5();
-				dmsEntry.replaceItemValue(ITEM_MD5_CHECKSUM, checksum);
-				dmsEntry.replaceItemValue("size", fileData.getContent().length);
-				dmsEntry.replaceItemValue("txtname", fileData.getName());
-				dmsEntry.replaceItemValue("$created", new Date());
-				dmsEntry.replaceItemValue("$creator", username);
-				dmsEntry.replaceItemValue("namcreator", username);
-				fileData.setAttributes(dmsEntry.getAllItems());
+			ItemCollection customAtributes = new ItemCollection(fileData.getAttributes());
 
-				workitem.addFileData(fileData);
+			// if we have a content than we compute the MD5 checksum and the size of the
+			// file
+			if (fileData.getContent() != null && fileData.getContent().length > 1) {
+				String oldChecksum = customAtributes.getItemValueString(ITEM_MD5_CHECKSUM);
 
-			} else {
-				ItemCollection dmsEntry = new ItemCollection(fileData.getAttributes());
+				String newChecksum = fileData.generateMD5();
+				customAtributes.replaceItemValue(ITEM_MD5_CHECKSUM, newChecksum);
+				customAtributes.replaceItemValue("size", fileData.getContent().length);
+				customAtributes.replaceItemValue("txtname", fileData.getName());
 
-				// verify checksum if new content was uploaded....
-				String oldchecksum = dmsEntry.getItemValueString(ITEM_MD5_CHECKSUM);
-				if (fileData.getContent().length > 0 && (oldchecksum.isEmpty() || !fileData.validateMD5(oldchecksum))) {
-					// update checksum, size and editor!
-					String checksum = fileData.generateMD5();
-					dmsEntry.replaceItemValue(ITEM_MD5_CHECKSUM, checksum);
-					dmsEntry.replaceItemValue("size", fileData.getContent().length);
-					dmsEntry.replaceItemValue("$modified", new Date());
-					dmsEntry.replaceItemValue("$editor", username);
-					dmsEntry.replaceItemValue("namcreator", username);
-					fileData.setAttributes(dmsEntry.getAllItems());
-					workitem.addFileData(fileData);
+				// verify if newChecksum has changed...
+				if (!oldChecksum.isEmpty() && !oldChecksum.equals(newChecksum)) {
+					customAtributes.replaceItemValue("$modified", new Date());
+					customAtributes.replaceItemValue("$editor", username);
+				} else {
+					customAtributes.replaceItemValue("$created", new Date());
+					customAtributes.replaceItemValue("$creator", username);
+					customAtributes.replaceItemValue("namcreator", username);
 				}
-
+				// update custom atributes....
+				fileData.setAttributes(customAtributes.getAllItems());
+				workitem.addFileData(fileData);
+				
 			}
-
+			// collect all optional custom content (need to be provided by client)
+			customContent=customContent+customAtributes.getItemValueString("content");
+			// add a lucene word break here!
+			customContent=customContent+ " ";
 		}
 
 		// add $filecount
-		workitem.replaceItemValue(DMS_FILE_COUNT, workitem.getFileNames().size());
+		workitem.replaceItemValue(ITEM_DMS_FILE_COUNT, workitem.getFileNames().size());
 		// add $filenames
-		workitem.replaceItemValue(DMS_FILE_NAMES, workitem.getFileNames());
+		workitem.replaceItemValue(ITEM_DMS_FILE_NAMES, workitem.getFileNames());
+		// add custom content to be indexed by lucene
+		workitem.replaceItemValue(ITEM_DMS, customContent);
 	}
 
 }

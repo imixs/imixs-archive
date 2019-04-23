@@ -22,7 +22,7 @@ import org.imixs.workflow.WorkflowContext;
 import org.imixs.workflow.engine.PropertyService;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
 import org.imixs.workflow.exceptions.PluginException;
-import org.imixs.workflow.services.rest.RestClient;
+
 
 /**
  * The DocumentTikaServerPlugin sends a document to an instance of an Apache
@@ -48,8 +48,6 @@ public class DocumentTikaServerPlugin extends AbstractPlugin {
 	@EJB
 	PropertyService propertyService;
 
-int iLastHTTPResult;
-	
 	@Override
 	public void init(WorkflowContext actx) throws PluginException {
 		super.init(actx);
@@ -93,13 +91,11 @@ int iLastHTTPResult;
 				// scan content...
 				try {
 					logger.info("...send " + fileData.getName() + " to tika server...");
-					RestClient restClient = new RestClient(serviceEndpoint);
+				//	RestClient restClient = new RestClient(serviceEndpoint);
 
 					String result = put(serviceEndpoint, fileContent, fileData.getContentType(),"UTF-8");
 
-					if (restClient.getLastHTTPResult() == 200) {
-						logger.info("...successfull parsed " + fileData.getName() + " in "
-								+ (System.currentTimeMillis() - l) + "ms");
+					if (result!=null && !result.isEmpty()) {
 						List<Object> list = new ArrayList<Object>();
 						list.add(result);
 						fileData.setAttribute("content", list);
@@ -134,8 +130,7 @@ int iLastHTTPResult;
 		HttpURLConnection urlConnection = null;
 		try {
 			serviceEndpoint = uri;
-			iLastHTTPResult = 500;
-
+		
 			urlConnection = (HttpURLConnection) new URL(serviceEndpoint).openConnection();
 			urlConnection.setRequestMethod("PUT");
 			urlConnection.setDoOutput(true);
@@ -157,15 +152,21 @@ int iLastHTTPResult;
 			writer.flush();
 
 			String sHTTPResponse = urlConnection.getHeaderField(0);
+			int iLastHTTPResult=0;
+	
 			try {
 				iLastHTTPResult = Integer.parseInt(sHTTPResponse.substring(9, 12));
 			} catch (Exception eNumber) {
 				// eNumber.printStackTrace();
-				iLastHTTPResult = 500;
+				return null;
 			}
-			String content = readResponse(urlConnection,encoding);
-
-			return content;
+			
+			if (iLastHTTPResult>=200 && iLastHTTPResult<=299) {
+				return readResponse(urlConnection,encoding);
+			}
+			
+			// no data!
+			return null;
 
 		} catch (Exception ioe) {
 			// ioe.printStackTrace();
