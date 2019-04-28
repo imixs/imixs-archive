@@ -1,29 +1,39 @@
 # Imixs-Documents
 
-The Imixs-Documents is a adapter project for collecting textual information from attached documents during the processing phase.
-The extracted textual information can be added into a workitem for further processing. For example the textual OCR information 
-from a PDF document can be stored into the item '_dms_'. In this way a fulltext search is supported. But also other information like embedded XML files can be process in various ways. 
+The Imixs-Documents is a sub-project of Imixs-Archive. The project provides methods to extract textual information - including Optical character recognition - from attached documents during the processing phase. This information can be used for further processing or to search documents
 
 
-## Document Parser Plugins
+## OCR and Fulltext Search
 
-The Imixs-Document adapter supports two kind of parsers
+Imixs-Document provides a feature to search documents. This includes also a _Optical character recognition (OCR)_ for documents and images. The textual information extracted by the module is stored together with the file data information in the custom attribute 'content'. To search for the extracted data the information is also stored in the item named 'dms' which can be added to the fulltext-field-list.  
 
- * DocumentCoreParser (supports a core set of office documents)
+### Apache Tika
+
+The text extraction and optical character recognition is based on the [Apache Project 'Tika'](https://tika.apache.org/). The extraction process performed by calling the Tika Rest API provided by the [Tika Server module]. See also the [Docker Image Imixs/Tika](https://cloud.docker.com/u/imixs/repository/docker/imixs/tika).
+
+### TikaDocumentHandler
+
+The TikaDocumentHandler extracts the textual information from document attachments. The handler sends each new attached document
+ to an instance of an Apache Tika Server to get the file content. The following environment variable is mandatory:
  
- * DocumentTikaParser (supports all kind of documents)
- 
-To activate the parsing process one of the following plugins can be configured into a BPMN model. 
+  * TIKA\_SERVICE\_ENDPONT - defines the Rest API end-point of the tika server.
+  * TIKA\_SERVICE\_MODE - if set to 'auto' the DocumentHandler reacts on the CDI event 'BEFORE\_PROCESS' and extracts the data automatically
+  
+See also the docker project [Imixs/tika](https://github.com/imixs/imixs-docker/tree/master/tika).
 
-	org.imixs.workflow.documents.DocumentCoreParserPlugin
 
-	org.imixs.workflow.documents.DocumentTikaParserPlugin
 
-See details about the different parsers below. 
+### TikaPlugin
+
+The TikaPlugin class _org.imixs.workflow.documents.TikaPlugin_ can be used as an alternative for the tika service mode 'auto'. The pugin extract  textual information from document attachments based on the model configuration. You need to add the plugin to your model to activate it. 
+
+	org.imixs.workflow.documents.TikaPlugin
+
 
 ### Searching Documents
 
-Imixs-Documents provide the feature to search also for the content of parsed documents. To activate this feature, the item 'dms' must be included into the lucene fulltext index. You can add the attribute to the lucene configuration in the imixs.properties file:
+All extracted textual information from attached documents is searchable by the lucene search. 
+To activate this feature, the item 'dms' must be included into the lucene fulltext index. 
 
 	lucence.fulltextFieldList=.....,dms
 	  
@@ -31,7 +41,7 @@ Imixs-Documents provide the feature to search also for the content of parsed doc
 
 ## PDF XML Plugin
 
-The plugin class "org.imixs.workflow.documents.parser.PDFXMLPlugin can be used to extract a embedded file from a PDF document and convert the data into a Imixs Workitem. 
+The plugin class "_org.imixs.workflow.documents.parser.PDFXMLExtractorPlugin_" can be used to extract embedded XML Data from a PDF document and convert the data into a Imixs Workitem. For example the _ZUGFeRD_ defines a standard XML document for invoices. 
 
 The plugin can be activated by the BPMN Model with the following result definition: 
 
@@ -41,88 +51,23 @@ The plugin can be activated by the BPMN Model with the following result definiti
 	    <report>myReport</report>
 	</item>
 
-The Item "PDFXMLPlugin" provides the following processing instructions for the PDFXMLPlugin:
+The Item "PDFXMLExtractorPlugin" provides the following processing instructions for the PDFXMLPlugin:
 
  * filename - regular expression to select embedded files
  * report - imixs-report definition to convert the xml into a Imixs WorkItem. 
 
 
-###  ZUGFeRD Support
-
-ZUGFeRD is a standard for electronic invoices in PDF/A format. The invoice data is stored in a embedded XML file. With the XMLDocumentPlugin this data can be transformed and embedded into a WorkItem. The project includes examples how to transform a ZUGFeRD invoice into a Imixs WorkItem. 
 
 
 # How to Install
 
-To include the imixs-adapters-documents plugins the following jar file must be part of the EJB module:
+To include the imixs-archive-documents plugins the following maven dependency can be added:
 
-	imixs-adapters-documents-${imixs.adapters.version}.jar
- 
-## The DocumentCoreParser
 
-The DocumentCoreParser is based on the apache libraris '[apache-poi](http://poi.apache.org/)' and '[apache-pdfbox](pdfbox.apache.org)'. The parser supports the following file typs:
- 
-  * .pdf - PDF Documents
-  * .doc - MS-Office doc files
-  * .docx - MS-Office docx files
- 
- 
- 
-### Deployment
-
-Add the following artifact versions into the master pom.xml
-
-		<!-- Imixs-Adaters -->
-		<org.imixs.adapters.version>1.5.2-SNAPSHOT</org.imixs.archive.version>
-		<apache.poi.version>3.17</apache.poi.version>
-		<apache.pdfbox.version>2.0.7</apache.pdfbox.version>
+		<!-- Imixs-Documents / Tika Service -->	
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-archive-documents</artifactId>
+			<scope>compile</scope>
+		</dependency>	
 		
-		  
-To integrate the DocumetCoreParser the application must include the following dependencies:
-
-	<dependency>
-		<groupId>org.apache.poi</groupId>
-		<artifactId>poi-scratchpad</artifactId>
-		<version>${apache.poi.version}</version>
-	</dependency>
-	<dependency>
-		<groupId>org.apache.pdfbox</groupId>
-		<artifactId>pdfbox</artifactId>
-		<version>${apache.pdfbox.version}</version>
-	</dependency>
-
-	
-
-## The DocumentTikaParser
-
-The DocumentTikaParser is based on the [apache tika project](https://tika.apache.org/). 
-The Apache Tika™ toolkit detects and extracts metadata and text from over a thousand different file types (such as PPT, XLS, and PDF). All of these file types can be parsed through a single interface, making Tika useful for search engine indexing, content analysis. 
-
-
-### Deployment
-
-
-
-Add the following artifact versions into the master pom.xml
-
-		<!-- Imixs-Adaters -->
-		<org.imixs.adapters.version>1.5.2-SNAPSHOT</org.imixs.archive.version>
-		<apache.tika.version>1.16</apache.tika.version>
-
-  
-To integrate the DocumetTikaParser the application must include the following dependencies:
-
-	<dependency>
-		<groupId>org.apache.tika</groupId>
-		<artifactId>tika-core</artifactId>
-		<version>${apache.tika.version}</version>
-	</dependency>
-	<dependency>
-		<groupId>org.apache.tika</groupId>
-		<artifactId>tika-parsers</artifactId>
-		<version>${apache.tika.version}</version>
-	</dependency>
-
-**Notes for Wildfly:** 
-As tika has a bunch of dependencies it is recommended to deploy tika as a module under wildfly.
-	
