@@ -1,6 +1,7 @@
 package org.imixs.archive.service.ui;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
@@ -157,7 +158,15 @@ public class ClusterDataController implements Serializable {
 		return syncService.getNextTimeout();
 	}
 
+	/**
+	 * Returns the message list in reverse order.
+	 * 
+	 * @return
+	 */
 	public List<String> getMessages() {
-		return messageService.getMessages();
+		List<String> messageLog = messageService.getMessages();
+		// revrese order
+		Collections.reverse(messageLog);
+		return messageLog;
 	}
 }

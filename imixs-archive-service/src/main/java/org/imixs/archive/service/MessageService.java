@@ -43,7 +43,7 @@ import javax.ejb.Singleton;
 public class MessageService {
 
 	
-	private final static int MAX_COUNT = 100;
+	private final static int MAX_COUNT = 16;
 
 	
 	private List<String> messages;
