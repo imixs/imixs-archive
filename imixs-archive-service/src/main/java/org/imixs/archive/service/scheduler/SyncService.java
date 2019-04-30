@@ -348,6 +348,7 @@ public class SyncService {
 		Session session = null;
 		Cluster cluster = null;
 		ItemCollection metaData = null;
+		String lastUniqueID = null;
 
 		// start time....
 		long lProfiler = System.currentTimeMillis();
@@ -395,6 +396,7 @@ public class SyncService {
 						// the origin data
 						if (!dataService.existSnapshot(snapshot.getUniqueID(), session)) {
 							// store data into archive
+							lastUniqueID = snapshot.getUniqueID();
 							dataService.saveSnapshot(snapshot, session);
 							syncupdate++;
 							totalCount++;
@@ -413,7 +415,7 @@ public class SyncService {
 						metaData.setItemValue(ITEM_SYNCCOUNT, totalCount);
 
 						metaData.setItemValue(ITEM_SYNCSIZE, totalSize);
-
+						lastUniqueID = "0";
 						dataService.saveMetadata(metaData, session);
 					}
 
@@ -437,7 +439,9 @@ public class SyncService {
 				e.printStackTrace();
 			}
 
-			messageService.logMessage("Scheduler failed: " + e.getMessage());
+			messageService.logMessage("Scheduler failed "
+					+ ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
+					+ " : " + e.getMessage());
 
 			stop(timer);
 		} finally {
