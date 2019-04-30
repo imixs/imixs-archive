@@ -22,9 +22,9 @@
  *******************************************************************************/
 package org.imixs.archive.service.scheduler;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -147,6 +147,8 @@ public class RestoreService {
 		Session session = null;
 		Cluster cluster = null;
 		try {
+			logger.info("...... restore from=" + DataService.getSyncPointISO(restoreFrom));
+			logger.info("...... restore   to=" + DataService.getSyncPointISO(restoreTo));
 			// ...start sync
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
@@ -201,7 +203,7 @@ public class RestoreService {
 		Session session = null;
 		Cluster cluster = null;
 		ItemCollection metadata = null;
-		Calendar calendarSyncPoint;
+		//Calendar calendarSyncPoint;
 		long syncpoint;
 		int restoreCount = 0;
 		int restoreErrors = 0;
@@ -216,32 +218,21 @@ public class RestoreService {
 			// compute current restore day....
 			syncpoint = metadata.getItemValueLong(ITEM_RESTORE_SYNCPOINT);
 			List<ItemCollection> options = getOptions(metadata);
-			calendarSyncPoint = Calendar.getInstance();
-			calendarSyncPoint.setTime(new Date(syncpoint));
-			// reset hour, minute, second, ms
-			calendarSyncPoint.set(Calendar.HOUR, 0);
-			calendarSyncPoint.set(Calendar.MINUTE, 0);
-			calendarSyncPoint.set(Calendar.SECOND, 0);
-			calendarSyncPoint.set(Calendar.MILLISECOND, 0);
-			// adjust one day - 1ms - so we have 1970-01-01 59:59:59:999
-			calendarSyncPoint.add(Calendar.DAY_OF_MONTH, 1);
-			calendarSyncPoint.add(Calendar.MILLISECOND, -1);
-
+			LocalDateTime localDateSyncPoint = new Date(syncpoint).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 			// compute to date....
 			long restoreFrom = metadata.getItemValueLong(ITEM_RESTORE_FROM);
 			long restoreTo = metadata.getItemValueLong(ITEM_RESTORE_TO);
-
-			logger.info("......starting restore:    from " + new Date(restoreFrom) + " to " + new Date(restoreTo));
-			logger.info("......starting syncpoint:  " + calendarSyncPoint.getTime());
-
+			LocalDateTime localDateRestoreTo= new Date(restoreTo).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+			logger.info("......starting restore:    from " + DataService.getSyncPointISO(restoreFrom) + " to " + DataService.getSyncPointISO(restoreTo));
+			logger.info("......starting syncpoint:  " + DataService.getSyncPointISO(syncpoint));
 			// we search for snapshotIDs until we found one or the syncdate is after the
 			// restore.to point.
-			while (calendarSyncPoint.getTimeInMillis() < restoreTo) {
+			while(localDateSyncPoint.isBefore(localDateRestoreTo)) { 
 
-				List<String> snapshotIDs = dataService.loadSnapshotsByDate(calendarSyncPoint.getTime(), session);
+				List<String> snapshotIDs = dataService.loadSnapshotsByDate(localDateSyncPoint.toLocalDate(), session);
 				// verify all snapshots of this day....
 				if (!snapshotIDs.isEmpty()) {
-					logger.finest("......analyze snapshotIDs from " + calendarSyncPoint.getTime());
+					logger.finest("......analyze snapshotIDs from " + localDateSyncPoint);
 					// print out the snapshotIDs we found
 					for (String snapshotID : snapshotIDs) {
 
@@ -271,8 +262,6 @@ public class RestoreService {
 										}
 										RemoteAPIService.restoreSnapshot(snapshot);
 										
-										
-										
 										restoreSize = restoreSize + _tmpSize;
 										restoreCount++;
 										snapshot = null;
@@ -286,14 +275,13 @@ public class RestoreService {
 						} else {
 							logger.warning(".... unexpected data situation:  we found no latest snapthost matching our restore time range!");
 						}
-
 					}
 				}
 
 				// adjust snyncdate for one day....
-				calendarSyncPoint.add(Calendar.DAY_OF_MONTH, 1);
+				localDateSyncPoint=localDateSyncPoint.plusDays(1);
 				// update metadata...
-				metadata.setItemValue(ITEM_RESTORE_SYNCPOINT, calendarSyncPoint.getTimeInMillis());
+				metadata.setItemValue(ITEM_RESTORE_SYNCPOINT, localDateSyncPoint);
 				metadata.setItemValue(ITEM_RESTORE_SYNCCOUNT, restoreCount);
 				metadata.setItemValue(ITEM_RESTORE_SYNCSIZE, restoreSize);
 				metadata.setItemValue(ITEM_RESTORE_SYNCERRORS, restoreErrors);
@@ -303,7 +291,7 @@ public class RestoreService {
 			}
 
 			logger.info("...restore finished in: " + (System.currentTimeMillis() - startTime) + "ms");
-			logger.info(".......final syncpoint: " + calendarSyncPoint.getTime());
+			logger.info(".......final syncpoint: " + localDateSyncPoint);
 			logger.info(".......total count:" + restoreCount);
 			logger.info(".......total size:" + MessageService.userFriendlyBytes(restoreSize));
 			logger.info(".......total errors:" + restoreErrors);

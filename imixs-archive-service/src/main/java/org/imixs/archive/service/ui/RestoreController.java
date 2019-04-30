@@ -13,6 +13,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.ejb.Timer;
+import javax.enterprise.context.RequestScoped;
 import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 
@@ -38,8 +39,8 @@ import com.datastax.driver.core.Session;
  *
  */
 @Named
-// @RequestScoped
-@ViewScoped
+ @RequestScoped
+//@ViewScoped
 public class RestoreController implements Serializable {
 
 	public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";

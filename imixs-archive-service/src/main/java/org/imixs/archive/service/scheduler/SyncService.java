@@ -22,9 +22,6 @@
  *******************************************************************************/
 package org.imixs.archive.service.scheduler;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -132,6 +129,20 @@ public class SyncService {
 				cluster.close();
 			}
 		}
+	}
+
+	/**
+	 * This method stops the scheduler.
+	 *
+	 * 
+	 * @throws ArchiveException
+	 */
+	public boolean stopScheduler() throws ArchiveException {
+
+		stop(findTimer());
+
+		return true;
+
 	}
 
 	/**

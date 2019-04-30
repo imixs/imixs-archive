@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -25,6 +26,7 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
@@ -65,7 +67,8 @@ public class DataService {
 	public static final String STATEMENT_UPSET_SNAPSHOTS_BY_UNIQUEID = "insert into snapshots_by_uniqueid (uniqueid, snapshot) values (?, ?)";
 	public static final String STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED = "insert into snapshots_by_modified (modified, snapshot) values (?, ?)";
 
-	public static final String STATEMENT_UPSET_DOCUMENTS = "insert into documents (md5, data) values (?, ?)";
+	public static final String STATEMENT_UPSET_DOCUMENTS = "insert into documents (md5, sort_id, data_id) values (?, ?, ?)";
+	public static final String STATEMENT_UPSET_DOCUMENTS_DATA = "insert into documents_data (data_id, data) values (?, ?)";
 
 	public static final String STATEMENT_UPSET_SNAPSHOTS_BY_DOCUMENT = "insert into snapshots_by_document (md5, snapshot) values (?, ?)";
 
@@ -73,7 +76,8 @@ public class DataService {
 	public static final String STATEMENT_SELECT_METADATA = "select * from snapshots where snapshot='0'";
 	public static final String STATEMENT_SELECT_SNAPSHOT_ID = "select snapshot from snapshots where snapshot='?'";
 	public static final String STATEMENT_SELECT_MD5 = "select md5 from documents where md5='?'";
-	public static final String STATEMENT_SELECT_DOCUMENT = "select * from documents where md5='?'";
+	public static final String STATEMENT_SELECT_DOCUMENTS = "select * from documents where md5='?'";
+	public static final String STATEMENT_SELECT_DOCUMENTS_DATA = "select * from documents_data where data_id='?'";
 
 	public static final String STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID = "select * from snapshots_by_uniqueid where uniqueid='?'";
 	public static final String STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED = "select * from snapshots_by_modified where modified='?'";
@@ -139,7 +143,7 @@ public class DataService {
 	}
 
 	/**
-	 * This helper method extracts the content of attached documents and stors the
+	 * This helper method extracts the content of attached documents and stores the
 	 * content into the documents table space. A document is uniquely identified by
 	 * its md5 checksum.
 	 * 
@@ -168,10 +172,7 @@ public class DataService {
 					Row row = rs.one();
 					if (row == null) {
 						// not yet stored so extract the conent
-						session.execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS, md5,
-								ByteBuffer.wrap(fileData.getContent())));
-						logger.finest("......added new filedata object: " + md5);
-
+						storeDocument(md5, fileData.getContent(), session);
 					} else {
 						logger.finest(
 								"......update fildata not necessary because object: " + md5 + " is already stored!");
@@ -194,8 +195,41 @@ public class DataService {
 	}
 
 	/**
+	 * This method stores a singel documetn identified by teh MD5 checksum.
+	 * <p>
+	 * The method splits the data into 1mb blocks stored in the table
+	 * 'documents_data'
+	 * 
+	 * 
+	 * @param md5
+	 * @param data
+	 * @param session
+	 */
+	private void storeDocument(String md5, byte[] data, Session session) {
+
+		// split the data into 1md blocks....
+		DocumentSplitter documentSplitter = new DocumentSplitter(data);
+		Iterator<byte[]> it = documentSplitter.iterator();
+		int sort_id = 0;
+		while (it.hasNext()) {
+			String data_id = WorkflowKernel.generateUniqueID();
+			logger.info("......write new 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+			byte[] chunk = it.next();
+			// write 1MB chunk into cassandra....
+			session.execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS_DATA, data_id, ByteBuffer.wrap(chunk)));
+			// write sort_id....
+			session.execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS, md5, sort_id, data_id));
+			// increase sort_id
+			sort_id++;
+		}
+		logger.finest("......stored filedata object: " + md5);
+	}
+
+	/**
 	 * This helper method merges the content of attached documents into a
-	 * itemCollection. A document is uniquely identified by its md5 checksum.
+	 * itemCollection. A document is uniquely identified by its md5 checksum. The
+	 * data of the document is split into 1md data blocks in the tabe
+	 * 'documents_data'
 	 * 
 	 * @param itemCol
 	 * @throws ArchiveException
@@ -213,22 +247,49 @@ public class DataService {
 				String md5 = customAttributes.getItemValueString(ITEM_MD5_CHECKSUM);
 
 				// test if md5 exits...
-				String sql = STATEMENT_SELECT_DOCUMENT;
+				String sql = STATEMENT_SELECT_DOCUMENTS;
 				sql = sql.replace("'?'", "'" + md5 + "'");
 
 				logger.finest("......search MD5 entry: " + sql);
 
 				ResultSet rs = session.execute(sql);
-				Row row = rs.one();
-				if (row != null) {
-					logger.finest("......merge fildata: " + md5 + "...");
+				// collect all dat blocks (which are sorted by its sort_id....
+				Iterator<Row> resultIter = rs.iterator();
+				ByteArrayOutputStream bOutput = new ByteArrayOutputStream(1024 * 1024);
+				try {
+					while (resultIter.hasNext()) {
+						Row row = resultIter.next();
 
-					// get byte data...
-					ByteBuffer byteData = row.getBytes(1);
-					itemCol.addFileData(new FileData(fileData.getName(), byteData.array(), fileData.getContentType(),
+						int sort_id = row.getInt(1);
+						String data_id = row.getString(2);
+						logger.info("......load 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+
+						// now we can load the data block....
+						String sql_data = STATEMENT_SELECT_DOCUMENTS_DATA;
+						sql_data = sql_data.replace("'?'", "'" + data_id + "'");
+						ResultSet rs_data = session.execute(sql_data);
+						Row row_data = rs_data.one();
+						if (row_data != null) {
+							logger.info("......merge data block: " + md5 + " sort_id: " + sort_id + " data_id: "
+									+ data_id + "...");
+							// get byte data...
+							ByteBuffer byteDataBlock = row_data.getBytes(1);
+							bOutput.write(byteDataBlock.array());
+						} else {
+							logger.warning("Document Data missing: " + itemCol.getUniqueID() + " MD5:" + md5
+									+ " sort_id: " + sort_id + " data_id: " + data_id);
+						}
+					}
+					// now we have all the bytes...
+					byte[] allData = bOutput.toByteArray();
+					logger.info("......collected full data block: " + md5 + " size: " + allData.length + "...");
+					itemCol.addFileData(new FileData(fileData.getName(), allData, fileData.getContentType(),
 							fileData.getAttributes()));
-				} else {
-					logger.warning("Document Data missing: " + itemCol.getUniqueID() + " MD5:" + md5);
+					bOutput.close();
+
+				} catch (IOException e) {
+					throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT,
+							"failed to load document data: " + e.getMessage(), e);
 				}
 			}
 
@@ -357,13 +418,11 @@ public class DataService {
 	 * @param date
 	 * @return list of snapshots
 	 */
-	public List<String> loadSnapshotsByDate(Date date, Session session) {
+	public List<String> loadSnapshotsByDate(java.time.LocalDate date, Session session) {
 		List<String> result = new ArrayList<String>();
-
 		// select snapshotIds by day...
-		LocalDate ld = LocalDate.fromMillisSinceEpoch(date.getTime());
 		String sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED;
-		sql = sql.replace("'?'", "'" + ld + "'");
+		sql = sql.replace("'?'", "'" + date + "'");
 		logger.finest("......SQL: " + sql);
 		ResultSet rs = session.execute(sql);
 		// iterate over result
@@ -390,9 +449,7 @@ public class DataService {
 	 */
 	public void saveMetadata(ItemCollection metadata, Session session) throws ArchiveException {
 		// upset document....
-
 		session.execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS, "0", ByteBuffer.wrap(getRawData(metadata))));
-
 	}
 
 	/**
@@ -546,4 +603,18 @@ public class DataService {
 		return 0;
 
 	}
+	
+	
+	
+	/**
+	 * returns the date tiem from a date in iso format
+	 * 
+	 * @return
+	 */
+	public static String getSyncPointISO(long point) {
+		SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+		Date date = new Date(point);
+		return dt.format(date);
+	}
+
 }

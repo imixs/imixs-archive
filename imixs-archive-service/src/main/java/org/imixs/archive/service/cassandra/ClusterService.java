@@ -49,22 +49,14 @@ public class ClusterService {
 	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID = "CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED = "CREATE TABLE IF NOT EXISTS snapshots_by_modified (modified date,snapshot text,PRIMARY KEY(modified, snapshot));";
-	public static final String TABLE_SCHEMA_DOCUMENTS = "CREATE TABLE IF NOT EXISTS documents (md5 text, data blob, PRIMARY KEY (md5))";
-	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_DOCUMENT= "CREATE TABLE IF NOT EXISTS snapshots_by_document (md5 text,snapshot text, PRIMARY KEY(md5, snapshot));";
+
+	// public static final String TABLE_SCHEMA_DOCUMENTS = "CREATE TABLE IF NOT
+	// EXISTS documents (md5 text, data blob, PRIMARY KEY (md5))";
+	public static final String TABLE_SCHEMA_DOCUMENTS = "CREATE TABLE IF NOT EXISTS documents (md5 text, sort_id int, data_id text, PRIMARY KEY (md5,sort_id))";
+	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_DOCUMENT = "CREATE TABLE IF NOT EXISTS snapshots_by_document (md5 text,snapshot text, PRIMARY KEY(md5, snapshot));";
+	public static final String TABLE_SCHEMA_DOCUMENTS_DATA = "CREATE TABLE IF NOT EXISTS documents_data (data_id text, data blob, PRIMARY KEY (data_id))";
 
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
-
-	
-	/**
-	 * This method returns true if the given id is a valid Snapshot id (UUI +
-	 * timestamp
-	 * 
-	 * @param uid
-	 * @return
-	 */
-//	public static boolean isSnapshotID(String uid) {
-//		return uid.matches(REGEX_SNAPSHOTID);
-//	}
 
 	/**
 	 * Returns a cassandra session for the archive KeySpace. The keyspace is defined
@@ -133,9 +125,9 @@ public class ClusterService {
 		if (keySpace == null || keySpace.isEmpty()) {
 			return false;
 		}
-	
+
 		return keySpace.matches(KEYSPACE_REGEX);
-	
+
 	}
 
 	/**
@@ -206,12 +198,15 @@ public class ClusterService {
 
 		logger.info(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
 		session.execute(TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED);
-		
+
 		logger.info(TABLE_SCHEMA_DOCUMENTS);
 		session.execute(TABLE_SCHEMA_DOCUMENTS);
-		
+
 		logger.info(TABLE_SCHEMA_SNAPSHOTS_BY_DOCUMENT);
 		session.execute(TABLE_SCHEMA_SNAPSHOTS_BY_DOCUMENT);
+
+		logger.info(TABLE_SCHEMA_DOCUMENTS_DATA);
+		session.execute(TABLE_SCHEMA_DOCUMENTS_DATA);
 
 	}
 

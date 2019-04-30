@@ -22,6 +22,8 @@ AImixs Worklfow instance can also include attached documents. These documents ar
 
 The table schema is defined as followed: 
 
+Snapshot Tables:
+
 
 	CREATE TABLE IF NOT EXISTS snapshots (
 		snapshot text, 
@@ -38,23 +40,37 @@ The table schema is defined as followed:
 		snapshot text,
 		PRIMARY KEY(modified, snapshot));
 
-	CREATE TABLE IF NOT EXISTS documents (
-		md5 text,
-		data blob,
-		PRIMARY KEY(md5));
-		
-	CREATE TABLE IF NOT EXISTS snapshots_by_document (
-		md5 text,
-		snapshot text, 
-		PRIMARY KEY(md5, snapshot));
-
 
 
 **Note:** The imixs-archive-cassandra application creates the schemas in background. So a manual creation of schemas is not necessary. 
 
 
+### How to Store Large Data 
+
+As Cassandra is not optimized to store large data (e.g. more than 16MB) in one row it is recommended to split large data into smaller data chunks. In case of the 'documetns' table we do exactly this. See also this [Blog](https://ralph.blog.imixs.com/2018/06/29/cassandra-how-to-handle-large-media-files/).  The data chunks have a size of 1mb
 
 
+Document Tables:
+		
+	CREATE TABLE IF NOT EXISTS documents (
+		md5 text, 
+		sort_id int, 
+		data_id text, 
+		PRIMARY KEY (md5,sort_id));
+		
+	CREATE TABLE IF NOT EXISTS snapshots_by_document (
+		md5 text,
+		snapshot text, 
+		PRIMARY KEY(md5, snapshot));
+	
+	CREATE TABLE IF NOT EXISTS documents_data (
+		data_id text, 
+		data blob, 
+		PRIMARY KEY (id));
+			
+ * Table documents - stores md5 sort_id and data id
+ * Table documents_data - stores the blob data orderd by data_id
+ * Table snapshots_by_document - stores the references to snapshotids. 
 
 # The Cassandra Query Language Shell - CQL
 

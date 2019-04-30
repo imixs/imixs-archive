@@ -17,6 +17,7 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
+import org.imixs.archive.service.scheduler.RestoreService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
 
@@ -38,8 +39,8 @@ public class ClusterDataController implements Serializable {
 
 	Cluster cluster = null;
 	Session session = null;
-	String syncSizeUnit=null;
-	ItemCollection metaData=null;
+	String syncSizeUnit = null;
+	ItemCollection metaData = null;
 
 	@EJB
 	ClusterService clusterService;
@@ -56,7 +57,7 @@ public class ClusterDataController implements Serializable {
 	public ClusterDataController() {
 		super();
 	}
-	
+
 	/**
 	 * This method initializes a cluster and session obejct.
 	 * 
@@ -68,7 +69,7 @@ public class ClusterDataController implements Serializable {
 		logger.info("...initial session....");
 		cluster = clusterService.getCluster();
 		session = clusterService.getArchiveSession(cluster);
-		
+
 		// load metadata
 		metaData = dataService.loadMetadata(session);
 	}
@@ -93,10 +94,36 @@ public class ClusterDataController implements Serializable {
 	/**
 	 * Returns true if a connection to the specified keySpace was successful
 	 * 
-	 * @return true if session was successfull established. 
+	 * @return true if session was successfull established.
 	 */
 	public boolean isConnected() {
 		return (session != null);
+	}
+
+	/**
+	 * This method starts a restore process
+	 * 
+	 * 
+	 */
+	public void startSync() {
+		try {
+			syncService.startScheduler();
+		} catch (ArchiveException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * This method starts a restore process
+	 * 
+	 * 
+	 */
+	public void stopSync() {
+		try {
+			syncService.stopScheduler();
+		} catch (ArchiveException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -116,19 +143,17 @@ public class ClusterDataController implements Serializable {
 
 	public String getSyncSize() {
 		long l = metaData.getItemValueLong(SyncService.ITEM_SYNCSIZE);
-		String result= MessageService.userFriendlyBytes(l);
-		
+		String result = MessageService.userFriendlyBytes(l);
+
 		String[] parts = result.split(" ");
-		syncSizeUnit=parts[1];
+		syncSizeUnit = parts[1];
 		return parts[0];
 	}
-	
+
 	public String getSyncSizeUnit() {
 		return syncSizeUnit;
 	}
 
-
-	
 	public String getContactPoints() {
 		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
 	}
@@ -167,7 +192,7 @@ public class ClusterDataController implements Serializable {
 	public List<String> getMessages() {
 		List<String> messageLog = messageService.getMessages();
 		// revrese order (use cloned list)
-		List<String> result=new ArrayList<String>();
+		List<String> result = new ArrayList<String>();
 		for (String message : messageLog) {
 			result.add(message);
 		}
