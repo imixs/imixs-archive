@@ -213,7 +213,7 @@ public class DataService {
 		int sort_id = 0;
 		while (it.hasNext()) {
 			String data_id = WorkflowKernel.generateUniqueID();
-			logger.info("......write new 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+			logger.finest("......write new 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
 			byte[] chunk = it.next();
 			// write 1MB chunk into cassandra....
 			session.execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS_DATA, data_id, ByteBuffer.wrap(chunk)));
@@ -262,7 +262,7 @@ public class DataService {
 
 						int sort_id = row.getInt(1);
 						String data_id = row.getString(2);
-						logger.info("......load 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+						logger.finest("......load 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
 
 						// now we can load the data block....
 						String sql_data = STATEMENT_SELECT_DOCUMENTS_DATA;
@@ -270,7 +270,7 @@ public class DataService {
 						ResultSet rs_data = session.execute(sql_data);
 						Row row_data = rs_data.one();
 						if (row_data != null) {
-							logger.info("......merge data block: " + md5 + " sort_id: " + sort_id + " data_id: "
+							logger.finest("......merge data block: " + md5 + " sort_id: " + sort_id + " data_id: "
 									+ data_id + "...");
 							// get byte data...
 							ByteBuffer byteDataBlock = row_data.getBytes(1);
@@ -282,7 +282,7 @@ public class DataService {
 					}
 					// now we have all the bytes...
 					byte[] allData = bOutput.toByteArray();
-					logger.info("......collected full data block: " + md5 + " size: " + allData.length + "...");
+					logger.finest("......collected full data block: " + md5 + " size: " + allData.length + "...");
 					itemCol.addFileData(new FileData(fileData.getName(), allData, fileData.getContentType(),
 							fileData.getAttributes()));
 					bOutput.close();

@@ -227,7 +227,7 @@ public class RestoreService {
 			logger.info("......starting syncpoint:  " + DataService.getSyncPointISO(syncpoint));
 			// we search for snapshotIDs until we found one or the syncdate is after the
 			// restore.to point.
-			while(localDateSyncPoint.isBefore(localDateRestoreTo)) { 
+			while(localDateRestoreTo.isAfter(localDateSyncPoint)) { 
 
 				List<String> snapshotIDs = dataService.loadSnapshotsByDate(localDateSyncPoint.toLocalDate(), session);
 				// verify all snapshots of this day....
@@ -252,14 +252,12 @@ public class RestoreService {
 								if (matchFilterOptions(latestSnapshot, options, session)) {
 									long _tmpSize = -1;
 									try {
-										logger.info("......restoring: " + latestSnapshot);
+										logger.finest("......restoring: " + latestSnapshot);
 										snapshot = dataService.loadSnapshot(latestSnapshot, session);
 										_tmpSize = DataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
-										logger.info("......size=: " + _tmpSize);
+										logger.finest("......size=: " + _tmpSize);
 
-										if (_tmpSize==30506895) {
-											logger.info("......debug size=: " + _tmpSize);
-										}
+										
 										RemoteAPIService.restoreSnapshot(snapshot);
 										
 										restoreSize = restoreSize + _tmpSize;
