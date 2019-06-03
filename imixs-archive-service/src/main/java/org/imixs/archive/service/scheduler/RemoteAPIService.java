@@ -75,7 +75,7 @@ public class RemoteAPIService {
 		try {
 			result = documentClient.getCustomResourceXML(url);
 		} catch (RestAPIException e) {
-			String errorMessage = "...failed to readSyncData : " + e.getMessage();
+			String errorMessage = "...failed readSyncData at : " + url + "  Error Message: " + e.getMessage();
 			throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
 		}
 

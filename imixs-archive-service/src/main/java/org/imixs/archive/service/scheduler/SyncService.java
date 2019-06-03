@@ -27,7 +27,6 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
@@ -445,12 +444,9 @@ public class SyncService {
 				logger.info("...no data found at syncpoint " + new Date(syncPoint) + "...");
 			}
 		} catch (ArchiveException | RuntimeException e) {
-			// in case of an exception we did not cancel the Timer service
-			if (logger.isLoggable(Level.FINEST)) {
-				e.printStackTrace();
-			}
-
-			messageService.logMessage("Scheduler failed "
+			// print the stack trace
+			e.printStackTrace();
+			messageService.logMessage("sync failed "
 					+ ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
 					+ " : " + e.getMessage());
 
