@@ -43,13 +43,14 @@ import javax.ejb.LocalBean;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
 import org.imixs.workflow.engine.DocumentService;
-import org.imixs.workflow.engine.PropertyService;
 import org.imixs.workflow.exceptions.AccessDeniedException;
 
 /**
@@ -113,9 +114,25 @@ public class SnapshotService {
 	@EJB
 	DocumentService documentService;
 
-	@EJB
-	PropertyService propertyService;
+//	@EJB
+//	PropertyService propertyService;
 
+	@Inject 
+	@ConfigProperty(name = PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT, defaultValue = "false")
+	Boolean allowWorkitemLob;
+	
+	
+	@Inject 
+	@ConfigProperty(name = PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT, defaultValue = "false")
+	Boolean overwriteFileContent;
+	
+	
+	@Inject 
+	@ConfigProperty(name = PROPERTY_SNAPSHOT_HISTORY, defaultValue = "1")
+	int iSnapshotHistory;
+		
+	
+	
 	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
 	public static final String SNAPSHOTID = "$snapshotid";
@@ -168,8 +185,8 @@ public class SnapshotService {
 		if ("workitemlob".equals(type)) {
 			// in case of snapshot.workitemlob_suport=true
 			// we allow saving those workitems. This is need in migration mode only
-			Boolean allowWorkitemLob = Boolean.parseBoolean(
-					propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT, "false"));
+//			Boolean allowWorkitemLob = Boolean.parseBoolean(
+//					propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT, "false"));
 			if (allowWorkitemLob == true) {
 				// needed only for migration
 				// issue #16
@@ -202,8 +219,8 @@ public class SnapshotService {
 		logger.fine("new document type = " + type);
 		snapshot.replaceItemValue(WorkflowKernel.TYPE, type);
 
-		boolean overwriteFileContent = Boolean.parseBoolean(
-				propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT, "false"));
+//		boolean overwriteFileContent = Boolean.parseBoolean(
+//				propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT, "false"));
 
 		// 4. If an old snapshot already exists, File content is taken from the last
 		// snapshot.
@@ -368,14 +385,14 @@ public class SnapshotService {
 			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "invalid " + SNAPSHOTID);
 		}
 		// get snapshot-history
-		int iSnapshotHistory = 1;
-		try {
-			iSnapshotHistory = Integer
-					.parseInt(propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_HISTORY, "1"));
-		} catch (NumberFormatException nfe) {
-			throw new SnapshotException(DocumentService.INVALID_PARAMETER,
-					"imixs.properties '" + PROPERTY_SNAPSHOT_HISTORY + "' must be a integer value.");
-		}
+//		int iSnapshotHistory = 1;
+//		try {
+//			iSnapshotHistory = Integer
+//					.parseInt(propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_HISTORY, "1"));
+//		} catch (NumberFormatException nfe) {
+//			throw new SnapshotException(DocumentService.INVALID_PARAMETER,
+//					"imixs.properties '" + PROPERTY_SNAPSHOT_HISTORY + "' must be a integer value.");
+//		}
 
 		logger.fine(PROPERTY_SNAPSHOT_HISTORY + " = " + iSnapshotHistory);
 
