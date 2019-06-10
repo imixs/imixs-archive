@@ -15,16 +15,15 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
-import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowContext;
 import org.imixs.workflow.engine.ProcessingEvent;
-import org.imixs.workflow.engine.PropertyService;
 import org.imixs.workflow.exceptions.PluginException;
 
 /**
@@ -41,7 +40,6 @@ import org.imixs.workflow.exceptions.PluginException;
  * @author rsoika
  */
 @Stateless
-// @LocalBean
 public class TikaDocumentService {
 
 	public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
@@ -50,23 +48,35 @@ public class TikaDocumentService {
 
 	private static Logger logger = Logger.getLogger(TikaDocumentService.class.getName());
 
-	@EJB
-	PropertyService propertyService;
+	
+	@Inject
+	@ConfigProperty(name = ENV_TIKA_SERVICE_ENDPONT, defaultValue = "")
+	String serviceEndpoint;
+	
+	@Inject
+	@ConfigProperty(name = ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
+	String serviceMode;
 
+	
+	
 	@PostConstruct
 	public void init(WorkflowContext actx) throws PluginException {
 
 	}
 
 	/**
-	 * Reacto on the ProcessingEvent This method sends the document content to the
+	 * React on the ProcessingEvent This method sends the document content to the
 	 * tika server and updates teh DMS information.
 	 * 
 	 * @throws PluginException
 	 */
 	public void onBeforeProcess(@Observes ProcessingEvent processingEvent) throws PluginException {
+		
+		if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
+			return;
+		}
 		// read the Tika Service mode
-		String serviceMode = getEnv(ENV_TIKA_SERVICE_MODE, null);
+		
 		if ("auto".equalsIgnoreCase(serviceMode)) {
 			if (processingEvent.getEventType() == ProcessingEvent.BEFORE_PROCESS) {
 				// update the dms meta data
@@ -86,8 +96,8 @@ public class TikaDocumentService {
 	 */
 	public void extractText(ItemCollection workitem) throws PluginException {
 		// read the Tika Service Enpoint
-		String serviceEndpoint = getEnv(ENV_TIKA_SERVICE_ENDPONT, null);
-		if (serviceEndpoint == null) {
+		
+		if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
 			return;
 		}
 
@@ -228,34 +238,7 @@ public class TikaDocumentService {
 
 	}
 
-	/**
-	 * Returns a environment variable. An environment variable can be provided as a
-	 * System property.
-	 * <p>
-	 * Alternatively the variable can also be stored in the imxis.properties file.
-	 * 
-	 * @param env
-	 *            - environment variable name
-	 * @param defaultValue
-	 *            - optional default value
-	 * @return value
-	 */
-	public String getEnv(String env, String defaultValue) {
-		logger.finest("......read env: " + env);
-		String result = null;
-
-		// first test if the variable is part of the imxis configuration
-		result = propertyService.getProperties().getProperty(env);
-
-		// check the system environment
-		if (result == null) {
-			result = System.getenv(env);
-		}
-		if (result == null || result.isEmpty()) {
-			result = defaultValue;
-		}
-		return result;
-	}
+	
 
 	/**
 	 * Tika does not support any content type. So we filter some of them (e.g.

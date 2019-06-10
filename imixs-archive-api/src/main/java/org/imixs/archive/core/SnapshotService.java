@@ -124,7 +124,7 @@ public class SnapshotService {
 	
 	@Inject 
 	@ConfigProperty(name = PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT, defaultValue = "false")
-	Boolean overwriteFileContent;
+	boolean overwriteFileContent;
 	
 	
 	@Inject 
@@ -255,7 +255,7 @@ public class SnapshotService {
 				isBlobWorkitem = true; // support deprecated $blobWorkitems...
 			}
 		}
-
+ 
 		if (lastSnapshot != null) {
 			// copy content from the last found snapshot....
 			copyFilesFromItemCollection(lastSnapshot, snapshot, documentEvent.getDocument(), overwriteFileContent,

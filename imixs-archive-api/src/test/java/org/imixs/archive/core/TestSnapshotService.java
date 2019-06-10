@@ -4,17 +4,14 @@ import static org.mockito.Mockito.when;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
-import java.util.Properties;
 import java.util.logging.Logger;
 
 import javax.ejb.SessionContext;
 
-import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
-import org.imixs.workflow.engine.PropertyService;
 import org.imixs.workflow.engine.WorkflowMockEnvironment;
 import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.ModelException;
@@ -41,9 +38,7 @@ public class TestSnapshotService {
 	@Spy
 	SnapshotService snapshotService;
 
-	@Spy
-	PropertyService propertyService;
-
+	
 	SessionContext ctx;
 
 	ItemCollection documentContext;
@@ -75,10 +70,7 @@ public class TestSnapshotService {
 
 		snapshotService.documentService = workflowMockEnvironment.getDocumentService();
 
-		// mock property service
-		snapshotService.propertyService = propertyService;
-		Properties emptyProperties = new Properties();
-		when(propertyService.getProperties()).thenReturn(emptyProperties);
+		
 	}
 
 	/**
@@ -169,11 +161,11 @@ public class TestSnapshotService {
 		//List<Object> fileData = snapshotworkitem.getFile("test.txt");
 		FileData fileData=snapshotworkitem.getFileData("test.txt");
 		Assert.assertEquals("This is a test", new String(fileData.getContent()));
-
+ 
 		/*
 		 * Now we trigger a second event to create a version be we remove the file
 		 * content before...
-		 */
+		 */ 
 		workitem.replaceItemValue(WorkflowKernel.EVENTID, 20);
 		documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
 		snapshotService.onSave(documentEvent);
@@ -183,7 +175,7 @@ public class TestSnapshotService {
 		workitem.removeFile("test.txt");
 		workflowMockEnvironment.getDocumentService().save(workitem);
 
-		/*
+		/* 
 		 * now lets check the version. The version should have the file content.
 		 */
 
