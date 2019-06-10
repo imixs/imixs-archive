@@ -2,10 +2,9 @@ package org.imixs.workflow.archive.cassandra;
 
 import java.util.List;
 
+import org.imixs.melman.DocumentClient;
+import org.imixs.melman.FormAuthenticator;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.services.rest.FormAuthenticator;
-import org.imixs.workflow.services.rest.RequestFilter;
-import org.imixs.workflow.services.rest.RestClient;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -28,15 +27,15 @@ public class TestRestAPI {
 
 		String apiURL = "http://localhost:8081/api";
 
-		RequestFilter formAuth = new FormAuthenticator(apiURL, "admin", "adminadmin");
+		DocumentClient documentClient = new DocumentClient(apiURL);
+		FormAuthenticator formAuth = new FormAuthenticator(apiURL, "admin", "adminadmin");
 		// register the authenticator
-		RestClient client = new RestClient();
+		documentClient.registerClientRequestFilter(formAuth);
+		
+		
 
-		client.registerRequestFilter(formAuth);
-		
-		
 		try {
-			List<ItemCollection> result = client.getDocumentCollection(apiURL+"/snapshot/syncpoint/0");
+			List<ItemCollection> result = documentClient.getCustomResource(apiURL+"/snapshot/syncpoint/0");
 			
 			Assert.assertNotNull(result);
 			Assert.assertEquals(1, result.size());

@@ -9,6 +9,10 @@ services:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "adminadmin"
       POSTGRES_CONNECTION: "jdbc:postgresql://postgresoffice/office"
+      ARCHIVE_SERVICE_ENDPOINT: http://imixsarchiveservice:8080/api
+      #ARCHIVE_SERVICE_USER: "admin"
+      #ARCHIVE_SERVICE_PASSWORD: "adminadmin"
+      #ARCHIVE_SERVICE_AUTHMETHOD: "form"
       TZ: "Europe/Berlin"  
     ports:
       - "8081:8080"

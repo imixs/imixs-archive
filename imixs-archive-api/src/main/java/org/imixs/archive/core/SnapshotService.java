@@ -51,6 +51,7 @@ import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentEvent;
 import org.imixs.workflow.engine.DocumentService;
+import org.imixs.workflow.engine.EventLogService;
 import org.imixs.workflow.exceptions.AccessDeniedException;
 
 /**
@@ -96,8 +97,18 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
  * BlobWorkitems will not be deleted. If the DMSPlugin is still active and
  * documents from the type 'workitemlob' will be saved, the SnapshotService
  * throws a SnapshotException.
+ * <p>
+ * <strong>ArchivePushService</strong><br />
+ * Since version 2.0 the SnapshotService can be connected to the
+ * ImixsArchiveService. If the environment variable 'ARCHIVE_SERVICE_ENDPONT' is
+ * set, than the snapshot service creates a EventLog entry each time a snapshot
+ * was generated. The ArchivePushService sanns for the EventLog entires in an
+ * asynchronious way and push the snaphots directyl into the Archive
+ * (Cassandra).
  * 
- * @version 1.1
+ * 
+ * 
+ * @version 2.0
  * @author rsoika
  */
 @Stateless
@@ -105,35 +116,6 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
 @DeclareRoles({ "org.imixs.ACCESSLEVEL.MANAGERACCESS" })
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 public class SnapshotService {
-
-	public final static String ITEM_MD5_CHECKSUM = "md5checksum";
-
-	@Resource
-	SessionContext ejbCtx;
-
-	@EJB
-	DocumentService documentService;
-
-//	@EJB
-//	PropertyService propertyService;
-
-	@Inject 
-	@ConfigProperty(name = PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT, defaultValue = "false")
-	Boolean allowWorkitemLob;
-	
-	
-	@Inject 
-	@ConfigProperty(name = PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT, defaultValue = "false")
-	boolean overwriteFileContent;
-	
-	
-	@Inject 
-	@ConfigProperty(name = PROPERTY_SNAPSHOT_HISTORY, defaultValue = "1")
-	int iSnapshotHistory;
-		
-	
-	
-	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
 	public static final String SNAPSHOTID = "$snapshotid";
 	public static final String TYPE_PRAFIX = "snapshot-";
@@ -147,6 +129,44 @@ public class SnapshotService {
 	public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
 	public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
 	public static final String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
+
+	// rest service endpoint
+	public static final String ENV_ARCHIVE_SERVICE_ENDPOINT = "ARCHIVE_SERVICE_ENDPOINT";
+	public static final String ENV_ARCHIVE_SERVICE_USER = "ARCHIVE_SERVICE_USER";
+	public static final String ENV_ARCHIVE_SERVICE_PASSWORD = "ARCHIVE_SERVICE_PASSWORD";
+	public static final String ENV_ARCHIVE_SERVICE_AUTHMETHOD = "ARCHIVE_SERVICE_AUTHMETHOD";
+
+	public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
+	public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
+
+	public final static String ITEM_MD5_CHECKSUM = "md5checksum";
+
+	@Resource
+	SessionContext ejbCtx;
+
+	@EJB
+	DocumentService documentService;
+
+	@EJB
+	EventLogService eventLogService;
+
+	@Inject
+	@ConfigProperty(name = PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT, defaultValue = "false")
+	boolean allowWorkitemLob;
+
+	@Inject
+	@ConfigProperty(name = PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT, defaultValue = "false")
+	boolean overwriteFileContent;
+
+	@Inject
+	@ConfigProperty(name = PROPERTY_SNAPSHOT_HISTORY, defaultValue = "1")
+	int iSnapshotHistory;
+
+	@Inject
+	@ConfigProperty(name = ENV_ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
+	String archiveServiceEndpoint;
+
+	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
 	/**
 	 * The snapshot-workitem is created immediately after the workitem was processed
@@ -185,8 +205,9 @@ public class SnapshotService {
 		if ("workitemlob".equals(type)) {
 			// in case of snapshot.workitemlob_suport=true
 			// we allow saving those workitems. This is need in migration mode only
-//			Boolean allowWorkitemLob = Boolean.parseBoolean(
-//					propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT, "false"));
+			// Boolean allowWorkitemLob = Boolean.parseBoolean(
+			// propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT,
+			// "false"));
 			if (allowWorkitemLob == true) {
 				// needed only for migration
 				// issue #16
@@ -219,8 +240,9 @@ public class SnapshotService {
 		logger.fine("new document type = " + type);
 		snapshot.replaceItemValue(WorkflowKernel.TYPE, type);
 
-//		boolean overwriteFileContent = Boolean.parseBoolean(
-//				propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT, "false"));
+		// boolean overwriteFileContent = Boolean.parseBoolean(
+		// propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT,
+		// "false"));
 
 		// 4. If an old snapshot already exists, File content is taken from the last
 		// snapshot.
@@ -255,7 +277,7 @@ public class SnapshotService {
 				isBlobWorkitem = true; // support deprecated $blobWorkitems...
 			}
 		}
- 
+
 		if (lastSnapshot != null) {
 			// copy content from the last found snapshot....
 			copyFilesFromItemCollection(lastSnapshot, snapshot, documentEvent.getDocument(), overwriteFileContent,
@@ -287,6 +309,11 @@ public class SnapshotService {
 		// 8. remove deprecated snapshots
 		cleanSnaphostHistory(snapshot.getUniqueID());
 
+		// 9. write event log entry...
+		if (archiveServiceEndpoint != null && !archiveServiceEndpoint.isEmpty()) {
+			logger.finest("......create event log entry " + EVENTLOG_TOPIC_ADD);
+			eventLogService.createEvent(snapshot.getUniqueID(), EVENTLOG_TOPIC_ADD);
+		}
 	}
 
 	/**
@@ -385,14 +412,16 @@ public class SnapshotService {
 			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "invalid " + SNAPSHOTID);
 		}
 		// get snapshot-history
-//		int iSnapshotHistory = 1;
-//		try {
-//			iSnapshotHistory = Integer
-//					.parseInt(propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_HISTORY, "1"));
-//		} catch (NumberFormatException nfe) {
-//			throw new SnapshotException(DocumentService.INVALID_PARAMETER,
-//					"imixs.properties '" + PROPERTY_SNAPSHOT_HISTORY + "' must be a integer value.");
-//		}
+		// int iSnapshotHistory = 1;
+		// try {
+		// iSnapshotHistory = Integer
+		// .parseInt(propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_HISTORY,
+		// "1"));
+		// } catch (NumberFormatException nfe) {
+		// throw new SnapshotException(DocumentService.INVALID_PARAMETER,
+		// "imixs.properties '" + PROPERTY_SNAPSHOT_HISTORY + "' must be a integer
+		// value.");
+		// }
 
 		logger.fine(PROPERTY_SNAPSHOT_HISTORY + " = " + iSnapshotHistory);
 
@@ -541,7 +570,7 @@ public class SnapshotService {
 	private void updateCustomAttributes(ItemCollection workitem, String username) throws NoSuchAlgorithmException {
 
 		List<FileData> currentFileData = workitem.getFileData();
-		String customContent="";
+		String customContent = "";
 		// now we test for each file entry if a new content was uploaded....
 		for (FileData fileData : currentFileData) {
 
@@ -569,12 +598,12 @@ public class SnapshotService {
 				// update custom atributes....
 				fileData.setAttributes(customAtributes.getAllItems());
 				workitem.addFileData(fileData);
-				
+
 			}
 			// collect all optional custom content (need to be provided by client)
-			customContent=customContent+customAtributes.getItemValueString("content");
+			customContent = customContent + customAtributes.getItemValueString("content");
 			// add a lucene word break here!
-			customContent=customContent+ " ";
+			customContent = customContent + " ";
 		}
 
 		// add $filecount

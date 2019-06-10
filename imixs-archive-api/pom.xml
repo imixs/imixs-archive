@@ -77,12 +77,17 @@
 			<groupId>org.imixs.workflow</groupId>
 			<artifactId>imixs-workflow-jax-rs</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-melman</artifactId>
+			<scope>compile</scope>
+		</dependency>
 
 		<!-- Java EE dependencies -->
 		<dependency>
 			<groupId>javax</groupId>
 			<artifactId>javaee-api</artifactId>
-			<version>7.0</version>
+			<version>8.0</version>
 			<scope>provided</scope>
 		</dependency>
 

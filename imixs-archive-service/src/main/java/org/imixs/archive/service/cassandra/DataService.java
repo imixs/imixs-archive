@@ -106,7 +106,7 @@ public class DataService {
 	public void saveSnapshot(ItemCollection snapshot, Session session) throws ArchiveException {
 
 		String snapshotID = snapshot.getUniqueID();
-
+		
 		if (!isSnapshotID(snapshotID)) {
 			throw new IllegalArgumentException("unexpected '$snapshotid' fromat: " + snapshotID);
 		}
@@ -116,6 +116,16 @@ public class DataService {
 			throw new IllegalArgumentException("missing item '$modified' for snapshot " + snapshotID);
 		}
 
+		// verify if this snapshot is already stored - if so, we do not overwrite
+		// the origin data. See issue #40
+		if (existSnapshot(snapshotID, session)) {
+			// skipp!
+			logger.warning("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
+			return;
+		} 
+
+		
+		
 		// extract $snapshotid 2de78aec-6f14-4345-8acf-dd37ae84875d-1530315900599
 		String originUnqiueID = getUniqueID(snapshotID);
 
