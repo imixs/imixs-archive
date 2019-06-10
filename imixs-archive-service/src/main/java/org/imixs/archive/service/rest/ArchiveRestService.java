@@ -27,20 +27,34 @@
 
 package org.imixs.archive.service.rest;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.Encoded;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 
+import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
+import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.exceptions.InvalidAccessException;
+import org.imixs.workflow.xml.XMLDataCollectionAdapter;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
@@ -48,7 +62,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 
 /**
- * The SnapshotRestService is used to inspect the data of a snapshot.
+ * The ArchiveRestService is used to store and access snaphsot data.
  * 
  * @author rsoika
  * 
@@ -78,7 +92,7 @@ public class ArchiveRestService {
 	 */
 	@GET
 	@Path("/snapshot/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
-	public XMLDocument getSnapshot(@PathParam("snapshotid") String id) {
+	public Response getSnapshot(@PathParam("snapshotid") String id, @QueryParam("format") String format) {
 		Session session = null;
 		Cluster cluster = null;
 		try {
@@ -88,46 +102,9 @@ public class ArchiveRestService {
 
 			ItemCollection snapshot = dataService.loadSnapshot(id, session);
 
+			return convertResult(snapshot, format);
 			// return XMLDataCollectionAdapter.getDataCollection(snapshot);
-			return XMLDocumentAdapter.getDocument(snapshot);
-		} catch (Exception e) {
-			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
-			return null;
-
-		} finally {
-			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
-		}
-	}
-
-	/**
-	 * Loads a snapshot from the archive and returns a XML representation (also in
-	 * web browser)
-	 * 
-	 * @param id
-	 *            - snapshot id
-	 * @return XMLDataCollection
-	 */
-	@GET
-	@Produces({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
-	@Path("/snapshot/xml/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
-	public XMLDocument getSnapshotXML(@PathParam("snapshotid") String id) {
-		Session session = null;
-		Cluster cluster = null;
-		try {
-			logger.info("...read snapshot...");
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
-
-			ItemCollection snapshot = dataService.loadSnapshot(id, session);
-
-			return XMLDocumentAdapter.getDocument(snapshot);
-
+			// return XMLDocumentAdapter.getDocument(snapshot);
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return null;
@@ -150,7 +127,7 @@ public class ArchiveRestService {
 	 */
 	@GET
 	@Path("/metadata")
-	public XMLDocument getMetadata() {
+	public Response getMetadata(@QueryParam("format") String format) {
 		Session session = null;
 		Cluster cluster = null;
 		try {
@@ -158,10 +135,12 @@ public class ArchiveRestService {
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
 
-			ItemCollection snapshot = dataService.loadMetadata(session);
+			ItemCollection metadata = dataService.loadMetadata(session);
+
+			return convertResult(metadata, format);
 
 			// return XMLDataCollectionAdapter.getDataCollection(snapshot);
-			return XMLDocumentAdapter.getDocument(snapshot);
+			// return XMLDocumentAdapter.getDocument(snapshot);
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return null;
@@ -178,28 +157,119 @@ public class ArchiveRestService {
 	}
 
 	/**
-	 * Loads the metadata from the archive and returns a XML representation (also in
-	 * web browser)
+	 * Returns a file attachment located in the property $file of the specified
+	 * snapshot
+	 * <p>
+	 * The file name will be encoded. With a URLDecode the filename is decoded in
+	 * different formats and searched in the file list. This is not a nice solution.
 	 * 
-	 * @return XMLDataCollection
+	 * @param uniqueid
+	 * @return
 	 */
 	@GET
-	@Produces({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
-	@Path("/metadata/xml")
-	public XMLDocument getMetadataXML() {
+	@Path("/snapshot/{uniqueid}/file/{file}")
+	public Response getSnapshotFile(@PathParam("uniqueid") String snapshotid, @PathParam("file") @Encoded String file,
+			@Context UriInfo uriInfo) {
+
+		// load the snapshot
 		Session session = null;
 		Cluster cluster = null;
+		ItemCollection snapshot = null;
+		FileData fileData = null;
 		try {
 			logger.info("...read snapshot...");
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
+			// load snapshto without the file data
+			snapshot = dataService.loadSnapshot(snapshotid, false, session);
 
-			ItemCollection snapshot = dataService.loadMetadata(session);
+			String fileNameUTF8 = URLDecoder.decode(file, "UTF-8");
+			String fileNameISO = URLDecoder.decode(file, "ISO-8859-1");
+			// try to guess encodings.....
+			fileData = snapshot.getFileData(fileNameUTF8);
+			if (fileData == null)
+				fileData = snapshot.getFileData(fileNameISO);
+			if (fileData == null)
+				fileData = snapshot.getFileData(file);
 
-			return XMLDocumentAdapter.getDocument(snapshot);
+			if (fileData != null) {
+				// now we load the content
+				fileData = dataService.loadFileData(fileData, session);
+			}
+
+		} catch (ArchiveException | UnsupportedEncodingException e) {
+			logger.warning("...Failed to load file: " + e.getMessage());
+			e.printStackTrace();
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
+		}
+		// extract the file...
+		try {
+
+			if (fileData != null) {
+				// Set content type in order of the contentType stored
+				// in the $file attribute
+				Response.ResponseBuilder builder = Response.ok(fileData.getContent(), fileData.getContentType());
+				return builder.build();
+			} else {
+				logger.warning("ArchiveRestService unable to open file: '" + file + "' in workitem '" + snapshotid
+						+ "' - error: Filename not found!");
+				// workitem not found
+				return Response.status(Response.Status.NOT_FOUND).build();
+			}
 
 		} catch (Exception e) {
+			logger.severe("ArchiveRestService unable to open file: '" + file + "' in workitem '" + snapshotid
+					+ "' - error: " + e.getMessage());
+			e.printStackTrace();
+		}
+
+		logger.severe("ArchiveRestService unable to open file: '" + file + "' in workitem '" + snapshotid + "'");
+		return Response.status(Response.Status.NOT_FOUND).build();
+
+	}
+
+	/**
+	 * The method writes the data of a snapshot into the cassandra cluster
+	 * <p>
+	 * The method returns the snapshot data. In case of an failure the method return
+	 * a HTTP Response 500. In this case a client can inspect the items
+	 * '$error_code' and '$error_message' to evaulate the error.
+	 * <p>
+	 * In case the data was sucessfully written into the Cassandra cluster the
+	 * method returns a HTTP Response 200.
+	 * 
+	 * @param xmlworkitem
+	 *            - snapshot data to be stored into cassandra in XML format
+	 * @return - snapshot data with an error code in case of a failure
+	 */
+	@POST
+	@Produces(MediaType.APPLICATION_XML)
+	@Consumes({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
+	public Response postSnapshot(XMLDocument xmlDocument) {
+
+		Session session = null;
+		Cluster cluster = null;
+		ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
+
+		try {
+			logger.info("...write snapshot...");
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
+			dataService.saveSnapshot(snapshot, session);
+			snapshot.removeItem("$error_code");
+			snapshot.removeItem("$error_message");
+
+		} catch (ArchiveException e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
+			snapshot = this.addErrorMessage(e, snapshot);
+
 			return null;
 
 		} finally {
@@ -211,5 +281,85 @@ public class ArchiveRestService {
 				cluster.close();
 			}
 		}
+
+		// return workitem
+		try {
+			if (snapshot.hasItem("$error_code"))
+				return Response.ok(XMLDataCollectionAdapter.getDataCollection(snapshot), MediaType.APPLICATION_XML)
+						.status(Response.Status.NOT_ACCEPTABLE).build();
+			else
+				return Response.ok(XMLDataCollectionAdapter.getDataCollection(snapshot), MediaType.APPLICATION_XML)
+						.build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return Response.status(Response.Status.NOT_ACCEPTABLE).build();
+		}
+
+	}
+
+	/**
+	 * This method converts a single ItemCollection into a Jax-rs response object.
+	 * <p>
+	 * The method expects optional items and format string (json|xml)
+	 * <p>
+	 * In case the result set is null, than the method returns an empty collection.
+	 * 
+	 * @param result
+	 *            list of ItemCollection
+	 * @param items
+	 *            - optional item list
+	 * @param format
+	 *            - optional format string (json|xml)
+	 * @return jax-rs Response object.
+	 */
+	private Response convertResult(ItemCollection workitem, String format) {
+		if (workitem == null) {
+			workitem = new ItemCollection();
+		}
+		if ("json".equals(format)) {
+			return Response
+					// Set the status and Put your entity here.
+					.ok(XMLDataCollectionAdapter.getDataCollection(workitem, null))
+					// Add the Content-Type header to tell Jersey which format it should marshall
+					// the entity into.
+					.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON).build();
+		} else if ("xml".equals(format)) {
+			return Response
+					// Set the status and Put your entity here.
+					.ok(XMLDataCollectionAdapter.getDataCollection(workitem, null))
+					// Add the Content-Type header to tell Jersey which format it should marshall
+					// the entity into.
+					.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_XML).build();
+		} else {
+			// default header param
+			return Response
+					// Set the status and Put your entity here.
+					.ok(XMLDataCollectionAdapter.getDataCollection(workitem, null)).build();
+		}
+	}
+
+	/**
+	 * This helper method adds a error message to the given entity, based on the
+	 * data in a Exception. This kind of error message can be displayed in a page
+	 * evaluating the properties '$error_code' and '$error_message'. These
+	 * attributes will not be stored.
+	 * 
+	 * @param pe
+	 */
+	private ItemCollection addErrorMessage(Exception pe, ItemCollection aworkitem) {
+
+		if (pe instanceof RuntimeException && pe.getCause() != null) {
+			pe = (RuntimeException) pe.getCause();
+		}
+
+		if (pe instanceof InvalidAccessException) {
+			aworkitem.replaceItemValue("$error_code", ((InvalidAccessException) pe).getErrorCode());
+			aworkitem.replaceItemValue("$error_message", pe.getMessage());
+		} else {
+			aworkitem.replaceItemValue("$error_code", "INTERNAL ERROR");
+			aworkitem.replaceItemValue("$error_message", pe.getMessage());
+		}
+
+		return aworkitem;
 	}
 }

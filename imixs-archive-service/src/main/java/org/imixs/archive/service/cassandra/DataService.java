@@ -242,58 +242,74 @@ public class DataService {
 			logger.finest("... merge fileData objects: " + files.size() + " fileData objects defined....");
 			// add document if not exists
 			if (fileData.getContent() == null || fileData.getContent().length == 0) {
-				// read md5 form custom attributes
-				ItemCollection customAttributes = new ItemCollection(fileData.getAttributes());
-				String md5 = customAttributes.getItemValueString(ITEM_MD5_CHECKSUM);
-
-				// test if md5 exits...
-				String sql = STATEMENT_SELECT_DOCUMENTS;
-				sql = sql.replace("'?'", "'" + md5 + "'");
-
-				logger.finest("......search MD5 entry: " + sql);
-
-				ResultSet rs = session.execute(sql);
-				// collect all dat blocks (which are sorted by its sort_id....
-				Iterator<Row> resultIter = rs.iterator();
-				ByteArrayOutputStream bOutput = new ByteArrayOutputStream(1024 * 1024);
-				try {
-					while (resultIter.hasNext()) {
-						Row row = resultIter.next();
-
-						int sort_id = row.getInt(1);
-						String data_id = row.getString(2);
-						logger.finest("......load 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
-
-						// now we can load the data block....
-						String sql_data = STATEMENT_SELECT_DOCUMENTS_DATA;
-						sql_data = sql_data.replace("'?'", "'" + data_id + "'");
-						ResultSet rs_data = session.execute(sql_data);
-						Row row_data = rs_data.one();
-						if (row_data != null) {
-							logger.finest("......merge data block: " + md5 + " sort_id: " + sort_id + " data_id: "
-									+ data_id + "...");
-							// get byte data...
-							ByteBuffer byteDataBlock = row_data.getBytes(1);
-							bOutput.write(byteDataBlock.array());
-						} else {
-							logger.warning("Document Data missing: " + itemCol.getUniqueID() + " MD5:" + md5
-									+ " sort_id: " + sort_id + " data_id: " + data_id);
-						}
-					}
-					// now we have all the bytes...
-					byte[] allData = bOutput.toByteArray();
-					logger.finest("......collected full data block: " + md5 + " size: " + allData.length + "...");
-					itemCol.addFileData(new FileData(fileData.getName(), allData, fileData.getContentType(),
-							fileData.getAttributes()));
-					bOutput.close();
-
-				} catch (IOException e) {
-					throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT,
-							"failed to load document data: " + e.getMessage(), e);
-				}
+				fileData = loadFileData(fileData, session);
+				itemCol.addFileData(fileData);
 			}
 
 		}
+	}
+
+	/**
+	 * This helper method loades the content of a document defned by a FileData
+	 * object. A document is uniquely identified by its md5 checksum which is part
+	 * of the FileData custom attributes. The data of the document is stored in
+	 * split 1md data blocks in the tabe 'documents_data'
+	 * 
+	 * @param itemCol
+	 * @throws ArchiveException
+	 */
+	public FileData loadFileData(FileData fileData, Session session) throws ArchiveException {
+
+		// read md5 form custom attributes
+		ItemCollection customAttributes = new ItemCollection(fileData.getAttributes());
+		String md5 = customAttributes.getItemValueString(ITEM_MD5_CHECKSUM);
+
+		// test if md5 exits...
+		String sql = STATEMENT_SELECT_DOCUMENTS;
+		sql = sql.replace("'?'", "'" + md5 + "'");
+
+		logger.finest("......search MD5 entry: " + sql);
+
+		ResultSet rs = session.execute(sql);
+		// collect all dat blocks (which are sorted by its sort_id....
+		Iterator<Row> resultIter = rs.iterator();
+		ByteArrayOutputStream bOutput = new ByteArrayOutputStream(1024 * 1024);
+		try {
+			while (resultIter.hasNext()) {
+				Row row = resultIter.next();
+
+				int sort_id = row.getInt(1);
+				String data_id = row.getString(2);
+				logger.finest("......load 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+
+				// now we can load the data block....
+				String sql_data = STATEMENT_SELECT_DOCUMENTS_DATA;
+				sql_data = sql_data.replace("'?'", "'" + data_id + "'");
+				ResultSet rs_data = session.execute(sql_data);
+				Row row_data = rs_data.one();
+				if (row_data != null) {
+					logger.finest(
+							"......merge data block: " + md5 + " sort_id: " + sort_id + " data_id: " + data_id + "...");
+					// get byte data...
+					ByteBuffer byteDataBlock = row_data.getBytes(1);
+					bOutput.write(byteDataBlock.array());
+				} else {
+					logger.warning("Document Data missing: " + " MD5:" + md5 + " sort_id: " + sort_id + " data_id: "
+							+ data_id);
+				}
+			}
+			// now we have all the bytes...
+			byte[] allData = bOutput.toByteArray();
+			logger.finest("......collected full data block: " + md5 + " size: " + allData.length + "...");
+			fileData = new FileData(fileData.getName(), allData, fileData.getContentType(), fileData.getAttributes());
+			bOutput.close();
+
+		} catch (IOException e) {
+			throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT,
+					"failed to load document data: " + e.getMessage(), e);
+		}
+		return fileData;
+
 	}
 
 	/**
@@ -603,9 +619,7 @@ public class DataService {
 		return 0;
 
 	}
-	
-	
-	
+
 	/**
 	 * returns the date tiem from a date in iso format
 	 * 

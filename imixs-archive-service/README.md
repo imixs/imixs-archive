@@ -1,16 +1,24 @@
 # The Imixs-Archive Service
-The _"Imixs-Archive-Service"_ project allows to store the data of an Imixs-Workflow instance into a highly available Big Data Platform 
-based on [Apache Cassandra](http://cassandra.apache.org/). 
-The Service is connected to a Cassandra cluster consisting of multiple Data Nodes, which is a highly available and resilient storage solution. 
-
-_Imixs-Archive-Service_ automatically pulls all business process data and documents on a scheduled basis into the Cassandra Cluster.
-You can retrieve a single process instance based on a timeline or restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
+The _"Imixs-Archive-Service"_ project stores the data of an Imixs-Workflow instance into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). 
+The Service is part of a Cassandra cluster consisting of multiple Data Nodes, which is a highly available and resilient storage solution. 
 
 The _Imixs-Archive Service_ runs on Jakarta EE and fits perfectly into a microservice infrastrcutre. All communication is based on the Imixs Rest API. The service can be run on Bare-metal server or in a containerized infrastructure. 
 
 All the data is stored in a platform and technology neutral XML format. This guaranties the  cross-technology data exchange independent from a specific software version over a long period of time.   
 
-The service prvides a Web UI to control and monitor the archive service:
+
+## Rest API
+The Rest API which is part the _Imixs-Archive-Service_ provides methods to update and access snapshot data:
+
+ * PUT - stores a snapshot inot the archive
+ * GET - loads a snapshot or a specific snapshot document from the archive 
+
+## The Sync Service
+
+The _Imixs-Archive-Service_ provides a feature to automatically resync all business process data and documents into the Cassandra Cluster. 
+You can retrieve a single process instance based on a timeline or restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
+
+The Sync Service prvides a Web UI to control and monitor the archive service:
 
 	http://localhost:8080/
  
