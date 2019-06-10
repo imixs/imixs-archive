@@ -91,8 +91,8 @@ public class ArchiveRestService {
 	 * @return XMLDataCollection
 	 */
 	@GET
-	@Path("/snapshot/{snapshotid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
-	public Response getSnapshot(@PathParam("snapshotid") String id, @QueryParam("format") String format) {
+	@Path("/snapshot/{id : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}")
+	public Response getSnapshot(@PathParam("id") String id, @QueryParam("format") String format) {
 		Session session = null;
 		Cluster cluster = null;
 		try {
@@ -134,13 +134,8 @@ public class ArchiveRestService {
 			logger.info("...read snapshot...");
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
-
 			ItemCollection metadata = dataService.loadMetadata(session);
-
 			return convertResult(metadata, format);
-
-			// return XMLDataCollectionAdapter.getDataCollection(snapshot);
-			// return XMLDocumentAdapter.getDocument(snapshot);
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return null;
@@ -157,6 +152,66 @@ public class ArchiveRestService {
 	}
 
 	/**
+	 * Returns a file attachment based on its MD5 Checksum
+	 * <p>
+	 * The query parameter 'contentType' can be added to specify the returned content type.
+	 * @param md5 - md5 checksum to identify the file content
+	 * @return
+	 */
+	@GET
+	@Path("/snapshot/md5/{md5}")
+	public Response getSnapshotFileByMD5Checksum(@PathParam("md5") @Encoded String md5,
+			@QueryParam("contentType") String contentType) {
+
+		// load the snapshot
+		Session session = null;
+		Cluster cluster = null;
+		byte[] fileContent = null;
+		try {
+			logger.info("...read snapshot...");
+			cluster = clusterService.getCluster();
+			session = clusterService.getArchiveSession(cluster);
+			// load snapshto without the file data
+			fileContent = dataService.loadFileContent(md5, session);
+
+		} catch (ArchiveException e) {
+			logger.warning("...Failed to load file: " + e.getMessage());
+			e.printStackTrace();
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
+		}
+		// extract the file...
+		try {
+
+			if (fileContent != null) {
+				// Set content type in order of the contentType stored
+				// in the $file attribute
+				Response.ResponseBuilder builder = Response.ok(fileContent, contentType);
+				return builder.build();
+			} else {
+				logger.warning("ArchiveRestService unable to open file by md5 checksum: '" + md5 + "'");
+				// workitem not found
+				return Response.status(Response.Status.NOT_FOUND).build();
+			}
+
+		} catch (Exception e) {
+			logger.severe(
+					"ArchiveRestService unable to open file by md5 checksum: '" + md5 + "' - error: " + e.getMessage());
+			e.printStackTrace();
+		}
+
+		logger.severe("ArchiveRestService unable to open file by md5 checksum: '" + md5 + "'");
+		return Response.status(Response.Status.NOT_FOUND).build();
+
+	}
+
+	/**
 	 * Returns a file attachment located in the property $file of the specified
 	 * snapshot
 	 * <p>
@@ -167,8 +222,8 @@ public class ArchiveRestService {
 	 * @return
 	 */
 	@GET
-	@Path("/snapshot/{uniqueid}/file/{file}")
-	public Response getSnapshotFile(@PathParam("uniqueid") String snapshotid, @PathParam("file") @Encoded String file,
+	@Path("/snapshot/{id}/file/{file}")
+	public Response getSnapshotFileByName(@PathParam("snapshotid") String id, @PathParam("file") @Encoded String file,
 			@Context UriInfo uriInfo) {
 
 		// load the snapshot
@@ -181,7 +236,7 @@ public class ArchiveRestService {
 			cluster = clusterService.getCluster();
 			session = clusterService.getArchiveSession(cluster);
 			// load snapshto without the file data
-			snapshot = dataService.loadSnapshot(snapshotid, false, session);
+			snapshot = dataService.loadSnapshot(id, false, session);
 
 			String fileNameUTF8 = URLDecoder.decode(file, "UTF-8");
 			String fileNameISO = URLDecoder.decode(file, "ISO-8859-1");
@@ -218,19 +273,19 @@ public class ArchiveRestService {
 				Response.ResponseBuilder builder = Response.ok(fileData.getContent(), fileData.getContentType());
 				return builder.build();
 			} else {
-				logger.warning("ArchiveRestService unable to open file: '" + file + "' in workitem '" + snapshotid
+				logger.warning("ArchiveRestService unable to open file: '" + file + "' in workitem '" + id
 						+ "' - error: Filename not found!");
 				// workitem not found
 				return Response.status(Response.Status.NOT_FOUND).build();
 			}
 
 		} catch (Exception e) {
-			logger.severe("ArchiveRestService unable to open file: '" + file + "' in workitem '" + snapshotid
+			logger.severe("ArchiveRestService unable to open file: '" + file + "' in workitem '" + id
 					+ "' - error: " + e.getMessage());
 			e.printStackTrace();
 		}
 
-		logger.severe("ArchiveRestService unable to open file: '" + file + "' in workitem '" + snapshotid + "'");
+		logger.severe("ArchiveRestService unable to open file: '" + file + "' in workitem '" + id + "'");
 		return Response.status(Response.Status.NOT_FOUND).build();
 
 	}

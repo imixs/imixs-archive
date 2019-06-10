@@ -10,8 +10,10 @@ All the data is stored in a platform and technology neutral XML format. This gua
 ## Rest API
 The Rest API which is part the _Imixs-Archive-Service_ provides methods to update and access snapshot data:
 
- * PUT - stores a snapshot inot the archive
- * GET - loads a snapshot or a specific snapshot document from the archive 
+ * PUT /snapshot/ - stores a snapshot into the archive
+ * GET /snapshot/{id} - loads a snapshot from the archive
+ * GET /snapshot/{id}/file/{file} - loads the file conent from a snapshot by its filenme 
+ * GET /snapshot/md5/{md5} - loads the file content by its MD5 checksum 
 
 ## The Sync Service
 

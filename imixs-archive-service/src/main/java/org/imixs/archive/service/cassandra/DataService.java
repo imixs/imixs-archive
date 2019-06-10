@@ -259,10 +259,24 @@ public class DataService {
 	 * @throws ArchiveException
 	 */
 	public FileData loadFileData(FileData fileData, Session session) throws ArchiveException {
-
 		// read md5 form custom attributes
 		ItemCollection customAttributes = new ItemCollection(fileData.getAttributes());
 		String md5 = customAttributes.getItemValueString(ITEM_MD5_CHECKSUM);
+		// now we have all the bytes...
+		byte[] allData = loadFileContent(md5,session);
+		return new FileData(fileData.getName(), allData, fileData.getContentType(), fileData.getAttributes());
+		
+	}
+
+	/**
+	 * This helper method loades the content of a document defned by its MD5
+	 * checksum. The data of the document is stored in chunked 1md data blocks in
+	 * the tabe 'documents_data'
+	 * 
+	 * @param itemCol
+	 * @throws ArchiveException
+	 */
+	public byte[] loadFileContent(String md5, Session session) throws ArchiveException {
 
 		// test if md5 exits...
 		String sql = STATEMENT_SELECT_DOCUMENTS;
@@ -301,15 +315,20 @@ public class DataService {
 			// now we have all the bytes...
 			byte[] allData = bOutput.toByteArray();
 			logger.finest("......collected full data block: " + md5 + " size: " + allData.length + "...");
-			fileData = new FileData(fileData.getName(), allData, fileData.getContentType(), fileData.getAttributes());
-			bOutput.close();
+			return allData;
 
 		} catch (IOException e) {
 			throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT,
 					"failed to load document data: " + e.getMessage(), e);
+		} finally {
+			if (bOutput != null) {
+				try {
+					bOutput.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
-		return fileData;
-
 	}
 
 	/**
