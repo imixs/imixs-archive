@@ -103,7 +103,7 @@ public class DataService {
 	 *            - cassandra session
 	 * @throws ArchiveException
 	 */
-	public void saveSnapshot(ItemCollection snapshot, Session session) throws ArchiveException {
+	public void saveSnapshot(ItemCollection snapshot) throws ArchiveException {
 
 		String snapshotID = snapshot.getUniqueID();
 		
@@ -118,7 +118,7 @@ public class DataService {
 
 		// verify if this snapshot is already stored - if so, we do not overwrite
 		// the origin data. See issue #40
-		if (existSnapshot(snapshotID, session)) {
+		if (existSnapshot(snapshotID)) {
 			// skipp!
 			logger.warning("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
 			return;
@@ -130,18 +130,18 @@ public class DataService {
 		String originUnqiueID = getUniqueID(snapshotID);
 
 		// extract $file content into the table 'documents'....
-		extractDocuments(snapshot, session);
+		extractDocuments(snapshot);
 
-		session.execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS, snapshot.getUniqueID(),
+		clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS, snapshot.getUniqueID(),
 				ByteBuffer.wrap(getRawData(snapshot))));
 
-		session.execute(
+		clusterService.getSession().execute(
 				new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_UNIQUEID, originUnqiueID, snapshot.getUniqueID()));
 
 		// upset snapshots_by_modified....
 		LocalDate ld = LocalDate.fromMillisSinceEpoch(snapshot.getItemValueDate("$modified").getTime());
 
-		session.execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED, ld, snapshot.getUniqueID()));
+		clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED, ld, snapshot.getUniqueID()));
 
 		// Finally we fire the DocumentEvent ON_DOCUMENT_SAVE
 		if (events != null) {
@@ -160,7 +160,7 @@ public class DataService {
 	 * @param itemCol
 	 * @throws ArchiveException
 	 */
-	private void extractDocuments(ItemCollection itemCol, Session session) throws ArchiveException {
+	private void extractDocuments(ItemCollection itemCol) throws ArchiveException {
 		// empty data...
 		byte[] empty = {};
 		List<FileData> files = itemCol.getFileData();
@@ -178,18 +178,18 @@ public class DataService {
 
 					logger.finest("......search MD5 entry: " + sql);
 
-					ResultSet rs = session.execute(sql);
+					ResultSet rs = clusterService.getSession().execute(sql);
 					Row row = rs.one();
 					if (row == null) {
 						// not yet stored so extract the conent
-						storeDocument(md5, fileData.getContent(), session);
+						storeDocument(md5, fileData.getContent());
 					} else {
 						logger.finest(
 								"......update fildata not necessary because object: " + md5 + " is already stored!");
 					}
 
 					// updset documents_by_snapshot.... (needed for deletion)
-					session.execute(
+					clusterService.getSession().execute(
 							new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_DOCUMENT, md5, itemCol.getUniqueID()));
 
 					// remove file content from itemCol
@@ -215,7 +215,7 @@ public class DataService {
 	 * @param data
 	 * @param session
 	 */
-	private void storeDocument(String md5, byte[] data, Session session) {
+	private void storeDocument(String md5, byte[] data) {
 
 		// split the data into 1md blocks....
 		DocumentSplitter documentSplitter = new DocumentSplitter(data);
@@ -226,9 +226,9 @@ public class DataService {
 			logger.finest("......write new 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
 			byte[] chunk = it.next();
 			// write 1MB chunk into cassandra....
-			session.execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS_DATA, data_id, ByteBuffer.wrap(chunk)));
+			clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS_DATA, data_id, ByteBuffer.wrap(chunk)));
 			// write sort_id....
-			session.execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS, md5, sort_id, data_id));
+			clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS, md5, sort_id, data_id));
 			// increase sort_id
 			sort_id++;
 		}
@@ -244,7 +244,7 @@ public class DataService {
 	 * @param itemCol
 	 * @throws ArchiveException
 	 */
-	private void mergeDocumentData(ItemCollection itemCol, Session session) throws ArchiveException {
+	private void mergeDocumentData(ItemCollection itemCol) throws ArchiveException {
 		List<FileData> files = itemCol.getFileData();
 		for (FileData fileData : files) {
 			// first verify if content is already stored.
@@ -252,7 +252,7 @@ public class DataService {
 			logger.finest("... merge fileData objects: " + files.size() + " fileData objects defined....");
 			// add document if not exists
 			if (fileData.getContent() == null || fileData.getContent().length == 0) {
-				fileData = loadFileData(fileData, session);
+				fileData = loadFileData(fileData);
 				itemCol.addFileData(fileData);
 			}
 
@@ -268,12 +268,12 @@ public class DataService {
 	 * @param itemCol
 	 * @throws ArchiveException
 	 */
-	public FileData loadFileData(FileData fileData, Session session) throws ArchiveException {
+	public FileData loadFileData(FileData fileData) throws ArchiveException {
 		// read md5 form custom attributes
 		ItemCollection customAttributes = new ItemCollection(fileData.getAttributes());
 		String md5 = customAttributes.getItemValueString(ITEM_MD5_CHECKSUM);
 		// now we have all the bytes...
-		byte[] allData = loadFileContent(md5,session);
+		byte[] allData = loadFileContent(md5);
 		return new FileData(fileData.getName(), allData, fileData.getContentType(), fileData.getAttributes());
 		
 	}
@@ -286,7 +286,7 @@ public class DataService {
 	 * @param itemCol
 	 * @throws ArchiveException
 	 */
-	public byte[] loadFileContent(String md5, Session session) throws ArchiveException {
+	public byte[] loadFileContent(String md5) throws ArchiveException {
 
 		// test if md5 exits...
 		String sql = STATEMENT_SELECT_DOCUMENTS;
@@ -294,7 +294,7 @@ public class DataService {
 
 		logger.finest("......search MD5 entry: " + sql);
 
-		ResultSet rs = session.execute(sql);
+		ResultSet rs = clusterService.getSession().execute(sql);
 		// collect all dat blocks (which are sorted by its sort_id....
 		Iterator<Row> resultIter = rs.iterator();
 		ByteArrayOutputStream bOutput = new ByteArrayOutputStream(1024 * 1024);
@@ -309,7 +309,7 @@ public class DataService {
 				// now we can load the data block....
 				String sql_data = STATEMENT_SELECT_DOCUMENTS_DATA;
 				sql_data = sql_data.replace("'?'", "'" + data_id + "'");
-				ResultSet rs_data = session.execute(sql_data);
+				ResultSet rs_data = clusterService.getSession().execute(sql_data);
 				Row row_data = rs_data.one();
 				if (row_data != null) {
 					logger.finest(
@@ -347,11 +347,11 @@ public class DataService {
 	 * @param snapshotID
 	 * @return true if the snapshot exists.
 	 */
-	public boolean existSnapshot(String snapshotID, Session session) {
+	public boolean existSnapshot(String snapshotID) {
 		String sql = STATEMENT_SELECT_SNAPSHOT_ID;
 		sql = sql.replace("'?'", "'" + snapshotID + "'");
 		logger.finest("......search snapshot id: " + sql);
-		ResultSet rs = session.execute(sql);
+		ResultSet rs = clusterService.getSession().execute(sql);
 		Row row = rs.one();
 		return (row != null);
 	}
@@ -368,8 +368,8 @@ public class DataService {
 	 * @return snapshot data including documents
 	 * @throws ArchiveException
 	 */
-	public ItemCollection loadSnapshot(String snapshotID, Session session) throws ArchiveException {
-		return loadSnapshot(snapshotID, true, session);
+	public ItemCollection loadSnapshot(String snapshotID) throws ArchiveException {
+		return loadSnapshot(snapshotID, true);
 	}
 
 	/**
@@ -387,7 +387,7 @@ public class DataService {
 	 * @return snapshot data
 	 * @throws ArchiveException
 	 */
-	public ItemCollection loadSnapshot(String snapshotID, boolean mergeDocuments, Session session)
+	public ItemCollection loadSnapshot(String snapshotID, boolean mergeDocuments)
 			throws ArchiveException {
 		ItemCollection snapshot = new ItemCollection();
 
@@ -396,7 +396,7 @@ public class DataService {
 		String sql = STATEMENT_SELECT_SNAPSHOT;
 		sql = sql.replace("'?'", "'" + snapshotID + "'");
 		logger.finest("......search snapshot id: " + sql);
-		ResultSet rs = session.execute(sql);
+		ResultSet rs = clusterService.getSession().execute(sql);
 		Row row = rs.one();
 		if (row != null) {
 			// load ItemCollection object
@@ -405,7 +405,7 @@ public class DataService {
 				snapshot = getItemCollection(data.array());
 
 				// next we need to load the document data if exists...
-				mergeDocumentData(snapshot, session);
+				mergeDocumentData(snapshot);
 			}
 		} else {
 			// does not exist - create empty object
@@ -427,8 +427,8 @@ public class DataService {
 	 * @return metadata object
 	 * @throws ArchiveException
 	 */
-	public ItemCollection loadMetadata(Session session) throws ArchiveException {
-		return loadSnapshot("0", session);
+	public ItemCollection loadMetadata() throws ArchiveException {
+		return loadSnapshot("0");
 	}
 
 	/**
@@ -437,12 +437,12 @@ public class DataService {
 	 * @param uniqueID
 	 * @return list of snapshots
 	 */
-	public List<String> loadSnapshotsByUnqiueID(String uniqueID, Session session) {
+	public List<String> loadSnapshotsByUnqiueID(String uniqueID) {
 		List<String> result = new ArrayList<String>();
 		String sql = STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
 		sql = sql.replace("'?'", "'" + uniqueID + "'");
 		logger.finest("......search snapshot id: " + sql);
-		ResultSet rs = session.execute(sql);
+		ResultSet rs = clusterService.getSession().execute(sql);
 
 		// iterate over result
 
@@ -463,13 +463,13 @@ public class DataService {
 	 * @param date
 	 * @return list of snapshots
 	 */
-	public List<String> loadSnapshotsByDate(java.time.LocalDate date, Session session) {
+	public List<String> loadSnapshotsByDate(java.time.LocalDate date) {
 		List<String> result = new ArrayList<String>();
 		// select snapshotIds by day...
 		String sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED;
 		sql = sql.replace("'?'", "'" + date + "'");
 		logger.finest("......SQL: " + sql);
-		ResultSet rs = session.execute(sql);
+		ResultSet rs = clusterService.getSession().execute(sql);
 		// iterate over result
 		Iterator<Row> resultIter = rs.iterator();
 		while (resultIter.hasNext()) {
@@ -492,9 +492,9 @@ public class DataService {
 	 *            - metadata
 	 * @throws ArchiveException
 	 */
-	public void saveMetadata(ItemCollection metadata, Session session) throws ArchiveException {
+	public void saveMetadata(ItemCollection metadata) throws ArchiveException {
 		// upset document....
-		session.execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS, "0", ByteBuffer.wrap(getRawData(metadata))));
+		clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS, "0", ByteBuffer.wrap(getRawData(metadata))));
 	}
 
 	/**
@@ -507,7 +507,7 @@ public class DataService {
 	 *            - cassandra session
 	 * @throws ArchiveException
 	 */
-	public void deleteSnapshot(ItemCollection itemCol, Session session) throws ArchiveException {
+	public void deleteSnapshot(ItemCollection itemCol) throws ArchiveException {
 		// TODO
 		logger.warning("need to delete snapshot and references");
 

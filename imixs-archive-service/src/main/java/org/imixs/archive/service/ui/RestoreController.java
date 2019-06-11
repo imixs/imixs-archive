@@ -48,8 +48,8 @@ public class RestoreController implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(RestoreController.class.getName());
 
-	Cluster cluster = null;
-	Session session = null;
+//	Cluster cluster = null;
+//	Session session = null;
 	long restoreDateFrom;
 	long restoreDateTo;
 	String restoreSizeUnit = null;
@@ -79,11 +79,11 @@ public class RestoreController implements Serializable {
 	 */
 	@PostConstruct
 	void init() throws ArchiveException {
-		cluster = clusterService.getCluster();
-		session = clusterService.getArchiveSession(cluster);
+//		cluster = clusterService.getCluster();
+//		session = clusterService.getArchiveSession(cluster);
 
 		// load metadata
-		metaData = dataService.loadMetadata(session);
+		metaData = dataService.loadMetadata();
 		// load options
 		options = restoreService.getOptions(metaData);
 	}
@@ -95,14 +95,14 @@ public class RestoreController implements Serializable {
 	 */
 	@PreDestroy
 	void close() {
-		logger.info("...closing session....");
+		//logger.info("...closing session....");
 		// close session and cluster object
-		if (session != null) {
-			session.close();
-		}
-		if (cluster != null) {
-			cluster.close();
-		}
+//		if (session != null) {
+//			session.close();
+//		}
+//		if (cluster != null) {
+//			cluster.close();
+//		}
 	}
 
 	public String getRestoreFrom() {

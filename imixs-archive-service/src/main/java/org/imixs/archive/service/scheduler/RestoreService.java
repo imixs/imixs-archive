@@ -100,6 +100,9 @@ public class RestoreService {
 
 	@EJB
 	MessageService messageService;
+	
+	@EJB
+	RemoteAPIService remoteAPIService;
 
 	@Resource
 	javax.ejb.TimerService timerService;
@@ -150,9 +153,9 @@ public class RestoreService {
 			logger.info("...... restore from=" + DataService.getSyncPointISO(restoreFrom));
 			logger.info("...... restore   to=" + DataService.getSyncPointISO(restoreTo));
 			// ...start sync
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
-			ItemCollection metaData = dataService.loadMetadata(session);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
+			ItemCollection metaData = dataService.loadMetadata();
 			metaData.setItemValue(ITEM_RESTORE_FROM, restoreFrom);
 			metaData.setItemValue(ITEM_RESTORE_TO, restoreTo);
 			metaData.setItemValue(ITEM_RESTORE_SYNCPOINT, restoreFrom);
@@ -161,7 +164,7 @@ public class RestoreService {
 			metaData.setItemValue(ITEM_RESTORE_OPTIONS, options);
 
 			// update metadata
-			dataService.saveMetadata(metaData, session);
+			dataService.saveMetadata(metaData);
 			timer = timerService.createTimer(new Date(), TIMER_INTERVAL_DURATION, TIMER_ID_RESTORESERVICE);
 
 			// start and set statusmessage
@@ -211,10 +214,10 @@ public class RestoreService {
 		long startTime = System.currentTimeMillis();
 		try {
 			// ...start sync
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
 			// read the metdata
-			metadata = dataService.loadMetadata(session);
+			metadata = dataService.loadMetadata();
 			// compute current restore day....
 			syncpoint = metadata.getItemValueLong(ITEM_RESTORE_SYNCPOINT);
 			List<ItemCollection> options = getOptions(metadata);
@@ -229,36 +232,36 @@ public class RestoreService {
 			// restore.to point.
 			while(localDateRestoreTo.isAfter(localDateSyncPoint)) { 
 
-				List<String> snapshotIDs = dataService.loadSnapshotsByDate(localDateSyncPoint.toLocalDate(), session);
+				List<String> snapshotIDs = dataService.loadSnapshotsByDate(localDateSyncPoint.toLocalDate());
 				// verify all snapshots of this day....
 				if (!snapshotIDs.isEmpty()) {
 					logger.finest("......analyze snapshotIDs from " + localDateSyncPoint);
 					// print out the snapshotIDs we found
 					for (String snapshotID : snapshotIDs) {
 
-						String latestSnapshot = findLatestSnapshotID(snapshotID, restoreFrom, restoreTo, session);
+						String latestSnapshot = findLatestSnapshotID(snapshotID, restoreFrom, restoreTo);
 
 						// did we found a snapshot to restore?
 						ItemCollection snapshot;
 						if (latestSnapshot != null) {
 							// yes!
 							// lets see if this snapshot is alredy restored or synced?
-							String remoteSnapshotID = RemoteAPIService
+							String remoteSnapshotID = remoteAPIService
 									.readSnapshotIDByUniqueID(DataService.getUniqueID(latestSnapshot));
 							if (latestSnapshot.equals(remoteSnapshotID)) {
 								logger.finest("......no need to restore - snapshot:" + latestSnapshot + " is up to date!");
 							} else {
 								// test the filter options
-								if (matchFilterOptions(latestSnapshot, options, session)) {
+								if (matchFilterOptions(latestSnapshot, options)) {
 									long _tmpSize = -1;
 									try {
 										logger.finest("......restoring: " + latestSnapshot);
-										snapshot = dataService.loadSnapshot(latestSnapshot, session);
+										snapshot = dataService.loadSnapshot(latestSnapshot);
 										_tmpSize = DataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
 										logger.finest("......size=: " + _tmpSize);
 
 										
-										RemoteAPIService.restoreSnapshot(snapshot);
+										remoteAPIService.restoreSnapshot(snapshot);
 										
 										restoreSize = restoreSize + _tmpSize;
 										restoreCount++;
@@ -284,7 +287,7 @@ public class RestoreService {
 				metadata.setItemValue(ITEM_RESTORE_SYNCSIZE, restoreSize);
 				metadata.setItemValue(ITEM_RESTORE_SYNCERRORS, restoreErrors);
 
-				dataService.saveMetadata(metadata, session);
+				dataService.saveMetadata(metadata);
 
 			}
 
@@ -329,9 +332,9 @@ public class RestoreService {
 	 * @return latest snapshot ID within the time range or null if no snapshot
 	 *         matches the timerange.
 	 */
-	String findLatestSnapshotID(String snapshotID, long restoreFrom, long restoreTo, Session session) {
+	String findLatestSnapshotID(String snapshotID, long restoreFrom, long restoreTo) {
 		String latestSnapshot = null;
-		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(DataService.getUniqueID(snapshotID), session);
+		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(DataService.getUniqueID(snapshotID));
 
 		// --- special debug logging....
 		for (String _tmpSnapshotID : _tmpSnapshots) {
@@ -374,7 +377,7 @@ public class RestoreService {
 	 *         data
 	 * @throws ArchiveException
 	 */
-	boolean matchFilterOptions(String snapshotID, List<ItemCollection> options, Session session)
+	boolean matchFilterOptions(String snapshotID, List<ItemCollection> options)
 			throws ArchiveException {
 		ItemCollection _tmp_snapshot_data = null;
 
@@ -385,7 +388,7 @@ public class RestoreService {
 		}
 
 		// load snapshot data without document data and verify the options
-		_tmp_snapshot_data = dataService.loadSnapshot(snapshotID, false, session);
+		_tmp_snapshot_data = dataService.loadSnapshot(snapshotID, false);
 		for (ItemCollection option : options) {
 			String itemName = option.getItemValueString("name");
 			Pattern regexPattern = Pattern.compile(option.getItemValueString("filter").trim());

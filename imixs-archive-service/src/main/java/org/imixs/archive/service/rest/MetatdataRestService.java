@@ -81,10 +81,10 @@ public class MetatdataRestService {
 		Cluster cluster = null;
 		try {
 			logger.info("...read metadata...");
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
 
-			ItemCollection metadata = dataService.loadMetadata(session);
+			ItemCollection metadata = dataService.loadMetadata();
 
 			String result = "syncpoint=" + metadata.getItemValueString(SyncService.ITEM_SYNCPOINT);
 			result = result + "\ncount=" + metadata.getItemValueString(SyncService.ITEM_SYNCCOUNT);

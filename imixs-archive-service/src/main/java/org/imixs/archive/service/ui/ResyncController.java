@@ -41,8 +41,8 @@ public class ResyncController implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(ResyncController.class.getName());
 
-	Cluster cluster = null;
-	Session session = null;
+//	Cluster cluster = null;
+//	Session session = null;
 
 	ItemCollection metaData = null;
 	String newSyncPoint = null;
@@ -68,11 +68,11 @@ public class ResyncController implements Serializable {
 	@PostConstruct
 	void init() throws ArchiveException {
 		logger.info("...initial session....");
-		cluster = clusterService.getCluster();
-		session = clusterService.getArchiveSession(cluster);
+//		cluster = clusterService.getCluster();
+//		session = clusterService.getArchiveSession(cluster);
 
 		// load metadata
-		metaData = dataService.loadMetadata(session);
+		metaData = dataService.loadMetadata();
 	}
 
 	/**
@@ -117,7 +117,7 @@ public class ResyncController implements Serializable {
 			Date syncDate = dt.parse(newSyncPoint);
 			logger.info("......updateing syncpoint=" + this.newSyncPoint);
 			metaData.setItemValue(SyncService.ITEM_SYNCPOINT, syncDate.getTime());
-			dataService.saveMetadata(metaData, session);
+			dataService.saveMetadata(metaData);
 
 		} catch (ArchiveException | ParseException e) {
 			logger.severe("failed to set new syncpoint: " + e.getMessage());

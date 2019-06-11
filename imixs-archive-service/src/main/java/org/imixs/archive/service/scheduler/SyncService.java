@@ -36,7 +36,9 @@ import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
+import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
@@ -77,6 +79,12 @@ public class SyncService {
 
 	private final static int MAX_COUNT = 100;
 
+	@Inject
+	@ConfigProperty(name = ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, defaultValue = "")
+	String schedulerDefinition;
+
+	
+	
 	@Resource
 	javax.ejb.TimerService timerService;
 
@@ -88,6 +96,9 @@ public class SyncService {
 
 	@EJB
 	MessageService messageService;
+	
+	@EJB
+	RemoteAPIService remoteAPIService;
 
 	private static Logger logger = Logger.getLogger(SyncService.class.getName());
 
@@ -100,13 +111,13 @@ public class SyncService {
 	 * @throws ArchiveException
 	 */
 	public boolean startScheduler() throws ArchiveException {
-		Session session = null;
-		Cluster cluster = null;
+//		Session session = null;
+//		Cluster cluster = null;
 		try {
 			logger.info("...init imixsarchive keyspace ...");
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
-			if (session != null) {
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
+			if (clusterService.getSession() != null) {
 				// start archive schedulers....
 				logger.info("...starting schedulers...");
 				start();
@@ -121,12 +132,12 @@ public class SyncService {
 
 		} finally {
 			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
+//			if (session != null) {
+//				session.close();
+//			}
+//			if (cluster != null) {
+//				cluster.close();
+//			}
 		}
 	}
 
@@ -257,6 +268,9 @@ public class SyncService {
 		return null;
 	}
 
+	
+	
+	
 	/**
 	 * Create a calendar-based timer based on a input schedule expression. The
 	 * expression will be parsed by this method.
@@ -283,9 +297,8 @@ public class SyncService {
 		timerConfig.setInfo(TIMER_ID_SYNCSERVICE);
 		ScheduleExpression scheduerExpression = new ScheduleExpression();
 
-		String sDefinition = ClusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION,
-				DEFAULT_SCHEDULER_DEFINITION);
-		String calendarConfiguation[] = sDefinition.split("(\\r?\\n)|(;)|(,)");
+		
+		String calendarConfiguation[] = schedulerDefinition.split("(\\r?\\n)|(;)|(,)");
 
 		// try to parse the configuration list....
 		for (String confgEntry : calendarConfiguation) {
@@ -365,11 +378,11 @@ public class SyncService {
 
 		try {
 
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
 
 			// load metadata and get last syncpoint
-			metaData = dataService.loadMetadata(session);
+			metaData = dataService.loadMetadata();
 			syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
 			totalCount = metaData.getItemValueLong(ITEM_SYNCCOUNT);
 			totalSize = metaData.getItemValueLong(ITEM_SYNCSIZE);
@@ -388,7 +401,7 @@ public class SyncService {
 
 			while (syncread < MAX_COUNT) {
 
-				XMLDataCollection xmlDataCollection = RemoteAPIService.readSyncData(syncPoint);
+				XMLDataCollection xmlDataCollection = remoteAPIService.readSyncData(syncPoint);
 
 				if (xmlDataCollection != null) {
 					List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
@@ -404,10 +417,10 @@ public class SyncService {
 
 						// verify if this snapshot is already stored - if so, we do not overwrite
 						// the origin data
-						if (!dataService.existSnapshot(snapshot.getUniqueID(), session)) {
+						if (!dataService.existSnapshot(snapshot.getUniqueID())) {
 							// store data into archive
 							lastUniqueID = snapshot.getUniqueID();
-							dataService.saveSnapshot(snapshot, session);
+							dataService.saveSnapshot(snapshot);
 							syncupdate++;
 							totalCount++;
 							totalSize = totalSize + DataService.calculateSize(xmlDocument);
@@ -426,7 +439,7 @@ public class SyncService {
 
 						metaData.setItemValue(ITEM_SYNCSIZE, totalSize);
 						lastUniqueID = "0";
-						dataService.saveMetadata(metaData, session);
+						dataService.saveMetadata(metaData);
 					}
 
 				} else {

@@ -2,7 +2,15 @@ package org.imixs.archive.service.cassandra;
 
 import java.util.logging.Logger;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.ejb.Singleton;
+//import javax.ejb.Singleton;
 import javax.ejb.Stateless;
+import javax.inject.Inject;
+//import javax.inject.Singleton;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import org.imixs.archive.service.ArchiveException;
 
@@ -26,6 +34,7 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
  * 
  */
 @Stateless
+@Singleton
 public class ClusterService {
 
 	public static final String KEYSPACE_REGEX = "^[a-z_]*[^-]$";
@@ -58,6 +67,59 @@ public class ClusterService {
 
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
+	
+
+	@Inject
+	@ConfigProperty(name =ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, defaultValue = "1")
+	String repFactor;
+
+	@Inject
+	@ConfigProperty(name =ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, defaultValue = "SimpleStrategy")
+	String repClass;
+
+	@Inject
+	@ConfigProperty(name =ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
+	String contactPoint;
+
+	@Inject
+	@ConfigProperty(name =ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
+	String keySpace;
+	
+	
+	private Cluster cluster;
+	private Session session;
+
+	@PostConstruct
+	private void init() throws ArchiveException {
+		cluster=initCluster();
+		session = initArchiveSession();
+	}
+
+	@PreDestroy
+	private void tearDown() throws ArchiveException {
+		// close session and cluster object
+		if (session != null) {
+			session.close();
+		}
+		if (cluster != null) {
+			cluster.close();
+		}
+	}
+
+	
+	
+	public Session getSession() {
+		if (session==null) {
+			try {
+				init();
+			} catch (ArchiveException e) {
+				logger.warning("unable to get falid session: " + e.getMessage());
+				e.printStackTrace();
+			}
+		}
+		return session;
+	}
+
 	/**
 	 * Returns a cassandra session for the archive KeySpace. The keyspace is defined
 	 * by the environmetn variable ARCHIVE_CLUSTER_KEYSPACE. If no keyspace with
@@ -66,16 +128,15 @@ public class ClusterService {
 	 * 
 	 * @throws ArchiveException
 	 */
-	public Session getArchiveSession(Cluster cluster) throws ArchiveException {
+	private Session initArchiveSession() throws ArchiveException {
 
-		String keySpace = ClusterService.getEnv(ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		
 		if (!isValidKeyspaceName(keySpace)) {
 			throw new ArchiveException(ArchiveException.INVALID_KEYSPACE, "keyspace '" + keySpace + "' name invalid.");
 		}
 
 		// try to open keySpace
-		logger.finest("......conecting keyspace '" + keySpace + "'...");
-		Session session = null;
+		logger.info("......conecting keyspace '" + keySpace + "'...");
 		try {
 			session = cluster.connect(keySpace);
 		} catch (InvalidQueryException e) {
@@ -98,19 +159,19 @@ public class ClusterService {
 	 * @return Cassandra Cluster instacne
 	 * @throws ArchiveException
 	 */
-	public Cluster getCluster() throws ArchiveException {
-		String contactPoint = getEnv(ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
-
+	protected Cluster initCluster() throws ArchiveException {
+		
 		if (contactPoint == null || contactPoint.isEmpty()) {
 			throw new ArchiveException(ArchiveException.MISSING_CONTACTPOINT,
 					"missing cluster contact points - verify configuration!");
 		}
 
-		logger.finest("......cluster conecting...");
-		Cluster cluster = Cluster.builder().addContactPoint(contactPoint).build();
+		logger.info("......cluster conecting...");
+		cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
 
-		logger.finest("......cluster conection status = OK");
+		logger.info("......cluster conection status = OK");
+		
 		return cluster;
 
 	}
@@ -130,25 +191,9 @@ public class ClusterService {
 
 	}
 
-	/**
-	 * Returns a environment variable. An environment variable can be provided as a
-	 * System property. If not available in the system variables than the method
-	 * verifies the imixs.properties field.
-	 * 
-	 * @param env
-	 *            - environment variable name
-	 * @param defaultValue
-	 *            - optional default value
-	 * @return value
-	 */
-	public static String getEnv(String env, String defaultValue) {
-		String result = System.getenv(env);
-		if (result == null || result.isEmpty()) {
-			result = defaultValue;
-		}
-		return result;
-	}
-
+	
+	
+	
 	/**
 	 * This method creates a cassandra keySpace.
 	 * <p>
@@ -162,12 +207,8 @@ public class ClusterService {
 	protected Session createKeySpace(String keySpace) throws ArchiveException {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
 
-		Cluster cluster = getCluster();
-		Session session = cluster.connect();
-
-		String repFactor = getEnv(ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, "1");
-		String repClass = getEnv(ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, "SimpleStrategy");
-
+	
+		
 		String statement = "CREATE KEYSPACE IF NOT EXISTS " + keySpace + " WITH replication = {'class': '" + repClass
 				+ "', 'replication_factor': " + repFactor + "};";
 		logger.info("......keyspace created...");

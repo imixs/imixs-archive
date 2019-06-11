@@ -11,8 +11,10 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
+import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
@@ -37,8 +39,8 @@ public class ClusterDataController implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
 
-	Cluster cluster = null;
-	Session session = null;
+//	Cluster cluster = null;
+//	Session session = null;
 	String syncSizeUnit = null;
 	ItemCollection metaData = null;
 
@@ -53,6 +55,34 @@ public class ClusterDataController implements Serializable {
 
 	@EJB
 	MessageService messageService;
+	
+	@Inject
+	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
+	String contactPoint;
+
+	@Inject
+	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
+	String keySpace;
+	
+
+	@Inject
+	@ConfigProperty(name = ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, defaultValue = "")
+	String schedulerDefinition;
+
+
+	@Inject
+	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, defaultValue = "1")
+	String repFactor;
+
+	@Inject
+	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, defaultValue = "SimpleStrategy")
+	String repClass;
+	
+	@Inject
+	@ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
+	String workflowServiceEndpoint;
+
+	
 
 	public ClusterDataController() {
 		super();
@@ -67,11 +97,11 @@ public class ClusterDataController implements Serializable {
 	@PostConstruct
 	void init() throws ArchiveException {
 		logger.info("...initial session....");
-		cluster = clusterService.getCluster();
-		session = clusterService.getArchiveSession(cluster);
+//		cluster = clusterService.getCluster();
+//		session = clusterService.getArchiveSession(cluster);
 
 		// load metadata
-		metaData = dataService.loadMetadata(session);
+		metaData = dataService.loadMetadata();
 	}
 
 	/**
@@ -83,12 +113,12 @@ public class ClusterDataController implements Serializable {
 	void close() {
 		logger.info("...closing session....");
 		// close session and cluster object
-		if (session != null) {
-			session.close();
-		}
-		if (cluster != null) {
-			cluster.close();
-		}
+//		if (session != null) {
+//			session.close();
+//		}
+//		if (cluster != null) {
+//			cluster.close();
+//		}
 	}
 
 	/**
@@ -97,7 +127,7 @@ public class ClusterDataController implements Serializable {
 	 * @return true if session was successfull established.
 	 */
 	public boolean isConnected() {
-		return (session != null);
+		return (clusterService.getSession() != null);
 	}
 
 	/**
@@ -154,30 +184,30 @@ public class ClusterDataController implements Serializable {
 		return syncSizeUnit;
 	}
 
+	
 	public String getContactPoints() {
-		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, null);
+		return contactPoint;
 	}
 
 	public String getKeySpace() {
-		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, null);
+		return keySpace;
 	}
 
 	public String getScheduler() {
-		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION,
-				SyncService.DEFAULT_SCHEDULER_DEFINITION);
+		return schedulerDefinition;
 	}
 
 	public String getReplicationFactor() {
-		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, "1");
+		return repFactor;
 
 	}
 
 	public String getReplicationClass() {
-		return ClusterService.getEnv(ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, "SimpleStrategy");
+		return repClass;
 	}
 
 	public String getServiceEndpoint() {
-		return ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, null);
+		return workflowServiceEndpoint;
 	}
 
 	public Date getNextTimeout() {

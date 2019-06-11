@@ -25,6 +25,9 @@ package org.imixs.archive.service.scheduler;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
+import javax.inject.Inject;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
@@ -54,6 +57,24 @@ public class RemoteAPIService {
 
 	private static Logger logger = Logger.getLogger(RemoteAPIService.class.getName());
 
+	@Inject
+	@ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
+	String workflowServiceEndpoint;
+
+	@Inject
+	@ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_USER, defaultValue = "")
+	String workflowServiceUser;
+
+	@Inject
+	@ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_PASSWORD, defaultValue = "")
+	String workflowServicePassword;
+
+	@Inject
+	@ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_AUTHMETHOD, defaultValue = "")
+	String workflowServiceAuthMethod;
+
+	
+	
 	/**
 	 * This method read sync data. The method returns the first workitem from the
 	 * given syncpoint. If no data is available the method returns null.
@@ -64,7 +85,7 @@ public class RemoteAPIService {
 	 * @throws ArchiveException
 	 * 
 	 */
-	public static XMLDataCollection readSyncData(long syncPoint) throws ArchiveException {
+	public  XMLDataCollection readSyncData(long syncPoint) throws ArchiveException {
 		XMLDataCollection result = null;
 		// load next document
 
@@ -94,7 +115,7 @@ public class RemoteAPIService {
 	 * @throws ArchiveException
 	 * 
 	 */
-	public static String readSnapshotIDByUniqueID(String uniqueid) throws ArchiveException {
+	public  String readSnapshotIDByUniqueID(String uniqueid) throws ArchiveException {
 		String result = null;
 		// load single document
 		DocumentClient documentClient = initWorkflowClient();
@@ -116,7 +137,7 @@ public class RemoteAPIService {
 		return result;
 	}
 
-	public static void restoreSnapshot(ItemCollection snapshot) throws ArchiveException {
+	public  void restoreSnapshot(ItemCollection snapshot) throws ArchiveException {
 		DocumentClient documentClient = initWorkflowClient();
 		String url = SNAPSHOT_RESOURCE;
 		logger.finest("...... post data: " + url + "....");
@@ -130,30 +151,30 @@ public class RemoteAPIService {
 
 	}
 
+	
+	
 	/**
 	 * Helper method to initalize a Melman Workflow Client based on the current
 	 * archive configuration.
 	 */
-	static DocumentClient initWorkflowClient() {
-		String url = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, null);
-		String autMethod = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_AUTHMETHOD, null);
-		String user = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_USER, null);
-		String password = ClusterService.getEnv(ClusterService.ENV_WORKFLOW_SERVICE_PASSWORD, null);
+	DocumentClient initWorkflowClient() {
+		
+		
+	
+		logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
 
-		logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + url);
-
-		DocumentClient documentClient = new DocumentClient(url);
+		DocumentClient documentClient = new DocumentClient(workflowServiceEndpoint);
 
 		// Test authentication method
-		if ("Form".equalsIgnoreCase(autMethod)) {
+		if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
 			// default basic authenticator
-			FormAuthenticator formAuth = new FormAuthenticator(url, user, password);
+			FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser, workflowServicePassword);
 			// register the authenticator
 			documentClient.registerClientRequestFilter(formAuth);
 
 		} else {
 			// default basic authenticator
-			BasicAuthenticator basicAuth = new BasicAuthenticator(user, password);
+			BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
 			// register the authenticator
 			documentClient.registerClientRequestFilter(basicAuth);
 		}

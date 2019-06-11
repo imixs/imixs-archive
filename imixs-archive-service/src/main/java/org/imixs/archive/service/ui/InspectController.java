@@ -39,8 +39,8 @@ public class InspectController implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(InspectController.class.getName());
 
-	Cluster cluster = null;
-	Session session = null;
+//	Cluster cluster = null;
+//	Session session = null;
 	String uniqueid = null;
 	List<String> snapshotIDs = null;
 	String currentSnapshotID=null;
@@ -56,6 +56,9 @@ public class InspectController implements Serializable {
 
 	@EJB
 	MessageService messageService;
+	
+	@EJB
+	RemoteAPIService remoteAPIService;
 
 	public InspectController() {
 		super();
@@ -129,28 +132,28 @@ public class InspectController implements Serializable {
 	 */
 	public void loadSnapshotIDs() {
 		try {
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
-			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid, session);
+			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid);
 
 			Collections.sort(snapshotIDs, Collections.reverseOrder());
 			
 			// test the current snapshot from the live system!
-			setCurrentSnapshotID(RemoteAPIService.readSnapshotIDByUniqueID(uniqueid));
+			setCurrentSnapshotID(remoteAPIService.readSnapshotIDByUniqueID(uniqueid));
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());
 
 		} finally {
 			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
+//			if (session != null) {
+//				session.close();
+//			}
+//			if (cluster != null) {
+//				cluster.close();
+//			}
 		}
 		
 		
@@ -165,18 +168,18 @@ public class InspectController implements Serializable {
 	 */
 	public void restoreSnapshot(String id) {
 		try {
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
-			ItemCollection snapshot = dataService.loadSnapshot(id, session);
-			RemoteAPIService.restoreSnapshot(snapshot);
+			ItemCollection snapshot = dataService.loadSnapshot(id);
+			remoteAPIService.restoreSnapshot(snapshot);
 			
 			// refresh snapshot list....
-			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid, session);
+			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid);
 			Collections.sort(snapshotIDs, Collections.reverseOrder());
 			// test the current snapshot from the live system!
-			setCurrentSnapshotID(RemoteAPIService.readSnapshotIDByUniqueID(uniqueid));
+			setCurrentSnapshotID(remoteAPIService.readSnapshotIDByUniqueID(uniqueid));
 
 
 		} catch (ArchiveException e) {
@@ -184,12 +187,12 @@ public class InspectController implements Serializable {
 
 		} finally {
 			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
+//			if (session != null) {
+//				session.close();
+//			}
+//			if (cluster != null) {
+//				cluster.close();
+//			}
 		}
 		
 

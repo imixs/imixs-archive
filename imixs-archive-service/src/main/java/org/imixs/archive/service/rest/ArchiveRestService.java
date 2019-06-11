@@ -97,10 +97,10 @@ public class ArchiveRestService {
 		Cluster cluster = null;
 		try {
 			logger.info("...read snapshot...");
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
 
-			ItemCollection snapshot = dataService.loadSnapshot(id, session);
+			ItemCollection snapshot = dataService.loadSnapshot(id);
 
 			return convertResult(snapshot, format);
 			// return XMLDataCollectionAdapter.getDataCollection(snapshot);
@@ -132,9 +132,9 @@ public class ArchiveRestService {
 		Cluster cluster = null;
 		try {
 			logger.info("...read snapshot...");
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
-			ItemCollection metadata = dataService.loadMetadata(session);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
+			ItemCollection metadata = dataService.loadMetadata();
 			return convertResult(metadata, format);
 		} catch (Exception e) {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
@@ -169,10 +169,10 @@ public class ArchiveRestService {
 		byte[] fileContent = null;
 		try {
 			logger.info("...read snapshot...");
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
 			// load snapshto without the file data
-			fileContent = dataService.loadFileContent(md5, session);
+			fileContent = dataService.loadFileContent(md5);
 
 		} catch (ArchiveException e) {
 			logger.warning("...Failed to load file: " + e.getMessage());
@@ -233,10 +233,10 @@ public class ArchiveRestService {
 		FileData fileData = null;
 		try {
 			logger.info("...read snapshot...");
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
 			// load snapshto without the file data
-			snapshot = dataService.loadSnapshot(id, false, session);
+			snapshot = dataService.loadSnapshot(id, false);
 
 			String fileNameUTF8 = URLDecoder.decode(file, "UTF-8");
 			String fileNameISO = URLDecoder.decode(file, "ISO-8859-1");
@@ -249,7 +249,7 @@ public class ArchiveRestService {
 
 			if (fileData != null) {
 				// now we load the content
-				fileData = dataService.loadFileData(fileData, session);
+				fileData = dataService.loadFileData(fileData);
 			}
 
 		} catch (ArchiveException | UnsupportedEncodingException e) {
@@ -315,9 +315,9 @@ public class ArchiveRestService {
 
 		try {
 			logger.info("...write snapshot...");
-			cluster = clusterService.getCluster();
-			session = clusterService.getArchiveSession(cluster);
-			dataService.saveSnapshot(snapshot, session);
+//			cluster = clusterService.getCluster();
+//			session = clusterService.getArchiveSession(cluster);
+			dataService.saveSnapshot(snapshot);
 			snapshot.removeItem("$error_code");
 			snapshot.removeItem("$error_message");
 
