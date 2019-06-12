@@ -6,15 +6,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ejb.EJB;
 import javax.ejb.Timer;
 import javax.enterprise.context.RequestScoped;
-import javax.faces.view.ViewScoped;
+import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.imixs.archive.service.ArchiveException;
@@ -24,9 +22,6 @@ import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.scheduler.RestoreService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
 
 /**
  * CID Bean for the resync service.
@@ -57,16 +52,16 @@ public class RestoreController implements Serializable {
 
 	protected List<ItemCollection> options = null;
 
-	@EJB
+	@Inject
 	ClusterService clusterService;
 
-	@EJB
+	@Inject
 	DataService dataService;
 
-	@EJB
+	@Inject
 	RestoreService restoreService;
 
-	@EJB
+	@Inject
 	MessageService messageService;
 
 	public RestoreController() {

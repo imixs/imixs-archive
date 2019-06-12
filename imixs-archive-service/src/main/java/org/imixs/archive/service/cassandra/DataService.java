@@ -13,7 +13,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 
-import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
@@ -35,7 +34,6 @@ import com.datastax.driver.core.LocalDate;
 //import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
 
 /**
@@ -82,10 +80,10 @@ public class DataService {
 	public static final String STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID = "select * from snapshots_by_uniqueid where uniqueid='?'";
 	public static final String STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED = "select * from snapshots_by_modified where modified='?'";
 
-	@EJB
+	@Inject
 	ClusterService clusterService;
 
-	@EJB
+	@Inject
 	SyncService schedulerService;
 
 	@Inject

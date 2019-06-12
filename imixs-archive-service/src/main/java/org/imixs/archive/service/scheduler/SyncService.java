@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
-import javax.ejb.EJB;
 import javax.ejb.ScheduleExpression;
 import javax.ejb.Stateless;
 import javax.ejb.Timeout;
@@ -88,16 +87,16 @@ public class SyncService {
 	@Resource
 	javax.ejb.TimerService timerService;
 
-	@EJB
+	@Inject
 	DataService dataService;
 
-	@EJB
+	@Inject
 	ClusterService clusterService;
 
-	@EJB
+	@Inject
 	MessageService messageService;
 	
-	@EJB
+	@Inject
 	RemoteAPIService remoteAPIService;
 
 	private static Logger logger = Logger.getLogger(SyncService.class.getName());

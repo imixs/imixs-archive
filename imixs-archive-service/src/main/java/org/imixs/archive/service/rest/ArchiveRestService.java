@@ -31,8 +31,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.logging.Logger;
 
-import javax.ejb.EJB;
 import javax.ejb.Stateless;
+import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.Encoded;
@@ -72,10 +72,10 @@ import com.datastax.driver.core.Session;
 @Stateless
 public class ArchiveRestService {
 
-	@EJB
+	@Inject
 	ClusterService clusterService;
 
-	@EJB
+	@Inject
 	DataService dataService;
 
 	@javax.ws.rs.core.Context

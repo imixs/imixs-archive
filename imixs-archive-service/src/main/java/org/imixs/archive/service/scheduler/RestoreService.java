@@ -32,10 +32,10 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import javax.annotation.Resource;
-import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
+import javax.inject.Inject;
 
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
@@ -92,16 +92,16 @@ public class RestoreService {
 
 	private static Logger logger = Logger.getLogger(RestoreService.class.getName());
 
-	@EJB
+	@Inject
 	DataService dataService;
 
-	@EJB
+	@Inject
 	ClusterService clusterService;
 
-	@EJB
+	@Inject
 	MessageService messageService;
 	
-	@EJB
+	@Inject
 	RemoteAPIService remoteAPIService;
 
 	@Resource

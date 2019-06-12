@@ -7,9 +7,8 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
-import javax.enterprise.context.SessionScoped;
+import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.imixs.archive.service.ArchiveException;
@@ -18,9 +17,6 @@ import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
 
 /**
  * CID Bean for the resync service.
@@ -47,13 +43,13 @@ public class ResyncController implements Serializable {
 	ItemCollection metaData = null;
 	String newSyncPoint = null;
 
-	@EJB
+	@Inject
 	ClusterService clusterService;
 
-	@EJB
+	@Inject
 	DataService dataService;
 
-	@EJB
+	@Inject
 	MessageService messageService;
 
 	public ResyncController() {

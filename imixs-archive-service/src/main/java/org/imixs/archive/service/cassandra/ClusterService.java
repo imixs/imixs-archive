@@ -5,13 +5,9 @@ import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.Singleton;
-//import javax.ejb.Singleton;
-import javax.ejb.Stateless;
 import javax.inject.Inject;
-//import javax.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import org.imixs.archive.service.ArchiveException;
 
 import com.datastax.driver.core.Cluster;
@@ -33,7 +29,6 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
  * @author rsoika
  * 
  */
-@Stateless
 @Singleton
 public class ClusterService {
 
@@ -58,16 +53,11 @@ public class ClusterService {
 	public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_UNIQUEID = "CREATE TABLE IF NOT EXISTS snapshots_by_uniqueid (uniqueid text,snapshot text, PRIMARY KEY(uniqueid, snapshot));";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_MODIFIED = "CREATE TABLE IF NOT EXISTS snapshots_by_modified (modified date,snapshot text,PRIMARY KEY(modified, snapshot));";
-
-	// public static final String TABLE_SCHEMA_DOCUMENTS = "CREATE TABLE IF NOT
-	// EXISTS documents (md5 text, data blob, PRIMARY KEY (md5))";
 	public static final String TABLE_SCHEMA_DOCUMENTS = "CREATE TABLE IF NOT EXISTS documents (md5 text, sort_id int, data_id text, PRIMARY KEY (md5,sort_id))";
 	public static final String TABLE_SCHEMA_SNAPSHOTS_BY_DOCUMENT = "CREATE TABLE IF NOT EXISTS snapshots_by_document (md5 text,snapshot text, PRIMARY KEY(md5, snapshot));";
 	public static final String TABLE_SCHEMA_DOCUMENTS_DATA = "CREATE TABLE IF NOT EXISTS documents_data (data_id text, data blob, PRIMARY KEY (data_id))";
 
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
-
-	
 
 	@Inject
 	@ConfigProperty(name =ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, defaultValue = "1")

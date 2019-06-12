@@ -9,7 +9,6 @@ import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -19,12 +18,8 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.scheduler.RestoreService;
 import org.imixs.archive.service.scheduler.SyncService;
 import org.imixs.workflow.ItemCollection;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
 
 /**
  * CID Bean provide cluster configuration.
@@ -44,16 +39,16 @@ public class ClusterDataController implements Serializable {
 	String syncSizeUnit = null;
 	ItemCollection metaData = null;
 
-	@EJB
+	@Inject
 	ClusterService clusterService;
 
-	@EJB
+	@Inject
 	DataService dataService;
 
-	@EJB
+	@Inject
 	SyncService syncService;
 
-	@EJB
+	@Inject
 	MessageService messageService;
 	
 	@Inject
