@@ -159,32 +159,21 @@ public class ArchiveRestService {
 	 * @return
 	 */
 	@GET
-	@Path("/snapshot/md5/{md5}")
+	@Path("/md5/{md5}")
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public Response getSnapshotFileByMD5Checksum(@PathParam("md5") @Encoded String md5,
 			@QueryParam("contentType") String contentType) {
 
 		// load the snapshot
-		Session session = null;
-		Cluster cluster = null;
 		byte[] fileContent = null;
 		try {
 			logger.info("...read snapshot...");
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
 			// load snapshto without the file data
 			fileContent = dataService.loadFileContent(md5);
 
 		} catch (ArchiveException e) {
 			logger.warning("...Failed to load file: " + e.getMessage());
 			e.printStackTrace();
-		} finally {
-			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
 		}
 		// extract the file...
 		try {

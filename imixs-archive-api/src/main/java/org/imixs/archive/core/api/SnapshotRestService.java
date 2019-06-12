@@ -25,9 +25,11 @@
  * 	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.archive.rest;
+package org.imixs.archive.core.api;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -36,6 +38,7 @@ import java.util.logging.Logger;
 
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
+import javax.inject.Inject;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -50,8 +53,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotException;
 import org.imixs.archive.core.SnapshotService;
+import org.imixs.archive.core.cassandra.ArchiveClientService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
@@ -65,7 +70,7 @@ import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
- * The SnapshotRestService provides methods to acces snapshot data.
+ * The SnapshotRestService provides a Rest API to access the snapshot data.
  * <p>
  * The method getWorkitemFile is a wrapper for the WorkflowRestService and
  * returns the file content based on the $uniqueid of the origin workitem.
@@ -73,6 +78,10 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
  * The method getDocumentsBySyncPoint returns snapshot data from a given
  * modified timestamp. This method is used by an external archive service to
  * sync the snapshot data.
+ * <p>
+ * In case the environment variable 'ARCHIVE_SERVICE_ENDPOINT' is set the 
+ * file content is fetched directly form the Cassandra archive.
+ * 
  * 
  * @author rsoika
  */
@@ -84,6 +93,10 @@ public class SnapshotRestService implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
+	@Inject
+	@ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
+	String archiveServiceEndpoint;
+
 	@javax.ws.rs.core.Context
 	private HttpServletRequest servletRequest;
 
@@ -92,6 +105,9 @@ public class SnapshotRestService implements Serializable {
 
 	@EJB
 	WorkflowRestService workflowRestService;
+
+	@EJB
+	ArchiveClientService archiveClientService;
 
 	private static Logger logger = Logger.getLogger(SnapshotRestService.class.getName());
 
@@ -112,10 +128,42 @@ public class SnapshotRestService implements Serializable {
 	public Response getWorkItemFile(@PathParam("uniqueid") String uniqueid, @PathParam("file") @Encoded String file,
 			@Context UriInfo uriInfo) {
 
+		FileData fileData = null;
 		ItemCollection workItem;
 		String sTargetID = uniqueid;
 		// load workitem
 		workItem = documentService.load(uniqueid);
+
+		// get the fileData object
+		String fileNameUTF8;
+		String fileNameISO;
+		try {
+			fileNameUTF8 = URLDecoder.decode(file, "UTF-8");
+			fileNameISO = URLDecoder.decode(file, "ISO-8859-1");
+			// try to guess encodings.....
+			fileData = workItem.getFileData(fileNameUTF8);
+			if (fileData == null)
+				fileData = workItem.getFileData(fileNameISO);
+			if (fileData == null)
+				fileData = workItem.getFileData(file);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+
+		// test if we can load the file content by the md5 checksum form the cassandra
+		// archive
+		if (!archiveServiceEndpoint.isEmpty()) {
+			long l = System.currentTimeMillis();
+			byte[] fileContent = archiveClientService.loadFileFromArchive(fileData);
+			if (fileContent != null) {
+				Response.ResponseBuilder builder = Response.ok(fileContent, fileData.getContentType());
+				// found -> return directy.
+				logger.info("......loaded filecontent form archive by MD5 checksum in "
+						+ (System.currentTimeMillis() - l) + "ms");
+				return builder.build();
+			}
+		}
+
 		// test if we have a $snapshotid
 		if (workItem != null && workItem.hasItem("$snapshotid")) {
 			sTargetID = workItem.getItemValueString("$snapshotid");
@@ -127,6 +175,8 @@ public class SnapshotRestService implements Serializable {
 		}
 		return workflowRestService.getWorkItemFile(sTargetID, file, uriInfo);
 	}
+
+	
 
 	/**
 	 * This method returns the next workitem from a given syncpoint. A syncpoint is
@@ -218,16 +268,16 @@ public class SnapshotRestService implements Serializable {
 		try {
 
 			// first we restore the snapshot entity if not exists....
-			if (documentService.load(snapshot.getUniqueID())==null) {
+			if (documentService.load(snapshot.getUniqueID()) == null) {
 				snapshot = documentService.save(snapshot);
 				logger.info("......snapshot '" + snapshot.getUniqueID() + "' restored.");
 			}
 			// now we update the origin document....
-			ItemCollection document=new ItemCollection(snapshot);
+			ItemCollection document = new ItemCollection(snapshot);
 			// modify uniqueid
-			String snapshotID=snapshot.getUniqueID();
+			String snapshotID = snapshot.getUniqueID();
 			String originUnqiueID = snapshotID.substring(0, snapshotID.lastIndexOf("-"));
-			document.setItemValue(WorkflowKernel.UNIQUEID,originUnqiueID);
+			document.setItemValue(WorkflowKernel.UNIQUEID, originUnqiueID);
 			// remove version, immutable and noindex flags...
 			document.removeItem(DocumentService.NOINDEX);
 			document.removeItem(DocumentService.IMMUTABLE);
@@ -240,26 +290,25 @@ public class SnapshotRestService implements Serializable {
 				if (fileData.getContent() != null && fileData.getContent().length > 0) {
 					// update the file name with empty data
 					logger.fine("drop content for file '" + fileData.getName() + "'");
-					document.addFileData(
-							new FileData(fileData.getName(), empty, fileData.getContentType(), fileData.getAttributes()));
+					document.addFileData(new FileData(fileData.getName(), empty, fileData.getContentType(),
+							fileData.getAttributes()));
 				}
 			}
 			// fix type item - remove snapshot- praefix
-			String type=document.getType();
+			String type = document.getType();
 			if (type.startsWith(SnapshotService.TYPE_PRAFIX)) {
-				type=type.substring(SnapshotService.TYPE_PRAFIX.length());
+				type = type.substring(SnapshotService.TYPE_PRAFIX.length());
 				document.setItemValue("type", type);
 			}
 			// add skipsnapshot flag
 			document.setItemValue(SnapshotService.SKIPSNAPSHOT, true);
 			// update snapshotid...
-			document.setItemValue(SnapshotService.SNAPSHOTID,snapshotID);
+			document.setItemValue(SnapshotService.SNAPSHOTID, snapshotID);
 			// save origin document...
 			document = documentService.save(document);
 			logger.info("......document '" + originUnqiueID + "' restored.");
-			return Response.ok(XMLDataCollectionAdapter.getDataCollection(document), MediaType.APPLICATION_XML)
-					.build();
-			
+			return Response.ok(XMLDataCollectionAdapter.getDataCollection(document), MediaType.APPLICATION_XML).build();
+
 		} catch (AccessDeniedException e) {
 			logger.severe(e.getMessage());
 			snapshot = this.addErrorMessage(e, snapshot);

@@ -25,7 +25,7 @@
  *  	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.archive.core;
+package org.imixs.archive.core.cassandra;
 
 /**
  * ImixsArchiveException is thrown by the Imxis-Archive Service

@@ -1,4 +1,4 @@
-package org.imixs.archive.core;
+package org.imixs.archive.core.cassandra;
 
 import java.util.Iterator;
 import java.util.List;
@@ -20,6 +20,7 @@ import javax.ejb.TimerService;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.engine.EventLogEntry;
 import org.imixs.workflow.engine.EventLogService;
 
@@ -39,7 +40,7 @@ import org.imixs.workflow.engine.EventLogService;
 @DeclareRoles({ "org.imixs.ACCESSLEVEL.MANAGERACCESS" })
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 @ConcurrencyManagement(ConcurrencyManagementType.BEAN)
-public class SnapshotPushService {
+public class ArchivePushService {
 	private static final long INTERVAL = 1 * 1000L; // 1 second
 
 	@Inject
@@ -50,7 +51,7 @@ public class SnapshotPushService {
 	EventLogService eventLogService;
 
 	@Inject
-	ArchiveHandler archiveHandler;
+	ArchiveClientService archiveHandler;
 
 	@Resource
 	private TimerService timerService;
@@ -60,7 +61,7 @@ public class SnapshotPushService {
 
 	private ConcurrentLinkedQueue<EventLogEntry> eventCache = null;
 
-	private static Logger logger = Logger.getLogger(SnapshotPushService.class.getName());
+	private static Logger logger = Logger.getLogger(ArchivePushService.class.getName());
 
 	@PostConstruct
 	public void init() {
@@ -88,7 +89,7 @@ public class SnapshotPushService {
 		List<EventLogEntry> events = eventLogService.findEvents(100, SnapshotService.EVENTLOG_TOPIC_ADD,
 				SnapshotService.EVENTLOG_TOPIC_REMOVE);
 
-		// prune cache
+		// prune cache 
 		clearCache(events);
 		for (EventLogEntry eventLogEntry : events) {
 			// push the snapshotEvent only if not just qued...
