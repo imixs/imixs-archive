@@ -25,6 +25,7 @@ services:
     image: imixs/imixs-archive-service
     depends_on:
       - imixsofficeworkflow
+      - cassandra
     environment:
       WILDFLY_PASS: adminadmin
       DEBUG: "true"

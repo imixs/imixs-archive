@@ -62,6 +62,9 @@ import com.datastax.driver.core.Session;
  *    hour=*;minute=30;
  * </code>
  * 
+ * <p>
+ * When all the data is synchronized (syncpoint == last snapshot), the service terminates.
+ * 
  * @version 1.0
  * @author rsoika
  */
@@ -110,12 +113,8 @@ public class SyncService {
 	 * @throws ArchiveException
 	 */
 	public boolean startScheduler() throws ArchiveException {
-//		Session session = null;
-//		Cluster cluster = null;
 		try {
 			logger.info("...init imixsarchive keyspace ...");
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
 			if (clusterService.getSession() != null) {
 				// start archive schedulers....
 				logger.info("...starting schedulers...");
@@ -129,15 +128,7 @@ public class SyncService {
 			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
 			return false;
 
-		} finally {
-			// close session and cluster object
-//			if (session != null) {
-//				session.close();
-//			}
-//			if (cluster != null) {
-//				cluster.close();
-//			}
-		}
+		} 
 	}
 
 	/**
@@ -367,8 +358,6 @@ public class SyncService {
 		int syncread = 0;
 		long totalCount = 0;
 		long totalSize = 0;
-		Session session = null;
-		Cluster cluster = null;
 		ItemCollection metaData = null;
 		String lastUniqueID = null;
 
@@ -376,9 +365,6 @@ public class SyncService {
 		long lProfiler = System.currentTimeMillis();
 
 		try {
-
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
 
 			// load metadata and get last syncpoint
 			metaData = dataService.loadMetadata();
@@ -453,7 +439,8 @@ public class SyncService {
 				messageService.logMessage("... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
 						+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint " + new Date(syncPoint));
 			} else {
-				logger.info("...no data found at syncpoint " + new Date(syncPoint) + "...");
+				messageService.logMessage("...no more data found at syncpoint " + new Date(syncPoint) + " -> finishing synchroization.");
+				stop(timer);
 			}
 		} catch (ArchiveException | RuntimeException e) {
 			// print the stack trace
@@ -463,15 +450,7 @@ public class SyncService {
 					+ " : " + e.getMessage());
 
 			stop(timer);
-		} finally {
-			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
-		}
+		} 
 	}
 
 }

@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
@@ -22,7 +21,6 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.WorkflowContext;
 import org.imixs.workflow.engine.ProcessingEvent;
 import org.imixs.workflow.exceptions.PluginException;
 
@@ -59,10 +57,6 @@ public class TikaDocumentService {
 
 	
 	
-	@PostConstruct
-	public void init(WorkflowContext actx) throws PluginException {
-
-	}
 
 	/**
 	 * React on the ProcessingEvent This method sends the document content to the

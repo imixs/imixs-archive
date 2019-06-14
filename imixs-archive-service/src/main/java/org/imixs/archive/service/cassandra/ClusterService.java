@@ -196,23 +196,23 @@ public class ClusterService {
 	 */
 	protected Session createKeySpace(String keySpace) throws ArchiveException {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
-
-	
+		Session session = cluster.connect();
 		
 		String statement = "CREATE KEYSPACE IF NOT EXISTS " + keySpace + " WITH replication = {'class': '" + repClass
 				+ "', 'replication_factor': " + repFactor + "};";
-		logger.info("......keyspace created...");
+		
 		session.execute(statement);
+		logger.info("......keyspace created...");
 		// try to connect again to keyspace...
 		session = cluster.connect(keySpace);
 		if (session != null) {
 			logger.info("......keyspace conection status = OK");
-
 			// now create table schemas
 			createArchiveTableSchema(session);
 		}
 
 		return session;
+
 	}
 
 	/**
