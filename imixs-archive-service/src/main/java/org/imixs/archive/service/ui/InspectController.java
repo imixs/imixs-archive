@@ -36,8 +36,6 @@ public class InspectController implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(InspectController.class.getName());
 
-//	Cluster cluster = null;
-//	Session session = null;
 	String uniqueid = null;
 	List<String> snapshotIDs = null;
 	String currentSnapshotID=null;
@@ -122,8 +120,6 @@ public class InspectController implements Serializable {
 	 */
 	public void loadSnapshotIDs() {
 		try {
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
 			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid);
@@ -135,15 +131,6 @@ public class InspectController implements Serializable {
 
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());
-
-		} finally {
-			// close session and cluster object
-//			if (session != null) {
-//				session.close();
-//			}
-//			if (cluster != null) {
-//				cluster.close();
-//			}
 		}
 		
 		
@@ -158,8 +145,6 @@ public class InspectController implements Serializable {
 	 */
 	public void restoreSnapshot(String id) {
 		try {
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
 			logger.info("......load snsaphosts for " + uniqueid + "...");
 
 			ItemCollection snapshot = dataService.loadSnapshot(id);
@@ -175,14 +160,6 @@ public class InspectController implements Serializable {
 		} catch (ArchiveException e) {
 			logger.severe("failed to load snapshot ids: " + e.getMessage());
 
-		} finally {
-			// close session and cluster object
-//			if (session != null) {
-//				session.close();
-//			}
-//			if (cluster != null) {
-//				cluster.close();
-//			}
 		}
 		
 

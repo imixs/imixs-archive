@@ -97,7 +97,7 @@ public class MessageService {
 	 * @param size
 	 * @return
 	 */
-	public static String userFriendlyBytes(long bytes) {
+	public String userFriendlyBytes(long bytes) {
 		boolean si=true;
 		int unit = si ? 1000 : 1024;
 	    if (bytes < unit) return bytes + " B";

@@ -1,0 +1,127 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://xmlns.jcp.org/jsf/core"
+	xmlns:h="http://xmlns.jcp.org/jsf/html"
+	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
+	xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+	xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
+	xmlns:fn="http://xmlns.jcp.org/jsp/jstl/functions"
+	template="/layout/template.xhtml">
+
+
+	<ui:define name="content">
+
+		<h:form>
+			<div class="imixs-form">
+				<div class="imixs-header">
+					<h1>
+						<span class="typcn typcn-upload-outline"></span>Export
+					</h1>
+				</div>
+
+				
+				<div class="row">
+
+
+					<div class="col-6">
+						<div class="monitor-portlet">
+
+							<h1>Scheduler Status:   </h1>
+
+							<table style="width: 100%;">
+
+								<tr>
+									<td>Timer:</td>
+									<td><ui:fragment
+											rendered="#{!empty exportDataController.nextTimeout}">
+							RUNNING <span class="typcn typcn-media-record"
+												style="font-size: 1.3em; color: #5c9e5c;"></span>
+										</ui:fragment> <ui:fragment
+											rendered="#{empty exportDataController.nextTimeout}">
+							STOPPED <span class="typcn typcn-media-record"
+												style="font-size: 1.3em; color: #e84848;"></span>
+										</ui:fragment></td>
+								</tr>
+								<tr>
+									<td>Scheduler:</td>
+									<td>#{exportDataController.scheduler}</td>
+								</tr>
+
+								<tr>
+									<td style="width: 25%;">Next Timeout:</td>
+									<td>#{exportDataController.nextTimeout}</td>
+								</tr>
+							</table>
+
+
+							<!-- Start / Stop sync scheduler -->
+							<p style="margin-top: 10px;">
+								<h:commandButton value="start"
+									action="monitor?faces-redirect=true"
+									rendered="#{empty exportDataController.nextTimeout}"
+									actionListener="#{exportDataController.startSync()}"></h:commandButton>
+
+								<h:commandButton value="stop"
+									action="monitor?faces-redirect=true"
+									rendered="#{!empty exportDataController.nextTimeout}"
+									actionListener="#{exportDataController.stopSync()}"></h:commandButton>
+							</p>
+						</div>
+
+					</div>
+
+
+					<div class="col-6">
+						<div class="monitor-portlet">
+
+							<h1>Synchronisation Status:</h1>
+
+							<p class="lead" style="float: left; width: 48%;">
+								<span class="typcn typcn-shopping-cart" style="color: #5c9e5c;"></span>
+								#{exportDataController.syncSize} <span style="font-size: 0.3em">#{exportDataController.syncSizeUnit}</span>
+							</p>
+
+							<p class="lead" style="">
+								<span class="typcn typcn-arrow-repeat-outline"
+									style="color: #5c9e5c;"></span>
+								#{exportDataController.syncCount} <span
+									style="font-size: 0.3em">total syncs</span>
+							</p>
+
+
+
+
+							<p class="small">Last Syncpoint:
+								#{exportDataController.syncPoint}</p>
+
+
+						</div>
+					</div>
+
+
+
+
+
+				</div>
+
+
+
+				<div class="row">
+
+
+					<div class="col-12">
+						<div class="monitor-portlet">
+							<h1>Log:</h1>
+							<p class="small">
+								<ui:repeat var="entry" value="#{exportDataController.messages}">
+								#{entry}
+								<br />
+								</ui:repeat>
+							</p>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</h:form>
+	</ui:define>
+</ui:composition>

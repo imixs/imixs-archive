@@ -37,14 +37,14 @@ public class ResyncController implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(ResyncController.class.getName());
 
-//	Cluster cluster = null;
-//	Session session = null;
-
 	ItemCollection metaData = null;
 	String newSyncPoint = null;
 
 	@Inject
 	ClusterService clusterService;
+
+	@Inject
+	SyncService syncService;
 
 	@Inject
 	DataService dataService;
@@ -62,13 +62,14 @@ public class ResyncController implements Serializable {
 	 * @throws ArchiveException
 	 */
 	@PostConstruct
-	void init() throws ArchiveException {
-		logger.info("...initial session....");
-//		cluster = clusterService.getCluster();
-//		session = clusterService.getArchiveSession(cluster);
-
-		// load metadata
-		metaData = dataService.loadMetadata();
+	void init() {
+		try {
+			// load metadata
+			metaData = dataService.loadMetadata();
+		} catch (ArchiveException e) {
+			logger.severe("Failed to load meta data!");
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -77,11 +78,11 @@ public class ResyncController implements Serializable {
 	 * @return
 	 */
 	public String getNewSyncPoint() {
-		if (newSyncPoint==null) {
+		if (newSyncPoint == null) {
 			// compute default
 			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-			newSyncPoint=dt.format(getSyncPoint());
-			
+			newSyncPoint = dt.format(getSyncPoint());
+
 		}
 		return newSyncPoint;
 	}
@@ -114,6 +115,12 @@ public class ResyncController implements Serializable {
 			logger.info("......updateing syncpoint=" + this.newSyncPoint);
 			metaData.setItemValue(SyncService.ITEM_SYNCPOINT, syncDate.getTime());
 			dataService.saveMetadata(metaData);
+			
+			
+			// restart sync?
+			if (syncService.getNextTimeout()==null) {
+				syncService.startScheduler();
+			}
 
 		} catch (ArchiveException | ParseException e) {
 			logger.severe("failed to set new syncpoint: " + e.getMessage());

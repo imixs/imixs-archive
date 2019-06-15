@@ -48,9 +48,6 @@ import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
-
 /**
  * The SyncService synchronizes the workflow data with the data stored in the
  * cassandra cluster. The service class runns a TimerService based on the given
@@ -74,9 +71,9 @@ public class SyncService {
 
 	public final static String TIMER_ID_SYNCSERVICE = "IMIXS_ARCHIVE_SYNC_TIMER";
 
-	public final static String ITEM_SYNCPOINT = "$sync_point";
-	public final static String ITEM_SYNCCOUNT = "$sync_count";
-	public final static String ITEM_SYNCSIZE = "$sync_size";
+	public final static String ITEM_SYNCPOINT = "sync.point";
+	public final static String ITEM_SYNCCOUNT = "sync.count";
+	public final static String ITEM_SYNCSIZE = "sync.size";
 	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
 
 	private final static int MAX_COUNT = 100;
@@ -114,10 +111,9 @@ public class SyncService {
 	 */
 	public boolean startScheduler() throws ArchiveException {
 		try {
-			logger.info("...init imixsarchive keyspace ...");
+			logger.info("...starting schedulers...");
 			if (clusterService.getSession() != null) {
 				// start archive schedulers....
-				logger.info("...starting schedulers...");
 				start();
 				return true;
 			} else {
@@ -207,10 +203,9 @@ public class SyncService {
 		}
 
 		try {
-			logger.info("...starting scheduler sync-service ...");
+			logger.finest("...starting scheduler sync-service ...");
 			// New timer will be started on calendar confiugration
 			timer = createTimerOnCalendar();
-
 			// start and set statusmessage
 			if (timer != null) {
 				messageService.logMessage("Timer started.");
@@ -408,7 +403,7 @@ public class SyncService {
 							dataService.saveSnapshot(snapshot);
 							syncupdate++;
 							totalCount++;
-							totalSize = totalSize + DataService.calculateSize(xmlDocument);
+							totalSize = totalSize + dataService.calculateSize(xmlDocument);
 						} else {
 							// This is because in case of a restore, the same snapshot takes a new $modified
 							// item. And we do not want to re-import the snapshot in the next sync cycle.

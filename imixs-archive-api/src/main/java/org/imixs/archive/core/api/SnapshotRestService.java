@@ -57,6 +57,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotException;
 import org.imixs.archive.core.SnapshotService;
 import org.imixs.archive.core.cassandra.ArchiveClientService;
+import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
@@ -79,8 +80,8 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
  * modified timestamp. This method is used by an external archive service to
  * sync the snapshot data.
  * <p>
- * In case the environment variable 'ARCHIVE_SERVICE_ENDPOINT' is set the 
- * file content is fetched directly form the Cassandra archive.
+ * In case the environment variable 'ARCHIVE_SERVICE_ENDPOINT' is set the file
+ * content is fetched directly form the Cassandra archive.
  * 
  * 
  * @author rsoika
@@ -153,14 +154,20 @@ public class SnapshotRestService implements Serializable {
 		// test if we can load the file content by the md5 checksum form the cassandra
 		// archive
 		if (!archiveServiceEndpoint.isEmpty()) {
-			long l = System.currentTimeMillis();
-			byte[] fileContent = archiveClientService.loadFileFromArchive(fileData);
-			if (fileContent != null) {
-				Response.ResponseBuilder builder = Response.ok(fileContent, fileData.getContentType());
-				// found -> return directy.
-				logger.info("......loaded filecontent form archive by MD5 checksum in "
-						+ (System.currentTimeMillis() - l) + "ms");
-				return builder.build();
+			try {
+				long l = System.currentTimeMillis();
+				byte[] fileContent;
+				fileContent = archiveClientService.loadFileFromArchive(fileData);
+				if (fileContent != null) {
+					Response.ResponseBuilder builder = Response.ok(fileContent, fileData.getContentType());
+					// found -> return directy.
+					logger.info("......loaded filecontent form archive by MD5 checksum in "
+							+ (System.currentTimeMillis() - l) + "ms");
+					return builder.build();
+				}
+
+			} catch (RestAPIException e) {
+				logger.severe("failed to load file from archive: " + e.getMessage());
 			}
 		}
 
@@ -175,8 +182,6 @@ public class SnapshotRestService implements Serializable {
 		}
 		return workflowRestService.getWorkItemFile(sTargetID, file, uriInfo);
 	}
-
-	
 
 	/**
 	 * This method returns the next workitem from a given syncpoint. A syncpoint is

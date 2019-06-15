@@ -9,6 +9,7 @@ import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
+import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -120,8 +121,9 @@ public class ArchiveClientService {
 	 * 
 	 * @param fileData
 	 *            - fileData object providing the MD5 checksum
+	 * @throws RestAPIException 
 	 */
-	public byte[] loadFileFromArchive(FileData fileData) {
+	public byte[] loadFileFromArchive(FileData fileData) throws RestAPIException {
 
 		if (fileData == null) {
 			return null;
@@ -135,6 +137,7 @@ public class ArchiveClientService {
 
 			if (!md5.isEmpty()) {
 
+				try {
 				DocumentClient documentClient = initWorkflowClient();
 
 				Client rsClient = documentClient.newClient();
@@ -149,6 +152,17 @@ public class ArchiveClientService {
 				if (fileContent != null && fileContent.length > 0) {
 					logger.info("md5 daten gefunden");
 					return fileContent;
+				}
+				
+				} catch (ProcessingException e) {
+					String message=null;
+					if (e.getCause()!=null) {
+						message=e.getCause().getMessage();
+					} else {
+						message=e.getMessage();
+					}
+					throw new RestAPIException(DocumentClient.class.getSimpleName(),
+							RestAPIException.RESPONSE_PROCESSING_EXCEPTION, "error load file by MD5 checksum -> " +message, e);
 				}
 			} else {
 				return null;

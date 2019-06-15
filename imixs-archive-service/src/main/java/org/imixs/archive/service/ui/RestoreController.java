@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.ejb.Timer;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -34,8 +33,7 @@ import org.imixs.workflow.ItemCollection;
  *
  */
 @Named
- @RequestScoped
-//@ViewScoped
+@RequestScoped
 public class RestoreController implements Serializable {
 
 	public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
@@ -43,8 +41,6 @@ public class RestoreController implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private static Logger logger = Logger.getLogger(RestoreController.class.getName());
 
-//	Cluster cluster = null;
-//	Session session = null;
 	long restoreDateFrom;
 	long restoreDateTo;
 	String restoreSizeUnit = null;
@@ -73,31 +69,16 @@ public class RestoreController implements Serializable {
 	 * 
 	 */
 	@PostConstruct
-	void init() throws ArchiveException {
-//		cluster = clusterService.getCluster();
-//		session = clusterService.getArchiveSession(cluster);
-
-		// load metadata
-		metaData = dataService.loadMetadata();
-		// load options
-		options = restoreService.getOptions(metaData);
-	}
-
-	/**
-	 * This method closes the session and cluster object.
-	 * 
-	 * @see {@link ClusterDataController#init()}
-	 */
-	@PreDestroy
-	void close() {
-		//logger.info("...closing session....");
-		// close session and cluster object
-//		if (session != null) {
-//			session.close();
-//		}
-//		if (cluster != null) {
-//			cluster.close();
-//		}
+	void init() {
+		try {
+			// load metadata
+			metaData = dataService.loadMetadata();
+			// load options
+			options = restoreService.getOptions(metaData);
+		} catch (ArchiveException e) {
+			logger.severe("Failed to load meta data!");
+			e.printStackTrace();
+		}
 	}
 
 	public String getRestoreFrom() {
@@ -162,14 +143,14 @@ public class RestoreController implements Serializable {
 	public long getRestoreCount() {
 		return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCCOUNT);
 	}
-	
+
 	public long getRestoreErrors() {
 		return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCERRORS);
 	}
 
 	public String getRestoreSize() {
 		long l = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCSIZE);
-		String result = MessageService.userFriendlyBytes(l);
+		String result = messageService.userFriendlyBytes(l);
 		String[] parts = result.split(" ");
 		restoreSizeUnit = parts[1];
 		return parts[0];
@@ -281,5 +262,4 @@ public class RestoreController implements Serializable {
 		}
 	}
 
-	
 }

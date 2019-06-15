@@ -68,7 +68,7 @@ import com.datastax.driver.core.Session;
  * 
  */
 @Path("/archive")
-@Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_HTML, MediaType.APPLICATION_XML, MediaType.TEXT_XML })
+@Produces({ MediaType.TEXT_HTML, MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.TEXT_XML })
 @Stateless
 public class ArchiveRestService {
 
@@ -378,7 +378,7 @@ public class ArchiveRestService {
 			// default header param
 			return Response
 					// Set the status and Put your entity here.
-					.ok(XMLDataCollectionAdapter.getDataCollection(workitem, null)).build();
+					.ok(XMLDocumentAdapter.getDocument(workitem)).build();
 		}
 	}
 

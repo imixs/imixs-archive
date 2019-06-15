@@ -520,7 +520,7 @@ public class DataService {
 	 * @return
 	 * @throws ArchiveException
 	 */
-	public static byte[] getRawData(ItemCollection itemCol) throws ArchiveException {
+	public byte[] getRawData(ItemCollection itemCol) throws ArchiveException {
 		byte[] data = null;
 		// create byte array from XMLDocument...
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -545,7 +545,7 @@ public class DataService {
 	 * @throws ArchiveException
 	 *
 	 */
-	public static ItemCollection getItemCollection(byte[] source) throws ArchiveException {
+	public ItemCollection getItemCollection(byte[] source) throws ArchiveException {
 
 		ByteArrayInputStream bis = new ByteArrayInputStream(source);
 		try {
@@ -574,7 +574,7 @@ public class DataService {
 	 * @param uid
 	 * @return
 	 */
-	public static boolean isSnapshotID(String uid) {
+	public boolean isSnapshotID(String uid) {
 		boolean valid = uid.matches(REGEX_SNAPSHOTID);
 
 		if (!valid) {
@@ -592,7 +592,7 @@ public class DataService {
 	 * @param snapshotID
 	 * @return $uniqueid
 	 */
-	public static String getUniqueID(String snapshotID) {
+	public String getUniqueID(String snapshotID) {
 		if (snapshotID != null && snapshotID.contains("-")) {
 			return snapshotID.substring(0, snapshotID.lastIndexOf("-"));
 		}
@@ -606,7 +606,7 @@ public class DataService {
 	 * @param snapshotID
 	 * @return long - snapshot time
 	 */
-	public static long getSnapshotTime(String snapshotID) {
+	public long getSnapshotTime(String snapshotID) {
 		if (snapshotID != null && snapshotID.contains("-")) {
 			String sTime = snapshotID.substring(snapshotID.lastIndexOf("-") + 1);
 			return Long.parseLong(sTime);
@@ -621,7 +621,7 @@ public class DataService {
 	 * @param xmldoc
 	 * @return
 	 */
-	public static long calculateSize(XMLDocument xmldoc) {
+	public long calculateSize(XMLDocument xmldoc) {
 
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		ObjectOutputStream oos;
@@ -652,7 +652,7 @@ public class DataService {
 	 * 
 	 * @return
 	 */
-	public static String getSyncPointISO(long point) {
+	public String getSyncPointISO(long point) {
 		SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 		Date date = new Date(point);
 		return dt.format(date);

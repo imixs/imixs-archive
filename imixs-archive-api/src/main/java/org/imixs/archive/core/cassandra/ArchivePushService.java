@@ -51,7 +51,7 @@ public class ArchivePushService {
 	EventLogService eventLogService;
 
 	@Inject
-	ArchiveClientService archiveHandler;
+	ArchiveClientService archiveClientService;
 
 	@Resource
 	private TimerService timerService;
@@ -99,7 +99,7 @@ public class ArchivePushService {
 					logger.finest("......push snapshot " + eventLogEntry.getUniqueID() + "....");
 					eventCache.add(eventLogEntry);
 
-					archiveHandler.pushSnapshot(eventLogEntry);
+					archiveClientService.pushSnapshot(eventLogEntry);
 				}
 			} else {
 				logger.finest("......snapshot " + eventLogEntry.getID() + " was already fired but not yet done....");

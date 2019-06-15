@@ -37,9 +37,6 @@ services:
       WORKFLOW_SERVICE_PASSWORD: "adminadmin"
       WORKFLOW_SERVICE_AUTHMETHOD: "form"
       TZ: "Europe/Berlin"
-      # JAVA_OPTS: "-Xms512m -Xmx1g -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=$JBOSS_MODULES_SYSTEM_PKGS -Djava.awt.headless=true"
-      # ARCHIVE_CLUSTER_REPLICATION_FACTOR: "1"
-      # ARCHIVE_CLUSTER_REPLICATION_CLASS: "SimpleStrategy"
       
     ports:
       - "8080:8080"

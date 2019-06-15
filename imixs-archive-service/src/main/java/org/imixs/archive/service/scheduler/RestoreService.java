@@ -61,12 +61,12 @@ import com.datastax.driver.core.Session;
  * <p>
  * <strong>restore.to</strong>: the latest snapshot syncpoint to be restored
  * <p>
- * <strong>restore.$sync_point</strong>: the current snapshot syncpoint. This
+ * <strong>restore.point</strong>: the current snapshot syncpoint. This
  * date is used to select snapshots by date in a cassandra partion.
  * <p>
- * <strong>restore.$sync_count</strong>: count of restored snapshots
+ * <strong>restore.count</strong>: count of restored snapshots
  * <p>
- * <strong>restore.$sync_size</strong>: bytes of restored snapshot data
+ * <strong>restore.size</strong>: bytes of restored snapshot data
  * <p>
  * The timer is stoped after all snapshots in the restore timerange
  * (restore.from - restore.to) are restored.
@@ -84,10 +84,10 @@ public class RestoreService {
 
 	public final static String ITEM_RESTORE_FROM = "restore.from";
 	public final static String ITEM_RESTORE_TO = "restore.to";
-	public final static String ITEM_RESTORE_SYNCPOINT = "restore.$sync_point";
-	public final static String ITEM_RESTORE_SYNCCOUNT = "restore.$sync_count";
-	public final static String ITEM_RESTORE_SYNCERRORS = "restore.$sync_errors";
-	public final static String ITEM_RESTORE_SYNCSIZE = "restore.$sync_size";
+	public final static String ITEM_RESTORE_SYNCPOINT = "restore.point";
+	public final static String ITEM_RESTORE_SYNCCOUNT = "restore.count";
+	public final static String ITEM_RESTORE_SYNCERRORS = "restore.errors";
+	public final static String ITEM_RESTORE_SYNCSIZE = "restore.size";
 	public final static String ITEM_RESTORE_OPTIONS = "restore.options";
 
 	private static Logger logger = Logger.getLogger(RestoreService.class.getName());
@@ -150,11 +150,9 @@ public class RestoreService {
 		Session session = null;
 		Cluster cluster = null;
 		try {
-			logger.info("...... restore from=" + DataService.getSyncPointISO(restoreFrom));
-			logger.info("...... restore   to=" + DataService.getSyncPointISO(restoreTo));
+			logger.info("...... restore from=" + dataService.getSyncPointISO(restoreFrom));
+			logger.info("...... restore   to=" + dataService.getSyncPointISO(restoreTo));
 			// ...start sync
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
 			ItemCollection metaData = dataService.loadMetadata();
 			metaData.setItemValue(ITEM_RESTORE_FROM, restoreFrom);
 			metaData.setItemValue(ITEM_RESTORE_TO, restoreTo);
@@ -226,8 +224,8 @@ public class RestoreService {
 			long restoreFrom = metadata.getItemValueLong(ITEM_RESTORE_FROM);
 			long restoreTo = metadata.getItemValueLong(ITEM_RESTORE_TO);
 			LocalDateTime localDateRestoreTo= new Date(restoreTo).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-			logger.info("......starting restore:    from " + DataService.getSyncPointISO(restoreFrom) + " to " + DataService.getSyncPointISO(restoreTo));
-			logger.info("......starting syncpoint:  " + DataService.getSyncPointISO(syncpoint));
+			logger.finest("......restore:    from " + dataService.getSyncPointISO(restoreFrom) + " to " + dataService.getSyncPointISO(restoreTo));
+			logger.finest("......restore.point:  " + dataService.getSyncPointISO(syncpoint));
 			// we search for snapshotIDs until we found one or the syncdate is after the
 			// restore.to point.
 			while(localDateRestoreTo.isAfter(localDateSyncPoint)) { 
@@ -247,7 +245,7 @@ public class RestoreService {
 							// yes!
 							// lets see if this snapshot is alredy restored or synced?
 							String remoteSnapshotID = remoteAPIService
-									.readSnapshotIDByUniqueID(DataService.getUniqueID(latestSnapshot));
+									.readSnapshotIDByUniqueID(dataService.getUniqueID(latestSnapshot));
 							if (latestSnapshot.equals(remoteSnapshotID)) {
 								logger.finest("......no need to restore - snapshot:" + latestSnapshot + " is up to date!");
 							} else {
@@ -257,7 +255,7 @@ public class RestoreService {
 									try {
 										logger.finest("......restoring: " + latestSnapshot);
 										snapshot = dataService.loadSnapshot(latestSnapshot);
-										_tmpSize = DataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
+										_tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
 										logger.finest("......size=: " + _tmpSize);
 
 										
@@ -268,7 +266,7 @@ public class RestoreService {
 										snapshot = null;
 									} catch (Exception e) {
 										logger.severe("...Failed to restore '" + latestSnapshot + "' ("
-												+ MessageService.userFriendlyBytes(_tmpSize) + ") - "+e.getMessage());
+												+ messageService.userFriendlyBytes(_tmpSize) + ") - "+e.getMessage());
 										restoreErrors++;
 									}
 								}
@@ -282,19 +280,19 @@ public class RestoreService {
 				// adjust snyncdate for one day....
 				localDateSyncPoint=localDateSyncPoint.plusDays(1);
 				// update metadata...
-				metadata.setItemValue(ITEM_RESTORE_SYNCPOINT, localDateSyncPoint);
+				Date date = Date.from(localDateSyncPoint.atZone(ZoneId.systemDefault()).toInstant());
+				metadata.setItemValue(ITEM_RESTORE_SYNCPOINT, date.getTime());
 				metadata.setItemValue(ITEM_RESTORE_SYNCCOUNT, restoreCount);
 				metadata.setItemValue(ITEM_RESTORE_SYNCSIZE, restoreSize);
 				metadata.setItemValue(ITEM_RESTORE_SYNCERRORS, restoreErrors);
 
 				dataService.saveMetadata(metadata);
-
 			}
 
 			logger.info("...restore finished in: " + (System.currentTimeMillis() - startTime) + "ms");
 			logger.info(".......final syncpoint: " + localDateSyncPoint);
 			logger.info(".......total count:" + restoreCount);
-			logger.info(".......total size:" + MessageService.userFriendlyBytes(restoreSize));
+			logger.info(".......total size:" + messageService.userFriendlyBytes(restoreSize));
 			logger.info(".......total errors:" + restoreErrors);
 
 			timer.cancel();
@@ -334,7 +332,7 @@ public class RestoreService {
 	 */
 	String findLatestSnapshotID(String snapshotID, long restoreFrom, long restoreTo) {
 		String latestSnapshot = null;
-		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(DataService.getUniqueID(snapshotID));
+		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(dataService.getUniqueID(snapshotID));
 
 		// --- special debug logging....
 		for (String _tmpSnapshotID : _tmpSnapshots) {
@@ -344,11 +342,11 @@ public class RestoreService {
 		// find the latest snapshot within the restore time range.....
 
 		for (String _tmpSnapshotID : _tmpSnapshots) {
-			long _tmpSnapshotTime = DataService.getSnapshotTime(_tmpSnapshotID);
+			long _tmpSnapshotTime = dataService.getSnapshotTime(_tmpSnapshotID);
 			// check restore time range
 			if (_tmpSnapshotTime >= restoreFrom && _tmpSnapshotTime <= restoreTo) {
 
-				if (_tmpSnapshotTime > DataService.getSnapshotTime(latestSnapshot)) {
+				if (_tmpSnapshotTime > dataService.getSnapshotTime(latestSnapshot)) {
 					latestSnapshot = _tmpSnapshotID;
 				}
 			} else {

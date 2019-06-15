@@ -60,33 +60,37 @@ public class ClusterService {
 	private static Logger logger = Logger.getLogger(ClusterService.class.getName());
 
 	@Inject
-	@ConfigProperty(name =ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, defaultValue = "1")
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, defaultValue = "1")
 	String repFactor;
 
 	@Inject
-	@ConfigProperty(name =ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, defaultValue = "SimpleStrategy")
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, defaultValue = "SimpleStrategy")
 	String repClass;
 
 	@Inject
-	@ConfigProperty(name =ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
 	String contactPoint;
 
 	@Inject
-	@ConfigProperty(name =ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
 	String keySpace;
-	
-	
+
 	private Cluster cluster;
 	private Session session;
 
 	@PostConstruct
-	private void init() throws ArchiveException {
-		cluster=initCluster();
-		session = initArchiveSession();
+	private void init() {
+		try {
+			cluster = initCluster();
+			session = initArchiveSession();
+		} catch (ArchiveException e) {
+			logger.severe("Failed to init achive session!");
+			e.printStackTrace();
+		}
 	}
 
 	@PreDestroy
-	private void tearDown() throws ArchiveException {
+	private void tearDown() {
 		// close session and cluster object
 		if (session != null) {
 			session.close();
@@ -96,16 +100,9 @@ public class ClusterService {
 		}
 	}
 
-	
-	
 	public Session getSession() {
-		if (session==null) {
-			try {
-				init();
-			} catch (ArchiveException e) {
-				logger.warning("unable to get falid session: " + e.getMessage());
-				e.printStackTrace();
-			}
+		if (session == null) {
+			init();
 		}
 		return session;
 	}
@@ -120,7 +117,6 @@ public class ClusterService {
 	 */
 	private Session initArchiveSession() throws ArchiveException {
 
-		
 		if (!isValidKeyspaceName(keySpace)) {
 			throw new ArchiveException(ArchiveException.INVALID_KEYSPACE, "keyspace '" + keySpace + "' name invalid.");
 		}
@@ -150,7 +146,7 @@ public class ClusterService {
 	 * @throws ArchiveException
 	 */
 	protected Cluster initCluster() throws ArchiveException {
-		
+
 		if (contactPoint == null || contactPoint.isEmpty()) {
 			throw new ArchiveException(ArchiveException.MISSING_CONTACTPOINT,
 					"missing cluster contact points - verify configuration!");
@@ -161,7 +157,7 @@ public class ClusterService {
 		cluster.init();
 
 		logger.info("......cluster conection status = OK");
-		
+
 		return cluster;
 
 	}
@@ -181,9 +177,6 @@ public class ClusterService {
 
 	}
 
-	
-	
-	
 	/**
 	 * This method creates a cassandra keySpace.
 	 * <p>
@@ -197,10 +190,10 @@ public class ClusterService {
 	protected Session createKeySpace(String keySpace) throws ArchiveException {
 		logger.info("......creating new keyspace '" + keySpace + "'...");
 		Session session = cluster.connect();
-		
+
 		String statement = "CREATE KEYSPACE IF NOT EXISTS " + keySpace + " WITH replication = {'class': '" + repClass
 				+ "', 'replication_factor': " + repFactor + "};";
-		
+
 		session.execute(statement);
 		logger.info("......keyspace created...");
 		// try to connect again to keyspace...

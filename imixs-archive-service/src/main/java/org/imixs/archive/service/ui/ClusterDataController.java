@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -32,10 +31,9 @@ import org.imixs.workflow.ItemCollection;
 public class ClusterDataController implements Serializable {
 
 	private static final long serialVersionUID = 1L;
+	
 	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
 
-//	Cluster cluster = null;
-//	Session session = null;
 	String syncSizeUnit = null;
 	ItemCollection metaData = null;
 
@@ -90,31 +88,16 @@ public class ClusterDataController implements Serializable {
 	 * @see {@link ClusterDataController#close()}
 	 */
 	@PostConstruct
-	void init() throws ArchiveException {
-		logger.info("...initial session....");
-//		cluster = clusterService.getCluster();
-//		session = clusterService.getArchiveSession(cluster);
-
+	void init() {
 		// load metadata
-		metaData = dataService.loadMetadata();
+		try {
+			metaData = dataService.loadMetadata();
+		} catch (ArchiveException e) {
+			logger.severe("Failed to load meta data!");
+			e.printStackTrace();
+		}
 	}
 
-	/**
-	 * This method closes the session and cluster object.
-	 * 
-	 * @see {@link ClusterDataController#init()}
-	 */
-	@PreDestroy
-	void close() {
-		logger.info("...closing session....");
-		// close session and cluster object
-//		if (session != null) {
-//			session.close();
-//		}
-//		if (cluster != null) {
-//			cluster.close();
-//		}
-	}
 
 	/**
 	 * Returns true if a connection to the specified keySpace was successful
@@ -168,7 +151,7 @@ public class ClusterDataController implements Serializable {
 
 	public String getSyncSize() {
 		long l = metaData.getItemValueLong(SyncService.ITEM_SYNCSIZE);
-		String result = MessageService.userFriendlyBytes(l);
+		String result = messageService.userFriendlyBytes(l);
 
 		String[] parts = result.split(" ");
 		syncSizeUnit = parts[1];
