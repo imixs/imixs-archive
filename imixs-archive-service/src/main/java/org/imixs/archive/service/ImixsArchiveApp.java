@@ -32,7 +32,7 @@ import javax.ejb.EJB;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
-import org.imixs.archive.service.scheduler.SyncService;
+import org.imixs.archive.service.resync.SyncService;
 
 /**
  * The Imixs-Archive-Service application setup
@@ -64,7 +64,7 @@ public class ImixsArchiveApp extends Application {
 			try {
 				schedulerService.startScheduler();
 			} catch (ArchiveException e) {
-				messageService.logMessage("Failed to start scheduler - " + e.getMessage());
+				messageService.logMessage(SyncService.MESSAGE_TOPIC,"Failed to start scheduler - " + e.getMessage());
 				e.printStackTrace();
 			}
 		}

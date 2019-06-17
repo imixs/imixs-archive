@@ -18,8 +18,8 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.scheduler.RestoreService;
-import org.imixs.archive.service.scheduler.SyncService;
+import org.imixs.archive.service.resync.RestoreService;
+import org.imixs.archive.service.resync.SyncService;
 import org.imixs.workflow.ItemCollection;
 
 /**
@@ -209,7 +209,7 @@ public class RestoreController implements Serializable {
 	}
 
 	public List<String> getMessages() {
-		return messageService.getMessages();
+		return messageService.getMessages(RestoreService.MESSAGE_TOPIC);
 	}
 
 	/**

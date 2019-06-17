@@ -17,7 +17,8 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.scheduler.SyncService;
+import org.imixs.archive.service.export.ExportService;
+import org.imixs.archive.service.resync.SyncService;
 import org.imixs.workflow.ItemCollection;
 
 /**
@@ -44,7 +45,7 @@ public class ExportDataController implements Serializable {
 	DataService dataService;
 
 	@Inject
-	SyncService syncService;
+	ExportService exportService;
 
 	@Inject
 	MessageService messageService;
@@ -59,21 +60,10 @@ public class ExportDataController implements Serializable {
 	
 
 	@Inject
-	@ConfigProperty(name = ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, defaultValue = "")
+	@ConfigProperty(name = ExportService.ENV_EXPORT_SCHEDULER_DEFINITION, defaultValue = "")
 	String schedulerDefinition;
 
 
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, defaultValue = "1")
-	String repFactor;
-
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, defaultValue = "SimpleStrategy")
-	String repClass;
-	
-	@Inject
-	@ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
-	String workflowServiceEndpoint;
 
 	
 
@@ -99,14 +89,6 @@ public class ExportDataController implements Serializable {
 	}
 
 
-	/**
-	 * Returns true if a connection to the specified keySpace was successful
-	 * 
-	 * @return true if session was successfull established.
-	 */
-	public boolean isConnected() {
-		return (clusterService.getSession() != null);
-	}
 
 	/**
 	 * This method starts a restore process
@@ -115,7 +97,7 @@ public class ExportDataController implements Serializable {
 	 */
 	public void startSync() {
 		try {
-			syncService.startScheduler();
+			exportService.startScheduler();
 		} catch (ArchiveException e) {
 			e.printStackTrace();
 		}
@@ -128,7 +110,7 @@ public class ExportDataController implements Serializable {
 	 */
 	public void stopSync() {
 		try {
-			syncService.stopScheduler();
+			exportService.stopScheduler();
 		} catch (ArchiveException e) {
 			e.printStackTrace();
 		}
@@ -175,21 +157,8 @@ public class ExportDataController implements Serializable {
 		return schedulerDefinition;
 	}
 
-	public String getReplicationFactor() {
-		return repFactor;
-
-	}
-
-	public String getReplicationClass() {
-		return repClass;
-	}
-
-	public String getServiceEndpoint() {
-		return workflowServiceEndpoint;
-	}
-
 	public Date getNextTimeout() {
-		return syncService.getNextTimeout();
+		return exportService.getNextTimeout();
 	}
 
 	/**
@@ -198,7 +167,7 @@ public class ExportDataController implements Serializable {
 	 * @return
 	 */
 	public List<String> getMessages() {
-		List<String> messageLog = messageService.getMessages();
+		List<String> messageLog = messageService.getMessages(ExportService.MESSAGE_TOPIC);
 		// revrese order (use cloned list)
 		List<String> result = new ArrayList<String>();
 		for (String message : messageLog) {

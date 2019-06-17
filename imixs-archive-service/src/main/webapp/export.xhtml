@@ -56,12 +56,12 @@
 							<!-- Start / Stop sync scheduler -->
 							<p style="margin-top: 10px;">
 								<h:commandButton value="start"
-									action="monitor?faces-redirect=true"
+									action="export?faces-redirect=true"
 									rendered="#{empty exportDataController.nextTimeout}"
 									actionListener="#{exportDataController.startSync()}"></h:commandButton>
 
 								<h:commandButton value="stop"
-									action="monitor?faces-redirect=true"
+									action="export?faces-redirect=true"
 									rendered="#{!empty exportDataController.nextTimeout}"
 									actionListener="#{exportDataController.stopSync()}"></h:commandButton>
 							</p>
@@ -86,14 +86,8 @@
 								#{exportDataController.syncCount} <span
 									style="font-size: 0.3em">total syncs</span>
 							</p>
-
-
-
-
 							<p class="small">Last Syncpoint:
 								#{exportDataController.syncPoint}</p>
-
-
 						</div>
 					</div>
 

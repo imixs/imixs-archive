@@ -39,7 +39,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.scheduler.SyncService;
+import org.imixs.archive.service.resync.SyncService;
 import org.imixs.workflow.ItemCollection;
 
 import com.datastax.driver.core.Cluster;

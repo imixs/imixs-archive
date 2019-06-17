@@ -22,7 +22,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.scheduler.SyncService;
+import org.imixs.archive.service.resync.SyncService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;

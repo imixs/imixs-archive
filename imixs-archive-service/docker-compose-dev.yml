@@ -32,6 +32,7 @@ services:
       ARCHIVE_CLUSTER_CONTACTPOINTS: "cassandra"
       ARCHIVE_CLUSTER_KEYSPACE: "imixsdev"
       ARCHIVE_SCHEDULER_DEFINITION: "hour=*;minute=*"
+      EXPORT_SCHEDULER_DEFINITION: "hour=*"
       WORKFLOW_SERVICE_ENDPOINT: http://imixsofficeworkflow:8080/api
       WORKFLOW_SERVICE_USER: "admin"
       WORKFLOW_SERVICE_PASSWORD: "adminadmin"

@@ -62,7 +62,10 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 
 /**
- * The ArchiveRestService is used to store and access snaphsot data.
+ * The ArchiveRestService provides a Rest API to be used by external clients.
+ * <p>
+ * The API proivdes methods to read and write snapshot data inot the cassandra
+ * cluster.
  * 
  * @author rsoika
  * 
@@ -97,8 +100,8 @@ public class ArchiveRestService {
 		Cluster cluster = null;
 		try {
 			logger.info("...read snapshot...");
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
+			// cluster = clusterService.getCluster();
+			// session = clusterService.getArchiveSession(cluster);
 
 			ItemCollection snapshot = dataService.loadSnapshot(id);
 
@@ -132,8 +135,8 @@ public class ArchiveRestService {
 		Cluster cluster = null;
 		try {
 			logger.info("...read snapshot...");
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
+			// cluster = clusterService.getCluster();
+			// session = clusterService.getArchiveSession(cluster);
 			ItemCollection metadata = dataService.loadMetadata();
 			return convertResult(metadata, format);
 		} catch (Exception e) {
@@ -154,8 +157,11 @@ public class ArchiveRestService {
 	/**
 	 * Returns a file attachment based on its MD5 Checksum
 	 * <p>
-	 * The query parameter 'contentType' can be added to specify the returned content type.
-	 * @param md5 - md5 checksum to identify the file content
+	 * The query parameter 'contentType' can be added to specify the returned
+	 * content type.
+	 * 
+	 * @param md5
+	 *            - md5 checksum to identify the file content
 	 * @return
 	 */
 	@GET
@@ -222,8 +228,8 @@ public class ArchiveRestService {
 		FileData fileData = null;
 		try {
 			logger.info("...read snapshot...");
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
+			// cluster = clusterService.getCluster();
+			// session = clusterService.getArchiveSession(cluster);
 			// load snapshto without the file data
 			snapshot = dataService.loadSnapshot(id, false);
 
@@ -269,8 +275,8 @@ public class ArchiveRestService {
 			}
 
 		} catch (Exception e) {
-			logger.severe("ArchiveRestService unable to open file: '" + file + "' in workitem '" + id
-					+ "' - error: " + e.getMessage());
+			logger.severe("ArchiveRestService unable to open file: '" + file + "' in workitem '" + id + "' - error: "
+					+ e.getMessage());
 			e.printStackTrace();
 		}
 
@@ -304,8 +310,8 @@ public class ArchiveRestService {
 
 		try {
 			logger.info("...write snapshot...");
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
+			// cluster = clusterService.getCluster();
+			// session = clusterService.getArchiveSession(cluster);
 			dataService.saveSnapshot(snapshot);
 			snapshot.removeItem("$error_code");
 			snapshot.removeItem("$error_message");

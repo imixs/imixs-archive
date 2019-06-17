@@ -17,7 +17,7 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.MessageService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.scheduler.SyncService;
+import org.imixs.archive.service.resync.SyncService;
 import org.imixs.workflow.ItemCollection;
 
 /**
@@ -198,7 +198,7 @@ public class ClusterDataController implements Serializable {
 	 * @return
 	 */
 	public List<String> getMessages() {
-		List<String> messageLog = messageService.getMessages();
+		List<String> messageLog = messageService.getMessages(SyncService.MESSAGE_TOPIC);
 		// revrese order (use cloned list)
 		List<String> result = new ArrayList<String>();
 		for (String message : messageLog) {
