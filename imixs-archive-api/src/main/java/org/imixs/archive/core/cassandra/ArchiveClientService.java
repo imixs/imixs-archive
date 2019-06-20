@@ -23,8 +23,8 @@ import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.DocumentService;
-import org.imixs.workflow.engine.EventLogEntry;
 import org.imixs.workflow.engine.EventLogService;
+import org.imixs.workflow.engine.jpa.EventLog;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
@@ -76,15 +76,15 @@ public class ArchiveClientService {
 	 */
 	@Asynchronous
 	@TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
-	public void pushSnapshot(EventLogEntry eventLogEntry) {
+	public void pushSnapshot(EventLog eventLogEntry) { 
 
 		if (eventLogEntry == null) {
 			return;
 		}
-		logger.finest("...push " + eventLogEntry.getUniqueID() + "...");
+		logger.finest("...push " + eventLogEntry.getRef() + "...");
 		long l = System.currentTimeMillis();
 		// lookup the snapshot...
-		ItemCollection snapshot = documentService.load(eventLogEntry.getUniqueID());
+		ItemCollection snapshot = documentService.load(eventLogEntry.getRef());
 		if (snapshot != null) {
 			// push the snapshot...
 			DocumentClient documentClient = initWorkflowClient();
@@ -98,7 +98,7 @@ public class ArchiveClientService {
 				// TODO - we need now to delete the snapshot!
 
 				logger.info(
-						"...pushed " + eventLogEntry.getUniqueID() + " in " + (System.currentTimeMillis() - l) + "ms");
+						"...pushed " + eventLogEntry.getRef() + " in " + (System.currentTimeMillis() - l) + "ms");
 			} catch (RestAPIException e) {
 				logger.severe("...failed to push snapshot: " + snapshot.getUniqueID() + " : " + e.getMessage());
 			}

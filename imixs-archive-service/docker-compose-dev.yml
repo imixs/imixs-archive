@@ -67,17 +67,17 @@ services:
       
       
       
-  prometheus:
-    image: prom/prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ~/git/imixs-archive/imixs-archive-service/src/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml 
+#  prometheus:
+#    image: prom/prometheus
+#    ports:
+#      - "9090:9090"
+#    volumes:
+#      - ~/git/imixs-archive/imixs-archive-service/src/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml 
   
-  grafana:
-    image: grafana/grafana
-    ports: 
-      - "3000:3000" 
+#  grafana:
+#    image: grafana/grafana
+#    ports: 
+#      - "3000:3000" 
   
 volumes:
   dbdata:          

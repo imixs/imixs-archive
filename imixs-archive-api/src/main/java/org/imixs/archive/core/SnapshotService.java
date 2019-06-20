@@ -312,7 +312,7 @@ public class SnapshotService {
 		// 9. write event log entry...
 		if (archiveServiceEndpoint != null && !archiveServiceEndpoint.isEmpty()) {
 			logger.finest("......create event log entry " + EVENTLOG_TOPIC_ADD);
-			eventLogService.createEvent(snapshot.getUniqueID(), EVENTLOG_TOPIC_ADD);
+			eventLogService.createEvent(EVENTLOG_TOPIC_ADD, snapshot.getUniqueID());
 		}
 	}
 

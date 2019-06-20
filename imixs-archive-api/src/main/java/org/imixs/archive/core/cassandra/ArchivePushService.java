@@ -21,8 +21,8 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
-import org.imixs.workflow.engine.EventLogEntry;
 import org.imixs.workflow.engine.EventLogService;
+import org.imixs.workflow.engine.jpa.EventLog;
 
 /**
  * The SnapshotPushService uses an EJB TimerService for periodic snapshot
@@ -59,7 +59,8 @@ public class ArchivePushService {
 	@SuppressWarnings("unused")
 	private Timer timer;
 
-	private ConcurrentLinkedQueue<EventLogEntry> eventCache = null;
+	private ConcurrentLinkedQueue<EventLog> eventCache = null;
+	
 
 	private static Logger logger = Logger.getLogger(ArchivePushService.class.getName());
 
@@ -86,23 +87,23 @@ public class ArchivePushService {
 	@Timeout
 	private synchronized void onTimer() {
 		// test for new event log entries...
-		List<EventLogEntry> events = eventLogService.findEvents(100, SnapshotService.EVENTLOG_TOPIC_ADD,
+		List<EventLog> events = eventLogService.findEventsByTopic(100, SnapshotService.EVENTLOG_TOPIC_ADD,
 				SnapshotService.EVENTLOG_TOPIC_REMOVE);
 
 		// prune cache 
 		clearCache(events);
-		for (EventLogEntry eventLogEntry : events) {
+		for (EventLog eventLogEntry : events) {
 			// push the snapshotEvent only if not just qued...
 			if ( !eventCache.contains(eventLogEntry)) {
 				if (SnapshotService.EVENTLOG_TOPIC_ADD.equals(eventLogEntry.getTopic())) {
 
-					logger.finest("......push snapshot " + eventLogEntry.getUniqueID() + "....");
+					logger.finest("......push snapshot " + eventLogEntry.getRef() + "....");
 					eventCache.add(eventLogEntry);
 
 					archiveClientService.pushSnapshot(eventLogEntry);
 				}
 			} else {
-				logger.finest("......snapshot " + eventLogEntry.getID() + " was already fired but not yet done....");
+				logger.finest("......snapshot " + eventLogEntry.getId() + " was already fired but not yet done....");
 			}
 
 		}
@@ -114,15 +115,15 @@ public class ArchivePushService {
 	 * 
 	 * @param events
 	 */
-	private void clearCache(List<EventLogEntry> events) {
+	private void clearCache(List<EventLog> events) {
 		if (events == null) {
 			return;
 		}
-		Iterator<EventLogEntry> iter = eventCache.iterator();
+		Iterator<EventLog> iter = eventCache.iterator();
 		while (iter.hasNext()) {
-			EventLogEntry eventLogEntry = iter.next();
+			EventLog eventLogEntry = iter.next();
 			if (!events.contains(eventLogEntry)) {
-				logger.info("removing " + eventLogEntry.getID() + " from cache...");
+				logger.info("removing " + eventLogEntry.getId() + " from cache...");
 				eventCache.remove();
 			}
 
