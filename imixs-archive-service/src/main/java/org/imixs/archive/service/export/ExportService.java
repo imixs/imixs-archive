@@ -36,6 +36,7 @@ import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
+import javax.faces.flow.builder.ReturnBuilder;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -78,7 +79,7 @@ public class ExportService {
 	public static final String ENV_EXPORT_SCHEDULER_DEFINITION = "EXPORT_SCHEDULER_DEFINITION";
 
 	public final static String MESSAGE_TOPIC = "export";
-	
+
 	@Inject
 	@ConfigProperty(name = ENV_EXPORT_SCHEDULER_DEFINITION, defaultValue = "")
 	String schedulerDefinition;
@@ -189,7 +190,7 @@ public class ExportService {
 				timer.cancel();
 				timer = null;
 			} catch (Exception e) {
-				messageService.logMessage(MESSAGE_TOPIC,"Failed to stop existing timer - " + e.getMessage());
+				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
 				throw new ArchiveException(ExportService.class.getName(), ArchiveException.INVALID_WORKITEM,
 						" failed to cancel existing timer!");
 			}
@@ -201,7 +202,7 @@ public class ExportService {
 			timer = createTimerOnCalendar();
 			// start and set statusmessage
 			if (timer != null) {
-				messageService.logMessage(MESSAGE_TOPIC,"Timer started.");
+				messageService.logMessage(MESSAGE_TOPIC, "Timer started.");
 			}
 
 		} catch (ParseException e) {
@@ -221,10 +222,10 @@ public class ExportService {
 			try {
 				timer.cancel();
 			} catch (Exception e) {
-				messageService.logMessage(MESSAGE_TOPIC,"Failed to stop timer - " + e.getMessage());
+				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop timer - " + e.getMessage());
 			}
 			// update status message
-			messageService.logMessage(MESSAGE_TOPIC,"Timer stopped. ");
+			messageService.logMessage(MESSAGE_TOPIC, "Timer stopped. ");
 		}
 	}
 
@@ -276,7 +277,7 @@ public class ExportService {
 			messageService.logMessage(MESSAGE_TOPIC, "no scheduler definition found!");
 			return null;
 		}
-		
+
 		String calendarConfiguation[] = schedulerDefinition.split("(\\r?\\n)|(;)|(,)");
 
 		// try to parse the configuration list....
@@ -351,8 +352,6 @@ public class ExportService {
 		ItemCollection metaData = null;
 		String lastUniqueID = null;
 
-	
-	
 		try {
 
 			// load metadata and get last syncpoint
@@ -362,7 +361,7 @@ public class ExportService {
 			totalSize = metaData.getItemValueLong(ITEM_EXPORTSIZE);
 
 			// ...start sync
-			messageService.logMessage(MESSAGE_TOPIC,"...start export at syncpoint " + new Date(syncPoint) + "...");
+			messageService.logMessage(MESSAGE_TOPIC, "...start export at syncpoint " + new Date(syncPoint) + "...");
 
 			// Daylight Saving Time Correction
 			// issue #53
@@ -378,11 +377,13 @@ public class ExportService {
 			LocalDateTime localDateNow = new Date().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 
 			while (!localDateSyncPoint.isAfter(localDateNow)) {
-
+				int localCount=0;
+				long lProfiler = System.currentTimeMillis();
+				logger.info("...export sync point=" + localDateSyncPoint);
 				List<String> result = dataService.loadSnapshotsByDate(localDateSyncPoint.toLocalDate());
 				// did we found snapshots for this day?
 				if (result != null) {
-					long lProfiler = System.currentTimeMillis();
+					
 					// yes! iterate over all snapshots....
 					for (String snapshotID : result) {
 						// test if we find a later snapshotID...
@@ -395,12 +396,17 @@ public class ExportService {
 
 							exportSize = exportSize + _tmpSize;
 							exportCount++;
+							localCount++;
 						}
 
 					}
-					messageService.logMessage(MESSAGE_TOPIC,"..." +exportCount + " snapshots exported in " + (System.currentTimeMillis()-lProfiler) + "ms");
+					
 				}
 
+				if (localCount > 0) {
+					messageService.logMessage(MESSAGE_TOPIC, "... "+ localDateSyncPoint + " " + localCount + " snapshots exported in "
+							+ (System.currentTimeMillis() - lProfiler) + "ms");
+				}
 				// adjust snyncdate for one day....
 				localDateSyncPoint = localDateSyncPoint.plusDays(1);
 				// update metadata...
@@ -410,16 +416,35 @@ public class ExportService {
 				metaData.setItemValue(ITEM_EXPORTSIZE, totalSize + exportSize);
 				metaData.setItemValue(ITEM_EXPORTERRORS, exportErrors);
 				dataService.saveMetadata(metaData);
+
 			}
 		} catch (ArchiveException | RuntimeException e) {
 			// print the stack trace
 			e.printStackTrace();
-			messageService.logMessage(MESSAGE_TOPIC,"export failed "
+			messageService.logMessage(MESSAGE_TOPIC, "export failed "
 					+ ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
 					+ " : " + e.getMessage());
 
 			stop(timer);
 		}
+	}
+
+	/**
+	 * THis method reset the export sync data and returns an updated metaData object
+	 * 
+	 * @throws ArchiveException
+	 * @return an updated meta data object
+	 */
+	public ItemCollection reset() throws ArchiveException {
+		logger.info("Reset Export SyncPoint...");
+		ItemCollection metaData = dataService.loadMetadata();
+		// update sync date...
+		metaData.setItemValue(ExportService.ITEM_EXPORTPOINT, 0);
+		metaData.setItemValue(ExportService.ITEM_EXPORTCOUNT, 0);
+		metaData.setItemValue(ExportService.ITEM_EXPORTERRORS, 0);
+		metaData.setItemValue(ExportService.ITEM_EXPORTSIZE, 0);
+		dataService.saveMetadata(metaData);
+		return metaData;
 	}
 
 	/**

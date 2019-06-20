@@ -1,6 +1,8 @@
 package org.imixs.archive.service.ui;
 
 import java.io.Serializable;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -95,7 +97,7 @@ public class ExportDataController implements Serializable {
 	 * 
 	 * 
 	 */
-	public void startSync() {
+	public void startExport() {
 		try {
 			exportService.startScheduler();
 		} catch (ArchiveException e) {
@@ -108,7 +110,7 @@ public class ExportDataController implements Serializable {
 	 * 
 	 * 
 	 */
-	public void stopSync() {
+	public void stopExport() {
 		try {
 			exportService.stopScheduler();
 		} catch (ArchiveException e) {
@@ -121,18 +123,18 @@ public class ExportDataController implements Serializable {
 	 * 
 	 * @return
 	 */
-	public Date getSyncPoint() {
-		long lsyncPoint = metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
+	public Date getExportPoint() {
+		long lsyncPoint = metaData.getItemValueLong(ExportService.ITEM_EXPORTPOINT);
 		Date syncPoint = new Date(lsyncPoint);
 		return syncPoint;
 	}
 
-	public long getSyncCount() {
-		return metaData.getItemValueLong(SyncService.ITEM_SYNCCOUNT);
+	public long getExportCount() {
+		return metaData.getItemValueLong(ExportService.ITEM_EXPORTCOUNT);
 	}
 
-	public String getSyncSize() {
-		long l = metaData.getItemValueLong(SyncService.ITEM_SYNCSIZE);
+	public String getExportSize() {
+		long l = metaData.getItemValueLong(ExportService.ITEM_EXPORTSIZE);
 		String result = messageService.userFriendlyBytes(l);
 
 		String[] parts = result.split(" ");
@@ -140,18 +142,12 @@ public class ExportDataController implements Serializable {
 		return parts[0];
 	}
 
-	public String getSyncSizeUnit() {
+	public String getExportSizeUnit() {
 		return syncSizeUnit;
 	}
 
 	
-	public String getContactPoints() {
-		return contactPoint;
-	}
-
-	public String getKeySpace() {
-		return keySpace;
-	}
+	
 
 	public String getScheduler() {
 		return schedulerDefinition;
@@ -175,5 +171,21 @@ public class ExportDataController implements Serializable {
 		}
 		Collections.reverse(result);
 		return result;
+	}
+	
+	
+	/**
+	 * This method reset the current synpoint to 0 and prepares a new export
+	 * 
+	 * 
+	 * @throws ArchiveException
+	 */
+	public void reset() {
+		try {
+			metaData=exportService.reset();
+		} catch (ArchiveException e) {
+			logger.severe("failed to reset export syncpoint: " + e.getMessage());
+		}
+
 	}
 }
