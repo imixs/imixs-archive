@@ -24,6 +24,7 @@ package org.imixs.archive.service.export;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -349,6 +350,8 @@ public class ExportService {
 		long exportErrors = 0;
 		long totalCount = 0;
 		long totalSize = 0;
+		long latestExportPoint = 0;
+	
 		ItemCollection metaData = null;
 		String lastUniqueID = null;
 
@@ -359,9 +362,11 @@ public class ExportService {
 			syncPoint = metaData.getItemValueLong(ITEM_EXPORTPOINT);
 			totalCount = metaData.getItemValueLong(ITEM_EXPORTCOUNT);
 			totalSize = metaData.getItemValueLong(ITEM_EXPORTSIZE);
+			
+			latestExportPoint=syncPoint;
 
 			// ...start sync
-			messageService.logMessage(MESSAGE_TOPIC, "...start export at syncpoint " + new Date(syncPoint) + "...");
+			messageService.logMessage(MESSAGE_TOPIC, "...Export started, syncpoint=" + new Date(syncPoint) + "...");
 
 			// Daylight Saving Time Correction
 			// issue #53
@@ -372,56 +377,69 @@ public class ExportService {
 				syncPoint = now.getTime();
 			}
 
-			LocalDateTime localDateSyncPoint = new Date(syncPoint).toInstant().atZone(ZoneId.systemDefault())
-					.toLocalDateTime();
-			LocalDateTime localDateNow = new Date().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+			// we always restart the export on our last syncPoint....
+			LocalDate localDateSyncPoint = new Date(syncPoint).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+			LocalDate localDateNow = new Date().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
 			while (!localDateSyncPoint.isAfter(localDateNow)) {
-				int localCount=0;
+				int localCount = 0;
 				long lProfiler = System.currentTimeMillis();
 				logger.info("...export sync point=" + localDateSyncPoint);
-				List<String> result = dataService.loadSnapshotsByDate(localDateSyncPoint.toLocalDate());
-				// did we found snapshots for this day?
-				if (result != null) {
-					
-					// yes! iterate over all snapshots....
-					for (String snapshotID : result) {
-						// test if we find a later snapshotID...
-						String latestSnapshot = findLatestSnapshotID(snapshotID);
-						if (!latestSnapshot.equals(snapshotID)) {
-							// we did not find a later snapshot, so this is the one we need to export
-							ItemCollection snapshot = dataService.loadSnapshot(snapshotID);
+				List<String> result = dataService.loadSnapshotsByDate(localDateSyncPoint);
+				// iterate over all snapshots....
+				for (String snapshotID : result) {
+					// for each snapshotID test if we find a later snapshotID (created after our current sync point)...
+					String latestSnapshot = findLatestSnapshotID(snapshotID);
+					if (latestSnapshot.equals(snapshotID)) {
+						// we did NOT find a later snapshot, so this is the one we should export
+						ItemCollection snapshot = dataService.loadSnapshot(snapshotID);
+						// test if the $modified date is behind our current sync point....
+						Date snaptshotDate = snapshot.getItemValueDate("$modified");
+						if (snaptshotDate.getTime() > syncPoint) {
+							// start export for this snapshot
+							// .....
+							
+							
+
+							logger.info("....DEBUG - export " + snaptshotDate + ": " + latestSnapshot);
+
 							long _tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
 							logger.finest("......size=: " + _tmpSize);
-
 							exportSize = exportSize + _tmpSize;
 							exportCount++;
 							localCount++;
-						}
+							
+							// compute latesExportPoint we found so far...
+							if (snaptshotDate.getTime()>latestExportPoint) {
+								latestExportPoint = snaptshotDate.getTime();
+							}
 
+						}
 					}
-					
+
 				}
 
 				if (localCount > 0) {
-					messageService.logMessage(MESSAGE_TOPIC, "... "+ localDateSyncPoint + " " + localCount + " snapshots exported in "
-							+ (System.currentTimeMillis() - lProfiler) + "ms");
+					messageService.logMessage(MESSAGE_TOPIC, "...... [" + localDateSyncPoint + "] " + localCount
+							+ " snapshots exported in " + (System.currentTimeMillis() - lProfiler) + "ms");
 				}
-				// adjust snyncdate for one day....
-				localDateSyncPoint = localDateSyncPoint.plusDays(1);
-				// update metadata...
-				Date date = Date.from(localDateSyncPoint.atZone(ZoneId.systemDefault()).toInstant());
-				metaData.setItemValue(ITEM_EXPORTPOINT, date.getTime());
+				
+				// update sync data...
+				metaData.setItemValue(ITEM_EXPORTPOINT, latestExportPoint);
 				metaData.setItemValue(ITEM_EXPORTCOUNT, totalCount + exportCount);
 				metaData.setItemValue(ITEM_EXPORTSIZE, totalSize + exportSize);
 				metaData.setItemValue(ITEM_EXPORTERRORS, exportErrors);
 				dataService.saveMetadata(metaData);
-
+			
+				// adjust snyncdate for one day....
+				localDateSyncPoint = localDateSyncPoint.plusDays(1);
 			}
+			
+			messageService.logMessage(MESSAGE_TOPIC, "...Export finished, " + exportCount + " snapshots exported in total = " +messageService.userFriendlyBytes(exportSize) + ".");
 		} catch (ArchiveException | RuntimeException e) {
 			// print the stack trace
 			e.printStackTrace();
-			messageService.logMessage(MESSAGE_TOPIC, "export failed "
+			messageService.logMessage(MESSAGE_TOPIC, "Export failed "
 					+ ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
 					+ " : " + e.getMessage());
 

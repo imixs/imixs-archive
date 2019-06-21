@@ -104,7 +104,7 @@ public class DataService {
 	public void saveSnapshot(ItemCollection snapshot) throws ArchiveException {
 
 		String snapshotID = snapshot.getUniqueID();
-		
+
 		if (!isSnapshotID(snapshotID)) {
 			throw new IllegalArgumentException("unexpected '$snapshotid' fromat: " + snapshotID);
 		}
@@ -120,10 +120,8 @@ public class DataService {
 			// skipp!
 			logger.warning("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
 			return;
-		} 
+		}
 
-		
-		
 		// extract $snapshotid 2de78aec-6f14-4345-8acf-dd37ae84875d-1530315900599
 		String originUnqiueID = getUniqueID(snapshotID);
 
@@ -139,7 +137,8 @@ public class DataService {
 		// upset snapshots_by_modified....
 		LocalDate ld = LocalDate.fromMillisSinceEpoch(snapshot.getItemValueDate("$modified").getTime());
 
-		clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED, ld, snapshot.getUniqueID()));
+		clusterService.getSession()
+				.execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED, ld, snapshot.getUniqueID()));
 
 		// Finally we fire the DocumentEvent ON_DOCUMENT_SAVE
 		if (events != null) {
@@ -224,7 +223,8 @@ public class DataService {
 			logger.finest("......write new 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
 			byte[] chunk = it.next();
 			// write 1MB chunk into cassandra....
-			clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS_DATA, data_id, ByteBuffer.wrap(chunk)));
+			clusterService.getSession()
+					.execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS_DATA, data_id, ByteBuffer.wrap(chunk)));
 			// write sort_id....
 			clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS, md5, sort_id, data_id));
 			// increase sort_id
@@ -273,7 +273,7 @@ public class DataService {
 		// now we have all the bytes...
 		byte[] allData = loadFileContent(md5);
 		return new FileData(fileData.getName(), allData, fileData.getContentType(), fileData.getAttributes());
-		
+
 	}
 
 	/**
@@ -385,8 +385,7 @@ public class DataService {
 	 * @return snapshot data
 	 * @throws ArchiveException
 	 */
-	public ItemCollection loadSnapshot(String snapshotID, boolean mergeDocuments)
-			throws ArchiveException {
+	public ItemCollection loadSnapshot(String snapshotID, boolean mergeDocuments) throws ArchiveException {
 		ItemCollection snapshot = new ItemCollection();
 
 		// select snapshot...
@@ -459,7 +458,8 @@ public class DataService {
 	 * This method loads all exsting snapshotIDs for a given date.
 	 * 
 	 * @param date
-	 * @return list of snapshots
+	 * @return list of snapshots or an empty list if no snapshots exist for the
+	 *         given date
 	 */
 	public List<String> loadSnapshotsByDate(java.time.LocalDate date) {
 		List<String> result = new ArrayList<String>();
@@ -492,7 +492,8 @@ public class DataService {
 	 */
 	public void saveMetadata(ItemCollection metadata) throws ArchiveException {
 		// upset document....
-		clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS, "0", ByteBuffer.wrap(getRawData(metadata))));
+		clusterService.getSession()
+				.execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS, "0", ByteBuffer.wrap(getRawData(metadata))));
 	}
 
 	/**
