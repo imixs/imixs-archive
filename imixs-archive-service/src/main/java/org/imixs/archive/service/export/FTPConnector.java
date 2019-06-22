@@ -23,6 +23,7 @@
 package org.imixs.archive.service.export;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -125,7 +126,8 @@ public class FTPConnector {
 			}
 
 			ftpClient.enterLocalPassiveMode();
-			ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
+			//ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
+			ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 			ftpClient.setControlEncoding("UTF-8");
 
 			// verify directories
@@ -176,27 +178,22 @@ public class FTPConnector {
 		}
 		
 		long l=System.currentTimeMillis();
-
-		InputStream inputStream = null;
+		ByteArrayOutputStream bos =null;
 		try {
-			inputStream = ftpClient.retrieveFileStream(fileName);
-			// Must call completePendingCommand() to finish command.
-			if (!ftpClient.completePendingCommand()) {
-				return null;
-			}
-			ItemCollection snapshot = XMLDocumentAdapter.readItemCollectionFromInputStream(inputStream);
+			bos= new ByteArrayOutputStream();
+			ftpClient.retrieveFile(fileName, bos);
+			byte[] result = bos.toByteArray();
+			ItemCollection snapshot = XMLDocumentAdapter.readItemCollection(result);
 			logger.info("......" + fileName + " transfered successfull from " + ftpServer + " in " + (System.currentTimeMillis()-l) + "ms");
 			return snapshot;
-
 		} catch (IOException | JAXBException e) {
 			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
 		} finally {
 			// do logout....
 			try {
-				if (inputStream != null) {
-					inputStream.close();
+				if (bos != null) {
+					bos.close();
 				}
-
 			} catch (IOException e) {
 				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
 			}

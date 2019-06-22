@@ -183,9 +183,12 @@ public class ImportService {
 			}
 
 			ftpClient.enterLocalPassiveMode();
-			ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
+//			ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
+			ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 			ftpClient.setControlEncoding("UTF-8");
 
+			ftpClient.setBufferSize(1024*64);
+			
 			// verify directories
 			String ftpRootPath = ftpPath;
 			if (!ftpRootPath.startsWith("/")) {
