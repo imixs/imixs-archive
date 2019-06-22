@@ -79,11 +79,21 @@ public class ExportService {
 
 	public static final String ENV_EXPORT_SCHEDULER_DEFINITION = "EXPORT_SCHEDULER_DEFINITION";
 
+	public static final String ENV_EXPORT_FTP_HOST = "EXPORT_FTP_HOST";
+	public static final String ENV_EXPORT_FTP_PATH = "EXPORT_FTP_PATH";
+	public static final String ENV_EXPORT_FTP_PORT = "EXPORT_FTP_PORT";
+	public static final String ENV_EXPORT_FTP_USER = "EXPORT_FTP_USER";
+	public static final String ENV_EXPORT_FTP_PASSWORD = "EXPORT_FTP_PASSWORD";
+
 	public final static String MESSAGE_TOPIC = "export";
 
 	@Inject
 	@ConfigProperty(name = ENV_EXPORT_SCHEDULER_DEFINITION, defaultValue = "")
 	String schedulerDefinition;
+
+	@Inject
+	@ConfigProperty(name = ENV_EXPORT_FTP_HOST, defaultValue = "")
+	String ftpServer;
 
 	@Resource
 	javax.ejb.TimerService timerService;
@@ -96,6 +106,9 @@ public class ExportService {
 
 	@Inject
 	MessageService messageService;
+	
+	@Inject
+	FTPConnector ftpConnector;
 
 	private static Logger logger = Logger.getLogger(ExportService.class.getName());
 
@@ -351,9 +364,15 @@ public class ExportService {
 		long totalCount = 0;
 		long totalSize = 0;
 		long latestExportPoint = 0;
-	
+
 		ItemCollection metaData = null;
 		String lastUniqueID = null;
+
+		if (ftpServer.isEmpty()) {
+			messageService.logMessage(MESSAGE_TOPIC, "...Export failed - " + ENV_EXPORT_FTP_HOST + " not defined!");
+			stop(timer);
+			return;
+		}
 
 		try {
 
@@ -362,8 +381,8 @@ public class ExportService {
 			syncPoint = metaData.getItemValueLong(ITEM_EXPORTPOINT);
 			totalCount = metaData.getItemValueLong(ITEM_EXPORTCOUNT);
 			totalSize = metaData.getItemValueLong(ITEM_EXPORTSIZE);
-			
-			latestExportPoint=syncPoint;
+
+			latestExportPoint = syncPoint;
 
 			// ...start sync
 			messageService.logMessage(MESSAGE_TOPIC, "...Export started, syncpoint=" + new Date(syncPoint) + "...");
@@ -388,7 +407,8 @@ public class ExportService {
 				List<String> result = dataService.loadSnapshotsByDate(localDateSyncPoint);
 				// iterate over all snapshots....
 				for (String snapshotID : result) {
-					// for each snapshotID test if we find a later snapshotID (created after our current sync point)...
+					// for each snapshotID test if we find a later snapshotID (created after our
+					// current sync point)...
 					String latestSnapshot = findLatestSnapshotID(snapshotID);
 					if (latestSnapshot.equals(snapshotID)) {
 						// we did NOT find a later snapshot, so this is the one we should export
@@ -397,20 +417,16 @@ public class ExportService {
 						Date snaptshotDate = snapshot.getItemValueDate("$modified");
 						if (snaptshotDate.getTime() > syncPoint) {
 							// start export for this snapshot
-							// .....
-							
-							
-
-							logger.info("....DEBUG - export " + snaptshotDate + ": " + latestSnapshot);
+							ftpConnector.put(snapshot);
 
 							long _tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
 							logger.finest("......size=: " + _tmpSize);
 							exportSize = exportSize + _tmpSize;
 							exportCount++;
 							localCount++;
-							
+
 							// compute latesExportPoint we found so far...
-							if (snaptshotDate.getTime()>latestExportPoint) {
+							if (snaptshotDate.getTime() > latestExportPoint) {
 								latestExportPoint = snaptshotDate.getTime();
 							}
 
@@ -423,19 +439,20 @@ public class ExportService {
 					messageService.logMessage(MESSAGE_TOPIC, "...... [" + localDateSyncPoint + "] " + localCount
 							+ " snapshots exported in " + (System.currentTimeMillis() - lProfiler) + "ms");
 				}
-				
+
 				// update sync data...
 				metaData.setItemValue(ITEM_EXPORTPOINT, latestExportPoint);
 				metaData.setItemValue(ITEM_EXPORTCOUNT, totalCount + exportCount);
 				metaData.setItemValue(ITEM_EXPORTSIZE, totalSize + exportSize);
 				metaData.setItemValue(ITEM_EXPORTERRORS, exportErrors);
 				dataService.saveMetadata(metaData);
-			
+
 				// adjust snyncdate for one day....
 				localDateSyncPoint = localDateSyncPoint.plusDays(1);
 			}
-			
-			messageService.logMessage(MESSAGE_TOPIC, "...Export finished, " + exportCount + " snapshots exported in total = " +messageService.userFriendlyBytes(exportSize) + ".");
+
+			messageService.logMessage(MESSAGE_TOPIC, "...Export finished, " + exportCount
+					+ " snapshots exported in total = " + messageService.userFriendlyBytes(exportSize) + ".");
 		} catch (ArchiveException | RuntimeException e) {
 			// print the stack trace
 			e.printStackTrace();
