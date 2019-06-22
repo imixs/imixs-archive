@@ -13,4 +13,5 @@ target/
 .project
 .classpath
 deployments/
+docker-compose-ignore.yml
 
