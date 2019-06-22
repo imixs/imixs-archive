@@ -30,7 +30,9 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
+import javax.faces.flow.builder.ReturnBuilder;
 import javax.inject.Inject;
+import javax.xml.bind.JAXBException;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -41,6 +43,7 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
+import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
  * The FTPConnector service provides methods to push a snapshot document into an
@@ -102,12 +105,12 @@ public class FTPConnector {
 
 		// Compute file path
 		Date modified = snapshot.getItemValueDate(WorkflowKernel.MODIFIED);
-		String ftpPathReports = ftpPath;
-		if (!ftpPathReports.startsWith("/")) {
-			ftpPathReports = "/" + ftpPathReports;
+		String ftpWorkingPath = ftpPath;
+		if (!ftpWorkingPath.startsWith("/")) {
+			ftpWorkingPath = "/" + ftpWorkingPath;
 		}
-		if (!ftpPathReports.endsWith("/")) {
-			ftpPathReports = ftpPathReports + "/";
+		if (!ftpWorkingPath.endsWith("/")) {
+			ftpWorkingPath = ftpWorkingPath + "/";
 		}
 		InputStream writer = null;
 
@@ -126,9 +129,9 @@ public class FTPConnector {
 			ftpClient.setControlEncoding("UTF-8");
 
 			// verify directories
-			if (!ftpClient.changeWorkingDirectory(ftpPathReports)) {
-				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing workfing directory '"
-						+ ftpPathReports + "' : " + ftpClient.getReplyString());
+			if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
+				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing working directory '"
+						+ ftpWorkingPath + "' : " + ftpClient.getReplyString());
 			}
 			// test if we have the year as an subdirecory
 			changeWorkingDirectory(ftpClient, new SimpleDateFormat("yyyy").format(modified));
@@ -138,11 +141,11 @@ public class FTPConnector {
 			writer = new ByteArrayInputStream(rawData);
 
 			if (!ftpClient.storeFile(fileName, writer)) {
-				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: unable to write '" + ftpPathReports
+				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: unable to write '" + ftpWorkingPath
 						+ fileName + "' : " + ftpClient.getReplyString());
 			}
 
-			logger.info("...." + ftpPathReports + fileName + " transfered successfull to " + ftpServer);
+			logger.info("...." + ftpWorkingPath + fileName + " transfered successfull to " + ftpServer);
 
 		} catch (IOException e) {
 			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
@@ -155,7 +158,47 @@ public class FTPConnector {
 				ftpClient.logout();
 				ftpClient.disconnect();
 			} catch (IOException e) {
-				throw new ArchiveException(FTP_ERROR, "DATEV FTP file transfer failed: " + e.getMessage(), e);
+				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
+			}
+		}
+	}
+
+	/**
+	 * This method reads a snapshot form the current working directry
+	 * 
+	 * @param snapshot
+	 * @throws ArchiveException
+	 * @return snapshot
+	 */
+	public ItemCollection get(FTPClient ftpClient, String fileName) throws ArchiveException {
+		if (ftpClient == null) {
+			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: no ftpClient provided!");
+		}
+		
+		long l=System.currentTimeMillis();
+
+		InputStream inputStream = null;
+		try {
+			inputStream = ftpClient.retrieveFileStream(fileName);
+			// Must call completePendingCommand() to finish command.
+			if (!ftpClient.completePendingCommand()) {
+				return null;
+			}
+			ItemCollection snapshot = XMLDocumentAdapter.readItemCollectionFromInputStream(inputStream);
+			logger.info("......" + fileName + " transfered successfull from " + ftpServer + " in " + (System.currentTimeMillis()-l) + "ms");
+			return snapshot;
+
+		} catch (IOException | JAXBException e) {
+			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
+		} finally {
+			// do logout....
+			try {
+				if (inputStream != null) {
+					inputStream.close();
+				}
+
+			} catch (IOException e) {
+				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
 			}
 		}
 	}
