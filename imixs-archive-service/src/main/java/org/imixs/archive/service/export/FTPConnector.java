@@ -34,6 +34,7 @@ import javax.inject.Inject;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPSClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
@@ -79,7 +80,6 @@ public class FTPConnector {
 	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PASSWORD, defaultValue = "")
 	String ftpPassword;
 
-	
 	/**
 	 * This method transfers a snapshot to a ftp server.
 	 * 
@@ -103,17 +103,17 @@ public class FTPConnector {
 		// Compute file path
 		Date modified = snapshot.getItemValueDate(WorkflowKernel.MODIFIED);
 		String ftpPathReports = ftpPath;
+		if (!ftpPathReports.startsWith("/")) {
+			ftpPathReports = "/" + ftpPathReports;
+		}
 		if (!ftpPathReports.endsWith("/")) {
 			ftpPathReports = ftpPathReports + "/";
 		}
-		SimpleDateFormat dt = new SimpleDateFormat("yyyyy/mm/");
-		ftpPathReports = ftpPathReports + dt.format(modified);
-
 		InputStream writer = null;
 
 		FTPClient ftpClient = null;
 		try {
-			logger.info("......put " + originUnqiueID + ".xml to FTP server: " + ftpServer + "...");
+			logger.info("......put " + fileName + " to FTP server: " + ftpServer + "...");
 			ftpClient = new FTPSClient("TLS", false);
 			ftpClient.setControlEncoding("UTF-8");
 			ftpClient.connect(ftpServer, ftpPort);
@@ -124,16 +124,25 @@ public class FTPConnector {
 			ftpClient.enterLocalPassiveMode();
 			ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
 			ftpClient.setControlEncoding("UTF-8");
+
+			// verify directories
+			if (!ftpClient.changeWorkingDirectory(ftpPathReports)) {
+				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing workfing directory '"
+						+ ftpPathReports + "' : " + ftpClient.getReplyString());
+			}
+			// test if we have the year as an subdirecory
+			changeWorkingDirectory(ftpClient, new SimpleDateFormat("yyyy").format(modified));
+			changeWorkingDirectory(ftpClient, new SimpleDateFormat("MM").format(modified));
+
 			// upload file to FTP server.
 			writer = new ByteArrayInputStream(rawData);
-			boolean result = ftpClient.storeFile(ftpPathReports + fileName, writer);
-			if (result == false) {
-				throw new ArchiveException(FTP_ERROR,
-						"FTP file transfer failed: unable to write '" + ftpPathReports + fileName + "'");
-			} 
-			
 
-			logger.info("...." + ftpPathReports+fileName+ " transfered successfull to " + ftpServer );
+			if (!ftpClient.storeFile(fileName, writer)) {
+				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: unable to write '" + ftpPathReports
+						+ fileName + "' : " + ftpClient.getReplyString());
+			}
+
+			logger.info("...." + ftpPathReports + fileName + " transfered successfull to " + ftpServer);
 
 		} catch (IOException e) {
 			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
@@ -148,6 +157,28 @@ public class FTPConnector {
 			} catch (IOException e) {
 				throw new ArchiveException(FTP_ERROR, "DATEV FTP file transfer failed: " + e.getMessage(), e);
 			}
+		}
+	}
+
+	/**
+	 * This method changes the current working sub-directy. If no corresponding
+	 * directory exits the method creats one.
+	 * 
+	 * @throws ArchiveException
+	 */
+	private void changeWorkingDirectory(FTPClient ftpClient, String subDirectory) throws ArchiveException {
+		// test if we have the subdreictory
+		try {
+			if (!ftpClient.changeWorkingDirectory(subDirectory)) {
+				// try to creat it....
+				if (!ftpClient.makeDirectory(subDirectory)) {
+					throw new ArchiveException(FTP_ERROR, "FTP Error: unable to create sub-directory '" + subDirectory
+							+ "' : " + ftpClient.getReplyString());
+				}
+				ftpClient.changeWorkingDirectory(subDirectory);
+			}
+		} catch (IOException e) {
+			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
 		}
 	}
 }
