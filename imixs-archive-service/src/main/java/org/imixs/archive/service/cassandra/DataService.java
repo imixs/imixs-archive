@@ -272,8 +272,11 @@ public class DataService {
 		String md5 = customAttributes.getItemValueString(ITEM_MD5_CHECKSUM);
 		// now we have all the bytes...
 		byte[] allData = loadFileContent(md5);
-		return new FileData(fileData.getName(), allData, fileData.getContentType(), fileData.getAttributes());
-
+		if (allData == null) {
+			return null;
+		} else {
+			return new FileData(fileData.getName(), allData, fileData.getContentType(), fileData.getAttributes());
+		}
 	}
 
 	/**
@@ -285,6 +288,10 @@ public class DataService {
 	 * @throws ArchiveException
 	 */
 	public byte[] loadFileContent(String md5) throws ArchiveException {
+
+		if (md5 == null || md5.isEmpty()) {
+			return null;
+		}
 
 		// test if md5 exits...
 		String sql = STATEMENT_SELECT_DOCUMENTS;
