@@ -31,13 +31,11 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
-import javax.faces.flow.builder.ReturnBuilder;
 import javax.inject.Inject;
 import javax.xml.bind.JAXBException;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPSClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
@@ -48,7 +46,9 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
  * The FTPConnector service provides methods to push a snapshot document into an
- * ftp storrage.
+ * ftp storrage. The snapshot is stored in a directory based on the snapshot
+ * creation date. E.g. $created=2017-03-19 will put the data into the
+ * subdirectory /2017/03/
  * 
  * @version 1.0
  * @author rsoika
@@ -105,7 +105,7 @@ public class FTPConnector {
 		String fileName = originUnqiueID + ".xml";
 
 		// Compute file path
-		Date modified = snapshot.getItemValueDate(WorkflowKernel.MODIFIED);
+		Date created = snapshot.getItemValueDate(WorkflowKernel.CREATED);
 		String ftpWorkingPath = ftpPath;
 		if (!ftpWorkingPath.startsWith("/")) {
 			ftpWorkingPath = "/" + ftpWorkingPath;
@@ -126,7 +126,7 @@ public class FTPConnector {
 			}
 
 			ftpClient.enterLocalPassiveMode();
-			//ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
+			// ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
 			ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 			ftpClient.setControlEncoding("UTF-8");
 
@@ -136,8 +136,8 @@ public class FTPConnector {
 						+ ftpWorkingPath + "' : " + ftpClient.getReplyString());
 			}
 			// test if we have the year as an subdirecory
-			changeWorkingDirectory(ftpClient, new SimpleDateFormat("yyyy").format(modified));
-			changeWorkingDirectory(ftpClient, new SimpleDateFormat("MM").format(modified));
+			changeWorkingDirectory(ftpClient, new SimpleDateFormat("yyyy").format(created));
+			changeWorkingDirectory(ftpClient, new SimpleDateFormat("MM").format(created));
 
 			// upload file to FTP server.
 			writer = new ByteArrayInputStream(rawData);
@@ -176,15 +176,16 @@ public class FTPConnector {
 		if (ftpClient == null) {
 			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: no ftpClient provided!");
 		}
-		
-		long l=System.currentTimeMillis();
-		ByteArrayOutputStream bos =null;
+
+		long l = System.currentTimeMillis();
+		ByteArrayOutputStream bos = null;
 		try {
-			bos= new ByteArrayOutputStream();
+			bos = new ByteArrayOutputStream();
 			ftpClient.retrieveFile(fileName, bos);
 			byte[] result = bos.toByteArray();
 			ItemCollection snapshot = XMLDocumentAdapter.readItemCollection(result);
-			logger.info("......" + fileName + " transfered successfull from " + ftpServer + " in " + (System.currentTimeMillis()-l) + "ms");
+			logger.info("......" + fileName + " transfered successfull from " + ftpServer + " in "
+					+ (System.currentTimeMillis() - l) + "ms");
 			return snapshot;
 		} catch (IOException | JAXBException e) {
 			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
