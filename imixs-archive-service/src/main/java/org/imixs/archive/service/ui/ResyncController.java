@@ -118,8 +118,8 @@ public class ResyncController implements Serializable {
 			
 			
 			// restart sync?
-			if (syncService.getNextTimeout()==null) {
-				syncService.startScheduler();
+			if (!syncService.isRunning()) {
+				syncService.start();
 			}
 
 		} catch (ArchiveException | ParseException e) {

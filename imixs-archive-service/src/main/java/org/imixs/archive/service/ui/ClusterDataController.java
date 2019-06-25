@@ -36,7 +36,7 @@ public class ClusterDataController implements Serializable {
 
 	String syncSizeUnit = null;
 	ItemCollection metaData = null;
-
+ 
 	@Inject
 	ClusterService clusterService;
 
@@ -57,10 +57,6 @@ public class ClusterDataController implements Serializable {
 	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
 	String keySpace;
 	
-
-	@Inject
-	@ConfigProperty(name = ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, defaultValue = "")
-	String schedulerDefinition;
 
 
 	@Inject
@@ -113,27 +109,34 @@ public class ClusterDataController implements Serializable {
 	 * 
 	 * 
 	 */
-	public void startSync() {
+	public void start() {
 		try {
-			syncService.startScheduler();
+			syncService.start();
 		} catch (ArchiveException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	/**
-	 * This method starts a restore process
-	 * 
-	 * 
-	 */
-	public void stopSync() {
-		try {
-			syncService.stopScheduler();
-		} catch (ArchiveException e) {
-			e.printStackTrace();
-		}
+	public boolean isRunning() {
+		return syncService.isRunning();
 	}
 
+	/**
+	 * This method cancles the current sync
+	 * 
+	 * 
+	 * @throws ArchiveException
+	 */
+	public void cancel() {
+		try {
+			syncService.cancel();
+		} catch (ArchiveException e) {			
+			e.printStackTrace();
+		}
+
+	}
+	
+	
 	/**
 	 * returns the syncpoint of the current configuration
 	 * 
@@ -171,10 +174,7 @@ public class ClusterDataController implements Serializable {
 		return keySpace;
 	}
 
-	public String getScheduler() {
-		return schedulerDefinition;
-	}
-
+	
 	public String getReplicationFactor() {
 		return repFactor;
 
@@ -188,9 +188,7 @@ public class ClusterDataController implements Serializable {
 		return workflowServiceEndpoint;
 	}
 
-	public Date getNextTimeout() {
-		return syncService.getNextTimeout();
-	}
+	
 
 	/**
 	 * Returns the message list in reverse order.

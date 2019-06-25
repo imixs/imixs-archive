@@ -43,7 +43,6 @@ The following docker-compose.yml file shows a setup example:
 	      WILDFLY_PASS: adminadmin
 	      ARCHIVE_CLUSTER_CONTACTPOINTS: "cassandra"
 	      ARCHIVE_CLUSTER_KEYSPACE: "imixsdev"
-	      ARCHIVE_SCHEDULER_DEFINITION: "hour=*"
 	      WORKFLOW_SERVICE_ENDPOINT: http://imixs-workflow:8080/api
 	      WORKFLOW_SERVICE_USER: "admin"
 	      WORKFLOW_SERVICE_PASSWORD: "adminadmin"
@@ -188,9 +187,20 @@ The methods _loadSnapshotsByUnqiueID_ or _loadSnapshotsByDate_ can be used selec
 	// return all snapshotIDs for a given date 
 	List<String> ids=archiveService.findSnapshotsByDate("2018-06-29");
 
- 	
 
-# Wildfly max-post-size
+
+## Cluster Setup with Docker Swarm
+
+To setup a Cassandra Cluster with Docker Swarm read the section [Cluster Setup](docs/CLUSTER.md).
+
+If you run a Cassandra Cluster with multiple nodes it is recommanded to setup the replication factor for a keyspace to the number of nodes. 
+
+To change the replication factors (RF) of the security keyspaces:
+
+    ALTER KEYSPACE my_keyspace WITH REPLICATION= {'class' : 'SimpleStrategy','replication_factor' : '2'};
+
+
+## Wildfly - max-post-size
 
 In wildfly server there is a default max-post-size of 24mb. This can be a problem if you need to restore snapshot with large data. But you can overwrite the max-post-size in the standalone xml file:
 

@@ -11,6 +11,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 
@@ -39,7 +40,6 @@ public class ClusterService {
 	public static final String ENV_ARCHIVE_CLUSTER_KEYSPACE = "ARCHIVE_CLUSTER_KEYSPACE";
 
 	// optional environment settings
-	public static final String ENV_ARCHIVE_SCHEDULER_DEFINITION = "ARCHIVE_SCHEDULER_DEFINITION";
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "ARCHIVE_CLUSTER_REPLICATION_FACTOR";
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS = "ARCHIVE_CLUSTER_REPLICATION_CLASS";
 
@@ -152,8 +152,15 @@ public class ClusterService {
 					"missing cluster contact points - verify configuration!");
 		}
 
-		logger.info("......cluster conecting...");
-		cluster = Cluster.builder().addContactPoint(contactPoint).build();
+		logger.info("......cluster conecting: "+contactPoint);
+		
+		Builder builder = Cluster.builder();
+		String[] hosts = contactPoint.split(","); 
+		for (String host: hosts) {
+			builder.addContactPoint(host);
+		}
+		cluster=builder.build();
+		//cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
 
 		logger.info("......cluster conection status = OK");

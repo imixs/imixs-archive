@@ -46,8 +46,8 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
  * The ImportService imports the workflow data form a FTP storage into the
- * cassandra cluster. The import can be started by the method import(). The
- * import is implemented as a timer service so the import can run in backgroud.
+ * cassandra cluster. The import can be started by the method start(). The
+ * import is implemented as a SingleActionTimer so the import can run in backgroud.
  * 
  * @version 1.0
  * @author rsoika

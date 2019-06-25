@@ -86,32 +86,25 @@
 					<div class="col-6">
 						<div class="monitor-portlet">
 
-							<h1>Scheduler Status:</h1>
+							<h1>Sync Status:</h1>
 
 							<table style="width: 100%;">
 
 								<tr>
 									<td>Timer:</td>
 									<td><ui:fragment
-											rendered="#{!empty clusterDataController.nextTimeout}">
+											rendered="#{clusterDataController.isRunning()}">
 							RUNNING <span class="typcn typcn-media-record"
 												style="font-size: 1.3em; color: #5c9e5c;"></span>
 										</ui:fragment> 
 										<ui:fragment
-											rendered="#{empty clusterDataController.nextTimeout}">
+											rendered="#{!clusterDataController.isRunning()}">
 							STOPPED <span class="typcn typcn-media-record"
 												style="font-size: 1.3em; color: #e84848;"></span>
 										</ui:fragment></td>
 								</tr>
-								<tr>
-									<td>Scheduler:</td>
-									<td>#{clusterDataController.scheduler}</td>
-								</tr>
+								
 
-								<tr>
-									<td style="width: 25%;">Next Timeout:</td>
-									<td>#{clusterDataController.nextTimeout}</td>
-								</tr>
 							</table>
 
 
@@ -119,13 +112,13 @@
 							<p style="margin-top: 10px;">
 								<h:commandButton value="start"
 									action="monitor?faces-redirect=true"
-									rendered="#{empty clusterDataController.nextTimeout}"
-									actionListener="#{clusterDataController.startSync()}"></h:commandButton>
+									rendered="#{!clusterDataController.isRunning()}"
+									actionListener="#{clusterDataController.start()}"></h:commandButton>
 
 								<h:commandButton value="stop"
 									action="monitor?faces-redirect=true"
-									rendered="#{!empty clusterDataController.nextTimeout}"
-									actionListener="#{clusterDataController.stopSync()}"></h:commandButton>
+									rendered="#{!clusterDataController.isRunning()}"
+									actionListener="#{clusterDataController.cancel()}"></h:commandButton>
 							</p>
 						</div>
 

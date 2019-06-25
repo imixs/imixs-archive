@@ -22,15 +22,12 @@
  *******************************************************************************/
 package org.imixs.archive.service.resync;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
-import javax.ejb.ScheduleExpression;
 import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
@@ -50,19 +47,12 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
  * The SyncService synchronizes the data of a Imixs-Worklfow instance with the
- * cassandra cluster. The service class runns a TimerService based on the given
- * scheduler configuration.
+ * cassandra cluster. The synchonrization can be started by the method sync().
+ * The SyncService is implemented as a SingleActionTimer so the sync can run in
+ * backgroud.
  * <p>
  * The service automatially starts during deployment. When all the data is
  * synchronized (syncpoint == last snapshot), the service terminates.
- * <p>
- * The scheduler configuration is based on the chron format. E.g:
- * 
- * <code>
- *    hour=*;minute=30;
- * </code>
- * 
- *
  * <p>
  * To access the data form the Imixs-Workflow instance uses RemoteAPIService.
  * 
@@ -83,9 +73,6 @@ public class SyncService {
 	public final static String MESSAGE_TOPIC = "sync";
 	private final static int MAX_COUNT = 100;
 
-	@Inject
-	@ConfigProperty(name = ClusterService.ENV_ARCHIVE_SCHEDULER_DEFINITION, defaultValue = "")
-	String schedulerDefinition;
 
 	@Resource
 	javax.ejb.TimerService timerService;
@@ -102,91 +89,20 @@ public class SyncService {
 	@Inject
 	RemoteAPIService remoteAPIService;
 
+	@Inject
+	SyncStatusHandler syncStatusHandler;
+
 	private static Logger logger = Logger.getLogger(SyncService.class.getName());
 
 	/**
-	 * This method initializes the scheduler.
+	 * This method initializes a new timer for the sync ....
 	 * <p>
 	 * The method also verifies the existence of the archive keyspace by loading the
 	 * archive session object.
 	 * 
 	 * @throws ArchiveException
 	 */
-	public boolean startScheduler() throws ArchiveException {
-		try {
-			logger.info("...starting the sync scheduler...");
-			if (clusterService.getSession() != null) {
-				// start archive schedulers....
-				start();
-				return true;
-			} else {
-				logger.warning("...Failed to initalize imixs-archive keyspace!");
-				return false;
-			}
-		} catch (Exception e) {
-			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
-			return false;
-
-		}
-	}
-
-	/**
-	 * This method stops the scheduler.
-	 *
-	 * 
-	 * @throws ArchiveException
-	 */
-	public boolean stopScheduler() throws ArchiveException {
-		stop(findTimer());
-		return true;
-	}
-
-	/**
-	 * Updates the timer details of a running timer service. The method updates the
-	 * properties netxtTimeout and store them into the timer configuration.
-	 * 
-	 * 
-	 * @param configuration
-	 *            - the current scheduler configuration to be updated.
-	 */
-	public Date getNextTimeout() {
-		Timer timer;
-		try {
-			timer = this.findTimer();
-			if (timer != null) {
-				// load current timer details
-				return timer.getNextTimeout();
-			}
-		} catch (Exception e) {
-			logger.warning("unable to updateTimerDetails: " + e.getMessage());
-		}
-		return null;
-	}
-
-	/**
-	 * Starts a new Timer for the scheduler defined by the Configuration.
-	 * <p>
-	 * The Timer can be started based on a Calendar setting stored in the property
-	 * _scheduler_definition.
-	 * <p>
-	 * The item 'keyspace' of the configuration entity is the id of the timer to be
-	 * controlled.
-	 * <p>
-	 * The method throws an exception if the configuration entity contains invalid
-	 * attributes or values.
-	 * <p>
-	 * After the timer was started the configuration is updated with the latest
-	 * statusmessage. The item _schedueler_enabled will be set to 'true'.
-	 * <p>
-	 * The method returns the updated configuration. The configuration will not be
-	 * saved!
-	 * 
-	 * @param configuration
-	 *            - scheduler configuration
-	 * @return updated configuration
-	 * @throws ArchiveException
-	 */
-	private void start() throws ArchiveException {
+	public void start() throws ArchiveException {
 		Timer timer = null;
 
 		// try to cancel an existing timer for this workflowinstance
@@ -196,26 +112,48 @@ public class SyncService {
 				timer.cancel();
 				timer = null;
 			} catch (Exception e) {
-				messageService.logMessage(MESSAGE_TOPIC,"Failed to stop existing timer - " + e.getMessage());
+				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
 				throw new ArchiveException(SyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
 						" failed to cancle existing timer!");
 			}
 		}
 
-		try {
+		if (clusterService.getSession() != null) {
 			logger.finest("...starting scheduler sync-service ...");
-			// New timer will be started on calendar confiugration
-			timer = createTimerOnCalendar();
+			TimerConfig timerConfig = new TimerConfig();
+
+			timerConfig.setInfo(TIMER_ID_SYNCSERVICE);
+			// New timer will start imediatly
+			timer = timerService.createSingleActionTimer(0, timerConfig);
 			// start and set statusmessage
 			if (timer != null) {
-				messageService.logMessage(MESSAGE_TOPIC,"Timer started.");
+				messageService.logMessage(MESSAGE_TOPIC, "Timer started.");
 			}
-
-		} catch (ParseException e) {
-			throw new ArchiveException(SyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
-					" failed to start timer: " + e.getMessage());
+		} else {
+			logger.warning("...Failed to initalize imixs-archive keyspace!");
 		}
 
+	}
+
+	/**
+	 * Stops the current sync
+	 * 
+	 * @throws ArchiveException
+	 */
+	public void cancel() throws ArchiveException {
+		syncStatusHandler.setStatus(SyncStatusHandler.STAUS_CANCELED);
+		messageService.logMessage(MESSAGE_TOPIC, "... sync canceled!");
+
+		stop(findTimer());
+	}
+
+	/**
+	 * returns true if the service is running
+	 * 
+	 * @return
+	 */
+	public boolean isRunning() {
+		return (findTimer() != null);
 	}
 
 	/**
@@ -228,10 +166,10 @@ public class SyncService {
 			try {
 				timer.cancel();
 			} catch (Exception e) {
-				messageService.logMessage(MESSAGE_TOPIC,"Failed to stop timer - " + e.getMessage());
+				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop timer - " + e.getMessage());
 			}
 			// update status message
-			messageService.logMessage(MESSAGE_TOPIC,"Timer stopped. ");
+			messageService.logMessage(MESSAGE_TOPIC, "Timer stopped. ");
 		}
 	}
 
@@ -251,84 +189,6 @@ public class SyncService {
 			}
 		}
 		return null;
-	}
-
-	/**
-	 * Create a calendar-based timer based on a input schedule expression. The
-	 * expression will be parsed by this method.
-	 * 
-	 * Example: <code>
-	 *   second=0
-	 *   minute=0
-	 *   hour=*
-	 *   dayOfWeek=
-	 *   dayOfMonth=
-	 *   month=
-	 *   year=*
-	 * </code>
-	 * 
-	 * @param sConfiguation
-	 * @return
-	 * @throws ParseException
-	 * @throws ArchiveException
-	 */
-	Timer createTimerOnCalendar() throws ParseException, ArchiveException {
-
-		TimerConfig timerConfig = new TimerConfig();
-
-		timerConfig.setInfo(TIMER_ID_SYNCSERVICE);
-		ScheduleExpression scheduerExpression = new ScheduleExpression();
-
-		String calendarConfiguation[] = schedulerDefinition.split("(\\r?\\n)|(;)|(,)");
-
-		// try to parse the configuration list....
-		for (String confgEntry : calendarConfiguation) {
-
-			if (confgEntry.startsWith("second=")) {
-				scheduerExpression.second(confgEntry.substring(confgEntry.indexOf('=') + 1));
-			}
-			if (confgEntry.startsWith("minute=")) {
-				scheduerExpression.minute(confgEntry.substring(confgEntry.indexOf('=') + 1));
-			}
-			if (confgEntry.startsWith("hour=")) {
-				scheduerExpression.hour(confgEntry.substring(confgEntry.indexOf('=') + 1));
-			}
-			if (confgEntry.startsWith("dayOfWeek=")) {
-				scheduerExpression.dayOfWeek(confgEntry.substring(confgEntry.indexOf('=') + 1));
-			}
-			if (confgEntry.startsWith("dayOfMonth=")) {
-				scheduerExpression.dayOfMonth(confgEntry.substring(confgEntry.indexOf('=') + 1));
-			}
-			if (confgEntry.startsWith("month=")) {
-				scheduerExpression.month(confgEntry.substring(confgEntry.indexOf('=') + 1));
-			}
-			if (confgEntry.startsWith("year=")) {
-				scheduerExpression.year(confgEntry.substring(confgEntry.indexOf('=') + 1));
-			}
-			if (confgEntry.startsWith("timezone=")) {
-				scheduerExpression.timezone(confgEntry.substring(confgEntry.indexOf('=') + 1));
-			}
-
-			/* Start date */
-			if (confgEntry.startsWith("start=")) {
-				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
-				Date convertedDate = dateFormat.parse(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				scheduerExpression.start(convertedDate);
-			}
-
-			/* End date */
-			if (confgEntry.startsWith("end=")) {
-				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
-				Date convertedDate = dateFormat.parse(confgEntry.substring(confgEntry.indexOf('=') + 1));
-				scheduerExpression.end(convertedDate);
-			}
-
-		}
-
-		Timer timer = timerService.createCalendarTimer(scheduerExpression, timerConfig);
-
-		return timer;
-
 	}
 
 	/**
@@ -375,7 +235,7 @@ public class SyncService {
 				syncPoint = now.getTime();
 			}
 
-			while (syncread < MAX_COUNT) {
+			while (true) {
 
 				XMLDataCollection xmlDataCollection = remoteAPIService.readSyncData(syncPoint);
 
@@ -416,6 +276,25 @@ public class SyncService {
 						metaData.setItemValue(ITEM_SYNCSIZE, totalSize);
 						lastUniqueID = "0";
 						dataService.saveMetadata(metaData);
+						
+						if (syncStatusHandler.getStatus()==SyncStatusHandler.STAUS_CANCELED) {
+							break;
+						}
+					}
+
+					// print log message if data was synced
+					if (syncread > MAX_COUNT) {
+						messageService.logMessage(MESSAGE_TOPIC,
+								"... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
+										+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint "
+										+ new Date(syncPoint));
+						// reset count
+						syncread = 0;
+					}
+					
+
+					if (syncStatusHandler.getStatus()==SyncStatusHandler.STAUS_CANCELED) {
+						break;
 					}
 
 				} else {
@@ -425,19 +304,14 @@ public class SyncService {
 				}
 			}
 
-			// print log message if data was synced
-			if (syncread > 0) {
-				messageService.logMessage(MESSAGE_TOPIC,"... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
-						+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint " + new Date(syncPoint));
-			} else {
-				messageService.logMessage(MESSAGE_TOPIC,
-						"...no more data found at syncpoint " + new Date(syncPoint) + " -> finishing synchroization.");
-				stop(timer);
-			}
+			messageService.logMessage(MESSAGE_TOPIC,
+					"...no more data found at syncpoint " + new Date(syncPoint) + " -> finishing synchroization.");
+			stop(timer);
+
 		} catch (ArchiveException | RuntimeException e) {
 			// print the stack trace
 			e.printStackTrace();
-			messageService.logMessage(MESSAGE_TOPIC,"sync failed "
+			messageService.logMessage(MESSAGE_TOPIC, "sync failed "
 					+ ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
 					+ " : " + e.getMessage());
 

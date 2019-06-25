@@ -28,10 +28,11 @@
 package org.imixs.archive.service;
 
 import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
+import javax.inject.Inject;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
+import org.imixs.archive.service.export.ExportService;
 import org.imixs.archive.service.resync.SyncService;
 
 /**
@@ -44,12 +45,14 @@ import org.imixs.archive.service.resync.SyncService;
 @ApplicationPath("api")
 public class ImixsArchiveApp extends Application {
 	
-	@EJB
-	SyncService schedulerService;
+	@Inject
+	SyncService syncService;
 
-	@EJB
+	@Inject
 	MessageService messageService;
 
+	@Inject
+	ExportService exportService;
 	
 	public ImixsArchiveApp() {
 		super();
@@ -60,9 +63,10 @@ public class ImixsArchiveApp extends Application {
 	 */
 	@PostConstruct
 	public void initialize() {
-		if (schedulerService != null) {
+		if (syncService != null) {
 			try {
-				schedulerService.startScheduler();
+				syncService.start();
+				exportService.startScheduler();
 			} catch (ArchiveException e) {
 				messageService.logMessage(SyncService.MESSAGE_TOPIC,"Failed to start scheduler - " + e.getMessage());
 				e.printStackTrace();
