@@ -120,7 +120,7 @@ public class InspectController implements Serializable {
 	 */
 	public void loadSnapshotIDs() {
 		try {
-			logger.info("......load snsaphosts for " + uniqueid + "...");
+			logger.finest("......load snapshots for " + uniqueid + "...");
 
 			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid);
 

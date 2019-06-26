@@ -99,7 +99,7 @@ public class ArchiveRestService {
 		Session session = null;
 		Cluster cluster = null;
 		try {
-			logger.info("...read snapshot...");
+			logger.finest("...read snapshot...");
 			// cluster = clusterService.getCluster();
 			// session = clusterService.getArchiveSession(cluster);
 
@@ -134,7 +134,7 @@ public class ArchiveRestService {
 		Session session = null;
 		Cluster cluster = null;
 		try {
-			logger.info("...read snapshot...");
+			logger.finest("...read snapshot...");
 			// cluster = clusterService.getCluster();
 			// session = clusterService.getArchiveSession(cluster);
 			ItemCollection metadata = dataService.loadMetadata();
@@ -173,7 +173,7 @@ public class ArchiveRestService {
 		// load the snapshot
 		byte[] fileContent = null;
 		try {
-			logger.info("...read snapshot...");
+			logger.finest("...read snapshot...");
 			// load snapshto without the file data
 			fileContent = dataService.loadFileContent(md5);
 
@@ -227,7 +227,7 @@ public class ArchiveRestService {
 		ItemCollection snapshot = null;
 		FileData fileData = null;
 		try {
-			logger.info("...read snapshot...");
+			logger.finest("...read snapshot...");
 			// cluster = clusterService.getCluster();
 			// session = clusterService.getArchiveSession(cluster);
 			// load snapshto without the file data
@@ -309,9 +309,7 @@ public class ArchiveRestService {
 		ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
 
 		try {
-			logger.info("...write snapshot...");
-			// cluster = clusterService.getCluster();
-			// session = clusterService.getArchiveSession(cluster);
+			logger.finest("...write snapshot...");
 			dataService.saveSnapshot(snapshot);
 			snapshot.removeItem("$error_code");
 			snapshot.removeItem("$error_message");

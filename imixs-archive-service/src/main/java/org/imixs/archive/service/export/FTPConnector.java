@@ -117,7 +117,7 @@ public class FTPConnector {
 
 		FTPClient ftpClient = null;
 		try {
-			logger.info("......put " + fileName + " to FTP server: " + ftpServer + "...");
+			logger.finest("......put " + fileName + " to FTP server: " + ftpServer + "...");
 			ftpClient = new FTPSClient("TLS", false);
 			ftpClient.setControlEncoding("UTF-8");
 			ftpClient.connect(ftpServer, ftpPort);

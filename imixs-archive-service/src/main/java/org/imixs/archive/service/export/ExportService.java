@@ -104,7 +104,7 @@ public class ExportService {
 
 	@Inject
 	MessageService messageService;
-	
+
 	@Inject
 	FTPConnector ftpConnector;
 
@@ -429,13 +429,25 @@ public class ExportService {
 							}
 
 						}
+
+						
+					}
+					
+					// update meta data?
+					if (localCount >= 100) {
+
+						messageService.logMessage(MESSAGE_TOPIC, "...... [" + localDateSyncPoint + "] " + localCount
+								+ " snapshots exported in " + (System.currentTimeMillis() - lProfiler) + "ms, last export="+new Date(latestExportPoint));
+						// reset local count
+						localCount = 0;
+						// update sync data...
+						metaData.setItemValue(ITEM_EXPORTPOINT, latestExportPoint);
+						metaData.setItemValue(ITEM_EXPORTCOUNT, totalCount + exportCount);
+						metaData.setItemValue(ITEM_EXPORTSIZE, totalSize + exportSize);
+						metaData.setItemValue(ITEM_EXPORTERRORS, exportErrors);
+						dataService.saveMetadata(metaData);
 					}
 
-				}
-
-				if (localCount > 0) {
-					messageService.logMessage(MESSAGE_TOPIC, "...... [" + localDateSyncPoint + "] " + localCount
-							+ " snapshots exported in " + (System.currentTimeMillis() - lProfiler) + "ms");
 				}
 
 				// update sync data...
