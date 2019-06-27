@@ -14,6 +14,8 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
+import com.datastax.driver.core.policies.DefaultRetryPolicy;
+import com.datastax.driver.core.policies.RoundRobinPolicy;
 
 /**
  * The ClusterService provides methods to persist the content of a Imixs
@@ -159,6 +161,9 @@ public class ClusterService {
 		for (String host: hosts) {
 			builder.addContactPoint(host);
 		}
+		builder.withLoadBalancingPolicy(new RoundRobinPolicy());
+		builder.withRetryPolicy(DefaultRetryPolicy.INSTANCE);
+		
 		cluster=builder.build();
 		//cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
