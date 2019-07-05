@@ -117,6 +117,8 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 public class SnapshotService {
 
+	public static final String REGEX_URL_PATTERN = "^(http|https|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
+
 	public static final String SNAPSHOTID = "$snapshotid";
 	public static final String TYPE_PRAFIX = "snapshot-";
 	public static final String NOSNAPSHOT = "$nosnapshot"; // ignore snapshots
@@ -482,11 +484,16 @@ public class SnapshotService {
 					FileData oldFileData = source.getFileData(fileName);
 					if (oldFileData != null) {
 						logger.fine("copy file content '" + fileName + "' from: " + source.getUniqueID());
-
 						target.addFileData(new FileData(fileName, oldFileData.getContent(),
 								oldFileData.getContentType(), oldFileData.getAttributes()));
 					} else {
-						logger.warning("Missing file content!");
+						// if the file data is a link/url we did not find content
+						if (fileName.matches(REGEX_URL_PATTERN)) {
+							// In case of an URL we do not need to copy the file content
+							logger.fine("URL - no file content for "+fileName);
+						} else {
+							logger.warning("Missing file content!");
+						}
 					}
 				} else {
 					logger.warning("Missing file content!");
