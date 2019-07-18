@@ -490,7 +490,7 @@ public class SnapshotService {
 						// if the file data is a link/url we did not find content
 						if (fileName.matches(REGEX_URL_PATTERN)) {
 							// In case of an URL we do not need to copy the file content
-							logger.fine("URL - no file content for "+fileName);
+							logger.fine("URL - no file content for " + fileName);
 						} else {
 							logger.warning("Missing file content!");
 						}
@@ -593,16 +593,24 @@ public class SnapshotService {
 				customAtributes.replaceItemValue("size", fileData.getContent().length);
 				customAtributes.replaceItemValue("txtname", fileData.getName());
 
+				// take the item §lastEventDate to mark the timestamp of creation or modified.  
+				Date eventDate = workitem.getItemValueDate(WorkflowKernel.LASTEVENTDATE);
+				if (eventDate == null) {
+					// fall back if no $lastEventDate exists (for non-workflow documents)
+					eventDate = new Date();
+				}
 				// verify if newChecksum has changed...
 				if (!oldChecksum.isEmpty() && !oldChecksum.equals(newChecksum)) {
-					customAtributes.replaceItemValue("$modified", new Date());
+					// add modification data
+					customAtributes.replaceItemValue("$modified", eventDate);
 					customAtributes.replaceItemValue("$editor", username);
 				} else {
-					customAtributes.replaceItemValue("$created", new Date());
+
+					customAtributes.replaceItemValue("$created", eventDate);
 					customAtributes.replaceItemValue("$creator", username);
 					customAtributes.replaceItemValue("namcreator", username);
 				}
-				// update custom atributes....
+				// update custom attributes....
 				fileData.setAttributes(customAtributes.getAllItems());
 				workitem.addFileData(fileData);
 
