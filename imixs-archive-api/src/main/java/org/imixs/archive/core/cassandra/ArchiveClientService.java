@@ -28,7 +28,7 @@ import org.imixs.workflow.engine.jpa.EventLog;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
- * The ArchiveHandler pushes a Snapshot int the cassandra archive. The service
+ * The ArchiveHandler pushes a Snapshot into the cassandra archive. The service
  * uses an asyncronious mechansim based on the Imixs EventLog.
  * <p>
  * The service connects to the Imixs-Archive Service by a Rest Client to push
@@ -76,7 +76,7 @@ public class ArchiveClientService {
 	 */
 	@Asynchronous
 	@TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
-	public void pushSnapshot(EventLog eventLogEntry) { 
+	public void pushSnapshot(EventLog eventLogEntry) {
 
 		if (eventLogEntry == null) {
 			return;
@@ -95,10 +95,10 @@ public class ArchiveClientService {
 				// remove the event log entry...
 				eventLogService.removeEvent(eventLogEntry);
 
-				// TODO - we need now to delete the snapshot!
+				// TODO - we should now to delete the snapshot! This will decrese the storrage
+				// on the database. But is this bullet proved....?
 
-				logger.info(
-						"...pushed " + eventLogEntry.getRef() + " in " + (System.currentTimeMillis() - l) + "ms");
+				logger.info("...pushed " + eventLogEntry.getRef() + " in " + (System.currentTimeMillis() - l) + "ms");
 			} catch (RestAPIException e) {
 				logger.severe("...failed to push snapshot: " + snapshot.getUniqueID() + " : " + e.getMessage());
 			}
@@ -108,8 +108,6 @@ public class ArchiveClientService {
 		}
 	}
 
-	
-	
 	/**
 	 * This method loads the file content for a given md5 checksum directly from the
 	 * cassandra archive using the resource
@@ -121,7 +119,7 @@ public class ArchiveClientService {
 	 * 
 	 * @param fileData
 	 *            - fileData object providing the MD5 checksum
-	 * @throws RestAPIException 
+	 * @throws RestAPIException
 	 */
 	public byte[] loadFileFromArchive(FileData fileData) throws RestAPIException {
 
@@ -138,31 +136,32 @@ public class ArchiveClientService {
 			if (!md5.isEmpty()) {
 
 				try {
-				DocumentClient documentClient = initWorkflowClient();
+					DocumentClient documentClient = initWorkflowClient();
 
-				Client rsClient = documentClient.newClient();
+					Client rsClient = documentClient.newClient();
 
-				String url = archiveServiceEndpoint + "/archive/md5/" + md5;
+					String url = archiveServiceEndpoint + "/archive/md5/" + md5;
 
-				Response reponse = rsClient.target(url).request(MediaType.APPLICATION_OCTET_STREAM).get();
+					Response reponse = rsClient.target(url).request(MediaType.APPLICATION_OCTET_STREAM).get();
 
-				// InputStream is = reponse.readEntity(InputStream.class);
-				byte[] fileContent = reponse.readEntity(byte[].class);
+					// InputStream is = reponse.readEntity(InputStream.class);
+					byte[] fileContent = reponse.readEntity(byte[].class);
 
-				if (fileContent != null && fileContent.length > 0) {
-					logger.info("md5 daten gefunden");
-					return fileContent;
-				}
-				
+					if (fileContent != null && fileContent.length > 0) {
+						logger.info("md5 daten gefunden");
+						return fileContent;
+					}
+
 				} catch (ProcessingException e) {
-					String message=null;
-					if (e.getCause()!=null) {
-						message=e.getCause().getMessage();
+					String message = null;
+					if (e.getCause() != null) {
+						message = e.getCause().getMessage();
 					} else {
-						message=e.getMessage();
+						message = e.getMessage();
 					}
 					throw new RestAPIException(DocumentClient.class.getSimpleName(),
-							RestAPIException.RESPONSE_PROCESSING_EXCEPTION, "error load file by MD5 checksum -> " +message, e);
+							RestAPIException.RESPONSE_PROCESSING_EXCEPTION,
+							"error load file by MD5 checksum -> " + message, e);
 				}
 			} else {
 				return null;
@@ -173,8 +172,7 @@ public class ArchiveClientService {
 		return null;
 
 	}
-	
-	
+
 	/**
 	 * Helper method to initalize a Melman Workflow Client based on the current
 	 * archive configuration.
