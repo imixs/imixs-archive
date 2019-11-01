@@ -64,7 +64,7 @@ import com.datastax.driver.core.Session;
 /**
  * The ArchiveRestService provides a Rest API to be used by external clients.
  * <p>
- * The API proivdes methods to read and write snapshot data inot the cassandra
+ * The API provides methods to read and write snapshot data into the cassandra
  * cluster.
  * 
  * @author rsoika

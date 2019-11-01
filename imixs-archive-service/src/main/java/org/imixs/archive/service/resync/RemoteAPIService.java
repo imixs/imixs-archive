@@ -42,7 +42,7 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
  * The RemoteService is used to access the remote API from the worklfow
- * instance. All remote calles are based on the Imixs-Rest API.
+ * instance. All remote clients are based on the Imixs-Rest API.
  * <p>
  * To access the API the services uses the Imixs-Melman DocumentClient.
  * 

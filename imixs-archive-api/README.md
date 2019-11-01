@@ -1,21 +1,21 @@
 # The Imixs-Snapshot-Architecture
 
 The sub-module Imixs-Archive-API provides the core functionality and interfaces to archive the content of a running process instance during its processing life cycle into a so called _snapshot-workitem_.
-A _snapshot workitem_ is an immutable copy of a workitem (origin-workitem) including all the business data and file content of attached files. A _snapshot workitem_ can be stored in the workflow data storge or in an external archive storage (e.g. Apache-Cassandra or Hadoop).
+A _snapshot workitem_ is an immutable copy of a workitem (origin-workitem) including all the business data and file content of attached files. A _snapshot workitem_ can be stored in the workflow data storage or in an external archive storage (e.g. Apache-Cassandra or Hadoop).
 
 <br /><br /><img src="src/uml/snapshot-service.png" />
 
 
 The snapshot process includes the following stages:
 
-1. A workitem is processed by the Imixs-Workflow engine based on a BPMN 2.0 model. 
+1. A workitem is processed by the Imixs-Workflow engine based on a BPMN 2.0 model within a local transaction. 
 2. After processing is completed, the process instance is persisted into the local workflow storage by the DocumentService.
 3. The DocumentService sends a notification event to the SnapshotService. 
 4. The SnapshotService creates a immutable copy of the process instance - called snapshot-workitem.
 5. The SnapshotService detaches the file content form the origin workitem. 
 6. The SnapshotService updates the DMS file location of the origin workitem. 
 7. The snapshot workitem is stored into the local workflow storage
-8. The origin process instance is returned to the application
+8. The origin process instance is returned to the application and the local transaction is closed.
 9. An external archive system polls new snapshot-workitems
 10. An external archive system stores the snapshot-workitems into a archive storage. 
 
@@ -102,62 +102,15 @@ Thus, in this example a system processing 1 million process instances per year c
 
 To deploy imixs-archive into Imixs-Office-Workflow the following maven configuration is needed:
 
- 1) Add the following artifact versions into the master pom.xml
-
-
-		<!-- Imixs-Archive -->
-		<org.imixs.archive.version>0.0.2-SNAPSHOT</org.imixs.archive.version>
-
- 2) Add the following dependencies into the section dependencyManagement of the master pom.xml:
-
-
 		<!-- Imixs-Archive -->
 		<dependency>
 			<groupId>org.imixs.workflow</groupId>
 			<artifactId>imixs-archive-api</artifactId>
-			<version>${org.imixs.archive.version}</version>
-			<scope>provided</scope>
+			<version>2.0.1</version>
+			<scope>compile</scope>
 		</dependency>
 
 		
-
- 3) Add the following dependencies into the pom.xml of the ear module (optional web module if no ear is used.
-
-		<!-- Imixs-Archive -->
-		<dependency>
-			<groupId>org.imixs.workflow</groupId>
-			<artifactId>imixs-archive-api</artifactId>
-			 <scope>compile</scope>
-		</dependency>
-		
-		
-These dependencies will add the necessary libraries into the /lib folder of the ear module (optional the web module).
-The imixs-archive-api should be added directly as a jar module together with the Imixs EJB module (engine, marty), so
-that these ejbs are accessable from the workflow engine:
-
-
-	...
-	<plugin>
-		<groupId>org.apache.maven.plugins</groupId>
-		<artifactId>maven-ear-plugin</artifactId>
-		<version>2.6</version>
-		<configuration>
-			.....
-			<modules>	
-				....
-				<JarModule>
-					<groupId>org.imixs.workflow</groupId>
-					<artifactId>imixs-archive-api</artifactId>
-					<bundleDir>/</bundleDir>
-				</JarModule>  
-				...
-			</modules>
-			...
-		</configuration>
-	</plugin>
-	...
-
-	
 # Testing
 
 The imixs-archive-api module includes jUnit tests. The jUnit test class _org.imixs.archive.api.TestSnaptshotService_ mocks the EJB _SnapshotService_ and simulates the processing of a workitem within the [Imixs WorkflowMockEnvironment](http://www.imixs.org/doc/testing.html#WorkflowMockEnvironment). The test BPMN model '_TestSnapshotService.bpmn_' is used to simulate a workflow. 
@@ -165,7 +118,7 @@ The imixs-archive-api module includes jUnit tests. The jUnit test class _org.imi
 
 # Migration
 
-The SnapshotService replaces the now deprecated BlobWorkitem functionality from the DMSPlugin. For a migration only the SnapshotService need to be added. The SnapshotService automatically migrates the deprecated blob-workitems. 
+The SnapshotService replaces the now deprecated BlobWorkitem functionality prior to version 5.x from the DMSPlugin. For a migration only the SnapshotService need to be added. The SnapshotService automatically migrates the deprecated blob-workitems. 
 
 No further migration step is necessary.
 
