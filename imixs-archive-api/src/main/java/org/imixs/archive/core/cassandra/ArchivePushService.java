@@ -50,7 +50,7 @@ public class ArchivePushService {
 
 	// archive service endpoint
 	@Inject
-	@ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
+	@ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
 	String archiveServiceEndpoint;
 
 	@Inject

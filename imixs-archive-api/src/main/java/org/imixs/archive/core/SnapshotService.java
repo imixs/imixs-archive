@@ -133,11 +133,11 @@ public class SnapshotService {
 	public static final String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
 
 	// rest service endpoint
-	public static final String ENV_ARCHIVE_SERVICE_ENDPOINT = "ARCHIVE_SERVICE_ENDPOINT";
+	public static final String ARCHIVE_SERVICE_ENDPOINT = "archive.service.endpoint";
 	public static final String ARCHIVE_SERVICE_INTERVAL = "archive.service.interval";
-	public static final String ENV_ARCHIVE_SERVICE_USER = "ARCHIVE_SERVICE_USER";
-	public static final String ENV_ARCHIVE_SERVICE_PASSWORD = "ARCHIVE_SERVICE_PASSWORD";
-	public static final String ENV_ARCHIVE_SERVICE_AUTHMETHOD = "ARCHIVE_SERVICE_AUTHMETHOD";
+	public static final String ARCHIVE_SERVICE_USER = "archive.service.user";
+	public static final String ARCHIVE_SERVICE_PASSWORD = "archive.service.password";
+	public static final String ARCHIVE_SERVICE_AUTHMETHOD = "archive.service.authmethod";
 
 	public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
 	public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
@@ -166,7 +166,7 @@ public class SnapshotService {
 	int iSnapshotHistory;
 
 	@Inject
-	@ConfigProperty(name = ENV_ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
+	@ConfigProperty(name = ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
 	String archiveServiceEndpoint;
 
 	private static Logger logger = Logger.getLogger(SnapshotService.class.getName());

@@ -42,19 +42,19 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 public class ArchiveClientService {
 
 	@Inject
-	@ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
+	@ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
 	String archiveServiceEndpoint;
 
 	@Inject
-	@ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_USER, defaultValue = "")
+	@ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_USER, defaultValue = "")
 	String archiveServiceUser;
 
 	@Inject
-	@ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_PASSWORD, defaultValue = "")
+	@ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_PASSWORD, defaultValue = "")
 	String archiveServicePassword;
 
 	@Inject
-	@ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_AUTHMETHOD, defaultValue = "")
+	@ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_AUTHMETHOD, defaultValue = "")
 	String archiveServiceAuthMethod;
 
 	@EJB
