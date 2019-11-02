@@ -25,12 +25,13 @@ import org.imixs.workflow.engine.EventLogService;
 import org.imixs.workflow.engine.jpa.EventLog;
 
 /**
- * The SnapshotPushService uses an EJB TimerService for periodic snapshot
+ * The ArchivePushService uses an EJB TimerService for periodic snapshot
  * synchronization. It allows not only single time execution, but also interval
  * timers.
  * <p>
  * The timer service checks all new Snapshot Event Log entries and pushes the
- * entries inot the Archive service via the Rest API.
+ * entries into the Archive service via the Rest API. The default timout for the
+ * timer service is 1 second but can be configured by teh system property 
  * 
  * @author rsoika
  *
@@ -41,8 +42,13 @@ import org.imixs.workflow.engine.jpa.EventLog;
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 @ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 public class ArchivePushService {
-	private static final long INTERVAL = 1 * 1000L; // 1 second
+	
+	// timeout interval in ms
+	@Inject
+	@ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_INTERVAL, defaultValue = "1000")
+	long archiveServiceInterval;
 
+	// archive service endpoint
 	@Inject
 	@ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
 	String archiveServiceEndpoint;
@@ -70,7 +76,7 @@ public class ArchivePushService {
 		if (archiveServiceEndpoint != null && !archiveServiceEndpoint.isEmpty()) {
 			TimerConfig config = new TimerConfig();
 			config.setPersistent(false);
-			timer = timerService.createIntervalTimer(INTERVAL, INTERVAL, config);
+			timer = timerService.createIntervalTimer(archiveServiceInterval, archiveServiceInterval, config);
 		}
 	}
 

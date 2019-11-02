@@ -134,6 +134,7 @@ public class SnapshotService {
 
 	// rest service endpoint
 	public static final String ENV_ARCHIVE_SERVICE_ENDPOINT = "ARCHIVE_SERVICE_ENDPOINT";
+	public static final String ARCHIVE_SERVICE_INTERVAL = "archive.service.interval";
 	public static final String ENV_ARCHIVE_SERVICE_USER = "ARCHIVE_SERVICE_USER";
 	public static final String ENV_ARCHIVE_SERVICE_PASSWORD = "ARCHIVE_SERVICE_PASSWORD";
 	public static final String ENV_ARCHIVE_SERVICE_AUTHMETHOD = "ARCHIVE_SERVICE_AUTHMETHOD";
