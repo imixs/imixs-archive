@@ -148,27 +148,40 @@ public class ClusterService {
 	 * @throws ArchiveException
 	 */
 	protected Cluster initCluster() throws ArchiveException {
-
+		// Boolean used to check if at least one host could be resolved
+		boolean found = false;
+		
 		if (contactPoint == null || contactPoint.isEmpty()) {
 			throw new ArchiveException(ArchiveException.MISSING_CONTACTPOINT,
 					"missing cluster contact points - verify configuration!");
 		}
 
-		logger.info("......cluster conecting: "+contactPoint);
-		
+		logger.info("...cluster conecting: " + contactPoint);
 		Builder builder = Cluster.builder();
-		String[] hosts = contactPoint.split(","); 
-		for (String host: hosts) {
-			builder.addContactPoint(host);
+		String[] hosts = contactPoint.split(",");
+		for (String host : hosts) {
+			try {
+				builder.addContactPoint(host);
+				// One host could be resolved
+				found = true;
+			} catch (IllegalArgumentException e) {
+				// This host could not be resolved so we log a message and keep going
+				logger.warning("...the host '" + host + "' is unknown so it will be ignored");
+			}
 		}
+		if (!found) {
+		    // No host could be resolved so we throw an exception
+		    throw new IllegalStateException("All provided hosts are unknown - check cluster status and configuration!");
+		}
+		
 		builder.withLoadBalancingPolicy(new RoundRobinPolicy());
 		builder.withRetryPolicy(DefaultRetryPolicy.INSTANCE);
-		
-		cluster=builder.build();
-		//cluster = Cluster.builder().addContactPoint(contactPoint).build();
+
+		cluster = builder.build();
+		// cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
 
-		logger.info("......cluster conection status = OK");
+		logger.info("...cluster conection status = OK");
 
 		return cluster;
 

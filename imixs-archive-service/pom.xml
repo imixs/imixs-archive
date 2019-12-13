@@ -6,7 +6,7 @@
 		<version>2.1.0-SNAPSHOT</version>
 	</parent>
 	<artifactId>imixs-archive-service</artifactId>
-	<name>Imixs-Archive Microservice</name>
+	<name>Imixs-Archive Service</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
