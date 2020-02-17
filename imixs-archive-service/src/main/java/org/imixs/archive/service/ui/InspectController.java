@@ -121,8 +121,8 @@ public class InspectController implements Serializable {
 	public void loadSnapshotIDs() {
 		try {
 			logger.finest("......load snapshots for " + uniqueid + "...");
-
-			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid);
+ 
+			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid,20);
 
 			Collections.sort(snapshotIDs, Collections.reverseOrder());
 			
@@ -151,7 +151,7 @@ public class InspectController implements Serializable {
 			remoteAPIService.restoreSnapshot(snapshot);
 			
 			// refresh snapshot list....
-			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid);
+			snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid,20);
 			Collections.sort(snapshotIDs, Collections.reverseOrder());
 			// test the current snapshot from the live system!
 			setCurrentSnapshotID(remoteAPIService.readSnapshotIDByUniqueID(uniqueid));
