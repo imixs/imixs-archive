@@ -334,8 +334,8 @@ public class RestoreService {
 	 */
 	String findLatestSnapshotID(String snapshotID, long restoreFrom, long restoreTo) {
 		String latestSnapshot = null;
-		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(dataService.getUniqueID(snapshotID));
-
+		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(dataService.getUniqueID(snapshotID),100);
+		logger.warning("loading only maximum of 100 snapshots! Issue #77");
 		// --- special debug logging....
 		for (String _tmpSnapshotID : _tmpSnapshots) {
 			logger.finest(".......           :" + _tmpSnapshotID);
