@@ -436,26 +436,30 @@ public class DataService {
 	}
 
 	/**
-	 * This method loads all exsting snapshotIDs for a given unqiueID.
+	 * This method loads all existing snapshotIDs for a given unqiueID.
 	 * 
 	 * @param uniqueID
 	 * @return list of snapshots
 	 */
-	public List<String> loadSnapshotsByUnqiueID(String uniqueID) {
+	public List<String> loadSnapshotsByUnqiueID(String uniqueID, int maxCount) {
 		List<String> result = new ArrayList<String>();
 		String sql = STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
 		sql = sql.replace("'?'", "'" + uniqueID + "'");
 		logger.finest("......search snapshot id: " + sql);
 		ResultSet rs = clusterService.getSession().execute(sql);
 
-		// iterate over result
+		// iterate over result - break after 10 entries....
 
 		Iterator<Row> resultIter = rs.iterator();
-
+		int _count=0;
 		while (resultIter.hasNext()) {
 			Row row = resultIter.next();
 			String snapshotID = row.getString(1);
 			result.add(snapshotID);
+			_count++;
+			if (_count>maxCount) {
+			    break;
+			}
 		}
 
 		return result;
