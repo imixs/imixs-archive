@@ -507,8 +507,8 @@ public class ExportService {
 
 		long snapshotTime = dataService.getSnapshotTime(snapshotID);
 
-		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(dataService.getUniqueID(snapshotID));
-
+		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(dataService.getUniqueID(snapshotID),100);
+		logger.warning("loading only maximum of 100 snapshots! Issue #76");
 		// --- special debug logging....
 		for (String _tmpSnapshotID : _tmpSnapshots) {
 			logger.finest(".......           :" + _tmpSnapshotID);
