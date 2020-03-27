@@ -199,7 +199,7 @@ public class SnapshotService {
 		}
 
 		if (documentEvent.getDocument().getItemValueBoolean(SKIPSNAPSHOT)) {
-			// skip snaphsot creation and clear flag imediatly.
+			// skip snaphsot creation and clear flag immediately.
 			documentEvent.getDocument().removeItem(SKIPSNAPSHOT);
 			return;
 		}
@@ -414,17 +414,6 @@ public class SnapshotService {
 		if (snapshotID == null || snapshotID.isEmpty()) {
 			throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "invalid " + SNAPSHOTID);
 		}
-		// get snapshot-history
-		// int iSnapshotHistory = 1;
-		// try {
-		// iSnapshotHistory = Integer
-		// .parseInt(propertyService.getProperties().getProperty(PROPERTY_SNAPSHOT_HISTORY,
-		// "1"));
-		// } catch (NumberFormatException nfe) {
-		// throw new SnapshotException(DocumentService.INVALID_PARAMETER,
-		// "imixs.properties '" + PROPERTY_SNAPSHOT_HISTORY + "' must be a integer
-		// value.");
-		// }
 
 		logger.fine(PROPERTY_SNAPSHOT_HISTORY + " = " + iSnapshotHistory);
 
@@ -445,10 +434,17 @@ public class SnapshotService {
 			ItemCollection oldSnapshot = result.get(0);
 			logger.fine("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
 			try {
-				documentService.remove(oldSnapshot);
-			} catch (AccessDeniedException e) {
-				logger.warning("remove deprecated snapshot '" + snapshotID + "' failed: " + e.getMessage());
-			}
+				
+				// test if exists in current transaction
+				// see issue #78
+				if (documentService.load(oldSnapshot.getUniqueID())!=null) {
+					documentService.remove(oldSnapshot);	
+				} else {
+					logger.fine("......snapshot '" + oldSnapshot.getUniqueID() + "' can't be deleted in this transaction context.");
+				}
+			} catch (AccessDeniedException  e) {
+				logger.warning("remove deprecated snapshot '" + oldSnapshot.getUniqueID() + "' failed, snapshot context='" + snapshotID + "' - failure: " + e.getMessage());
+            }
 			result.remove(0);
 		}
 	}
