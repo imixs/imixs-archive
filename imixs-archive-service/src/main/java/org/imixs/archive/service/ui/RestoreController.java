@@ -102,8 +102,8 @@ public class RestoreController implements Serializable {
 
 	public String getRestoreTo() {
 		if (restoreDateTo == 0) {
-			// default current syncpoint
-			restoreDateTo = getSyncPoint();
+			// default current time
+			restoreDateTo = new Date().getTime();
 
 			// NOTE:
 			// Because the current syncPoint has milisecont precission, but we format the
