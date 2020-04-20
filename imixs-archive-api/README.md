@@ -35,32 +35,36 @@ The _snapshot.history_ defines how many snapshots will be stored into the local 
 When the history is set to '0', no snapshot-workitems will be removed by the service. This setting is used for external archive systems.  
 
 
-## DMS 
+## Meta Data
 
-The Imixs-Snapshot-Architecture includes a feature to store metadata about file attachments (documents) in an item named '_dms_'. 
 Each document attached to an Imixs Workitem is automatically stored in the latest snapshot-workitem and removed from the origin workitem.  
-This reduces the data size and significantly increases the performance when accessing business data. The '_dms_' attribute holds a set of attributes for each attachment:
+The Imixs-Snapshot-Architecture updates the metadata for each file in the $file item: 
+
 
  * $created - creation date
  * $creator - userId who added the document
  * md5checksum - MD5 checksum
  * txtcomment - optional comment field
- * content - optional textual representation (see the [Imixs-Adapter-Documents Project](https://github.com/imixs/imixs-adapters/tree/master/imixs-adapters-documents))
- 
+  
 The MD5 checksum allows the verification of the data consistency. In addition an application can add optional attributes as well. 
  
-The _SnapshotRestService_ guarantees the transparent access to the archived documents.
+The file data is removed from the processed workitem and only stored in the snapshot. This behavior reduces the data size and significantly increases the performance when accessing business data. 
+ 
 
-	http://localhost:8080/office-workflow/rest-service/snapshot/[$UNIQUEID]/file/[FILENAME]
-
-To access the metadata the class DMSHandler can be used to extract metadata for a specific document:
-
-	ItemCollection dmsEntry = DMSHandler.getDMSEntry(fileName,workitem);
+## DMS 
+The attribute *content* of the *$file* attributes contains optional textual representation (see the [Imixs-Adapter-Documents Project](https://github.com/imixs/imixs-adapters/tree/master/imixs-adapters-documents)). This attribute is removed from the processed workitem during the snapshot creation and its content is collected into the item *dms*. The *dms* item can be indexed by the lucene index to support a fulltext search over the document content. If you need to lookup the content of a specific file you need to lookup the snapshot workitem. 
 
 ## The Access Control (ACL)
 The access to archive data, written into the Imixs-Archive, is controlled completely by the [Imixs-Workflow engine ACL](http://www.imixs.org/doc/engine/acl.html). Imixs-Workflow supports a multiple-level security model, that offers a great space of flexibility while controlling the access to all parts of a workitem. 
 
 Each snapshot-workitem is flagged as '_$immutable=true_' and '_$noindex=true_'. This guarantees that the snapshot can not be changed subsequently by the workflow system or is searchable through the lucene index. 
+
+## Rest API
+
+The _SnapshotRestService_ Rest API guarantees the transparent access to the archived documents.
+
+	http://localhost:8080/office-workflow/rest-service/snapshot/[$UNIQUEID]/file/[FILENAME]
+
 
 ## NOSNAPSHOT AND SKIPSNAPSHOT Flags
 

@@ -16,6 +16,9 @@ import org.imixs.workflow.exceptions.PluginException;
  * The plug-in sends each new attached document to an instance of an Apache Tika
  * Server to get the file content.
  * <p>
+ * The TikaPlugin can be used instead of the TIKA_SERVICE_MODE = 'auto' which
+ * will react on the ProcessingEvent BEFORE_PROCESS. The plugin runs only in
+ * case the TIKA_SERVICE_MODE is NOT set to 'auto'!
  * 
  * @see TikaDocumentService
  * @version 1.0
@@ -23,36 +26,35 @@ import org.imixs.workflow.exceptions.PluginException;
  */
 public class TikaPlugin extends AbstractPlugin {
 
-	public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
-	private static Logger logger = Logger.getLogger(TikaPlugin.class.getName());
+    public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
+    private static Logger logger = Logger.getLogger(TikaPlugin.class.getName());
 
-	
-	@EJB
-	TikaDocumentService tikaDocumentService;
-	
-	@Inject
-	@ConfigProperty(name = TikaDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
-	String serviceMode;
+    @EJB
+    TikaDocumentService tikaDocumentService;
 
+    @Inject
+    @ConfigProperty(name = TikaDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
+    String serviceMode;
 
-	@Override
-	public void init(WorkflowContext actx) throws PluginException {
-		super.init(actx);
-		logger.finest("...... service mode = " + serviceMode);
-	}
+    @Override
+    public void init(WorkflowContext actx) throws PluginException {
+        super.init(actx);
+        logger.finest("...... service mode = " + serviceMode);
+    }
 
-	/**
-	 * This method sends the document content to the tika server and updates teh DMS
-	 * information.
-	 * 
-	 * @throws PluginException
-	 */
-	@Override
-	public ItemCollection run(ItemCollection document, ItemCollection event) throws PluginException {
-		if (!"auto".equalsIgnoreCase(serviceMode)) {
-			// update the dms meta data
-			tikaDocumentService.extractText(document);
-		}
-		return document;
-	}
+    /**
+     * This method sends the document content to the tika server and updates the DMS
+     * information.
+     * 
+     * 
+     * @throws PluginException
+     */
+    @Override
+    public ItemCollection run(ItemCollection document, ItemCollection event) throws PluginException {
+        if (!"auto".equalsIgnoreCase(serviceMode)) {
+            // update the dms meta data
+            tikaDocumentService.extractText(document);
+        }
+        return document;
+    }
 }
