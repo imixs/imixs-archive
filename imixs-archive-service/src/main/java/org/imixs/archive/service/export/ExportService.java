@@ -494,37 +494,18 @@ public class ExportService {
 
 	/**
 	 * The method finds for a given SnapshotID the corresponding latest snapshotID.
-	 * Therefor the method loads the complete list of snapshotIDs and returns the
-	 * latest one from the list.
+	 * There for the method loads the list of snapshotIDs in reverse order with a limit of 1.
 	 * 
 	 * @param snapshotID
 	 *            - a snapshotID to be analyzed
-	 * 
 	 * @return latest snapshot ID
 	 */
 	String findLatestSnapshotID(String snapshotID) {
-		String latestSnapshot = snapshotID;
-
-		long snapshotTime = dataService.getSnapshotTime(snapshotID);
-
-		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(dataService.getUniqueID(snapshotID),100);
-		logger.warning("loading only maximum of 100 snapshots! Issue #76");
-		// --- special debug logging....
-		for (String _tmpSnapshotID : _tmpSnapshots) {
-			logger.finest(".......           :" + _tmpSnapshotID);
+		List<String> _tmpSnapshots = dataService.loadSnapshotsByUnqiueID(dataService.getUniqueID(snapshotID),1,true);
+		if (_tmpSnapshots!=null && _tmpSnapshots.size()>0) {
+		    return _tmpSnapshots.get(0);
 		}
-
-		// find the latest snapshot.....
-
-		for (String _tmpSnapshotID : _tmpSnapshots) {
-			long _tmpSnapshotTime = dataService.getSnapshotTime(_tmpSnapshotID);
-			// check if this is a later snapshot....
-
-			if (_tmpSnapshotTime >= snapshotTime) {
-				latestSnapshot = _tmpSnapshotID;
-			}
-		}
-		return latestSnapshot;
+		return null;
 	}
 
 }
