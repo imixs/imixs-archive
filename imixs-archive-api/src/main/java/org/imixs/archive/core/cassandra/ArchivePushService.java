@@ -102,10 +102,8 @@ public class ArchivePushService {
 			// push the snapshotEvent only if not just qued...
 			if ( !eventCache.contains(eventLogEntry)) {
 				if (SnapshotService.EVENTLOG_TOPIC_ADD.equals(eventLogEntry.getTopic())) {
-
 					logger.finest("......push snapshot " + eventLogEntry.getRef() + "....");
 					eventCache.add(eventLogEntry);
-
 					archiveClientService.pushSnapshot(eventLogEntry);
 				}
 			} else {
@@ -129,7 +127,7 @@ public class ArchivePushService {
 		while (iter.hasNext()) {
 			EventLog eventLogEntry = iter.next();
 			if (!events.contains(eventLogEntry)) {
-				logger.info("removing " + eventLogEntry.getId() + " from cache...");
+				logger.finest("......removing " + eventLogEntry.getId() + " from cache...");
 				eventCache.remove();
 			}
 

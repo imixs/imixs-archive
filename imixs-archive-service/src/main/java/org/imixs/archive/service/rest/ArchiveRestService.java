@@ -292,7 +292,7 @@ public class ArchiveRestService {
 	 * a HTTP Response 500. In this case a client can inspect the items
 	 * '$error_code' and '$error_message' to evaulate the error.
 	 * <p>
-	 * In case the data was sucessfully written into the Cassandra cluster the
+	 * In case the data was successfully written into the Cassandra cluster the
 	 * method returns a HTTP Response 200.
 	 * 
 	 * @param xmlworkitem
@@ -332,12 +332,14 @@ public class ArchiveRestService {
 
 		// return workitem
 		try {
-			if (snapshot.hasItem("$error_code"))
+			if (snapshot.hasItem("$error_code")) {
 				return Response.ok(XMLDataCollectionAdapter.getDataCollection(snapshot), MediaType.APPLICATION_XML)
 						.status(Response.Status.NOT_ACCEPTABLE).build();
-			else
-				return Response.ok(XMLDataCollectionAdapter.getDataCollection(snapshot), MediaType.APPLICATION_XML)
-						.build();
+			}
+			else {
+			    // we do not return a data item
+				return Response.ok().build();
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			return Response.status(Response.Status.NOT_ACCEPTABLE).build();

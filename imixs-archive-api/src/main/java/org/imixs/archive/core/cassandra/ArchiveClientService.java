@@ -95,10 +95,10 @@ public class ArchiveClientService {
 				// remove the event log entry...
 				eventLogService.removeEvent(eventLogEntry);
 
-				// TODO - we should now to delete the snapshot! This will decrese the storrage
+				// TODO - we should now delete the snapshot! This will decrease the storage
 				// on the database. But is this bullet proved....?
 
-				logger.info("...pushed " + eventLogEntry.getRef() + " in " + (System.currentTimeMillis() - l) + "ms");
+				logger.fine("...pushed " + eventLogEntry.getRef() + " in " + (System.currentTimeMillis() - l) + "ms");
 			} catch (RestAPIException e) {
 				logger.severe("...failed to push snapshot: " + snapshot.getUniqueID() + " : " + e.getMessage());
 			}
