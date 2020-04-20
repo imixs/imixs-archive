@@ -205,7 +205,8 @@ public class TikaDocumentService {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 logger.finest("......" + inputLine);
-                writer.write(inputLine);
+                // append text plus new line!
+                writer.write(inputLine + "\n");
             }
         } catch (IOException e) {
             e.printStackTrace();
