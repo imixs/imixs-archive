@@ -27,7 +27,7 @@ During the snapshot creation the snapshot $UniqueID is stored into the origin-wo
 
 ## Snapshot History
 
-The snapshot-service will hold a snapshot history.  The snaphsot history can be configured by the imixs property
+The snapshot-service will hold a snapshot history.  The snapshot history can be configured by the imixs property
 
 	snapshot.history=1 
 	

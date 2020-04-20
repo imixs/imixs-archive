@@ -1,5 +1,5 @@
 # The Imixs-Archive Service
-The _"Imixs-Archive-Service"_ project stores the data of an Imixs-Workflow instance into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). 
+The *"Imixs-Archive-Service"* project stores the data of an Imixs-Workflow instance into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). 
 The Service is part of a Cassandra cluster consisting of multiple Data Nodes, which is a highly available and resilient storage solution. 
 
 The _Imixs-Archive Service_ runs on Jakarta EE and fits perfectly into a microservice infrastrcutre. All communication is based on the Imixs Rest API. The service can be run on Bare-metal server or in a containerized infrastructure. 
@@ -95,27 +95,30 @@ If you have not yet a Imixs-Archive-Service container, you can build the applica
 
 # The Imixs-Archive Data Schema
 
-The Imixs-Archive provides a denormalized data schema to optimize storrage and access of archive data witin a Cassandara cluster environment. 
-Each process instance is stored as a Snapshot in the main table space named "_snapshots_". The primary and partion key for this table is the $snapshotid of the snapshot.  The data is stored in XML format. 
+The Imixs-Archive provides a denormalized data schema to optimize storage and access of archive data within a Cassandara cluster environment. 
+Each process instance is stored as a Snapshot in the main table space named "_snapshots_". The primary and partition key for this table is the $snapshotid of the snapshot.  The data is stored in XML format. 
 
-To access archived data the $uniqueid of the snapshot is mandatory.
-	
-### Select data from the snapshots table:
+## Use the cqlsh commandline tool
 
-	cqlsh> SELECT * FROM imixs_dev.snapshots;
-	
+To examine the data in your cassandra cluster you can use the *cqlsh* command line tool. With Docker you can run the command:
+
+	$ docker exec -it cassandra cqlsh
+
+replace \[container-dev\] with the id or name of your cassandra docker container. See the following example to select a snapshot data by $uniqueid:
+
+	cqlsh> SELECT * FROM imixsdev.snapshots_by_uniqueid where uniqueid='<uniqueid>' 
 	 id                                   | data 
 	--------------------------------------+-----------------------
 	 77d02ca4-d96e-4052-9b59-b8ea6ce052aa | ... 
 	
 	(1 rows)
-	
-	
-Read the section [Datamodel](docs/DATAMODEL.md) for detailed informatin about the Cassandra Data Schema.
+
+Replace the <uniqueid> with a valid $uniqueid
+
+Read the section [Datamodel](docs/DATAMODEL.md) for detailed information about the Cassandra Data Schema.
 
 **Note:** The Imixs-Archive-Service application creates the schemas in background. So a manual creation of schemas is not necessary. 
 
-	
 
 # Architecture & Configuration
 
