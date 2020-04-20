@@ -46,8 +46,9 @@ services:
         
         
   cassandra:
-     image: cassandra:3.11
-
+    image: cassandra:3.11
+    environment:
+      TZ: "Europe/Berlin"   
      
   postgresoffice:
     image: postgres:9.6.1
