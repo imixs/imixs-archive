@@ -18,6 +18,8 @@ import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
@@ -45,6 +47,7 @@ import org.imixs.workflow.exceptions.PluginException;
 @Stateless
 public class TikaDocumentService {
 
+    public static final String DEFAULT_ENCODING = "UTF-8";
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
     public static final String ENV_TIKA_SERVICE_ENDPONT = "TIKA_SERVICE_ENDPONT";
     public static final String ENV_TIKA_SERVICE_MODE = "TIKA_SERVICE_MODE";
@@ -82,18 +85,17 @@ public class TikaDocumentService {
     /**
      * Extracts the textual information from document attachments.
      * <p>
-     * The method sends each new document to the tika server and updates the
-     * fileData attribute 'content'
+     * The method extracts the textual content for each new document of a given
+     * workitem. For PDF files with textual content the method calls the method
+     * 'extractTextFromPDF' using the PDFBox api. In other cases, the method sends
+     * the content via a Rest API to the tika server for OCR processing.
+     * <p>
+     * The result is stored into the fileData attribute 'content'
      * 
      * @param workitem
      * @throws PluginException
      */
     public void extractText(ItemCollection workitem) throws PluginException {
-        // read the Tika Service Enpoint
-
-        if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
-            return;
-        }
 
         long l = System.currentTimeMillis();
         // List<ItemCollection> currentDmsList = DMSHandler.getDmsList(workitem);
@@ -103,16 +105,37 @@ public class TikaDocumentService {
             // We parse the file content if a new file content was added
             byte[] fileContent = fileData.getContent();
             // tesseract did not support any content type (e.g. application/octet-stream)
-            if (acceptContentType(fileData.getContentType()) && fileContent != null && fileContent.length > 1) {
-                // scan content...
+            if (fileContent != null && fileContent.length > 1) {
+                String result = null;
+                // extract the text content...
                 try {
                     logger.info("...ocr processing '" + fileData.getName() + "'...");
-                    String result = put(serviceEndpoint, fileContent, fileData.getContentType(), "UTF-8");
-                    if (result != null && !result.isEmpty()) {
-                        List<Object> list = new ArrayList<Object>();
-                        list.add(result);
-                        fileData.setAttribute("content", list);
+
+                    // test for simple text extraction via PDFBox
+                    if (isPDF(fileData)) {
+                        result = doPDFTextExtraction(fileData);
+
+                        // if we have not a meaningful content we discard the result and try the tika
+                        // api...
+                        if (result != null && result.length() < 16) {
+                            result = null;
+                        }
                     }
+
+                    // try tika API for OCR processing
+                    if (result == null) {
+                        result = doORCProcessing(fileData);
+                    }
+
+                    if (result == null) {
+                        // set empty content per default
+                        result = "";
+                    }
+                    // store the result....
+                    List<Object> list = new ArrayList<Object>();
+                    list.add(result);
+                    fileData.setAttribute("content", list);
+
                 } catch (Exception e) {
                     throw new PluginException(TikaDocumentService.class.getSimpleName(), PLUGIN_ERROR,
                             "Unable to scan attached document '" + fileData.getName() + "'", e);
@@ -125,15 +148,33 @@ public class TikaDocumentService {
     }
 
     /**
-     * Posts a String data object with a specific Content-Type to a Rest Service URI
-     * Endpoint. This method can be used to simulate different post scenarios.
+     * This method sends the content of a document to the Tika Rest API for OCR
+     * processing.
+     * <p>
+     * In case the contentType is PDF then the following tika specific header is
+     * added:
+     * <p>
+     * <code>X-Tika-PDFOcrStrategy: ocr_only</code>
+     * <p>
      * 
-     * @param uri        - Rest Endpoint RUI
-     * @param dataString - content
-     * @return content
+     * @param fileData - file content and metadata
+     * @return text content
      */
-    public String put(String uri, byte[] dataString, String contentType, String encoding) throws Exception {
+    public String doORCProcessing(FileData fileData) throws Exception {
+
+        // read the Tika Service Enpoint
+        if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
+            return null;
+        }
+
+        // validate content type
+        if (!acceptContentType(fileData.getContentType())) {
+            logger.fine("contentType '" + fileData.getContentType() + " is not supported by Tika Server");
+            return null;
+        }
+
         PrintWriter printWriter = null;
+        String contentType = fileData.getContentType();
         if (contentType == null || contentType.isEmpty()) {
             contentType = "application/xml";
         }
@@ -141,27 +182,33 @@ public class TikaDocumentService {
         HttpURLConnection urlConnection = null;
         PrintWriter writer = null;
         try {
-
-            urlConnection = (HttpURLConnection) new URL(uri).openConnection();
+            urlConnection = (HttpURLConnection) new URL(serviceEndpoint).openConnection();
             urlConnection.setRequestMethod("PUT");
             urlConnection.setDoOutput(true);
             urlConnection.setDoInput(true);
             urlConnection.setAllowUserInteraction(false);
 
             /** * HEADER ** */
-            urlConnection.setRequestProperty("Content-Type", contentType + "; charset=" + encoding);
+            urlConnection.setRequestProperty("Content-Type", contentType + "; charset=" + DEFAULT_ENCODING);
             urlConnection.setRequestProperty("Accept", "text/plain");
+
+            /** PDF OCR Scanning **/
+            if (isPDF(fileData)) {
+                // add tika header to scann embedded images
+                urlConnection.setRequestProperty("X-Tika-PDFOcrStrategy", "ocr_only");
+            }
+
             // compute length
-            urlConnection.setRequestProperty("Content-Length", "" + Integer.valueOf(dataString.length));
+            urlConnection.setRequestProperty("Content-Length", "" + Integer.valueOf(fileData.getContent().length));
             OutputStream output = urlConnection.getOutputStream();
-            writer = new PrintWriter(new OutputStreamWriter(output, encoding), true);
-            output.write(dataString);
+            writer = new PrintWriter(new OutputStreamWriter(output, DEFAULT_ENCODING), true);
+            output.write(fileData.getContent());
             writer.flush();
 
             int resposeCode = urlConnection.getResponseCode();
 
             if (resposeCode >= 200 && resposeCode <= 299) {
-                return readResponse(urlConnection, encoding);
+                return readResponse(urlConnection, DEFAULT_ENCODING);
             }
 
             // no data!
@@ -175,6 +222,47 @@ public class TikaDocumentService {
             if (printWriter != null)
                 printWriter.close();
         }
+    }
+
+    /**
+     * This method extracts the text from the given content of an PDF file. In case
+     * the pdf file does not contains text the pdf can be forwarded to the tika
+     * service for OCR scanning. In this case we append the header attribute
+     * X-Tika-PDFOcrStrategy=ocr_only.
+     * <p>
+     * Extracting text is one of the main features of the PDF box library. You can
+     * extract text using the getText() method of the PDFTextStripper class. This
+     * class extracts all the text from the given PDF document.
+     * 
+     * 
+     * @param content
+     * @return
+     */
+    public String doPDFTextExtraction(FileData fileData) {
+        PDDocument doc = null;
+        String result = null;
+        try {
+            doc = PDDocument.load(fileData.getContent());
+    
+            PDFTextStripper pdfStripper = new PDFTextStripper();
+            // Retrieving text from PDF document
+            result = pdfStripper.getText(doc);
+            logger.finest("<RESULT>" + result + "</RESULT>");
+            // Closing the document
+            doc.close();
+        } catch (IOException e) {
+            logger.warning("unable to load pdf : " + e.getMessage());
+    
+        } finally {
+            if (doc != null) {
+                try {
+                    doc.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -236,6 +324,23 @@ public class TikaDocumentService {
         }
 
         return true;
+    }
+
+    /**
+     * Returns true if the filename ends for '.pdf' or the contentType contains pdf.
+     * 
+     * @param filename
+     * @param contentType
+     * @return
+     */
+    private boolean isPDF(FileData fileData) {
+        if (fileData.getName().toLowerCase().endsWith(".pdf")) {
+            return true;
+        }
+        if (fileData.getContentType().contains("pdf")) {
+            return true;
+        }
+        return false;
     }
 
 }

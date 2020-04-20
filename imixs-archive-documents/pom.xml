@@ -24,10 +24,7 @@
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>pdfbox</artifactId>
 			<version>${apache.pdfbox.version}</version>
-			<scope>provided</scope>
 		</dependency>
-
-		
 
 	</dependencies>
 	<name>Imixs-Archive Documents</name>

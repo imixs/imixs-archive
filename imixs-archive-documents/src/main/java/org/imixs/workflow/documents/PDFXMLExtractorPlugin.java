@@ -264,6 +264,8 @@ public class PDFXMLExtractorPlugin extends AbstractPlugin {
 			}
 		}
 
+		
+		
 		// no XML file found
 		return null;
 	}
