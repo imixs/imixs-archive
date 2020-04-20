@@ -135,10 +135,10 @@ public class ClusterDataController implements Serializable {
 		}
 
 	}
-	
-	
+	   
+  
 	/**
-	 * returns the syncpoint of the current configuration
+	 * returns the last reSync point of the current metaData object
 	 * 
 	 * @return
 	 */
