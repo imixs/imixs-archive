@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
@@ -89,7 +90,7 @@ public class DataService {
 
     public static final String STATEMENT_DELETE_SNAPSHOTS_BY_DOCUMENT = "delete from snapshots_by_document where md5='<md5>' and snapshot='<snapshot>'";
     public static final String STATEMENT_DELETE_DOCUMENTS_DATA = "delete from documents_data where data_id='<data_id>'";
-    public static final String STATEMENT_DELETE_DOCUMENTS = "delete from documents where md5='<md5>' and sort_id='<sort_id>'";
+    public static final String STATEMENT_DELETE_DOCUMENTS = "delete from documents where md5='<md5>' and sort_id=<sort_id>";
 
     @Inject
     ClusterService clusterService;
@@ -111,14 +112,15 @@ public class DataService {
      * @throws ArchiveException
      */
     public void saveSnapshot(ItemCollection snapshot) throws ArchiveException {
-
+        boolean debug = logger.isLoggable(Level.FINE);
         String snapshotID = snapshot.getUniqueID();
 
         if (!isSnapshotID(snapshotID)) {
             throw new IllegalArgumentException("unexpected '$snapshotid' fromat: " + snapshotID);
         }
-        logger.finest("......save document" + snapshotID);
-
+        if (debug) {
+            logger.finest("......save document" + snapshotID);
+        }
         if (!snapshot.hasItem("$modified")) {
             throw new IllegalArgumentException("missing item '$modified' for snapshot " + snapshotID);
         }
@@ -202,13 +204,15 @@ public class DataService {
      * @throws ArchiveException
      */
     public ItemCollection loadSnapshot(String snapshotID, boolean mergeDocuments) throws ArchiveException {
+        boolean debug = logger.isLoggable(Level.FINE);
+        
         ItemCollection snapshot = new ItemCollection();
-
         // select snapshot...
-
         String sql = STATEMENT_SELECT_SNAPSHOT;
         sql = sql.replace("'?'", "'" + snapshotID + "'");
-        logger.finest("......search snapshot id: " + sql);
+        if (debug) {
+            logger.finest("......search snapshot id: " + sql);
+        }
         ResultSet rs = clusterService.getSession().execute(sql);
         Row row = rs.one();
         if (row != null) {
@@ -238,6 +242,7 @@ public class DataService {
      * @return list of snapshots
      */
     public List<String> loadSnapshotsByUnqiueID(String uniqueID, int maxCount, boolean descending) {
+        boolean debug = logger.isLoggable(Level.FINE);
         List<String> result = new ArrayList<String>();
         String sql = STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
 
@@ -253,7 +258,9 @@ public class DataService {
 
         // set uniqueid
         sql = sql.replace("'?'", "'" + uniqueID + "'");
-        logger.finest("......search snapshot id: " + sql);
+        if (debug) {
+            logger.finest("......search snapshot id: " + sql);
+        }
         ResultSet rs = clusterService.getSession().execute(sql);
 
         // iterate over result
@@ -275,11 +282,14 @@ public class DataService {
      *         given date
      */
     public List<String> loadSnapshotsByDate(java.time.LocalDate date) {
+        boolean debug = logger.isLoggable(Level.FINE);
         List<String> result = new ArrayList<String>();
         // select snapshotIds by day...
         String sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED;
         sql = sql.replace("'?'", "'" + date + "'");
-        logger.finest("......SQL: " + sql);
+        if (debug) {
+            logger.finest("......SQL: " + sql);
+        }
         ResultSet rs = clusterService.getSession().execute(sql);
         // iterate over result
         Iterator<Row> resultIter = rs.iterator();
@@ -326,12 +336,14 @@ public class DataService {
         if (md5 == null || md5.isEmpty()) {
             return null;
         }
-
+        boolean debug = logger.isLoggable(Level.FINE);
         // test if md5 exits...
         String sql = STATEMENT_SELECT_DOCUMENTS;
         sql = sql.replace("'?'", "'" + md5 + "'");
 
-        logger.finest("......search MD5 entry: " + sql);
+        if (debug) {
+            logger.finest("......search MD5 entry: " + sql);
+        }
 
         ResultSet rs = clusterService.getSession().execute(sql);
         // collect all dat blocks (which are sorted by its sort_id....
@@ -343,16 +355,19 @@ public class DataService {
 
                 int sort_id = row.getInt(1);
                 String data_id = row.getString(2);
-                logger.finest("......load 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
-
+                if (debug) {
+                    logger.finest("......load 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+                }
                 // now we can load the data block....
                 String sql_data = STATEMENT_SELECT_DOCUMENTS_DATA;
                 sql_data = sql_data.replace("'?'", "'" + data_id + "'");
                 ResultSet rs_data = clusterService.getSession().execute(sql_data);
                 Row row_data = rs_data.one();
                 if (row_data != null) {
-                    logger.finest(
-                            "......merge data block: " + md5 + " sort_id: " + sort_id + " data_id: " + data_id + "...");
+                    if (debug) {
+                        logger.finest("......merge data block: " + md5 + " sort_id: " + sort_id + " data_id: " + data_id
+                                + "...");
+                    }
                     // get byte data...
                     ByteBuffer byteDataBlock = row_data.getBytes(1);
                     bOutput.write(byteDataBlock.array());
@@ -363,7 +378,9 @@ public class DataService {
             }
             // now we have all the bytes...
             byte[] allData = bOutput.toByteArray();
-            logger.finest("......collected full data block: " + md5 + " size: " + allData.length + "...");
+            if (debug) {
+                logger.finest("......collected full data block: " + md5 + " size: " + allData.length + "...");
+            }
             return allData;
 
         } catch (IOException e) {
@@ -424,7 +441,7 @@ public class DataService {
      */
     public void deleteSnapshot(String snapshotID) throws ArchiveException {
 
-        logger.info("... delete snapshot and references for:" + snapshotID);
+        logger.info("......delete snapshot and documents for:" + snapshotID);
         String uniqueID = this.getUniqueID(snapshotID);
         ItemCollection snapshot = loadSnapshot(snapshotID, false);
 
@@ -525,9 +542,11 @@ public class DataService {
      */
     public boolean isSnapshotID(String uid) {
         boolean valid = uid.matches(REGEX_SNAPSHOTID);
-
+        boolean debug = logger.isLoggable(Level.FINE);
         if (!valid) {
-            logger.fine("...validate old snapshot id format...");
+            if (debug) {
+                logger.fine("...validate old snapshot id format...");
+            }
             // check old snapshto format
             valid = uid.matches(REGEX_OLD_SNAPSHOTID);
         }
@@ -616,11 +635,12 @@ public class DataService {
      * @throws ArchiveException
      */
     private void cleanupSnaphostHistory(ItemCollection snapshot) throws ArchiveException {
-
+        boolean debug = logger.isLoggable(Level.FINE);
         int snapshotHistory = snapshot.getItemValueInteger(ITEM_SNAPSHOT_HISTORY);
         if (snapshotHistory > 0) {
-            logger.finest("......$snapshothistory=" + snapshotHistory);
-
+            if (debug) {
+                logger.finest("......$snapshothistory=" + snapshotHistory);
+            }
             String uniqueid = this.getUniqueID(snapshot.getUniqueID());
 
             // find old snapshots...
@@ -632,7 +652,9 @@ public class DataService {
 
             // set uniqueid
             sql = sql.replace("'?'", "'" + uniqueid + "'");
-            logger.finest("......search snapshots for id: " + sql);
+            if (debug) {
+                logger.finest("......search snapshots for id: " + sql);
+            }
             ResultSet rs = clusterService.getSession().execute(sql);
 
             // iterate over result to get last snapshotID
@@ -663,7 +685,9 @@ public class DataService {
 
             // set uniqueid
             sql = sql.replace("'?'", "'" + uniqueid + "'");
-            logger.finest("......search snapshot id: " + sql);
+            if (debug) {
+                logger.finest("......search snapshot id: " + sql);
+            }
             rs = clusterService.getSession().execute(sql);
             resultIter = rs.iterator();
             while (resultIter.hasNext()) {
@@ -685,13 +709,16 @@ public class DataService {
      * @throws ArchiveException
      */
     private void extractDocuments(ItemCollection itemCol) throws ArchiveException {
+        boolean debug = logger.isLoggable(Level.FINE);
         // empty data...
         byte[] empty = {};
         List<FileData> files = itemCol.getFileData();
         for (FileData fileData : files) {
             // first verify if content is already stored.
             try {
-                logger.finest("... extract fileData objects: " + files.size() + " fileData objects found....");
+                if (debug) {
+                    logger.finest("... extract fileData objects: " + files.size() + " fileData objects found....");
+                }
 
                 if (fileData.getContent() != null && fileData.getContent().length > 0) {
                     String md5 = fileData.generateMD5();
@@ -699,15 +726,19 @@ public class DataService {
                     // test if md5 already stored....
                     String sql = STATEMENT_SELECT_MD5;
                     sql = sql.replace("'?'", "'" + md5 + "'");
-                    logger.finest("......search MD5 entry: " + sql);
+                    if (debug) {
+                        logger.finest("......search MD5 entry: " + sql);
+                    }
                     ResultSet rs = clusterService.getSession().execute(sql);
                     Row row = rs.one();
                     if (row == null) {
                         // not yet stored so extract the content
                         storeDocument(md5, fileData.getContent());
                     } else {
-                        logger.finest(
-                                "......update fildata not necessary because object: " + md5 + " is already stored!");
+                        if (debug) {
+                            logger.finest("......update fildata not necessary because object: " + md5
+                                    + " is already stored!");
+                        }
                     }
 
                     // updset documents_by_snapshot.... (needed for deletion)
@@ -715,7 +746,9 @@ public class DataService {
                             new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_DOCUMENT, md5, itemCol.getUniqueID()));
 
                     // remove file content from itemCol
-                    logger.finest("drop content for file '" + fileData.getName() + "'");
+                    if (debug) {
+                        logger.finest("drop content for file '" + fileData.getName() + "'");
+                    }
                     itemCol.addFileData(new FileData(fileData.getName(), empty, fileData.getContentType(),
                             fileData.getAttributes()));
                 }
@@ -735,16 +768,19 @@ public class DataService {
      */
     private void deleteDocuments(ItemCollection itemCol) throws ArchiveException {
 
-        if (itemCol==null) {
+        if (itemCol == null) {
             // no data!
             return;
         }
-        
+        boolean debug = logger.isLoggable(Level.FINE);
         List<FileData> files = itemCol.getFileData();
         for (FileData fileData : files) {
             // first verify if content is already stored.
             try {
-                logger.finest("... delete fileData ref and objects: " + files.size() + " fileData objects found....");
+                if (debug) {
+                    logger.finest(
+                            "......delete fileData ref and objects: " + files.size() + " fileData objects found....");
+                }
 
                 if (fileData.getContent() != null && fileData.getContent().length > 0) {
                     String md5 = fileData.generateMD5();
@@ -758,7 +794,9 @@ public class DataService {
                     // now the question is: do we have other snapshots referring this md5 ?
                     sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_DOCUMENT;
                     sql = sql.replace("'?'", "'" + md5 + "'");
-                    logger.finest("......SQL: " + sql);
+                    if (debug) {
+                        logger.finest("......SQL: " + sql);
+                    }
                     ResultSet rs = clusterService.getSession().execute(sql);
                     // iterate over result
                     Iterator<Row> resultIter = rs.iterator();
@@ -770,8 +808,9 @@ public class DataService {
                         // test if md5 exits...
                         String sql_sub = STATEMENT_SELECT_DOCUMENTS;
                         sql_sub = sql_sub.replace("'?'", "'" + md5 + "'");
-
-                        logger.finest("......search MD5 entry: " + sql_sub);
+                        if (debug) {
+                            logger.finest("......search MD5 entry: " + sql_sub);
+                        }
 
                         ResultSet rs_sub = clusterService.getSession().execute(sql_sub);
                         // collect all data blocks (which are sorted by its sort_id....
@@ -788,13 +827,13 @@ public class DataService {
                         }
                         for (String data_id : dataIDs) {
                             sql = STATEMENT_DELETE_DOCUMENTS_DATA;
-                            sql = sql.replace("'<data_id>'", "'" + data_id + "'");
+                            sql = sql.replace("<data_id>", data_id);
                             clusterService.getSession().execute(sql);
                         }
                         for (int sort_id : sortIDs) {
                             sql = STATEMENT_DELETE_DOCUMENTS;
-                            sql = sql.replace("'<md5>'", "'" + md5 + "'");
-                            sql = sql.replace("'<sort_id>'", "'" + sort_id + "'");
+                            sql = sql.replace("<md5>", md5);
+                            sql = sql.replace("<sort_id>", Integer.toString(sort_id));
                             clusterService.getSession().execute(sql);
                         }
 
@@ -820,14 +859,16 @@ public class DataService {
      * @param session
      */
     private void storeDocument(String md5, byte[] data) {
-
+        boolean debug = logger.isLoggable(Level.FINE);
         // split the data into 1md blocks....
         DocumentSplitter documentSplitter = new DocumentSplitter(data);
         Iterator<byte[]> it = documentSplitter.iterator();
         int sort_id = 0;
         while (it.hasNext()) {
             String data_id = WorkflowKernel.generateUniqueID();
-            logger.finest("......write new 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+            if (debug) {
+                logger.finest("......write new 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+            }
             byte[] chunk = it.next();
             // write 1MB chunk into cassandra....
             clusterService.getSession()
@@ -837,7 +878,9 @@ public class DataService {
             // increase sort_id
             sort_id++;
         }
-        logger.finest("......stored filedata object: " + md5);
+        if (debug) {
+            logger.finest("......stored filedata object: " + md5);
+        }
     }
 
     /**
@@ -850,11 +893,13 @@ public class DataService {
      * @throws ArchiveException
      */
     private void mergeDocumentData(ItemCollection itemCol) throws ArchiveException {
+        boolean debug = logger.isLoggable(Level.FINE);
         List<FileData> files = itemCol.getFileData();
         for (FileData fileData : files) {
             // first verify if content is already stored.
-
-            logger.finest("... merge fileData objects: " + files.size() + " fileData objects defined....");
+            if (debug) {
+                logger.finest("... merge fileData objects: " + files.size() + " fileData objects defined....");
+            }
             // add document if not exists
             if (fileData.getContent() == null || fileData.getContent().length == 0) {
                 fileData = loadFileData(fileData);

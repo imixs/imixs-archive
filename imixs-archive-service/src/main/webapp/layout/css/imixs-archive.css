@@ -134,6 +134,10 @@ button, input[type="button"], input[type="submit"], .button, a.button,
 	font-weight: normal !important;
 }
 
+.action-delete {
+	background: #c64e47 !important;
+}
+
 a.button {
 	padding: 0.15em 0.75em;
 	border-radius: 3px;

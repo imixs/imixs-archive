@@ -29,6 +29,7 @@ package org.imixs.archive.service.rest;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
@@ -169,22 +170,24 @@ public class ArchiveRestService {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public Response getSnapshotFileByMD5Checksum(@PathParam("md5") @Encoded String md5,
 			@QueryParam("contentType") String contentType) {
-
+	    boolean debug = logger.isLoggable(Level.FINE);
 		// load the snapshot
 		byte[] fileContent = null;
 		try {
-			logger.finest("...read snapshot...");
+		    if (debug) {
+		        logger.finest("...read snapshot...");
+		    }
 			// load snapshto without the file data
 			fileContent = dataService.loadFileContent(md5);
 
 		} catch (ArchiveException e) {
-			logger.warning("...Failed to load file: " + e.getMessage());
+			logger.warning("...failed to load file: " + e.getMessage());
 			e.printStackTrace();
 		}
 		// extract the file...
 		try {
 
-			if (fileContent != null) {
+			if (fileContent != null && fileContent.length>0) {
 				// Set content type in order of the contentType stored
 				// in the $file attribute
 				Response.ResponseBuilder builder = Response.ok(fileContent, contentType);
@@ -198,7 +201,9 @@ public class ArchiveRestService {
 		} catch (Exception e) {
 			logger.severe(
 					"ArchiveRestService unable to open file by md5 checksum: '" + md5 + "' - error: " + e.getMessage());
-			e.printStackTrace();
+    		if (debug) {
+    		    e.printStackTrace();
+    		}
 		}
 
 		logger.severe("ArchiveRestService unable to open file by md5 checksum: '" + md5 + "'");

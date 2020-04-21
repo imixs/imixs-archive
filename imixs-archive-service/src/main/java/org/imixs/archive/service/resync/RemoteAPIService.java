@@ -150,6 +150,20 @@ public class RemoteAPIService {
 		}
 
 	}
+	
+	
+	public void deleteSnapshot(String id) throws ArchiveException {
+        DocumentClient documentClient = initWorkflowClient();
+        String url = SNAPSHOT_RESOURCE;
+        logger.finest("...... delete data: " + url + "....");
+        try {
+            documentClient.deleteDocument(id);
+        } catch (RestAPIException e) {
+            String errorMessage = "...failed to deleteSnapshot: " + e.getMessage();
+            throw new ArchiveException(ArchiveException.SYNC_ERROR, errorMessage, e);
+        }
+
+    }
 
 	/**
 	 * Helper method to initalize a Melman Workflow Client based on the current
