@@ -56,7 +56,7 @@ import javax.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotException;
 import org.imixs.archive.core.SnapshotService;
-import org.imixs.archive.core.cassandra.ArchiveClientService;
+import org.imixs.archive.core.cassandra.ArchiveRemoteService;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
@@ -108,7 +108,7 @@ public class SnapshotRestService implements Serializable {
 	WorkflowRestService workflowRestService;
 
 	@EJB
-	ArchiveClientService archiveClientService;
+	ArchiveRemoteService archiveClientService;
 
 	private static Logger logger = Logger.getLogger(SnapshotRestService.class.getName());
 

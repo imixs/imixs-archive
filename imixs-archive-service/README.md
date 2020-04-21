@@ -2,25 +2,25 @@
 The *"Imixs-Archive-Service"* project stores the data of an Imixs-Workflow instance into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). 
 The Service is part of a Cassandra cluster consisting of multiple Data Nodes, which is a highly available and resilient storage solution. 
 
-The _Imixs-Archive Service_ runs on Jakarta EE and fits perfectly into a microservice infrastrcutre. All communication is based on the Imixs Rest API. The service can be run on Bare-metal server or in a containerized infrastructure. 
+The *Imixs-Archive Service* runs on Jakarta EE and fits perfectly into a microservice infrastructure. All communication is based on the Imixs Rest API. The service can be run on Bare-metal server or in a containerized infrastructure. 
 
 All the data is stored in a platform and technology neutral XML format. This guaranties the  cross-technology data exchange independent from a specific software version over a long period of time.   
 
 
 ## Rest API
-The Rest API which is part the _Imixs-Archive-Service_ provides methods to update and access snapshot data:
+The Rest API which is part the *Imixs-Archive-Service* provides methods to update and access snapshot data:
 
  * PUT /archive/snapshot/ - stores a snapshot into the archive
  * GET /archive/snapshot/{id} - loads a snapshot from the archive
- * GET /archive/snapshot/{id}/file/{file} - loads the file conent from a snapshot by its filenme 
+ * GET /archive/snapshot/{id}/file/{file} - loads the file content from a snapshot by its filename 
  * GET /archive/md5/{md5} - loads the file content by its MD5 checksum (recommended)
 
 ## The Sync Service
 
-The _Imixs-Archive-Service_ provides a feature to automatically resync all business process data and documents into the Cassandra Cluster. 
+The *Imixs-Archive-Service* provides a feature to automatically resync all business process data and documents into the Cassandra Cluster. 
 You can retrieve a single process instance based on a timeline or restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
 
-The Sync Service prvides a Web UI to control and monitor the archive service:
+The Sync Service provides a Web UI to control and monitor the archive service:
 
 	http://localhost:8080/
  
@@ -53,8 +53,8 @@ The following docker-compose.yml file shows a setup example:
 	  cassandra:
 	     image: cassandra:3.11
 
-In this example the _"Imixs-Archive-Service"_ connects to a Imixs-Workflow instance on the api endpoint http://imixs-workflow:8080/api.  
-The service creaets a new cassandara keystore with the name 'imixsdev' and pulls the data every hour. 
+In this example the *"Imixs-Archive-Service"* connects to a Imixs-Workflow instance on the api endpoint http://imixs-workflow:8080/api.  
+The service creates a new cassandara keystore with the name 'imixsdev' and pulls the data every hour. 
 
 To start the environment run:
 	
@@ -76,7 +76,7 @@ To start the dev environment run:
 
 	$ docker-compose -f docker-compose-dev.yml up
 
-You can start the Imixs-Office-Workflow applcation from the following URL:
+You can start the Imixs-Office-Workflow application from the following URL:
 
 	http://localhost:8081/
 
@@ -96,7 +96,7 @@ If you have not yet a Imixs-Archive-Service container, you can build the applica
 # The Imixs-Archive Data Schema
 
 The Imixs-Archive provides a denormalized data schema to optimize storage and access of archive data within a Cassandara cluster environment. 
-Each process instance is stored as a Snapshot in the main table space named "_snapshots_". The primary and partition key for this table is the $snapshotid of the snapshot.  The data is stored in XML format. 
+Each process instance is stored as a Snapshot in the main table space named "*snapshots*". The primary and partition key for this table is the *$snapshotid* of the snapshot.  The data is stored in XML format. 
 
 ## Use the cqlsh commandline tool
 
@@ -125,16 +125,16 @@ Read the section [Datamodel](docs/DATAMODEL.md) for detailed information about t
 
 ## The Syncpoint
 
-An Imixs Archive configuration holds a syncpoint. The syncpoint is the last successfull read form the source system in miliseconds. 
+An Imixs Archive configuration holds a syncpoint. The syncpoint is the last successful read form the source system in milliseconds. 
 When the syncpoint is reset it is set to January 1, 1970 00:00:00 GMT.
-After each successfull sync the syncpoint will be set to the modified timestamp of the latest synchronized process instance.  
+After each successful sync the syncpoint will be set to the modified timestamp of the latest synchronized process instance.  
 
 **Note:** In case the time zone changes on the workflow server or the database server the syncpoint need to be reset. Otherwise, the offset can result in a loss of snapshot data. 
 
 
 ## Configuration
 
-The Imixs-Archive Microservice is configured by envirnment variables. 
+The Imixs-Archive Microservice is configured by environment variables. 
 The following configuration parameters are mandatory:
 
  * ARCHIVE\_CLUSTER\_CONTACTPOINTS = one or many contact points of cassandra nodes within one cluster. 
@@ -142,7 +142,7 @@ The following configuration parameters are mandatory:
 
 The cluster replication can be configured by following optional parameters:
 
- * ARCHIVE\_SCHEDULER\_DEFINITION = cron defiition for scheduling (default = 'hour=*')
+ * ARCHIVE\_SCHEDULER\_DEFINITION = cron definition for scheduling (default = 'hour=*')
  * ARCHIVE\_CLUSTER\_REPLICATION\_FACTOR = defines the replication factor (default = 1)
  * ARCHIVE\_CLUSTER\_REPLICATION\_CLASS = replicator strategy (default = 'SimpleStrategy')
  
@@ -150,9 +150,9 @@ The cluster replication can be configured by following optional parameters:
 The workflow service endpoint to read data from is configured by the following parameters:
 
  * WORKFLOW\_SERVICE\_ENDPOINT = rest url to read workflow data
- * WORKFLOW\_SERVICE\_USER = user id to connnect rest service endpoint
- * WORKFLOW\_SERVICE\_PASSWORD = password to connnect rest service endpoint
- * WORKFLOW\_SERVICE\_AUTHMETHOD = authentication method for rest service enpoing (form,basic)
+ * WORKFLOW\_SERVICE\_USER = user id to connect rest service endpoint
+ * WORKFLOW\_SERVICE\_PASSWORD = password to connect rest service endpoint
+ * WORKFLOW\_SERVICE\_AUTHMETHOD = authentication method for rest service endpoint (form,basic)
 
 
 
@@ -167,7 +167,7 @@ To store a process instance into this data model the EJB ArchiveService encapsul
 
 ### Writing Statistic Data
 
-During the archive process, the Imixs-Archive Service write statistical data into the 'meata-document'. This data can be used to analyse the amount of data in a singe Imixs-Workflow instance. 
+During the archive process, the Imixs-Archive Service write statistical data into the 'meata-document'. This data can be used to analyze the amount of data in a singe Imixs-Workflow instance. 
 
 	SELECT * FROM imixs_dev.snapshots where snapshot='0'";
 
@@ -180,7 +180,7 @@ To Imixs-ARchive Service provides service classes to read an archived process in
 	
 This method expects the $snapshotID of an archived process instance. 
  	
-The methods _loadSnapshotsByUnqiueID_ or _loadSnapshotsByDate_ can be used selecting first the SnapshotIDs by a given $uniqueid or modified date:
+The methods *loadSnapshotsByUnqiueID* or *loadSnapshotsByDate* can be used selecting first the SnapshotIDs by a given $uniqueid or modified date:
 
 
 	// return all snaphostids for a given UniqueID
@@ -196,7 +196,7 @@ The methods _loadSnapshotsByUnqiueID_ or _loadSnapshotsByDate_ can be used selec
 
 To setup a Cassandra Cluster with Docker Swarm read the section [Cluster Setup](docs/CLUSTER.md).
 
-If you run a Cassandra Cluster with multiple nodes it is recommanded to setup the replication factor for a keyspace to the number of nodes. 
+If you run a Cassandra Cluster with multiple nodes it is recommended to setup the replication factor for a keyspace to the number of nodes. 
 
 To change the replication factors (RF) of the security keyspaces:
 

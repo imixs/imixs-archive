@@ -135,12 +135,16 @@ public class SnapshotService {
     // rest service endpoint
     public static final String ARCHIVE_SERVICE_ENDPOINT = "archive.service.endpoint";
     public static final String ARCHIVE_SERVICE_INTERVAL = "archive.service.interval";
+    public static final String ARCHIVE_SERVICE_DEADLOCK = "archive.service.deadlock";
     public static final String ARCHIVE_SERVICE_USER = "archive.service.user";
     public static final String ARCHIVE_SERVICE_PASSWORD = "archive.service.password";
     public static final String ARCHIVE_SERVICE_AUTHMETHOD = "archive.service.authmethod";
 
     public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
     public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
+    
+     
+    
 
     public final static String ITEM_MD5_CHECKSUM = "md5checksum";
 
