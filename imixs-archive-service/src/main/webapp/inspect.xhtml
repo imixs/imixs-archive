@@ -82,7 +82,10 @@
 											<h:commandButton
 												value="restore"
 												actionListener="#{inspectController.restoreSnapshot(id)}"></h:commandButton>
-
+											<!-- delete -->
+											<h:commandButton styleClass="action-delete" onclick="return confirm('Are you sure to delete this Snapshot now?')"
+												value="delete"
+												actionListener="#{inspectController.deleteSnapshot(id)}"></h:commandButton>
 										</td>
 									</tr>
 								</c:forEach>

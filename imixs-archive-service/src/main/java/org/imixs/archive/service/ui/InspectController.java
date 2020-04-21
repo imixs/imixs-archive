@@ -2,7 +2,6 @@ package org.imixs.archive.service.ui;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
@@ -108,14 +107,13 @@ public class InspectController implements Serializable {
     }
 
     /**
-     * This method loads all existing snapshot ids of a given unqiueid
+     * This method loads all existing snapshot ids of a given unqiueID
      * <p>
      * The result list is sorted creation date descending (newest snapshot first)
      * <p>
      * The method also verifies the actual snapshot in the workflow instance and
-     * creats an indicator
+     * creates an indicator
      * 
-     * @throws ArchiveException
      */
     public void loadSnapshotIDs() {
         try {
@@ -133,17 +131,30 @@ public class InspectController implements Serializable {
     }
 
     /**
-     * This method loads all existing snapshot ids of a given unqiueid
-     * 
-     * @throws ArchiveException
+     * This method restores a snapshot by its ID
+     *
      */
     public void restoreSnapshot(String id) {
         try {
-            logger.info("......load snsaphosts for " + uniqueid + "...");
-
+            logger.info("......restore snapshotID " + uniqueid + "...");
             ItemCollection snapshot = dataService.loadSnapshot(id);
             remoteAPIService.restoreSnapshot(snapshot);
+            // refresh snapshot list....
+            loadSnapshotIDs();
+        } catch (ArchiveException e) {
+            logger.severe("failed to load snapshot ids: " + e.getMessage());
+        }
+    }
 
+    /**
+     * This method deletes a snapshot by its ID
+     * 
+     *
+     */
+    public void deleteSnapshot(String id) {
+        try {
+            logger.info("......delete snapshotID " + uniqueid + "...");
+            dataService.deleteSnapshot(id);
             // refresh snapshot list....
             loadSnapshotIDs();
         } catch (ArchiveException e) {
