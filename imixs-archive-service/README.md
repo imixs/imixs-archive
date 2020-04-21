@@ -156,14 +156,19 @@ The workflow service endpoint to read data from is configured by the following p
 
 
 
-## Writing a Process Instance
+## Creating a Snaphot
 
-To store a process instance into this data model the EJB ArchiveService encapsulates the process to store data into the data schema.
+To create a snapshot from a process instance the EJB ArchiveService method 'save' encapsulates the process to store data into the data schema.
 
 	ItemCollection workitem;
 	....
-	archiveService.write(workitem);
+	dataService.save(workitem);
 
+
+### $snapshot.history
+
+The optional item '*$snapshot.history*' can be set to define the maximum count of historical snapshots stored in the archive system.  
+During the save method the dataService will automatically delete older snapshots exceeding the snapshot history. If no $snapshot.hisotry is defined or 0 than no historical snapshots will be deleted. 
 
 ### Writing Statistic Data
 

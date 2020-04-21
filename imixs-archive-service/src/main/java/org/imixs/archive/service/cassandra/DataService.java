@@ -47,7 +47,7 @@ import com.datastax.driver.core.SimpleStatement;
 public class DataService {
 
     public final static String ITEM_MD5_CHECKSUM = "md5checksum";
-
+    public final static String ITEM_SNAPSHOT_HISTORY = "$snapshot.history"; // optional historical snapshots
     private static final String REGEX_SNAPSHOTID = "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-[0-9]{13,15})";
     private static final String REGEX_OLD_SNAPSHOTID = "([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)";
 
@@ -76,9 +76,20 @@ public class DataService {
     public static final String STATEMENT_SELECT_MD5 = "select md5 from documents where md5='?'";
     public static final String STATEMENT_SELECT_DOCUMENTS = "select * from documents where md5='?'";
     public static final String STATEMENT_SELECT_DOCUMENTS_DATA = "select * from documents_data where data_id='?'";
+    public static final String STATEMENT_SELECT_SNAPSHOTS_BY_DOCUMENT = "select * from snapshots_by_document where md5='?'";
 
     public static final String STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID = "select * from snapshots_by_uniqueid where uniqueid='?'";
     public static final String STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED = "select * from snapshots_by_modified where modified='?'";
+
+    // public static final String STATEMENT_DELETE_SNAPSHOTS_BY_MODIFIED = "DELETE
+    // FROM snapshots_by_modified where modified='?' and snapshot='?' IF EXISTS";
+    public static final String STATEMENT_DELETE_SNAPSHOTS = "delete from snapshots where snapshot='<snapshot>'";
+    public static final String STATEMENT_DELETE_SNAPSHOTS_BY_MODIFIED = "delete from snapshots_by_modified where modified='<modified>' and snapshot='<snapshot>'";
+    public static final String STATEMENT_DELETE_SNAPSHOTS_BY_UNIQUEID = "delete from snapshots_by_uniqueid where uniqueid='<uniqueid>' and snapshot='<snapshot>'";
+
+    public static final String STATEMENT_DELETE_SNAPSHOTS_BY_DOCUMENT = "delete from snapshots_by_document where md5='<md5>' and snapshot='<snapshot>'";
+    public static final String STATEMENT_DELETE_DOCUMENTS_DATA = "delete from documents_data where data_id='<data_id>'";
+    public static final String STATEMENT_DELETE_DOCUMENTS = "delete from documents where md5='<md5>' and sort_id='<sort_id>'";
 
     @Inject
     ClusterService clusterService;
@@ -138,7 +149,9 @@ public class DataService {
         clusterService.getSession()
                 .execute(new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_MODIFIED, ld, snapshot.getUniqueID()));
 
-        // Finally we fire the DocumentEvent ON_DOCUMENT_SAVE
+        cleanupSnaphostHistory(snapshot);
+
+        // Finally we fire the ArchiveEvent ON_ARCHIVE
         if (events != null) {
             events.fire(new ArchiveEvent(snapshot, ArchiveEvent.ON_ARCHIVE));
         } else {
@@ -148,111 +161,134 @@ public class DataService {
     }
 
     /**
-     * This helper method extracts the content of attached documents and stores the
-     * content into the documents table space. A document is uniquely identified by
-     * its md5 checksum.
+     * This method test if a snapshot recored with a given ID already exists.
      * 
-     * @param itemCol
-     * @throws ArchiveException
+     * @param snapshotID
+     * @return true if the snapshot exists.
      */
-    private void extractDocuments(ItemCollection itemCol) throws ArchiveException {
-        // empty data...
-        byte[] empty = {};
-        List<FileData> files = itemCol.getFileData();
-        for (FileData fileData : files) {
-            // first verify if content is already stored.
-            try {
-                logger.finest("... extract fileData objects: " + files.size() + " fileData objects found....");
-
-                if (fileData.getContent() != null && fileData.getContent().length > 0) {
-                    String md5 = fileData.generateMD5();
-
-                    // test if md5 already stored....
-                    String sql = STATEMENT_SELECT_MD5;
-                    sql = sql.replace("'?'", "'" + md5 + "'");
-
-                    logger.finest("......search MD5 entry: " + sql);
-
-                    ResultSet rs = clusterService.getSession().execute(sql);
-                    Row row = rs.one();
-                    if (row == null) {
-                        // not yet stored so extract the conent
-                        storeDocument(md5, fileData.getContent());
-                    } else {
-                        logger.finest(
-                                "......update fildata not necessary because object: " + md5 + " is already stored!");
-                    }
-
-                    // updset documents_by_snapshot.... (needed for deletion)
-                    clusterService.getSession().execute(
-                            new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_DOCUMENT, md5, itemCol.getUniqueID()));
-
-                    // remove file content from itemCol
-                    logger.finest("drop content for file '" + fileData.getName() + "'");
-                    itemCol.addFileData(new FileData(fileData.getName(), empty, fileData.getContentType(),
-                            fileData.getAttributes()));
-                }
-            } catch (NoSuchAlgorithmException e) {
-                throw new ArchiveException(ArchiveException.MD5_ERROR,
-                        "can not compute md5 of document - " + e.getMessage());
-            }
-        }
+    public boolean existSnapshot(String snapshotID) {
+        String sql = STATEMENT_SELECT_SNAPSHOT_ID;
+        sql = sql.replace("'?'", "'" + snapshotID + "'");
+        logger.finest("......search snapshot id: " + sql);
+        ResultSet rs = clusterService.getSession().execute(sql);
+        Row row = rs.one();
+        return (row != null);
     }
 
     /**
-     * This method stores a singel documetn identified by teh MD5 checksum.
+     * This method loads a snapshot form the cassandra cluster. The snapshot data
+     * includes also the accociated document data. In case you need only the
+     * snapshotdata without documents use loadSnapshot(id,false,session).
+     * 
+     * @param snapshotID - snapshot id
+     * @param session    - cassandra session
+     * @return snapshot data including documents
+     * @throws ArchiveException
+     */
+    public ItemCollection loadSnapshot(String snapshotID) throws ArchiveException {
+        return loadSnapshot(snapshotID, true);
+    }
+
+    /**
+     * Thist method loads a snapshot form the cassandra cluster.
      * <p>
-     * The method splits the data into 1mb blocks stored in the table
-     * 'documents_data'
      * 
+     * @param snapshotID     - snapshot id
+     * @param mergeDocuments - boolean, if true the accociated document data will be
+     *                       loaded and merged into the snapshot data object.
      * 
-     * @param md5
-     * @param data
-     * @param session
+     * @param session        - cassandra session
+     * @return snapshot data
+     * @throws ArchiveException
      */
-    private void storeDocument(String md5, byte[] data) {
+    public ItemCollection loadSnapshot(String snapshotID, boolean mergeDocuments) throws ArchiveException {
+        ItemCollection snapshot = new ItemCollection();
 
-        // split the data into 1md blocks....
-        DocumentSplitter documentSplitter = new DocumentSplitter(data);
-        Iterator<byte[]> it = documentSplitter.iterator();
-        int sort_id = 0;
-        while (it.hasNext()) {
-            String data_id = WorkflowKernel.generateUniqueID();
-            logger.finest("......write new 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
-            byte[] chunk = it.next();
-            // write 1MB chunk into cassandra....
-            clusterService.getSession()
-                    .execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS_DATA, data_id, ByteBuffer.wrap(chunk)));
-            // write sort_id....
-            clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS, md5, sort_id, data_id));
-            // increase sort_id
-            sort_id++;
+        // select snapshot...
+
+        String sql = STATEMENT_SELECT_SNAPSHOT;
+        sql = sql.replace("'?'", "'" + snapshotID + "'");
+        logger.finest("......search snapshot id: " + sql);
+        ResultSet rs = clusterService.getSession().execute(sql);
+        Row row = rs.one();
+        if (row != null) {
+            // load ItemCollection object
+            ByteBuffer data = row.getBytes(COLUMN_DATA);
+            if (data.hasArray()) {
+                snapshot = getItemCollection(data.array());
+
+                // next we need to load the document data if exists...
+                mergeDocumentData(snapshot);
+            }
+        } else {
+            // does not exist - create empty object
+            snapshot = new ItemCollection();
         }
-        logger.finest("......stored filedata object: " + md5);
+        return snapshot;
     }
 
     /**
-     * This helper method merges the content of attached documents into a
-     * itemCollection. A document is uniquely identified by its md5 checksum. The
-     * data of the document is split into 1md data blocks in the tabe
-     * 'documents_data'
+     * This method loads all existing snapshotIDs for a given unqiueID.
+     * <p>
      * 
-     * @param itemCol
-     * @throws ArchiveException
+     * @param uniqueID
+     * @param maxCount   - max search result
+     * @param descending - sort result descending
+     * 
+     * @return list of snapshots
      */
-    private void mergeDocumentData(ItemCollection itemCol) throws ArchiveException {
-        List<FileData> files = itemCol.getFileData();
-        for (FileData fileData : files) {
-            // first verify if content is already stored.
+    public List<String> loadSnapshotsByUnqiueID(String uniqueID, int maxCount, boolean descending) {
+        List<String> result = new ArrayList<String>();
+        String sql = STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
 
-            logger.finest("... merge fileData objects: " + files.size() + " fileData objects defined....");
-            // add document if not exists
-            if (fileData.getContent() == null || fileData.getContent().length == 0) {
-                fileData = loadFileData(fileData);
-                itemCol.addFileData(fileData);
-            }
-
+        // reverse order by?
+        if (descending) {
+            sql = sql + " ORDER BY snapshot DESC";
         }
+
+        // set LIMIT?
+        if (maxCount > 0) {
+            sql = sql + " LIMIT " + maxCount;
+        }
+
+        // set uniqueid
+        sql = sql.replace("'?'", "'" + uniqueID + "'");
+        logger.finest("......search snapshot id: " + sql);
+        ResultSet rs = clusterService.getSession().execute(sql);
+
+        // iterate over result
+        Iterator<Row> resultIter = rs.iterator();
+        while (resultIter.hasNext()) {
+            Row row = resultIter.next();
+            String snapshotID = row.getString(1);
+            result.add(snapshotID);
+        }
+
+        return result;
+    }
+
+    /**
+     * This method loads all exsting snapshotIDs for a given date.
+     * 
+     * @param date
+     * @return list of snapshots or an empty list if no snapshots exist for the
+     *         given date
+     */
+    public List<String> loadSnapshotsByDate(java.time.LocalDate date) {
+        List<String> result = new ArrayList<String>();
+        // select snapshotIds by day...
+        String sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED;
+        sql = sql.replace("'?'", "'" + date + "'");
+        logger.finest("......SQL: " + sql);
+        ResultSet rs = clusterService.getSession().execute(sql);
+        // iterate over result
+        Iterator<Row> resultIter = rs.iterator();
+        while (resultIter.hasNext()) {
+            Row row = resultIter.next();
+            String snapshotID = row.getString(1);
+            result.add(snapshotID);
+        }
+        return result;
     }
 
     /**
@@ -345,73 +381,6 @@ public class DataService {
     }
 
     /**
-     * This method test if a snapshot recored with a given ID already exists.
-     * 
-     * @param snapshotID
-     * @return true if the snapshot exists.
-     */
-    public boolean existSnapshot(String snapshotID) {
-        String sql = STATEMENT_SELECT_SNAPSHOT_ID;
-        sql = sql.replace("'?'", "'" + snapshotID + "'");
-        logger.finest("......search snapshot id: " + sql);
-        ResultSet rs = clusterService.getSession().execute(sql);
-        Row row = rs.one();
-        return (row != null);
-    }
-
-    /**
-     * This method loads a snapshot form the cassandra cluster. The snapshot data
-     * includes also the accociated document data. In case you need only the
-     * snapshotdata without documents use loadSnapshot(id,false,session).
-     * 
-     * @param snapshotID - snapshot id
-     * @param session    - cassandra session
-     * @return snapshot data including documents
-     * @throws ArchiveException
-     */
-    public ItemCollection loadSnapshot(String snapshotID) throws ArchiveException {
-        return loadSnapshot(snapshotID, true);
-    }
-
-    /**
-     * Thist method loads a snapshot form the cassandra cluster.
-     * <p>
-     * 
-     * @param snapshotID     - snapshot id
-     * @param mergeDocuments - boolean, if true the accociated document data will be
-     *                       loaded and merged into the snapshot data object.
-     * 
-     * @param session        - cassandra session
-     * @return snapshot data
-     * @throws ArchiveException
-     */
-    public ItemCollection loadSnapshot(String snapshotID, boolean mergeDocuments) throws ArchiveException {
-        ItemCollection snapshot = new ItemCollection();
-
-        // select snapshot...
-
-        String sql = STATEMENT_SELECT_SNAPSHOT;
-        sql = sql.replace("'?'", "'" + snapshotID + "'");
-        logger.finest("......search snapshot id: " + sql);
-        ResultSet rs = clusterService.getSession().execute(sql);
-        Row row = rs.one();
-        if (row != null) {
-            // load ItemCollection object
-            ByteBuffer data = row.getBytes(COLUMN_DATA);
-            if (data.hasArray()) {
-                snapshot = getItemCollection(data.array());
-
-                // next we need to load the document data if exists...
-                mergeDocumentData(snapshot);
-            }
-        } else {
-            // does not exist - create empty object
-            snapshot = new ItemCollection();
-        }
-        return snapshot;
-    }
-
-    /**
      * This method loads the metadata object represended by an ItemCollection. The
      * snapshot id for the metadata object is always "0". This id is reserverd for
      * metadata only.
@@ -426,70 +395,6 @@ public class DataService {
      */
     public ItemCollection loadMetadata() throws ArchiveException {
         return loadSnapshot("0");
-    }
-
-    /**
-     * This method loads all existing snapshotIDs for a given unqiueID.
-     * <p>
-     * 
-     * @param uniqueID
-     * @param maxCount   - max search result
-     * @param descending - sort result descending
-     * 
-     * @return list of snapshots
-     */
-    public List<String> loadSnapshotsByUnqiueID(String uniqueID, int maxCount, boolean descending) {
-        List<String> result = new ArrayList<String>();
-        String sql = STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
-
-        // reverse order by?
-        if (descending) {
-            sql = sql + " ORDER BY snapshot DESC";
-        }
-
-        // set LIMIT?
-        if (maxCount > 0) {
-            sql = sql + " LIMIT " + maxCount;
-        }
-
-        // set uniqueid
-        sql = sql.replace("'?'", "'" + uniqueID + "'");
-        logger.finest("......search snapshot id: " + sql);
-        ResultSet rs = clusterService.getSession().execute(sql);
-
-        // iterate over result
-        Iterator<Row> resultIter = rs.iterator();
-        while (resultIter.hasNext()) {
-            Row row = resultIter.next();
-            String snapshotID = row.getString(1);
-            result.add(snapshotID);
-        }
-
-        return result;
-    }
-
-    /**
-     * This method loads all exsting snapshotIDs for a given date.
-     * 
-     * @param date
-     * @return list of snapshots or an empty list if no snapshots exist for the
-     *         given date
-     */
-    public List<String> loadSnapshotsByDate(java.time.LocalDate date) {
-        List<String> result = new ArrayList<String>();
-        // select snapshotIds by day...
-        String sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_MODIFIED;
-        sql = sql.replace("'?'", "'" + date + "'");
-        logger.finest("......SQL: " + sql);
-        ResultSet rs = clusterService.getSession().execute(sql);
-        // iterate over result
-        Iterator<Row> resultIter = rs.iterator();
-        while (resultIter.hasNext()) {
-            Row row = resultIter.next();
-            String snapshotID = row.getString(1);
-            result.add(snapshotID);
-        }
-        return result;
     }
 
     /**
@@ -510,20 +415,51 @@ public class DataService {
     }
 
     /**
-     * This method deletes a snapshot.
+     * This method deletes a single snapshot instance.
      * <p>
      * The method also deletes the documents and all relations
      * 
-     * @param itemCol
-     * @param session - cassandra session
+     * @param snapshotID - id of the snapshot
      * @throws ArchiveException
      */
-    public void deleteSnapshot(ItemCollection itemCol) throws ArchiveException {
-        // TODO
-        logger.warning("need to delete snapshot and references");
+    public void deleteSnapshot(String snapshotID) throws ArchiveException {
 
-        // TODO
-        logger.warning("need to delete document content if no longer refered by other snapshots");
+        logger.info("... delete snapshot and references for:" + snapshotID);
+        String uniqueID = this.getUniqueID(snapshotID);
+        ItemCollection snapshot = loadSnapshot(snapshotID, false);
+
+        String sql = STATEMENT_DELETE_SNAPSHOTS;
+        sql = sql.replace("'<snapshot>'", "'" + snapshotID + "'");
+        clusterService.getSession().execute(sql);
+
+        sql = STATEMENT_DELETE_SNAPSHOTS_BY_UNIQUEID;
+        sql = sql.replace("'<uniqueid>'", "'" + uniqueID + "'");
+        sql = sql.replace("'<snapshot>'", "'" + snapshotID + "'");
+        clusterService.getSession().execute(sql);
+
+        long modifiedTime = 0;
+        if (snapshot != null) {
+            Date modified = null;
+            modified = snapshot.getItemValueDate("$modified");
+            if (modified == null) {
+                logger.warning("Snapshot Object '" + snapshotID + "' has no '$modified' item!");
+                // try to build the time form the snapshot
+                modifiedTime = this.getSnapshotTime(snapshotID);
+            } else {
+                modifiedTime = modified.getTime();
+            }
+        } else {
+            logger.warning("Snapshot Object '" + snapshotID + "' not found in archive!");
+        }
+
+        LocalDate ld = LocalDate.fromMillisSinceEpoch(modifiedTime);
+        sql = STATEMENT_DELETE_SNAPSHOTS_BY_MODIFIED;
+        sql = sql.replace("'<modified>'", "'" + ld + "'");
+        sql = sql.replace("'<snapshot>'", "'" + snapshotID + "'");
+        clusterService.getSession().execute(sql);
+
+        deleteDocuments(snapshot);
+
     }
 
     /**
@@ -614,7 +550,7 @@ public class DataService {
     }
 
     /**
-     * Returns the snapshot time n milis of a $SnapshotID
+     * Returns the snapshot time n millis of a $SnapshotID
      * 
      * @param snapshotID
      * @return long - snapshot time
@@ -669,6 +605,263 @@ public class DataService {
         SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
         Date date = new Date(point);
         return dt.format(date);
+    }
+
+    /**
+     * This method deletes older snapshots exceeding the optional $snapshot.history.
+     * If no $snapshot.hisotry is defined or is 0 than no historical snapshots will
+     * be deleted.
+     * 
+     * @param snapshot
+     * @throws ArchiveException
+     */
+    private void cleanupSnaphostHistory(ItemCollection snapshot) throws ArchiveException {
+
+        int snapshotHistory = snapshot.getItemValueInteger(ITEM_SNAPSHOT_HISTORY);
+        if (snapshotHistory > 0) {
+            logger.finest("......$snapshothistory=" + snapshotHistory);
+
+            String uniqueid = this.getUniqueID(snapshot.getUniqueID());
+
+            // find old snapshots...
+            String sql = STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
+            // descending
+            sql = sql + " ORDER BY snapshot DESC";
+            // set LIMIT to history
+            sql = sql + " LIMIT " + (snapshotHistory + 1);
+
+            // set uniqueid
+            sql = sql.replace("'?'", "'" + uniqueid + "'");
+            logger.finest("......search snapshots for id: " + sql);
+            ResultSet rs = clusterService.getSession().execute(sql);
+
+            // iterate over result to get last snapshotID
+            Iterator<Row> resultIter = rs.iterator();
+            int snapshotcount = 0;
+            String lastestSnapshotID = null;
+            while (resultIter.hasNext()) {
+                Row row = resultIter.next();
+                lastestSnapshotID = row.getString(1);
+                snapshotcount++;
+            }
+
+            // if the size of the Resultset is smaller than the snapshotHistory we can skip
+            if (snapshotcount < snapshotHistory) {
+                return;
+            }
+
+            // now we need to check if we have more snapshots - start from the latest
+            // snapshot
+            sql = STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
+            sql = sql + " AND snapshot<='" + lastestSnapshotID + "'";
+
+            // descending
+            sql = sql + " ORDER BY snapshot ASC";
+
+            // set LIMIT to 100
+            sql = sql + " LIMIT 100";
+
+            // set uniqueid
+            sql = sql.replace("'?'", "'" + uniqueid + "'");
+            logger.finest("......search snapshot id: " + sql);
+            rs = clusterService.getSession().execute(sql);
+            resultIter = rs.iterator();
+            while (resultIter.hasNext()) {
+                Row row = resultIter.next();
+                String id = row.getString(1);
+                deleteSnapshot(id);
+            }
+
+        }
+
+    }
+
+    /**
+     * This helper method extracts the content of attached documents and stores the
+     * content into the documents table space. A document is uniquely identified by
+     * its md5 checksum.
+     * 
+     * @param itemCol
+     * @throws ArchiveException
+     */
+    private void extractDocuments(ItemCollection itemCol) throws ArchiveException {
+        // empty data...
+        byte[] empty = {};
+        List<FileData> files = itemCol.getFileData();
+        for (FileData fileData : files) {
+            // first verify if content is already stored.
+            try {
+                logger.finest("... extract fileData objects: " + files.size() + " fileData objects found....");
+
+                if (fileData.getContent() != null && fileData.getContent().length > 0) {
+                    String md5 = fileData.generateMD5();
+
+                    // test if md5 already stored....
+                    String sql = STATEMENT_SELECT_MD5;
+                    sql = sql.replace("'?'", "'" + md5 + "'");
+                    logger.finest("......search MD5 entry: " + sql);
+                    ResultSet rs = clusterService.getSession().execute(sql);
+                    Row row = rs.one();
+                    if (row == null) {
+                        // not yet stored so extract the content
+                        storeDocument(md5, fileData.getContent());
+                    } else {
+                        logger.finest(
+                                "......update fildata not necessary because object: " + md5 + " is already stored!");
+                    }
+
+                    // updset documents_by_snapshot.... (needed for deletion)
+                    clusterService.getSession().execute(
+                            new SimpleStatement(STATEMENT_UPSET_SNAPSHOTS_BY_DOCUMENT, md5, itemCol.getUniqueID()));
+
+                    // remove file content from itemCol
+                    logger.finest("drop content for file '" + fileData.getName() + "'");
+                    itemCol.addFileData(new FileData(fileData.getName(), empty, fileData.getContentType(),
+                            fileData.getAttributes()));
+                }
+            } catch (NoSuchAlgorithmException e) {
+                throw new ArchiveException(ArchiveException.MD5_ERROR,
+                        "can not compute md5 of document - " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * This helper method deletes the content of attached documents A document is
+     * uniquely identified by its md5 checksum.
+     * 
+     * @param itemCol
+     * @throws ArchiveException
+     */
+    private void deleteDocuments(ItemCollection itemCol) throws ArchiveException {
+
+        if (itemCol==null) {
+            // no data!
+            return;
+        }
+        
+        List<FileData> files = itemCol.getFileData();
+        for (FileData fileData : files) {
+            // first verify if content is already stored.
+            try {
+                logger.finest("... delete fileData ref and objects: " + files.size() + " fileData objects found....");
+
+                if (fileData.getContent() != null && fileData.getContent().length > 0) {
+                    String md5 = fileData.generateMD5();
+
+                    // delete documents_by_snapshot.... (needed for deletion)
+                    String sql = STATEMENT_DELETE_SNAPSHOTS_BY_DOCUMENT;
+                    sql = sql.replace("'<md5>'", "'" + md5 + "'");
+                    sql = sql.replace("'<snapshot>'", "'" + itemCol.getUniqueID() + "'");
+                    clusterService.getSession().execute(sql);
+
+                    // now the question is: do we have other snapshots referring this md5 ?
+                    sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_DOCUMENT;
+                    sql = sql.replace("'?'", "'" + md5 + "'");
+                    logger.finest("......SQL: " + sql);
+                    ResultSet rs = clusterService.getSession().execute(sql);
+                    // iterate over result
+                    Iterator<Row> resultIter = rs.iterator();
+                    if (resultIter.hasNext()) {
+                        // we have other snapshots refering this document so we can skipp!
+                        return;
+                    } else {
+                        // we have no other refrerences - this means we can delete the document data!
+                        // test if md5 exits...
+                        String sql_sub = STATEMENT_SELECT_DOCUMENTS;
+                        sql_sub = sql_sub.replace("'?'", "'" + md5 + "'");
+
+                        logger.finest("......search MD5 entry: " + sql_sub);
+
+                        ResultSet rs_sub = clusterService.getSession().execute(sql_sub);
+                        // collect all data blocks (which are sorted by its sort_id....
+                        Iterator<Row> resultIterSub = rs_sub.iterator();
+                        List<String> dataIDs = new ArrayList<String>();
+                        List<Integer> sortIDs = new ArrayList<Integer>();
+                        while (resultIterSub.hasNext()) {
+                            Row row = resultIterSub.next();
+                            int sort_id = row.getInt(1);
+                            String data_id = row.getString(2);
+                            logger.info("......delete 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+                            dataIDs.add(data_id);
+                            sortIDs.add(sort_id);
+                        }
+                        for (String data_id : dataIDs) {
+                            sql = STATEMENT_DELETE_DOCUMENTS_DATA;
+                            sql = sql.replace("'<data_id>'", "'" + data_id + "'");
+                            clusterService.getSession().execute(sql);
+                        }
+                        for (int sort_id : sortIDs) {
+                            sql = STATEMENT_DELETE_DOCUMENTS;
+                            sql = sql.replace("'<md5>'", "'" + md5 + "'");
+                            sql = sql.replace("'<sort_id>'", "'" + sort_id + "'");
+                            clusterService.getSession().execute(sql);
+                        }
+
+                    }
+
+                }
+            } catch (NoSuchAlgorithmException e) {
+                throw new ArchiveException(ArchiveException.MD5_ERROR,
+                        "can not compute md5 of document - " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * This method stores a single document identified by the MD5 checksum.
+     * <p>
+     * The method splits the data into 1mb blocks stored in the table
+     * 'documents_data'
+     * 
+     * 
+     * @param md5
+     * @param data
+     * @param session
+     */
+    private void storeDocument(String md5, byte[] data) {
+
+        // split the data into 1md blocks....
+        DocumentSplitter documentSplitter = new DocumentSplitter(data);
+        Iterator<byte[]> it = documentSplitter.iterator();
+        int sort_id = 0;
+        while (it.hasNext()) {
+            String data_id = WorkflowKernel.generateUniqueID();
+            logger.finest("......write new 1mb data block: sort_id=" + sort_id + " data_id=" + data_id);
+            byte[] chunk = it.next();
+            // write 1MB chunk into cassandra....
+            clusterService.getSession()
+                    .execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS_DATA, data_id, ByteBuffer.wrap(chunk)));
+            // write sort_id....
+            clusterService.getSession().execute(new SimpleStatement(STATEMENT_UPSET_DOCUMENTS, md5, sort_id, data_id));
+            // increase sort_id
+            sort_id++;
+        }
+        logger.finest("......stored filedata object: " + md5);
+    }
+
+    /**
+     * This helper method merges the content of attached documents into a
+     * itemCollection. A document is uniquely identified by its md5 checksum. The
+     * data of the document is split into 1md data blocks in the tabe
+     * 'documents_data'
+     * 
+     * @param itemCol
+     * @throws ArchiveException
+     */
+    private void mergeDocumentData(ItemCollection itemCol) throws ArchiveException {
+        List<FileData> files = itemCol.getFileData();
+        for (FileData fileData : files) {
+            // first verify if content is already stored.
+
+            logger.finest("... merge fileData objects: " + files.size() + " fileData objects defined....");
+            // add document if not exists
+            if (fileData.getContent() == null || fileData.getContent().length == 0) {
+                fileData = loadFileData(fileData);
+                itemCol.addFileData(fileData);
+            }
+
+        }
     }
 
 }

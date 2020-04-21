@@ -120,10 +120,12 @@ public class SnapshotService {
     public static final String REGEX_URL_PATTERN = "^(http|https|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
 
     public static final String SNAPSHOTID = "$snapshotid";
+
     public static final String TYPE_PRAFIX = "snapshot-";
     public static final String NOSNAPSHOT = "$nosnapshot"; // ignore snapshots
     public static final String SKIPSNAPSHOT = "$skipsnapshot"; // skip snapshot creation
 
+   
     public final static String ITEM_DMS_FILE_NAMES = "dms_names"; // list of files
     public final static String ITEM_DMS_FILE_COUNT = "dms_count"; // count of files
     public final static String ITEM_DMS = "dms"; // optional custom content to be indexed by lucene

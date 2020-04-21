@@ -68,9 +68,14 @@ The *SnapshotRestService* Rest API guarantees the transparent access to the arch
 
 ## NOSNAPSHOT AND SKIPSNAPSHOT Flags
 
-It is possible to prohibit the creation of a snapshot when a document is saved. In this case the item "*$nosnapshot*" must be set to 'true'. This can be useful is some rare situations. Use this flag carefully! The item "*$nosnapshot*" is persisted and will avoid future snapshots until the flag is removed or set to false.
+It is possible to prohibit the creation of a snapshot when a document is saved. In this case the item '*$nosnapshot*' must be set to 'true'. This can be useful is some rare situations. Use this flag carefully! The item '*$nosnapshot*' is persisted and will avoid future snapshots until the flag is removed or set to false.
 
-An alternative is the flg "*$skipsnapshot*". This flag is temporarily and will be removed by the snapshot api. This flag is used by the snapshot restore mechanism which recovers a document entity by a snapshot instance. 
+An alternative is the flg '*$skipsnapshot*'. This flag is temporarily and will be removed by the snapshot api. This flag is used by the snapshot restore mechanism which recovers a document entity by a snapshot instance. 
+
+
+## $snapshot.history
+
+A document can provide the item '*$snapshot.history*'. This optional item defines the maximum snapshots stored in an archive system.  See the [Imixs-Archive-Service](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-service) for more details.
 
 
 ## CDI Events
