@@ -133,7 +133,6 @@ public class ArchiveRemoteService {
         }
 
         // first we lookup the FileData object
-
         if (fileData != null) {
             ItemCollection dmsData = new ItemCollection(fileData.getAttributes());
             String md5 = dmsData.getItemValueString(SnapshotService.ITEM_MD5_CHECKSUM);
@@ -142,18 +141,14 @@ public class ArchiveRemoteService {
 
                 try {
                     DocumentClient documentClient = initWorkflowClient();
-
                     Client rsClient = documentClient.newClient();
-
                     String url = archiveServiceEndpoint + "/archive/md5/" + md5;
-
                     Response reponse = rsClient.target(url).request(MediaType.APPLICATION_OCTET_STREAM).get();
 
                     // InputStream is = reponse.readEntity(InputStream.class);
                     byte[] fileContent = reponse.readEntity(byte[].class);
-
                     if (fileContent != null && fileContent.length > 0) {
-                        logger.info("md5 daten gefunden");
+                        logger.finest("......md5 data object found");
                         return fileContent;
                     }
 
@@ -219,13 +214,13 @@ public class ArchiveRemoteService {
             eventLogService.lock(eventLogEntry);
             try {
                 // push the snapshotEvent only if not just qeued...
-                if (SnapshotService.EVENTLOG_TOPIC_ADD.equals(eventLogEntry.getTopic())) {
+                if (eventLogEntry.getTopic().startsWith(SnapshotService.EVENTLOG_TOPIC_ADD)) {
                     logger.finest("......push snapshot " + eventLogEntry.getRef() + "....");
                     // eventCache.add(eventLogEntry);
                     pushSnapshot(eventLogEntry);
                 }
 
-                if (SnapshotService.EVENTLOG_TOPIC_REMOVE.equals(eventLogEntry.getTopic())) {
+                if (eventLogEntry.getTopic().startsWith(SnapshotService.EVENTLOG_TOPIC_REMOVE)) {
                     logger.info("Remove Snapshot not yet implemented");
                 }
                 // finally remove the event log entry...
