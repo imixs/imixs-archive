@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
-import javax.enterprise.event.Observes;
+
 import javax.inject.Inject;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -23,7 +23,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.engine.ProcessingEvent;
+
 import org.imixs.workflow.exceptions.PluginException;
 
 /**
@@ -61,26 +61,6 @@ public class TikaDocumentService {
     @Inject
     @ConfigProperty(name = ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
-
-    /**
-     * React on the ProcessingEvent This method sends the document content to the
-     * tika server and updates the DMS information.
-     * 
-     * @throws PluginException
-     */
-    public void onBeforeProcess(@Observes ProcessingEvent processingEvent) throws PluginException {
-
-        if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
-            return;
-        }
-        // Service only runs if the Tika Service mode is set to 'auto'
-        if ("auto".equalsIgnoreCase(serviceMode)) {
-            if (processingEvent.getEventType() == ProcessingEvent.BEFORE_PROCESS) {
-                // update the dms meta data
-                extractText(processingEvent.getDocument());
-            }
-        }
-    }
 
     /**
      * Extracts the textual information from document attachments.
@@ -167,18 +147,16 @@ public class TikaDocumentService {
             return null;
         }
 
+        // adapt ContentType
+        String contentType = adaptContentType(fileData);
+
         // validate content type
-        if (!acceptContentType(fileData.getContentType())) {
-            logger.fine("contentType '" + fileData.getContentType() + " is not supported by Tika Server");
+        if (!acceptContentType(contentType)) {
+            logger.fine("contentType '" + contentType + " is not supported by Tika Server");
             return null;
         }
 
         PrintWriter printWriter = null;
-        String contentType = fileData.getContentType();
-        if (contentType == null || contentType.isEmpty()) {
-            contentType = "application/xml";
-        }
-
         HttpURLConnection urlConnection = null;
         PrintWriter writer = null;
         try {
@@ -243,7 +221,7 @@ public class TikaDocumentService {
         String result = null;
         try {
             doc = PDDocument.load(fileData.getContent());
-    
+
             PDFTextStripper pdfStripper = new PDFTextStripper();
             // Retrieving text from PDF document
             result = pdfStripper.getText(doc);
@@ -252,7 +230,7 @@ public class TikaDocumentService {
             doc.close();
         } catch (IOException e) {
             logger.warning("unable to load pdf : " + e.getMessage());
-    
+
         } finally {
             if (doc != null) {
                 try {
@@ -324,6 +302,37 @@ public class TikaDocumentService {
         }
 
         return true;
+    }
+
+    /**
+     * This method verifies the content Type stored in a FileData object.
+     * <p>
+     * In case no contenttype is provided or is '*' the adapts the content type
+     * based on the file extension
+     * <p>
+     * If no contentType can be computed, the method returns the default contentType
+     * application/xml
+     * 
+     * 
+     * @param fileData
+     * @return
+     */
+    private String adaptContentType(FileData fileData) {
+
+        String contentType = fileData.getContentType();
+
+        // verify */*
+        if (contentType == null || contentType.isEmpty() || "*/*".equals(contentType)) {
+            // compute contentType based on file extension...
+            if (fileData.getName().toLowerCase().endsWith(".pdf")) {
+                contentType = "application/pdf";
+            } else {
+                // set default type
+                contentType = "application/xml";
+            }
+        }
+
+        return contentType;
     }
 
     /**
