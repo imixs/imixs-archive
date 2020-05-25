@@ -18,6 +18,7 @@ The TikaDocumentHandler extracts the textual information from document attachmen
  
   * TIKA\_SERVICE\_ENDPONT - defines the Rest API end-point of the tika server.
   * TIKA\_SERVICE\_MODE - if set to 'auto' the DocumentHandler reacts on the CDI event 'BEFORE\_PROCESS' and extracts the data automatically
+  * TIKA\_FORCE\_PDF\_OCR\_SCANN - optional forces a OCR scan for pdf files containing text
   
 See also the docker project [Imixs/tika](https://github.com/imixs/imixs-docker/tree/master/tika).
 
@@ -71,3 +72,7 @@ To include the imixs-archive-documents plugins the following maven dependency ca
 			<scope>compile</scope>
 		</dependency>	
 		
+		
+# Configuration of OCR 
+
+You have various configuration options on the Tika server. Find details [here](https://github.com/imixs/imixs-docker/tree/master/tika).		

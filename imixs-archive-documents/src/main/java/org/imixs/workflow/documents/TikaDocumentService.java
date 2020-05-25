@@ -51,6 +51,7 @@ public class TikaDocumentService {
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
     public static final String ENV_TIKA_SERVICE_ENDPONT = "TIKA_SERVICE_ENDPONT";
     public static final String ENV_TIKA_SERVICE_MODE = "TIKA_SERVICE_MODE";
+    public static final String ENV_TIKA_FORCE_PDF_OCR_SCANN = "TIKA_FORCE_PDF_OCR_SCANN";
 
     private static Logger logger = Logger.getLogger(TikaDocumentService.class.getName());
 
@@ -59,8 +60,8 @@ public class TikaDocumentService {
     String serviceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
-    String serviceMode;
+    @ConfigProperty(name = ENV_TIKA_FORCE_PDF_OCR_SCANN, defaultValue = "false")
+    boolean forcePDFOCRSscann;
 
     /**
      * Extracts the textual information from document attachments.
@@ -89,16 +90,20 @@ public class TikaDocumentService {
                 String result = null;
                 // extract the text content...
                 try {
-                    logger.info("...ocr processing '" + fileData.getName() + "'...");
+                    logger.info("...text extraction '" + fileData.getName() + "'...");
 
                     // test for simple text extraction via PDFBox
                     if (isPDF(fileData)) {
-                        result = doPDFTextExtraction(fileData);
+                        if (forcePDFOCRSscann == false) {
+                            result = doPDFTextExtraction(fileData);
 
-                        // if we have not a meaningful content we discard the result and try the tika
-                        // api...
-                        if (result != null && result.length() < 16) {
-                            result = null;
+                            // if we have not a meaningful content we discard the result and try the tika
+                            // api...
+                            if (result != null && result.length() < 16) {
+                                result = null;
+                            }
+                        } else {
+                            logger.info("...force orc scan for pdfs...");
                         }
                     }
 
@@ -147,6 +152,8 @@ public class TikaDocumentService {
             return null;
         }
 
+        logger.info("...ocr scanning....");
+
         // adapt ContentType
         String contentType = adaptContentType(fileData);
 
@@ -171,10 +178,11 @@ public class TikaDocumentService {
             urlConnection.setRequestProperty("Accept", "text/plain");
 
             /** PDF OCR Scanning **/
-            if (isPDF(fileData)) {
-                // add tika header to scann embedded images
-                urlConnection.setRequestProperty("X-Tika-PDFOcrStrategy", "ocr_only");
-            }
+// NOT NECESSARY??            
+//            if (isPDF(fileData)) {
+//                // add tika header to scann embedded images
+//                urlConnection.setRequestProperty("X-Tika-PDFOcrStrategy", "ocr_only");
+//            }
 
             // compute length
             urlConnection.setRequestProperty("Content-Length", "" + Integer.valueOf(fileData.getContent().length));
@@ -217,6 +225,7 @@ public class TikaDocumentService {
      * @return
      */
     public String doPDFTextExtraction(FileData fileData) {
+        logger.info("...pdf text extraction....");
         PDDocument doc = null;
         String result = null;
         try {
