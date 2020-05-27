@@ -51,7 +51,8 @@ public class TikaDocumentService {
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
     public static final String ENV_TIKA_SERVICE_ENDPONT = "TIKA_SERVICE_ENDPONT";
     public static final String ENV_TIKA_SERVICE_MODE = "TIKA_SERVICE_MODE";
-    public static final String ENV_TIKA_FORCE_PDF_OCR_SCANN = "TIKA_FORCE_PDF_OCR_SCANN";
+
+    public static final String ENV_TIKA_OCR_MODE = "TIKA_OCR_MODE"; // PDF_ONLY, OCR_ONLY, MIXED
 
     private static Logger logger = Logger.getLogger(TikaDocumentService.class.getName());
 
@@ -60,8 +61,8 @@ public class TikaDocumentService {
     String serviceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ENV_TIKA_FORCE_PDF_OCR_SCANN, defaultValue = "false")
-    boolean forcePDFOCRSscann;
+    @ConfigProperty(name = ENV_TIKA_OCR_MODE, defaultValue = "PDF_AND_OCR")
+    String ocrMode;
 
     /**
      * Extracts the textual information from document attachments.
@@ -77,6 +78,30 @@ public class TikaDocumentService {
      * @throws PluginException
      */
     public void extractText(ItemCollection workitem) throws PluginException {
+        extractText(workitem, null, null);
+    }
+
+    /**
+     * Extracts the textual information from document attachments.
+     * <p>
+     * The method extracts the textual content for each new document of a given
+     * workitem. For PDF files with textual content the method calls the method
+     * 'extractTextFromPDF' using the PDFBox api. In other cases, the method sends
+     * the content via a Rest API to the tika server for OCR processing.
+     * <p>
+     * The result is stored into the fileData attribute 'content'
+     * 
+     * @param workitem - workitem with file attachments
+     * @param _ocrmode - PDF_ONLY, OCR_ONLY, MIXED
+     * @param options  - optional tika header params
+     * @throws PluginException
+     */
+    public void extractText(ItemCollection workitem, String _ocrmode, List<String> options) throws PluginException {
+
+        // overwrite ocrmode?
+        if (_ocrmode != null) {
+            this.ocrMode = _ocrmode;
+        }
 
         long l = System.currentTimeMillis();
         // List<ItemCollection> currentDmsList = DMSHandler.getDmsList(workitem);
@@ -94,22 +119,35 @@ public class TikaDocumentService {
 
                     // test for simple text extraction via PDFBox
                     if (isPDF(fileData)) {
-                        if (forcePDFOCRSscann == false) {
+                        // PDF_ONLY, OCR_ONLY, PDF_AND_OCR
+                        if ("OCR_ONLY".equals(ocrMode)) {
+                            // OCR Only
+                            logger.info("...force orc scan for pdfs...");
+                            result = doORCProcessing(fileData, options);
+                        } else {
+                            // try PDFBox....
                             result = doPDFTextExtraction(fileData);
-
                             // if we have not a meaningful content we discard the result and try the tika
                             // api...
                             if (result != null && result.length() < 16) {
                                 result = null;
                             }
-                        } else {
-                            logger.info("...force orc scan for pdfs...");
+
+                            if (result == null && ("MIXED".equals(ocrMode))) {
+                                // lets try it with OCR...
+                                result = doORCProcessing(fileData, options);
+                            }
+                        }
+                    } else {
+                        // for all other files than PDF we do a ocr scann if not PDF_ONLY mode
+                        if (!"PDF_ONLY".equals(ocrMode)) {
+                            result = doORCProcessing(fileData, options);
                         }
                     }
 
                     // try tika API for OCR processing
                     if (result == null) {
-                        result = doORCProcessing(fileData);
+                        logger.warning("Unable to extract content!");
                     }
 
                     if (result == null) {
@@ -145,7 +183,7 @@ public class TikaDocumentService {
      * @param fileData - file content and metadata
      * @return text content
      */
-    public String doORCProcessing(FileData fileData) throws Exception {
+    public String doORCProcessing(FileData fileData, List<String> options) throws Exception {
 
         // read the Tika Service Enpoint
         if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
@@ -177,12 +215,25 @@ public class TikaDocumentService {
             urlConnection.setRequestProperty("Content-Type", contentType + "; charset=" + DEFAULT_ENCODING);
             urlConnection.setRequestProperty("Accept", "text/plain");
 
-            /** PDF OCR Scanning **/
-// NOT NECESSARY??            
-//            if (isPDF(fileData)) {
-//                // add tika header to scann embedded images
-//                urlConnection.setRequestProperty("X-Tika-PDFOcrStrategy", "ocr_only");
-//            }
+            /** do we have header options? **/
+            if (options != null && options.size() > 0) {
+                for (String option : options) {
+                    int i = option.indexOf("=");
+
+                    if (i > -1) {
+                        String key = option.substring(0, i);
+                        String value = option.substring(i + 1);
+                        if (key.startsWith("X-Tika")) {
+                            // urlConnection.setRequestProperty("X-Tika-PDFOcrStrategy", "ocr_only");
+                            urlConnection.setRequestProperty(key, value);
+                        } else {
+                            logger.warning("Invalid tika option : '" + option + "'  key must start with 'X-Tika'");
+                        }
+                    } else {
+                        logger.warning("Invalid tika option : '" + option + "'  character '=' expreced!");
+                    }
+                }
+            }
 
             // compute length
             urlConnection.setRequestProperty("Content-Length", "" + Integer.valueOf(fileData.getContent().length));
