@@ -5,7 +5,7 @@ The Imixs-Documents is a sub-project of Imixs-Archive. The project provides meth
 
 ## OCR and Fulltext Search
 
-Imixs-Document provides a feature to search documents. This includes also a _Optical character recognition (OCR)_ for documents and images. The textual information extracted by the module is stored together with the file data information in the custom attribute 'content'. To search for the extracted data the information is also stored in the item named 'dms' which can be added to the fulltext-field-list.  
+Imixs-Document provides a feature to search documents. This includes also a *Optical character recognition (OCR)* for documents and images. The textual information extracted by the module is stored together with the file data information in the custom attribute 'content'. To search for the extracted data the information is also stored in the item named 'dms' which can be added to the fulltext-field-list.  
 
 The text extraction and optical character recognition is based on the [Apache Project 'Tika'](https://tika.apache.org/). The extraction process performed by calling the Tika Rest API provided by the [Tika Server module]. See also the [Docker Image Imixs/Tika](https://cloud.docker.com/u/imixs/repository/docker/imixs/tika).
 
@@ -18,6 +18,27 @@ The TikaDocumentService extracts the textual information from document attachmen
   * TIKA\_SERVICE\_MODE - if set to 'auto' the TikaDocumentService reacts on the CDI event 'BEFORE\_PROCESS' and extracts the data automatically
   
   
+## Auto Processing
+
+Documents can be automatically processed including OCR processing. To activate this feature the environment variable *TIKA_SERVICE_MODE* must be set to 'true'.  
+  
+
+## The TikaPlugin
+
+The TikaPlugin class _org.imixs.workflow.documents.TikaPlugin_ can be used as an alternative for the tika service mode 'auto'. The pugin extract  textual information from document attachments based on the model configuration. You need to add the plugin to your model to activate it. 
+
+	org.imixs.workflow.documents.TikaPlugin
+
+
+## The TikaAdapter
+
+The TikaAdapter class _org.imixs.workflow.documents.TikaAdatper_ is a signal adapter to be bound on a specific BPMN event element.
+
+
+	org.imixs.workflow.documents.TikaAdapter
+
+
+
 #### The OCR MODE
 
 With the optional environment variable  TIKA\_OCR\_MODE the OCR behavior can be controlled:
@@ -50,12 +71,6 @@ For example to set the DPI mode call:
 **Note:** Options set by this method call overwrite the options defined in a tika config file. 
 
 Find more details about how to configure the tika server [here](https://github.com/imixs/imixs-docker/tree/master/tika)
-
-### TikaPlugin
-
-The TikaPlugin class _org.imixs.workflow.documents.TikaPlugin_ can be used as an alternative for the tika service mode 'auto'. The pugin extract  textual information from document attachments based on the model configuration. You need to add the plugin to your model to activate it. 
-
-	org.imixs.workflow.documents.TikaPlugin
 
 
 ### Searching Documents

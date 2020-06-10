@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
-
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -23,7 +23,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
-
+import org.imixs.workflow.engine.ProcessingEvent;
 import org.imixs.workflow.exceptions.PluginException;
 
 /**
@@ -59,6 +59,10 @@ public class TikaDocumentService {
     @Inject
     @ConfigProperty(name = ENV_TIKA_SERVICE_ENDPONT, defaultValue = "")
     String serviceEndpoint;
+
+    @Inject
+    @ConfigProperty(name = TikaDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
+    String serviceMode;
 
     @Inject
     @ConfigProperty(name = ENV_TIKA_OCR_MODE, defaultValue = "PDF_AND_OCR")
@@ -301,6 +305,27 @@ public class TikaDocumentService {
             }
         }
         return result;
+    }
+    
+    
+    /**
+     * React on the ProcessingEvent This method sends the document content to the
+     * tika server and updates the DMS information.
+     * 
+     * @throws PluginException
+     */
+    public void onBeforeProcess(@Observes ProcessingEvent processingEvent) throws PluginException {
+
+        if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
+            return;
+        }
+        // Service only runs if the Tika Service mode is set to 'auto'
+        if ("auto".equalsIgnoreCase(serviceMode)) {
+            if (processingEvent.getEventType() == ProcessingEvent.BEFORE_PROCESS) {
+                // update the dms meta data
+                extractText(processingEvent.getDocument());
+            }
+        }
     }
 
     /**

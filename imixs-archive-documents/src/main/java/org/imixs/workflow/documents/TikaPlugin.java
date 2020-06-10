@@ -26,7 +26,6 @@ import org.imixs.workflow.exceptions.PluginException;
  */
 public class TikaPlugin extends AbstractPlugin {
 
-    public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
     private static Logger logger = Logger.getLogger(TikaPlugin.class.getName());
 
     @EJB

@@ -1,15 +1,19 @@
 package org.imixs.workflow.documents;
 
+import java.util.logging.Logger;
+
 import javax.ejb.Stateless;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.workflow.engine.ProcessingEvent;
+import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.SignalAdapter;
+import org.imixs.workflow.exceptions.AdapterException;
 import org.imixs.workflow.exceptions.PluginException;
 
 /**
- * The TikaDocumentAdapter reacts on ProcessingEvent to auto extract the text content.
+ * The TikaDocumentAdapter reacts on ProcessingEvent to auto extract the text
+ * content.
  * 
  * 
  * @see TikaDocumentService
@@ -17,40 +21,33 @@ import org.imixs.workflow.exceptions.PluginException;
  * @author rsoika
  */
 @Stateless
-public class TikaDocumentAdapter {
-    
-    @Inject
-    @ConfigProperty(name = TikaDocumentService.ENV_TIKA_SERVICE_ENDPONT, defaultValue = "")
-    String serviceEndpoint;
+public class TikaDocumentAdapter implements SignalAdapter {
+
+    private static Logger logger = Logger.getLogger(TikaDocumentAdapter.class.getName());
 
     @Inject
     @ConfigProperty(name = TikaDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
 
-    
     @Inject
-    TikaDocumentService tikaDocumentService; 
+    TikaDocumentService tikaDocumentService;
 
     /**
-     * React on the ProcessingEvent This method sends the document content to the
-     * tika server and updates the DMS information.
-     * 
-     * @throws PluginException
+     * This method posts a text from an attachment to the Imixs-ML Analyse service
+     * endpoint
      */
-    public void onBeforeProcess(@Observes ProcessingEvent processingEvent) throws PluginException {
+    public ItemCollection execute(ItemCollection document, ItemCollection event) throws AdapterException {
 
-        if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
-            return;
-        }
-        // Service only runs if the Tika Service mode is set to 'auto'
-        if ("auto".equalsIgnoreCase(serviceMode)) {
-            if (processingEvent.getEventType() == ProcessingEvent.BEFORE_PROCESS) {
-                // update the dms meta data
-                tikaDocumentService.extractText(processingEvent.getDocument());
+        if (!"auto".equalsIgnoreCase(serviceMode)) {
+            logger.finest("...running api adapter...");
+            // update the dms meta data
+            try {
+                tikaDocumentService.extractText(document);
+            } catch (PluginException e) {
+                throw new AdapterException(e.getErrorContext(), e.getErrorCode(), e.getMessage(), e);
             }
         }
+        return document;
     }
-
-   
 
 }
