@@ -2,7 +2,6 @@ package org.imixs.workflow.documents;
 
 import java.util.logging.Logger;
 
-import javax.ejb.Stateless;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -17,10 +16,9 @@ import org.imixs.workflow.exceptions.PluginException;
  * 
  * 
  * @see TikaDocumentService
- * @version 1.1
+ * @version 1.0
  * @author rsoika
  */
-@Stateless
 public class TikaDocumentAdapter implements SignalAdapter {
 
     private static Logger logger = Logger.getLogger(TikaDocumentAdapter.class.getName());
@@ -36,9 +34,11 @@ public class TikaDocumentAdapter implements SignalAdapter {
      * This method posts a text from an attachment to the Imixs-ML Analyse service
      * endpoint
      */
+    @Override
     public ItemCollection execute(ItemCollection document, ItemCollection event) throws AdapterException {
 
-        if (!"auto".equalsIgnoreCase(serviceMode)) {
+        logger.info("......starting TikaDocumentAdapter mode="+serviceMode);
+        if ("model".equalsIgnoreCase(serviceMode)) {
             logger.finest("...running api adapter...");
             // update the dms meta data
             try {
@@ -46,7 +46,10 @@ public class TikaDocumentAdapter implements SignalAdapter {
             } catch (PluginException e) {
                 throw new AdapterException(e.getErrorContext(), e.getErrorCode(), e.getMessage(), e);
             }
+        } else {
+            logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode);
         }
+
         return document;
     }
 

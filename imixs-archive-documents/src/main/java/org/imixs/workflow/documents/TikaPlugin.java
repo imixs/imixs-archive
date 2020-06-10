@@ -50,9 +50,11 @@ public class TikaPlugin extends AbstractPlugin {
      */
     @Override
     public ItemCollection run(ItemCollection document, ItemCollection event) throws PluginException {
-        if (!"auto".equalsIgnoreCase(serviceMode)) {
+        if ("model".equalsIgnoreCase(serviceMode)) {
             // update the dms meta data
             tikaDocumentService.extractText(document);
+        } else {
+            logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode);
         }
         return document;
     }
