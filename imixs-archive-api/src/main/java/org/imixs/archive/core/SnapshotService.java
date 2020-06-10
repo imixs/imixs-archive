@@ -126,10 +126,6 @@ public class SnapshotService {
     public static final String SKIPSNAPSHOT = "$skipsnapshot"; // skip snapshot creation
 
    
-    public final static String ITEM_DMS_FILE_NAMES = "dms_names"; // list of files
-    public final static String ITEM_DMS_FILE_COUNT = "dms_count"; // count of files
-    public final static String ITEM_DMS = "dms"; // optional custom content to be indexed by lucene
-
     public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
     public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
     public static final String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
