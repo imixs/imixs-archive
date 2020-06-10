@@ -15,12 +15,12 @@ The TikaDocumentService extracts the textual information from document attachmen
  to an instance of an Apache Tika Server to get the file content. The following environment variables are mandatory:
  
   * TIKA\_SERVICE\_ENDPONT - defines the Rest API end-point of the tika server.
-  * TIKA\_SERVICE\_MODE - if set to 'auto' the TikaDocumentService reacts on the CDI event 'BEFORE\_PROCESS' and extracts the data automatically
+  * TIKA\_SERVICE\_MODE - if set to 'auto' the TikaDocumentService reacts on the CDI event 'BEFORE\_PROCESS' and extracts the data automatically. If set to 'model' the TikaPlugin or the TikaAdapter can be used in a BPMN model to activate the OCR processing
   
   
 ## Auto Processing
 
-Documents can be automatically processed including OCR processing. To activate this feature the environment variable *TIKA_SERVICE_MODE* must be set to 'true'.  
+Documents can be automatically processed including OCR processing. To activate this feature the environment variable *TIKA_SERVICE_MODE* must be set to 'auto'.  
   
 
 ## The TikaPlugin
@@ -29,6 +29,7 @@ The TikaPlugin class _org.imixs.workflow.documents.TikaPlugin_ can be used as an
 
 	org.imixs.workflow.documents.TikaPlugin
 
+The environment variable *TIKA_SERVICE_MODE* must be set to 'model'.  
 
 ## The TikaAdapter
 
@@ -37,7 +38,7 @@ The TikaAdapter class _org.imixs.workflow.documents.TikaAdatper_ is a signal ada
 
 	org.imixs.workflow.documents.TikaAdapter
 
-
+The environment variable *TIKA_SERVICE_MODE* must be set to 'model'. 
 
 #### The OCR MODE
 
