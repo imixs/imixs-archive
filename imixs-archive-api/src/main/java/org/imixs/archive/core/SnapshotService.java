@@ -125,7 +125,9 @@ public class SnapshotService {
     public static final String NOSNAPSHOT = "$nosnapshot"; // ignore snapshots
     public static final String SKIPSNAPSHOT = "$skipsnapshot"; // skip snapshot creation
 
-   
+    public final static String ITEM_FILEDATA_FILE_NAMES = "$file.names"; // list of files
+    public final static String ITEM_FILEDATA_FILE_COUNT = "$file.count"; // count of files
+
     public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
     public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
     public static final String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
@@ -305,9 +307,10 @@ public class SnapshotService {
             }
         }
 
-        // 5.a. bebuild the DMS item
-        updateDMSData(documentEvent.getDocument(), snapshot);
-
+        // 5.a. update fileData Meta information...
+        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_COUNT, documentEvent.getDocument().getFileNames().size());
+        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_NAMES, documentEvent.getDocument().getFileNames());
+        
         // 6. store the snapshot uniqeId into the origin-workitem ($snapshotID)
         documentEvent.getDocument().replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
 
@@ -616,48 +619,10 @@ public class SnapshotService {
                 workitem.addFileData(fileData);
 
             }
-//            // collect all optional custom content (need to be provided by client)
-//            customContent = customContent + customAtributes.getItemValueString("content");
-//            // add a lucene word break here!
-//            customContent = customContent + " ";
         }
 
-//        // add $filecount
-//        workitem.replaceItemValue(ITEM_DMS_FILE_COUNT, workitem.getFileNames().size());
-//        // add $filenames
-//        workitem.replaceItemValue(ITEM_DMS_FILE_NAMES, workitem.getFileNames());
-//        // add custom content to be indexed by lucene
-//        workitem.replaceItemValue(ITEM_DMS, customContent);
     }
 
-    /**
-     * This method updates the item 'dms'. The item is filled with all optional content stored in the
-     * custom Attributes. This allows a client to add for example OCR data to a
-     * workitem.
-     * 
-     * @param document
-     * @param snapshot
-     */
-    private void updateDMSData(ItemCollection workitem, ItemCollection snapshot) {
-        List<FileData> currentFileData = snapshot.getFileData();
-        String customContent = "";
-        // now we test for each file entry if a new content was uploaded....
-        for (FileData fileData : currentFileData) {
-
-            ItemCollection customAtributes = new ItemCollection(fileData.getAttributes());
-            // collect all optional custom content (need to be provided by client)
-            customContent = customContent + customAtributes.getItemValueString("content");
-            // add a lucene word break here!
-            customContent = customContent + " ";
-        }
-
-        // add $filecount
-        workitem.replaceItemValue(ITEM_DMS_FILE_COUNT, workitem.getFileNames().size());
-        // add $filenames
-        workitem.replaceItemValue(ITEM_DMS_FILE_NAMES, workitem.getFileNames());
-        // add custom content to be indexed by lucene
-        workitem.replaceItemValue(ITEM_DMS, customContent);
-
-    }
+   
 
 }

@@ -76,7 +76,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<org.imixs.workflow.version>5.1.12</org.imixs.workflow.version>
+		<org.imixs.workflow.version>5.2.2-SNAPSHOT</org.imixs.workflow.version>
 		<org.imixs.melman.version>1.0.16</org.imixs.melman.version>
 		<apache.pdfbox.version>2.0.19</apache.pdfbox.version>
 		<microprofile.version>2.2</microprofile.version>
