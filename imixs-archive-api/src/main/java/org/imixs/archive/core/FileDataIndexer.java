@@ -31,6 +31,7 @@ package org.imixs.archive.core;
 import java.util.List;
 import java.util.logging.Logger;
 
+import javax.enterprise.context.RequestScoped;
 import javax.enterprise.event.Observes;
 
 import org.imixs.workflow.FileData;
@@ -45,6 +46,7 @@ import org.imixs.workflow.engine.index.IndexEvent;
  * 
  * @author rsoika
  */
+@RequestScoped 
 public class FileDataIndexer {
     private static Logger logger = Logger.getLogger(FileDataIndexer.class.getName());
 
@@ -68,7 +70,7 @@ public class FileDataIndexer {
 
             ItemCollection customAtributes = new ItemCollection(fileData.getAttributes());
             // collect all optional custom content (need to be provided by client)
-            textContent = textContent + customAtributes.getItemValueString("content");
+            textContent = textContent + customAtributes.getItemValueString("text");
             // add a lucene word break here!
             textContent = textContent + " ";
         }
