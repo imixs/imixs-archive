@@ -35,24 +35,38 @@ The *snapshot.history* defines how many snapshots will be stored into the local 
 When the history is set to '0', no snapshot-workitems will be removed by the service. This setting is used for external archive systems.  
 
 
-## Meta Data
+## Attachments
 
-Each document attached to an Imixs Workitem is automatically stored in the latest snapshot-workitem and removed from the origin workitem.  
-The Imixs-Snapshot-Architecture updates the metadata for each file in the $file item: 
+Attachments can be part of an ItemCollection stored in the item named '$file'. The $file item contains a list of FileData objects, each holding the following core information about an attachment:
 
+ * name - the file name
+ * ContentType - the media type (e.g. application/pdf)
+ * content - a byte array with the raw data of the file.
+ 
+The FileData objects are automatically transfered into the snapshot-workitem. The file content is removed from the origin workitem and only stored in the snapshot. This behavior reduces the data size and significantly increases the performance when accessing business data. 
+
+### File Meta Data 
+
+The Imixs-Archive API stores additional metadata for each fileData object.
 
  * $created - creation date
- * $creator - userId who added the document
- * md5checksum - MD5 checksum
+ * $creator - userId of the current editor added the attachment
+ * md5checksum - MD5 checksum allowing the verification of the data consistency
  * txtcomment - optional comment field
-  
-The MD5 checksum allows the verification of the data consistency. In addition an application can add optional attributes as well. 
- 
-The file data is removed from the processed workitem and only stored in the snapshot. This behavior reduces the data size and significantly increases the performance when accessing business data. 
+ * text - optional ocr text content of a document (see the module [imixs-archive-documents](https://github.com/imixs/imixs-adapters/tree/master/imixs-adapters-documents)).
+
+The method getAttribute(String name)  can be used ot access the meta data of a FileData object
+
+    String md5=(String)fileData.getAttribute("md5checksum").get(0); 
+
+An application can add optional attributes as well. 
+
+The following additional file meta information is stored in the workitem as extra items:
+
+ * $file.names - contains a list of all filenames attached to the workitem
+ * $file.count - the number of files stored in a workitem.
  
 
-## DMS 
-The attribute *content* of the *$file* attributes contains optional textual representation (see the [Imixs-Adapter-Documents Project](https://github.com/imixs/imixs-adapters/tree/master/imixs-adapters-documents)). This attribute is removed from the processed workitem during the snapshot creation and its content is collected into the item *dms*. The *dms* item can be indexed by the lucene index to support a fulltext search over the document content. If you need to lookup the content of a specific file you need to lookup the snapshot workitem. 
 
 ## The Access Control (ACL)
 The access to archive data, written into the Imixs-Archive, is controlled completely by the [Imixs-Workflow engine ACL](http://www.imixs.org/doc/engine/acl.html). Imixs-Workflow supports a multiple-level security model, that offers a great space of flexibility while controlling the access to all parts of a workitem. 

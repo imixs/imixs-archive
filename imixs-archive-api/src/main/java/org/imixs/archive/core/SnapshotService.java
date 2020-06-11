@@ -508,11 +508,11 @@ public class SnapshotService {
             } else {
                 // in case 'overwriteFileContent' is set to 'false' we protect existing content
                 // of
-                // files with the same name, but extend the name of the old file with a sufix
+                // files with the same name, but extend the name of the old file with a suffix
                 if (!overwriteFileContent) {
                     FileData oldFileData = source.getFileData(fileName);
                     if (oldFileData != null) {
-                        // we need to sufix the last file with the same name here to protect the
+                        // we need to suffix the last file with the same name here to protect the
                         // content.
                         ItemCollection dmsColOrigin = new ItemCollection(fileData.getAttributes());
                         ItemCollection dmsColOld = new ItemCollection(oldFileData.getAttributes());
