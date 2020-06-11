@@ -94,6 +94,9 @@ public class TikaDocumentService {
      * the content via a Rest API to the tika server for OCR processing.
      * <p>
      * The result is stored into the fileData attribute 'content'
+     * <p>
+     * The method also extracts files already stored in a snapshot workitem. In this
+     * case the method tests if the attribute 'content' already exists.
      * 
      * @param workitem - workitem with file attachments
      * @param _ocrmode - PDF_ONLY, OCR_ONLY, MIXED
@@ -172,6 +175,28 @@ public class TikaDocumentService {
         }
         logger.fine("...extracted textual information in " + (System.currentTimeMillis() - l) + "ms");
 
+    }
+
+    /**
+     * This method fetches the content of a file if the file was not processed before. 
+     * This can be verified by the existence of the 'content' attribute. 
+     * 
+     * <p>
+     * The method also verifies if the content of the file was already exported into a snapshot workitem. In this case the method fetches the snapshot.
+     * 
+     * @param workitem
+     * @return
+     */
+    private byte[] getNewFileContent(FileData fileData,ItemCollection workitem) {
+        
+        // first we look if a 'content' attribute already exists....
+        fileData.getAttribute("content");
+        
+        byte[]  fileContent = fileData.getContent();
+        
+        
+        
+        return fileContent;
     }
 
     /**
@@ -306,8 +331,7 @@ public class TikaDocumentService {
         }
         return result;
     }
-    
-    
+
     /**
      * React on the ProcessingEvent This method sends the document content to the
      * tika server and updates the DMS information.
