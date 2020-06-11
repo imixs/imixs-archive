@@ -53,7 +53,7 @@ The Imixs-Archive API stores additional metadata for each fileData object.
  * $creator - userId of the current editor added the attachment
  * md5checksum - MD5 checksum allowing the verification of the data consistency
  * txtcomment - optional comment field
- * text - optional ocr text content of a document (see the module [imixs-archive-documents](https://github.com/imixs/imixs-adapters/tree/master/imixs-adapters-documents)).
+ * text - optional ocr text content of a document (see the module [imixs-archive-documents](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-documents)).
 
 The method getAttribute(String name)  can be used ot access the meta data of a FileData object
 
