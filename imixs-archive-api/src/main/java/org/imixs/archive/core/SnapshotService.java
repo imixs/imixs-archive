@@ -291,7 +291,7 @@ public class SnapshotService {
                     isBlobWorkitem);
         }
 
-        // 5. remove file data and optional content form the origin-workitem
+        // 5. remove file data object
         List<FileData> files = documentEvent.getDocument().getFileData();
         // empty data...
         byte[] empty = {};
@@ -301,8 +301,6 @@ public class SnapshotService {
                 logger.fine("drop content for file '" + fileData.getName() + "'");
                 FileData _fileData = new FileData(fileData.getName(), empty, fileData.getContentType(),
                         fileData.getAttributes());
-                // empty the optional content attribute (the data is collected in the dms item)
-                _fileData.getAttributes().remove("content");
                 documentEvent.getDocument().addFileData(_fileData);
             }
         }
