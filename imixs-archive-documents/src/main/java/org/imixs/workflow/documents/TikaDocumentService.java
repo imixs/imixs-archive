@@ -21,6 +21,7 @@ import javax.inject.Inject;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.ProcessingEvent;
@@ -49,10 +50,10 @@ public class TikaDocumentService {
 
     public static final String DEFAULT_ENCODING = "UTF-8";
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
-    public static final String ENV_TIKA_SERVICE_ENDPONT = "TIKA_SERVICE_ENDPONT";
-    public static final String ENV_TIKA_SERVICE_MODE = "TIKA_SERVICE_MODE";
+    public static final String ENV_TIKA_SERVICE_ENDPONT = "tika.service.endpoint";
+    public static final String ENV_TIKA_SERVICE_MODE = "tika.service.mode";
 
-    public static final String ENV_TIKA_OCR_MODE = "TIKA_OCR_MODE"; // PDF_ONLY, OCR_ONLY, MIXED
+    public static final String ENV_TIKA_OCR_MODE = "tika.ocr.mode"; // PDF_ONLY, OCR_ONLY, MIXED
 
     private static Logger logger = Logger.getLogger(TikaDocumentService.class.getName());
 
@@ -68,6 +69,29 @@ public class TikaDocumentService {
     @ConfigProperty(name = ENV_TIKA_OCR_MODE, defaultValue = "PDF_AND_OCR")
     String ocrMode;
 
+    @Inject
+    SnapshotService snapshotService;
+
+    /**
+     * React on the ProcessingEvent. This method sends the document content to the
+     * tika server and updates the DMS information.
+     * 
+     * @throws PluginException
+     */
+    public void onBeforeProcess(@Observes ProcessingEvent processingEvent) throws PluginException {
+    
+        if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
+            return;
+        }
+        // Service only runs if the Tika Service mode is set to 'auto'
+        if ("auto".equalsIgnoreCase(serviceMode)) {
+            if (processingEvent.getEventType() == ProcessingEvent.BEFORE_PROCESS) {
+                // update the dms meta data
+                extractText(processingEvent.getDocument());
+            }
+        }
+    }
+
     /**
      * Extracts the textual information from document attachments.
      * <p>
@@ -76,7 +100,7 @@ public class TikaDocumentService {
      * 'extractTextFromPDF' using the PDFBox api. In other cases, the method sends
      * the content via a Rest API to the tika server for OCR processing.
      * <p>
-     * The result is stored into the fileData attribute 'content'
+     * The result is stored into the fileData attribute 'text'
      * 
      * @param workitem
      * @throws PluginException
@@ -93,10 +117,10 @@ public class TikaDocumentService {
      * 'extractTextFromPDF' using the PDFBox api. In other cases, the method sends
      * the content via a Rest API to the tika server for OCR processing.
      * <p>
-     * The result is stored into the fileData attribute 'content'
+     * The result is stored into the fileData attribute 'text'
      * <p>
      * The method also extracts files already stored in a snapshot workitem. In this
-     * case the method tests if the attribute 'content' already exists.
+     * case the method tests if the attribute 'text' already exists.
      * 
      * @param workitem - workitem with file attachments
      * @param _ocrmode - PDF_ONLY, OCR_ONLY, MIXED
@@ -115,60 +139,58 @@ public class TikaDocumentService {
         List<FileData> files = workitem.getFileData();
 
         for (FileData fileData : files) {
-            // We parse the file content if a new file content was added
-            byte[] fileContent = fileData.getContent();
-            // tesseract did not support any content type (e.g. application/octet-stream)
-            if (fileContent != null && fileContent.length > 1) {
-                String result = null;
-                // extract the text content...
-                try {
-                    logger.info("...text extraction '" + fileData.getName() + "'...");
 
-                    // test for simple text extraction via PDFBox
-                    if (isPDF(fileData)) {
-                        // PDF_ONLY, OCR_ONLY, PDF_AND_OCR
-                        if ("OCR_ONLY".equals(ocrMode)) {
-                            // OCR Only
-                            logger.info("...force orc scan for pdfs...");
-                            result = doORCProcessing(fileData, options);
+            // do we need to parse the content?
+            if (!hasOCRContent(fileData)) {
+                // yes - fetch the origin fileData object....
+                FileData originFileData = fetchOriginFileData(fileData, workitem);
+                if (originFileData != null) {
+                    String ocrContent = null;
+                    // extract the text content...
+                    try {
+                        logger.info("...text extraction '" + originFileData.getName() + "'...");
+                        // test for simple text extraction via PDFBox
+                        if (isPDF(originFileData)) {
+                            // PDF_ONLY, OCR_ONLY, PDF_AND_OCR
+                            if ("OCR_ONLY".equals(ocrMode)) {
+                                // OCR Only
+                                logger.info("...force orc scan for pdfs...");
+                                ocrContent = doORCProcessing(originFileData, options);
+                            } else {
+                                // try PDFBox....
+                                ocrContent = doPDFTextExtraction(originFileData);
+                                // if we have not a meaningful content we discard the result and try the tika
+                                // api...
+                                if (ocrContent != null && ocrContent.length() < 16) {
+                                    ocrContent = null;
+                                }
+
+                                if (ocrContent == null && ("MIXED".equals(ocrMode))) {
+                                    // lets try it with OCR...
+                                    ocrContent = doORCProcessing(originFileData, options);
+                                }
+                            }
                         } else {
-                            // try PDFBox....
-                            result = doPDFTextExtraction(fileData);
-                            // if we have not a meaningful content we discard the result and try the tika
-                            // api...
-                            if (result != null && result.length() < 16) {
-                                result = null;
-                            }
-
-                            if (result == null && ("MIXED".equals(ocrMode))) {
-                                // lets try it with OCR...
-                                result = doORCProcessing(fileData, options);
+                            // for all other files than PDF we do a ocr scann if not PDF_ONLY mode
+                            if (!"PDF_ONLY".equals(ocrMode)) {
+                                ocrContent = doORCProcessing(originFileData, options);
                             }
                         }
-                    } else {
-                        // for all other files than PDF we do a ocr scann if not PDF_ONLY mode
-                        if (!"PDF_ONLY".equals(ocrMode)) {
-                            result = doORCProcessing(fileData, options);
+
+                        if (ocrContent == null) {
+                            logger.warning("Unable to extract ocr-content for '" + fileData.getName() + "'");
+                            ocrContent = "";
                         }
-                    }
 
-                    // try tika API for OCR processing
-                    if (result == null) {
-                        logger.warning("Unable to extract content!");
-                    }
+                        // store the ocrContent....
+                        List<Object> list = new ArrayList<Object>();
+                        list.add(ocrContent);
+                        fileData.setAttribute("text", list);
 
-                    if (result == null) {
-                        // set empty content per default
-                        result = "";
+                    } catch (IOException e) {
+                        throw new PluginException(TikaDocumentService.class.getSimpleName(), PLUGIN_ERROR,
+                                "Unable to scan attached document '" + fileData.getName() + "'", e);
                     }
-                    // store the result....
-                    List<Object> list = new ArrayList<Object>();
-                    list.add(result);
-                    fileData.setAttribute("content", list);
-
-                } catch (Exception e) {
-                    throw new PluginException(TikaDocumentService.class.getSimpleName(), PLUGIN_ERROR,
-                            "Unable to scan attached document '" + fileData.getName() + "'", e);
                 }
             }
 
@@ -178,25 +200,59 @@ public class TikaDocumentService {
     }
 
     /**
-     * This method fetches the content of a file if the file was not processed before. 
-     * This can be verified by the existence of the 'content' attribute. 
+     * This method returns true if a given FileData object has already a ocr content
+     * object stored. This can be verified by the existence of the 'text'
+     * attribute.
      * 
-     * <p>
-     * The method also verifies if the content of the file was already exported into a snapshot workitem. In this case the method fetches the snapshot.
-     * 
-     * @param workitem
+     * @param fileData - fileData object to be verified
      * @return
      */
-    private byte[] getNewFileContent(FileData fileData,ItemCollection workitem) {
-        
-        // first we look if a 'content' attribute already exists....
-        fileData.getAttribute("content");
-        
-        byte[]  fileContent = fileData.getContent();
-        
-        
-        
-        return fileContent;
+    @SuppressWarnings("unchecked")
+    private boolean hasOCRContent(FileData fileData) {
+        if (fileData != null) {
+            List<String> ocrContentList = (List<String>) fileData.getAttribute("text");
+            if (ocrContentList != null && ocrContentList.size() > 0 && ocrContentList.get(0) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * This method fetches the origin FileData object. In case the content of the
+     * FileData object was already stored in a snapshot, the method loads the origin
+     * FileData object form the snapshot workitem.
+     * <p>
+     * The method returns null if no content can be found. In this case warning is
+     * logged.
+     * 
+     * @param fileData - fileData object to be analyzed
+     * @param workitem - origin workitme holding a reference to a optional snapshot
+     *                 workitem
+     * @return origin fileData object
+     */
+    private FileData fetchOriginFileData(FileData fileData, ItemCollection workitem) {
+
+        // test if the given fileData object has a content....
+        byte[] fileContent = fileData.getContent();
+        if (fileContent != null && fileContent.length > 1) {
+            // the fileData object contains the origin content.
+            // no snapshot need to be loaded here!
+            return fileData;
+        }
+
+        // load the snapshot FileData...
+        FileData snapshotFileData = snapshotService.getWorkItemFile(workitem.getUniqueID(), fileData.getName());
+        if (snapshotFileData != null) {
+            fileContent = snapshotFileData.getContent();
+            if (fileContent != null && fileContent.length > 1) {
+                // return the snapshot FileData object
+                return snapshotFileData;
+            }
+        }
+        // no content found!
+        logger.warning("no content found for fileData '" + fileData.getName() + "'!");
+        return null;
     }
 
     /**
@@ -211,8 +267,9 @@ public class TikaDocumentService {
      * 
      * @param fileData - file content and metadata
      * @return text content
+     * @throws IOException
      */
-    public String doORCProcessing(FileData fileData, List<String> options) throws Exception {
+    public String doORCProcessing(FileData fileData, List<String> options) throws IOException {
 
         // read the Tika Service Enpoint
         if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
@@ -280,9 +337,6 @@ public class TikaDocumentService {
             // no data!
             return null;
 
-        } catch (Exception ioe) {
-            // ioe.printStackTrace();
-            throw ioe;
         } finally {
             // Release current connection
             if (printWriter != null)
@@ -330,26 +384,6 @@ public class TikaDocumentService {
             }
         }
         return result;
-    }
-
-    /**
-     * React on the ProcessingEvent This method sends the document content to the
-     * tika server and updates the DMS information.
-     * 
-     * @throws PluginException
-     */
-    public void onBeforeProcess(@Observes ProcessingEvent processingEvent) throws PluginException {
-
-        if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
-            return;
-        }
-        // Service only runs if the Tika Service mode is set to 'auto'
-        if ("auto".equalsIgnoreCase(serviceMode)) {
-            if (processingEvent.getEventType() == ProcessingEvent.BEFORE_PROCESS) {
-                // update the dms meta data
-                extractText(processingEvent.getDocument());
-            }
-        }
     }
 
     /**
