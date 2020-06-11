@@ -40,8 +40,8 @@ import org.imixs.workflow.engine.index.IndexEvent;
 /**
  * The FileDataIndexer is a CDI bean reacting on IndexEvents and extends the
  * text content of a document with the optional 'content' attribute of attached
- * files. The text content to be indexed is expected in the custom attribute
- * 'content' for each fileData object.
+ * files. The additional text content to be indexed is expected in the custom
+ * attribute 'content' for each fileData object.
  * 
  * @author rsoika
  */
@@ -49,7 +49,7 @@ public class FileDataIndexer {
     private static Logger logger = Logger.getLogger(FileDataIndexer.class.getName());
 
     /**
-     * Update the textContent based on the optional cotnent attribute of the
+     * Update the textContent based on the optional content attribute of the
      * FileData.
      * 
      * @param event - the index event
