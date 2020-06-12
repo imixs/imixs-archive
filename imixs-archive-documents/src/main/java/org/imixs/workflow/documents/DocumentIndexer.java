@@ -39,16 +39,16 @@ import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.index.IndexEvent;
 
 /**
- * The FileDataIndexer is a CDI bean reacting on IndexEvents and extends the
- * text content of a document with the optional 'content' attribute of attached
- * files. The additional text content to be indexed is expected in the custom
- * attribute 'content' for each fileData object.
+ * The DocumentIndexer is a CDI bean reacting on IndexEvents and extends the
+ * searchable content of a workitem with the textual data of attached files. The
+ * additional text to be indexed is expected in the custom attribute 'text' for
+ * each fileData object.
  * 
  * @author rsoika
  */
-@RequestScoped 
-public class FileDataIndexer {
-    private static Logger logger = Logger.getLogger(FileDataIndexer.class.getName());
+@RequestScoped
+public class DocumentIndexer {
+    private static Logger logger = Logger.getLogger(DocumentIndexer.class.getName());
 
     /**
      * Update the textContent based on the optional content attribute of the

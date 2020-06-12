@@ -73,7 +73,7 @@ You have various options to configure the Tika server. Find details about how to
 
 ## Searching Documents
 
-All extracted textual information from attached documents is also searchable by the imixs search index. The class *org.imixs.workflow.documents.FileDataIndexer* adds the ocr content for each file attachment inot the serach index.
+All extracted textual information from attached documents is also searchable by the Imixs search index. The class *org.imixs.workflow.documents.DocumentIndexer* adds the ocr content for each file attachment into the search index.
 
 ## The PDF XML Plugin
 
