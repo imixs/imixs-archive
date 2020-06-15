@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.archive.service.export;
+package org.imixs.archive.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,6 +38,7 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPSClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.imixs.archive.exports.ExportService;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.workflow.ItemCollection;
@@ -46,9 +47,9 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
  * The FTPConnector service provides methods to push a snapshot document into an
- * ftp storrage. The snapshot is stored in a directory based on the snapshot
+ * FTP storage. The snapshot is stored in a directory based on the snapshot
  * creation date. E.g. $created=2017-03-19 will put the data into the
- * subdirectory /2017/03/
+ * sub directory /2017/03/
  * 
  * @version 1.0
  * @author rsoika
@@ -166,7 +167,7 @@ public class FTPConnector {
 	}
 
 	/**
-	 * This method reads a snapshot form the current working directry
+	 * This method reads a snapshot form the current working directory
 	 * 
 	 * @param snapshot
 	 * @throws ArchiveException

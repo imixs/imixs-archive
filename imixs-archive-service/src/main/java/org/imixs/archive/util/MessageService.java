@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.archive.service;
+package org.imixs.archive.util;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
