@@ -33,7 +33,7 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
 import org.imixs.archive.service.exports.ExportService;
-import org.imixs.archive.service.resync.SyncService;
+import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
 
 /**
@@ -47,7 +47,7 @@ import org.imixs.archive.service.util.MessageService;
 public class ImixsArchiveApp extends Application {
 	
 	@Inject
-	SyncService syncService;
+	ResyncService syncService;
 
 	@Inject
 	MessageService messageService;
@@ -69,7 +69,7 @@ public class ImixsArchiveApp extends Application {
 				syncService.start();
 				exportService.startScheduler();
 			} catch (ArchiveException e) {
-				messageService.logMessage(SyncService.MESSAGE_TOPIC,"Failed to start scheduler - " + e.getMessage());
+				messageService.logMessage(ResyncService.MESSAGE_TOPIC,"Failed to start scheduler - " + e.getMessage());
 				e.printStackTrace();
 			}
 		}

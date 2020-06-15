@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.archive.service.resync;
+package org.imixs.archive.service.restore;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -39,8 +39,10 @@ import javax.ejb.Timer;
 import javax.inject.Inject;
 
 import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.RemoteAPIService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
+import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
@@ -141,7 +143,7 @@ public class RestoreService {
                 timer = null;
             } catch (Exception e) {
                 messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
-                throw new ArchiveException(SyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
+                throw new ArchiveException(ResyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
                         " failed to cancle existing timer!");
             }
         }

@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.archive.service.resync;
+package org.imixs.archive.service;
 
 import java.util.logging.Logger;
 
@@ -28,8 +28,6 @@ import javax.ejb.Stateless;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-
-import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.melman.BasicAuthenticator;
 import org.imixs.melman.DocumentClient;

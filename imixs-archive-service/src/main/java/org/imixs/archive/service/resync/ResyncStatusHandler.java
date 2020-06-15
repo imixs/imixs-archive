@@ -31,7 +31,7 @@ import javax.ejb.Singleton;
  * @author rsoika
  */
 @Singleton
-public class SyncStatusHandler {
+public class ResyncStatusHandler {
 
 	public static final byte STAUS_RUNNING = 1;
 	public static final byte STAUS_STOPPED = 0;

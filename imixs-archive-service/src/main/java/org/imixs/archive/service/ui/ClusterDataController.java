@@ -16,7 +16,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.resync.SyncService;
+import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
 import org.imixs.workflow.ItemCollection;
 
@@ -44,7 +44,7 @@ public class ClusterDataController implements Serializable {
 	DataService dataService;
 
 	@Inject
-	SyncService syncService;
+	ResyncService syncService;
 
 	@Inject
 	MessageService messageService;
@@ -143,17 +143,17 @@ public class ClusterDataController implements Serializable {
 	 * @return
 	 */
 	public Date getSyncPoint() {
-		long lsyncPoint = metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
+		long lsyncPoint = metaData.getItemValueLong(ResyncService.ITEM_SYNCPOINT);
 		Date syncPoint = new Date(lsyncPoint);
 		return syncPoint;
 	}
 
 	public long getSyncCount() {
-		return metaData.getItemValueLong(SyncService.ITEM_SYNCCOUNT);
+		return metaData.getItemValueLong(ResyncService.ITEM_SYNCCOUNT);
 	}
 
 	public String getSyncSize() {
-		long l = metaData.getItemValueLong(SyncService.ITEM_SYNCSIZE);
+		long l = metaData.getItemValueLong(ResyncService.ITEM_SYNCSIZE);
 		String result = messageService.userFriendlyBytes(l);
 
 		String[] parts = result.split(" ");
@@ -196,7 +196,7 @@ public class ClusterDataController implements Serializable {
 	 * @return
 	 */
 	public List<String> getMessages() {
-		List<String> messageLog = messageService.getMessages(SyncService.MESSAGE_TOPIC);
+		List<String> messageLog = messageService.getMessages(ResyncService.MESSAGE_TOPIC);
 		// revrese order (use cloned list)
 		List<String> result = new ArrayList<String>();
 		for (String message : messageLog) {

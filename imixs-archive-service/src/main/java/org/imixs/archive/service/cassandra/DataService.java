@@ -23,7 +23,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.resync.SyncService;
+import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
@@ -96,7 +96,7 @@ public class DataService {
     ClusterService clusterService;
 
     @Inject
-    SyncService schedulerService;
+    ResyncService schedulerService;
 
     @Inject
     protected Event<ArchiveEvent> events;

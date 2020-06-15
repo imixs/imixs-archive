@@ -14,7 +14,7 @@ import javax.inject.Named;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.resync.SyncService;
+import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
 import org.imixs.workflow.ItemCollection;
 
@@ -44,7 +44,7 @@ public class ResyncController implements Serializable {
 	ClusterService clusterService;
 
 	@Inject
-	SyncService syncService;
+	ResyncService syncService;
 
 	@Inject
 	DataService dataService;
@@ -97,7 +97,7 @@ public class ResyncController implements Serializable {
 	 * @return
 	 */
 	public Date getSyncPoint() {
-		long lsyncPoint = metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
+		long lsyncPoint = metaData.getItemValueLong(ResyncService.ITEM_SYNCPOINT);
 		Date syncPoint = new Date(lsyncPoint);
 		return syncPoint;
 	}
@@ -113,7 +113,7 @@ public class ResyncController implements Serializable {
 			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
 			Date syncDate = dt.parse(newSyncPoint);
 			logger.info("......updateing syncpoint=" + this.newSyncPoint);
-			metaData.setItemValue(SyncService.ITEM_SYNCPOINT, syncDate.getTime());
+			metaData.setItemValue(ResyncService.ITEM_SYNCPOINT, syncDate.getTime());
 			dataService.saveMetadata(metaData);
 			
 			

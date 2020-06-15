@@ -36,6 +36,7 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.RemoteAPIService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.util.MessageService;
@@ -61,9 +62,9 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
  */
 
 @Stateless
-public class SyncService {
+public class ResyncService {
 
-	public final static String TIMER_ID_SYNCSERVICE = "IMIXS_ARCHIVE_SYNC_TIMER";
+	public final static String TIMER_ID_SYNCSERVICE = "IMIXS_ARCHIVE_RESYNC_TIMER";
 
 	public final static String ITEM_SYNCPOINT = "sync.point";
 	public final static String ITEM_SYNCCOUNT = "sync.count";
@@ -90,9 +91,9 @@ public class SyncService {
 	RemoteAPIService remoteAPIService;
 
 	@Inject
-	SyncStatusHandler syncStatusHandler;
+	ResyncStatusHandler syncStatusHandler;
 
-	private static Logger logger = Logger.getLogger(SyncService.class.getName());
+	private static Logger logger = Logger.getLogger(ResyncService.class.getName());
 
 	/**
 	 * This method initializes a new timer for the sync ....
@@ -113,7 +114,7 @@ public class SyncService {
 				timer = null;
 			} catch (Exception e) {
 				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
-				throw new ArchiveException(SyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
+				throw new ArchiveException(ResyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
 						" failed to cancle existing timer!");
 			}
 		}
@@ -141,7 +142,7 @@ public class SyncService {
 	 * @throws ArchiveException
 	 */
 	public void cancel() throws ArchiveException {
-		syncStatusHandler.setStatus(SyncStatusHandler.STAUS_CANCELED);
+		syncStatusHandler.setStatus(ResyncStatusHandler.STAUS_CANCELED);
 		messageService.logMessage(MESSAGE_TOPIC, "... sync canceled!");
 
 		stop(findTimer());
@@ -277,7 +278,7 @@ public class SyncService {
 						lastUniqueID = "0";
 						dataService.saveMetadata(metaData);
 						
-						if (syncStatusHandler.getStatus()==SyncStatusHandler.STAUS_CANCELED) {
+						if (syncStatusHandler.getStatus()==ResyncStatusHandler.STAUS_CANCELED) {
 							break;
 						}
 					}
@@ -293,7 +294,7 @@ public class SyncService {
 					}
 					
 
-					if (syncStatusHandler.getStatus()==SyncStatusHandler.STAUS_CANCELED) {
+					if (syncStatusHandler.getStatus()==ResyncStatusHandler.STAUS_CANCELED) {
 						break;
 					}
 

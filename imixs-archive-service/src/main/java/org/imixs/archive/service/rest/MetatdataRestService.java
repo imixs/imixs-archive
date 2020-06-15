@@ -39,7 +39,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.resync.SyncService;
+import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.workflow.ItemCollection;
 
 import com.datastax.driver.core.Cluster;
@@ -86,8 +86,8 @@ public class MetatdataRestService {
 
 			ItemCollection metadata = dataService.loadMetadata();
 
-			String result = "syncpoint=" + metadata.getItemValueString(SyncService.ITEM_SYNCPOINT);
-			result = result + "\ncount=" + metadata.getItemValueString(SyncService.ITEM_SYNCCOUNT);
+			String result = "syncpoint=" + metadata.getItemValueString(ResyncService.ITEM_SYNCPOINT);
+			result = result + "\ncount=" + metadata.getItemValueString(ResyncService.ITEM_SYNCCOUNT);
 
 			return result;
 

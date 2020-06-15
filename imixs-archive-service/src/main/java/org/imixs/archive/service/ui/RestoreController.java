@@ -17,8 +17,8 @@ import javax.inject.Named;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.resync.RestoreService;
-import org.imixs.archive.service.resync.SyncService;
+import org.imixs.archive.service.restore.RestoreService;
+import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
 import org.imixs.workflow.ItemCollection;
 
@@ -166,7 +166,7 @@ public class RestoreController implements Serializable {
 	 * @return
 	 */
 	public long getSyncPoint() {
-		return metaData.getItemValueLong(SyncService.ITEM_SYNCPOINT);
+		return metaData.getItemValueLong(ResyncService.ITEM_SYNCPOINT);
 	}
 
 	/**
