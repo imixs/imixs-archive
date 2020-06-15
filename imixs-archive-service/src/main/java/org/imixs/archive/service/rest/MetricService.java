@@ -1,223 +1,125 @@
 package org.imixs.archive.service.rest;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.ObserverException;
 import javax.enterprise.event.Observes;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
+import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.metrics.Counter;
+import org.eclipse.microprofile.metrics.Metadata;
+import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.MetricType;
+import org.eclipse.microprofile.metrics.Tag;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.imixs.archive.service.cassandra.ArchiveEvent;
-import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.exceptions.AccessDeniedException;
 
 /**
- * The Imixs MetricSerivce is a monitoring resource for Prometheus.
+ * The Imixs MetricSerivce is a monitoring resource for Imixs-Archive in the
+ * prometheus format. The MetricService is based on Microprofile 2.2 and
+ * MP-Metric-API 2.2
  * <p>
- * A metric is generated when a Imixs ProcessingEvent or Imixs DocumentEvent is
- * fired. The service exports metrics in prometheus text format.
+ * A metric is created each time when an ArchiveEvent is fired. The service
+ * exports metrics in prometheus text format.
  * <p>
- * See:
- * 
- * https://prometheus.io/docs/instrumenting/exposition_formats/
- * https://www.oreilly.com/library/view/prometheus-up/9781492034131/ch04.html
+ * The service provides counter metrics. A counter will always increase. To
+ * extract the values in prometheus use the rate function - Example:
  * <p>
- * To avoid dependencies, we implement the prometheus exposition text format you
- * ourself.
+ * <code>rate(http_requests_total[5m])</code>
  * <p>
- * Mainly the adaper proivdes counter metrics about processed workitems. A
- * coutner will always increase. To extract the values in prometheus use the
- * rate fuction - Exmaple:
+ * The service expects MP Metrics v2.0. A warning is logged if corresponding
+ * version is missing.
  * 
- * rate(http_requests_total[5m])
- * 
- * See: https://www.robustperception.io/how-does-a-prometheus-counter-work
- * 
- *
- * @see
- * http://www.adam-bien.com/roller/abien/entry/singleton_the_simplest_possible_jmx
- * http://www.adam-bien.com/roller/abien/entry/monitoring_java_ee_appservers_with
- * http://www.adam-bien.com/roller/abien/entry/java_ee_6_observer_with
+ * @See https://www.robustperception.io/how-does-a-prometheus-counter-work
  * @author rsoika
  * @version 1.0
  */
-@Singleton
-@Startup
-@Path("metrics")
+@ApplicationScoped
 public class MetricService {
 
-	private ConcurrentHashMap<String, AtomicLong> metricTotalProcessing = new ConcurrentHashMap<String, AtomicLong>();
-	private ConcurrentHashMap<String, AtomicLong> metricTotalDocuments = new ConcurrentHashMap<String, AtomicLong>();
+    public static final String METRIC_DOCUMENTS = "documents";
 
-	private static Logger logger = Logger.getLogger(MetricService.class.getName());
+    @Inject
+    @ConfigProperty(name = "metrics.enabled", defaultValue = "false")
+    private boolean metricsEnabled;
 
-	@PostConstruct
-	public void init() {
-		// init metrics map
-		metricTotalProcessing = new ConcurrentHashMap<String, AtomicLong>();
-		metricTotalDocuments = new ConcurrentHashMap<String, AtomicLong>();
-	}
+    @Inject
+    @RegistryType(type = MetricRegistry.Type.APPLICATION)
+    MetricRegistry metricRegistry;
 
-	/**
-	 * Get resource to export metrics in Prometheus text format
-	 * 
-	 * Example:
-	 * 
-	 * documents_total{method="load"} 66
-	 * workitems_processed_total{type="workitem",modelversion="auftrag-1.0.0",task="7000",event="10",workflowgroup="Auftrag",workflowstatus="Neuanlage"}
-	 * 1
-	 * 
-	 */
-	@GET
-	@Produces({ "text/plain; version=0.0.4" })
-	public Response getMetrics() {
+    boolean mpMetricNoSupport = false;
+    private static Logger logger = Logger.getLogger(MetricService.class.getName());
 
-		StreamingOutput stream = new StreamingOutput() {
-			@Override
-			public void write(OutputStream os) throws IOException, WebApplicationException {
-				Writer writer = new BufferedWriter(new OutputStreamWriter(os));
-				// Timestamps in the exposition format should generally be avoided
+    /**
+     * ProcessingEvent listener to generate a metric.
+     * 
+     * @param archiveEvent
+     * @throws AccessDeniedException
+     */
+    public void onArchiveEvent(@Observes ArchiveEvent archiveEvent) throws AccessDeniedException {
 
-				// write documents metrics
-				writer.write("# HELP documents_total The total number of archived documents." + "\n");
-				writer.write("# TYPE documents_total counter" + "\n");
-				// iterate over all collected metrics....
+        if (!metricsEnabled) {
+            return;
+        }
+        if (archiveEvent == null) {
+            return;
+        }
+        if (mpMetricNoSupport) {
+            // missing MP Metric support!
+            return;
+        }
 
-				Iterator<Map.Entry<String, AtomicLong>> it = metricTotalDocuments.entrySet().iterator();
-				while (it.hasNext()) {
-					Map.Entry<String, AtomicLong> metric = it.next();
-					writer.write(metric.getKey() + " " + metric.getValue().get() + "\n");
-				}
+        try {
+            Counter counter = buildArchiveMetric(archiveEvent);
+            counter.inc();
+        } catch (IncompatibleClassChangeError | ObserverException oe) {
+            mpMetricNoSupport = true;
+            logger.warning("...Microprofile Metrics v2.2 not supported!");
+        }
 
-				// write processing metrics
-				writer.write("# HELP workitems_processed_total The total number of workitems processeds." + "\n");
-				writer.write("# TYPE workitems_processed_total counter" + "\n");
-				// iterate over all collected metrics....
-				it = metricTotalProcessing.entrySet().iterator();
-				while (it.hasNext()) {
-					Map.Entry<String, AtomicLong> metric = it.next();
-					writer.write(metric.getKey() + " " + metric.getValue().get() + "\n");
-				}
-				// note: The last line must end with a line feed character. Empty lines are
-				// ignored.
-				writer.flush();
-			}
-		};
+    }
 
-		return Response.ok(stream).build();
-	}
+    /**
+     * This method builds a prometheus metric from a DocumentEvent object containing
+     * the lables save, load delete
+     * 
+     * @return
+     */
+    private Counter buildArchiveMetric(ArchiveEvent event) {
+        // Constructs a Metadata object from a map with the following keys:
+        // - name - The name of the metric
+        // - displayName - The display (friendly) name of the metric
+        // - description - The description of the metric
+        // - type - The type of the metric
+        // - tags - The tags of the metric - cannot be null
+        // - reusable - If true, this metric name is permitted to be used at multiple
 
-	/**
-	 * ProcessingEvent listener to generate a metric.
-	 * 
-	 * @param archiveEvent
-	 * @throws AccessDeniedException
-	 */
-	public void onProcessingEvent(@Observes ArchiveEvent archiveEvent) throws AccessDeniedException {
-		if (archiveEvent == null)
-			return;
+        Metadata metadata = Metadata.builder().withName(METRIC_DOCUMENTS)
+                .withDescription("Imixs-Workflow count documents").withType(MetricType.COUNTER).build();
 
-		long l = System.currentTimeMillis();
+        String method = null;
+        // build tags...
+        if (ArchiveEvent.ON_ARCHIVE == event.getEventType()) {
+            method = "archive";
+        }
 
-		if (ArchiveEvent.ON_ARCHIVE == archiveEvent.getEventType()) {
-			String metric = buildProcessingMetric(archiveEvent);
-			AtomicLong counter = metricTotalProcessing.get(metric);
-			if (counter == null) {
-				counter = new AtomicLong();
-			}
-			// write metric
-			counter.incrementAndGet();
-			metricTotalProcessing.put(metric, counter);
-			logger.fine("...metric " + metric + " collected in " + (System.currentTimeMillis() - l) + "ms");
-		}
-	}
+        if (ArchiveEvent.ON_RESTORE == event.getEventType()) {
+            method = "restore";
+        }
 
-	/**
-	 * DocumentEvent listener to generate a metric.
-	 * 
-	 * @param documentEvent
-	 * @throws AccessDeniedException
-	 */
-	public void onDocumentEvent(@Observes ArchiveEvent documentEvent) throws AccessDeniedException {
-		if (documentEvent == null)
-			return;
+        if (ArchiveEvent.ON_DELETE == event.getEventType()) {
+            method = "delete";
+        }
 
-		long l = System.currentTimeMillis();
+        Tag[] tags = { new Tag("method", method) };
 
-		String metric = buildDocumentMetric(documentEvent);
-		if (metric == null) {
-			return;
-		}
-		AtomicLong counter = metricTotalDocuments.get(metric);
-		if (counter == null) {
-			counter = new AtomicLong();
-		}
-		// write metric
-		counter.incrementAndGet();
-		metricTotalDocuments.put(metric, counter);
-		logger.fine("...metric " + metric + " collected in " + (System.currentTimeMillis() - l) + "ms");
+        Counter counter = metricRegistry.counter(metadata, tags);
 
-	}
+        return counter;
 
-	/**
-	 * This method builds a prometheus metric from a DocumentEvent object containing
-	 * the lables save, load delete
-	 * 
-	 * @return
-	 */
-	private static String buildDocumentMetric(ArchiveEvent event) {
-		if (ArchiveEvent.ON_ARCHIVE == event.getEventType()) {
-			return "documents_total{method=\"archive\"}";
-		}
+    }
 
-		if (ArchiveEvent.ON_RESTORE == event.getEventType()) {
-			return "documents_total{method=\"restore\"}";
-		}
-
-		if (ArchiveEvent.ON_DELETE == event.getEventType()) {
-			return "documents_total{method=\"delete\"}";
-		}
-
-		return null;
-
-	}
-
-	/**
-	 * This method builds a prometheus metric from a ProcessingEvent object
-	 * containing the lables task, event, type, workflowgroup, worklowstatus,
-	 * modelversion
-	 * 
-	 * @return
-	 */
-	private static String buildProcessingMetric(ArchiveEvent event) {
-		String metric = "workitems_processed_total";
-
-		// add lables
-		metric += "{";
-		metric += "type=\"" + event.getDocument().getType() + "\",";
-		metric += "modelversion=\"" + event.getDocument().getModelVersion() + "\",";
-		metric += "task=\"" + event.getDocument().getTaskID() + "\",";
-		metric += "event=\"" + event.getDocument().getItemValueInteger("$lastevent") + "\",";
-		metric += "workflowgroup=\"" + event.getDocument().getItemValueString(WorkflowKernel.WORKFLOWGROUP) + "\",";
-		metric += "workflowstatus=\"" + event.getDocument().getItemValueString(WorkflowKernel.WORKFLOWSTATUS) + "\"";
-		metric += "} ";
-
-		return metric;
-
-	}
 }

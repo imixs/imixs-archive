@@ -312,6 +312,12 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>org.eclipse.microprofile.metrics</groupId>
+			<artifactId>microprofile-metrics-api</artifactId>
+			<version>${microprofile.version}</version>
+			<scope>provided</scope>
+		</dependency>
 
 		<!-- Testing -->
 		<dependency>
