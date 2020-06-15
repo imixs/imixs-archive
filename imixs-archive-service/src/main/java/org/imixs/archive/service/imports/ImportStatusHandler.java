@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.archive.imports;
+package org.imixs.archive.service.imports;
 
 import javax.ejb.Singleton;
 

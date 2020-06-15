@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.archive.util;
+package org.imixs.archive.service.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,9 +38,9 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPSClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.exports.ExportService;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.DataService;
+import org.imixs.archive.service.exports.ExportService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.xml.XMLDocumentAdapter;

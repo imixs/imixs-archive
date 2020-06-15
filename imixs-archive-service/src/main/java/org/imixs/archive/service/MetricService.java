@@ -1,4 +1,4 @@
-package org.imixs.archive.service.rest;
+package org.imixs.archive.service;
 
 import java.util.logging.Logger;
 

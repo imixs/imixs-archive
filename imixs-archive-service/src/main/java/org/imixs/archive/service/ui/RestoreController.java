@@ -19,7 +19,7 @@ import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.resync.RestoreService;
 import org.imixs.archive.service.resync.SyncService;
-import org.imixs.archive.util.MessageService;
+import org.imixs.archive.service.util.MessageService;
 import org.imixs.workflow.ItemCollection;
 
 /**
