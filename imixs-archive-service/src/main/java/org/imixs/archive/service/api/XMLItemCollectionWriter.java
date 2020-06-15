@@ -25,7 +25,7 @@
  *  	Ralph Soika - Software Developer
  *******************************************************************************/
 
-package org.imixs.archive.service.rest;
+package org.imixs.archive.service.api;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
