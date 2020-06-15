@@ -304,53 +304,53 @@ public class ArchiveRestService {
 	 *            - snapshot data to be stored into cassandra in XML format
 	 * @return - snapshot data with an error code in case of a failure
 	 */
-	@POST
-	@Produces(MediaType.APPLICATION_XML)
-	@Consumes({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
-	public Response postSnapshot(XMLDocument xmlDocument) {
-
-		Session session = null;
-		Cluster cluster = null;
-		ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
-
-		try {
-			logger.finest("...write snapshot...");
-			dataService.saveSnapshot(snapshot);
-			snapshot.removeItem("$error_code");
-			snapshot.removeItem("$error_message");
-
-		} catch (ArchiveException e) {
-			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
-			snapshot = this.addErrorMessage(e, snapshot);
-
-			return null;
-
-		} finally {
-			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
-		}
-
-		// return workitem
-		try {
-			if (snapshot.hasItem("$error_code")) {
-				return Response.ok(XMLDataCollectionAdapter.getDataCollection(snapshot), MediaType.APPLICATION_XML)
-						.status(Response.Status.NOT_ACCEPTABLE).build();
-			}
-			else {
-			    // we do not return a data item
-				return Response.ok().build();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			return Response.status(Response.Status.NOT_ACCEPTABLE).build();
-		}
-
-	}
+//	@POST
+//	@Produces(MediaType.APPLICATION_XML)
+//	@Consumes({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
+//	public Response postSnapshot(XMLDocument xmlDocument) {
+//
+//		Session session = null;
+//		Cluster cluster = null;
+//		ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
+//
+//		try {
+//			logger.finest("...write snapshot...");
+//			dataService.saveSnapshot(snapshot);
+//			snapshot.removeItem("$error_code");
+//			snapshot.removeItem("$error_message");
+//
+//		} catch (ArchiveException e) {
+//			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
+//			snapshot = this.addErrorMessage(e, snapshot);
+//
+//			return null;
+//
+//		} finally {
+//			// close session and cluster object
+//			if (session != null) {
+//				session.close();
+//			}
+//			if (cluster != null) {
+//				cluster.close();
+//			}
+//		}
+//
+//		// return workitem
+//		try {
+//			if (snapshot.hasItem("$error_code")) {
+//				return Response.ok(XMLDataCollectionAdapter.getDataCollection(snapshot), MediaType.APPLICATION_XML)
+//						.status(Response.Status.NOT_ACCEPTABLE).build();
+//			}
+//			else {
+//			    // we do not return a data item
+//				return Response.ok().build();
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return Response.status(Response.Status.NOT_ACCEPTABLE).build();
+//		}
+//
+//	}
 
 	/**
 	 * This method converts a single ItemCollection into a Jax-rs response object.
@@ -401,20 +401,20 @@ public class ArchiveRestService {
 	 * 
 	 * @param pe
 	 */
-	private ItemCollection addErrorMessage(Exception pe, ItemCollection aworkitem) {
-
-		if (pe instanceof RuntimeException && pe.getCause() != null) {
-			pe = (RuntimeException) pe.getCause();
-		}
-
-		if (pe instanceof InvalidAccessException) {
-			aworkitem.replaceItemValue("$error_code", ((InvalidAccessException) pe).getErrorCode());
-			aworkitem.replaceItemValue("$error_message", pe.getMessage());
-		} else {
-			aworkitem.replaceItemValue("$error_code", "INTERNAL ERROR");
-			aworkitem.replaceItemValue("$error_message", pe.getMessage());
-		}
-
-		return aworkitem;
-	}
+//	private ItemCollection addErrorMessage(Exception pe, ItemCollection aworkitem) {
+//
+//		if (pe instanceof RuntimeException && pe.getCause() != null) {
+//			pe = (RuntimeException) pe.getCause();
+//		}
+//
+//		if (pe instanceof InvalidAccessException) {
+//			aworkitem.replaceItemValue("$error_code", ((InvalidAccessException) pe).getErrorCode());
+//			aworkitem.replaceItemValue("$error_message", pe.getMessage());
+//		} else {
+//			aworkitem.replaceItemValue("$error_code", "INTERNAL ERROR");
+//			aworkitem.replaceItemValue("$error_message", pe.getMessage());
+//		}
+//
+//		return aworkitem;
+//	}
 }

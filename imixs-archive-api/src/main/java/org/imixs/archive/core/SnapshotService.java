@@ -33,6 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
@@ -142,9 +143,6 @@ public class SnapshotService {
 
     public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
     public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
-    
-     
-    
 
     public final static String ITEM_MD5_CHECKSUM = "md5checksum";
 
@@ -180,6 +178,7 @@ public class SnapshotService {
      * and before the workitem is saved.
      */
     public void onSave(@Observes DocumentEvent documentEvent) {
+        boolean debug = logger.isLoggable(Level.FINE);
 
         String type = documentEvent.getDocument().getType();
 
@@ -234,17 +233,23 @@ public class SnapshotService {
         }
 
         // 1.) create a copy of the current workitem
-        logger.fine("creating new snapshot-workitem.... ");
+        if (debug) {
+            logger.fine("creating new snapshot-workitem.... ");
+        }
         ItemCollection snapshot = (ItemCollection) documentEvent.getDocument().clone();
 
         // 2.) compute a snapshot $uniqueId containing a timestamp
         String snapshotUniqueID = documentEvent.getDocument().getUniqueID() + "-" + System.currentTimeMillis();
-        logger.fine("snapshot-uniqueid=" + snapshotUniqueID);
+        if (debug) {
+            logger.fine("snapshot-uniqueid=" + snapshotUniqueID);
+        }
         snapshot.replaceItemValue(WorkflowKernel.UNIQUEID, snapshotUniqueID);
 
         // 3. change the type with the prefix 'snapshot-'
         type = TYPE_PRAFIX + documentEvent.getDocument().getType();
-        logger.fine("new document type = " + type);
+        if (debug) {
+            logger.fine("new document type = " + type);
+        }
         snapshot.replaceItemValue(WorkflowKernel.TYPE, type);
 
         // boolean overwriteFileContent = Boolean.parseBoolean(
@@ -266,16 +271,21 @@ public class SnapshotService {
         // snapshot from the origin version
         if (lastSnapshot == null
                 && !documentEvent.getDocument().getItemValueString(WorkflowKernel.UNIQUEIDSOURCE).isEmpty()) {
-            logger.fine("lookup last snapshot from origin version: '"
-                    + documentEvent.getDocument().getItemValueString(WorkflowKernel.UNIQUEIDSOURCE) + "'");
+
+            if (debug) {
+                logger.fine("lookup last snapshot from origin version: '"
+                        + documentEvent.getDocument().getItemValueString(WorkflowKernel.UNIQUEIDSOURCE) + "'");
+            }
             lastSnapshot = documentService.load(documentEvent.getDocument().getItemValueString(SNAPSHOTID));
         }
 
         // in case that we have still no snapshot but a $blobWorkitem we can lookup
         // here the deprecated $blobWorkitem
         if (lastSnapshot == null && !documentEvent.getDocument().getItemValueString("$blobworkitem").isEmpty()) {
-            logger.fine("lookup last blobworkitem: '" + documentEvent.getDocument().getItemValueString("$blobworkitem")
-                    + "'");
+            if (debug) {
+                logger.fine("lookup last blobworkitem: '"
+                        + documentEvent.getDocument().getItemValueString("$blobworkitem") + "'");
+            }
             // try to load the blobWorkitem
             lastSnapshot = documentService.load(documentEvent.getDocument().getItemValueString("$blobworkitem"));
             if (lastSnapshot != null) {
@@ -298,7 +308,9 @@ public class SnapshotService {
         for (FileData fileData : files) {
             if (fileData.getContent() != null && fileData.getContent().length > 0) {
                 // update the file name with empty data
-                logger.fine("drop content for file '" + fileData.getName() + "'");
+                if (debug) {
+                    logger.fine("drop content for file '" + fileData.getName() + "'");
+                }
                 FileData _fileData = new FileData(fileData.getName(), empty, fileData.getContentType(),
                         fileData.getAttributes());
                 documentEvent.getDocument().addFileData(_fileData);
@@ -306,9 +318,11 @@ public class SnapshotService {
         }
 
         // 5.a. update fileData Meta information...
-        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_COUNT, documentEvent.getDocument().getFileNames().size());
-        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_NAMES, documentEvent.getDocument().getFileNames());
-        
+        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_COUNT,
+                documentEvent.getDocument().getFileNames().size());
+        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_NAMES,
+                documentEvent.getDocument().getFileNames());
+
         // 6. store the snapshot uniqeId into the origin-workitem ($snapshotID)
         documentEvent.getDocument().replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
 
@@ -323,7 +337,9 @@ public class SnapshotService {
 
         // 9. write event log entry...
         if (archiveServiceEndpoint != null && !archiveServiceEndpoint.isEmpty()) {
-            logger.finest("......create event log entry " + EVENTLOG_TOPIC_ADD);
+            if (debug) {
+                logger.finest("......create event log entry " + EVENTLOG_TOPIC_ADD);
+            }
             eventLogService.createEvent(EVENTLOG_TOPIC_ADD, snapshot.getUniqueID());
         }
     }
@@ -422,9 +438,11 @@ public class SnapshotService {
         if (snapshotID == null || snapshotID.isEmpty()) {
             throw new SnapshotException(DocumentService.INVALID_UNIQUEID, "invalid " + SNAPSHOTID);
         }
+        boolean debug = logger.isLoggable(Level.FINE);
 
-        logger.fine(PROPERTY_SNAPSHOT_HISTORY + " = " + iSnapshotHistory);
-
+        if (debug) {
+            logger.fine(PROPERTY_SNAPSHOT_HISTORY + " = " + iSnapshotHistory);
+        }
         // skip if history = 0
         if (iSnapshotHistory == 0) {
             return;
@@ -432,7 +450,9 @@ public class SnapshotService {
 
         // we do not want to delete snapshots which belong to the origin workitem of a
         // spit event. With the following query thus snapshots will not be selected.
-        logger.fine("cleanSnaphostHistory for $snapshotid: " + snapshotID);
+        if (debug) {
+            logger.fine("cleanSnaphostHistory for $snapshotid: " + snapshotID);
+        }
         String snapshtIDPfafix = snapshotID.substring(0, snapshotID.lastIndexOf('-'));
         String query = "SELECT document FROM Document AS document WHERE document.id > '" + snapshtIDPfafix
                 + "-' AND document.id < '" + snapshotID + "' ORDER BY document.id ASC";
@@ -440,7 +460,9 @@ public class SnapshotService {
         List<ItemCollection> result = documentService.getDocumentsByQuery(query);
         while (result.size() >= iSnapshotHistory) {
             ItemCollection oldSnapshot = result.get(0);
-            logger.fine("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
+            if (debug) {
+                logger.fine("remove deprecated snapshot: " + oldSnapshot.getUniqueID());
+            }
             try {
 
                 // test if exists in current transaction
@@ -448,8 +470,10 @@ public class SnapshotService {
                 if (documentService.load(oldSnapshot.getUniqueID()) != null) {
                     documentService.remove(oldSnapshot);
                 } else {
-                    logger.fine("......snapshot '" + oldSnapshot.getUniqueID()
-                            + "' can't be deleted in this transaction context.");
+                    if (debug) {
+                        logger.fine("......snapshot '" + oldSnapshot.getUniqueID()
+                                + "' can't be deleted in this transaction context.");
+                    }
                 }
             } catch (AccessDeniedException e) {
                 logger.warning("remove deprecated snapshot '" + oldSnapshot.getUniqueID()
@@ -477,6 +501,8 @@ public class SnapshotService {
     private void copyFilesFromItemCollection(ItemCollection source, ItemCollection target, ItemCollection origin,
             boolean overwriteFileContent, boolean blobWorkitem) {
 
+        boolean debug = logger.isLoggable(Level.FINE);
+
         List<FileData> files = target.getFileData();
 
         for (FileData fileData : files) {
@@ -490,14 +516,18 @@ public class SnapshotService {
                 if (source != null) {
                     FileData oldFileData = source.getFileData(fileName);
                     if (oldFileData != null) {
-                        logger.fine("copy file content '" + fileName + "' from: " + source.getUniqueID());
+                        if (debug) {
+                            logger.fine("copy file content '" + fileName + "' from: " + source.getUniqueID());
+                        }
                         target.addFileData(new FileData(fileName, oldFileData.getContent(),
                                 oldFileData.getContentType(), oldFileData.getAttributes()));
                     } else {
                         // if the file data is a link/url we did not find content
                         if (fileName.matches(REGEX_URL_PATTERN)) {
                             // In case of an URL we do not need to copy the file content
-                            logger.fine("URL - no file content for " + fileName);
+                            if (debug) {
+                                logger.fine("URL - no file content for " + fileName);
+                            }
                         } else {
                             logger.warning("Missing file content!");
                         }
@@ -579,7 +609,7 @@ public class SnapshotService {
     private void updateCustomAttributes(ItemCollection workitem, String username) throws NoSuchAlgorithmException {
 
         List<FileData> currentFileData = workitem.getFileData();
-        //String customContent = "";
+        // String customContent = "";
         // now we test for each file entry if a new content was uploaded....
         for (FileData fileData : currentFileData) {
 
@@ -620,7 +650,5 @@ public class SnapshotService {
         }
 
     }
-
-   
 
 }
