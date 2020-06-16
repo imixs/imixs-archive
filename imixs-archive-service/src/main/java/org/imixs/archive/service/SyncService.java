@@ -1,6 +1,7 @@
 package org.imixs.archive.service;
 
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ejb.Asynchronous;
@@ -55,56 +56,16 @@ public class SyncService {
     @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_AUTHMETHOD, defaultValue = "")
     String workflowServiceAuthMethod;
 
+    // deadlock timeout interval in ms
+    @Inject
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_DEADLOCK, defaultValue = "60000")
+    long deadLockInterval;
+    
+    
     @Inject
     DataService dataService;
 
     private static Logger logger = Logger.getLogger(SyncService.class.getName());
-
-    /**
-     * Helper method to initalize a Melman Workflow Client based on the current
-     * archive configuration.
-     */
-    public DocumentClient initDocumentClient() {
-        logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
-        DocumentClient documentClient = new DocumentClient(workflowServiceEndpoint);
-        // Test authentication method
-        if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
-            // default basic authenticator
-            FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
-                    workflowServicePassword);
-            // register the authenticator
-            documentClient.registerClientRequestFilter(formAuth);
-        } else {
-            // default basic authenticator
-            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
-            // register the authenticator
-            documentClient.registerClientRequestFilter(basicAuth);
-        }
-        return documentClient;
-    }
-
-    /**
-     * Helper method to initalize a Melman Workflow Client based on the current
-     * archive configuration.
-     */
-    public EventLogClient initEventLogClient() {
-        logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
-        EventLogClient eventLogClient = new EventLogClient(workflowServiceEndpoint);
-        // Test authentication method
-        if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
-            // default basic authenticator
-            FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
-                    workflowServicePassword);
-            // register the authenticator
-            eventLogClient.registerClientRequestFilter(formAuth);
-        } else {
-            // default basic authenticator
-            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
-            // register the authenticator
-            eventLogClient.registerClientRequestFilter(basicAuth);
-        }
-        return eventLogClient;
-    }
 
     /**
      * This method is called by the ManagedScheduledExecutorService. The method
@@ -120,7 +81,7 @@ public class SyncService {
         String id = null;
         String ref = null;
 
-        // test for new event log entries...
+        // init clients
         EventLogClient eventLogClient = initEventLogClient();
         DocumentClient documentClient = initDocumentClient();
 
@@ -128,9 +89,6 @@ public class SyncService {
         eventLogClient.setPageSize(100);
         List<ItemCollection> events = eventLogClient.searchEventLog(ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
                 ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
-
-//        List<EventLog> events = eventLogService.findEventsByTopic(100, SnapshotService.EVENTLOG_TOPIC_ADD,
-//                SnapshotService.EVENTLOG_TOPIC_REMOVE);
 
         for (ItemCollection eventLogEntry : events) {
             topic = eventLogEntry.getItemValueString("topic");
@@ -140,7 +98,6 @@ public class SyncService {
                 // first try to lock the eventLog entry....
                 eventLogClient.lockEventLogEntry(id);
                 // eventLogService.lock(eventLogEntry);
-               
 
                 // pull the snapshotEvent only if not just qeued...
                 if (topic.startsWith(ImixsArchiveApp.EVENTLOG_TOPIC_ADD)) {
@@ -169,6 +126,24 @@ public class SyncService {
     }
 
     /**
+     * Asynchronous method to release dead locks
+     * 
+     * @param eventLogClient
+     * @param deadLockInterval
+     * @param topic
+     * @throws RestAPIException
+     */
+    @Asynchronous
+    @TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
+    public void releaseDeadLocks() throws RestAPIException {
+        // init client
+        EventLogClient eventLogClient = initEventLogClient();
+    
+        eventLogClient.releaseDeadLocks( deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
+                ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
+    }
+
+    /**
      * Thie method lookups the event log entries and pushes new snapshots into the
      * archvie service.
      * <p>
@@ -178,15 +153,14 @@ public class SyncService {
      * @throws ArchiveException
      * @throws RestAPIException
      */
-//    @Asynchronous
-//    @TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
     public void pullSnapshot(ItemCollection eventLogEntry, DocumentClient documentClient, EventLogClient eventLogClient)
             throws ArchiveException {
 
         if (eventLogEntry == null) {
             return;
         }
-
+        
+        boolean debug = logger.isLoggable(Level.FINE);
         String ref = eventLogEntry.getItemValueString("ref");
         String id = eventLogEntry.getItemValueString("id");
         logger.finest("...push " + ref + "...");
@@ -199,14 +173,12 @@ public class SyncService {
             if (snapshot != null) {
                 logger.finest("...write snapshot...");
                 dataService.saveSnapshot(snapshot);
-                // push the snapshot...
-                String url = workflowServiceEndpoint + "/archive";
-                documentClient.postXMLDocument(url, XMLDocumentAdapter.getDocument(snapshot));
 
                 // TODO - we should now delete the snapshot! This will decrease the storage
                 // on the database. But is this bullet proved....?
-
-                logger.fine("...pulled " + ref + " in " + (System.currentTimeMillis() - l) + "ms");
+                if (debug) {
+                	logger.fine("...pulled " + ref + " in " + (System.currentTimeMillis() - l) + "ms");
+                }
             }
         } catch (RestAPIException e) {
             logger.severe("Snapshot " + ref + " pull failed: " + e.getMessage());
@@ -218,5 +190,51 @@ public class SyncService {
                 throw new ArchiveException("REMOTE_EXCEPTION", "Unable to delte eventLogEntry: " + id, e1);
             }
         }
+    }
+
+    /**
+     * Helper method to initialize a Melman Workflow Client based on the current
+     * archive configuration.
+     */
+    private DocumentClient initDocumentClient() {
+        logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
+        DocumentClient documentClient = new DocumentClient(workflowServiceEndpoint);
+        // Test authentication method
+        if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
+            // default basic authenticator
+            FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
+                    workflowServicePassword);
+            // register the authenticator
+            documentClient.registerClientRequestFilter(formAuth);
+        } else {
+            // default basic authenticator
+            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
+            // register the authenticator
+            documentClient.registerClientRequestFilter(basicAuth);
+        }
+        return documentClient;
+    }
+
+    /**
+     * Helper method to initalize a Melman Workflow Client based on the current
+     * archive configuration.
+     */
+    private EventLogClient initEventLogClient() {
+        logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
+        EventLogClient eventLogClient = new EventLogClient(workflowServiceEndpoint);
+        // Test authentication method
+        if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
+            // default basic authenticator
+            FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
+                    workflowServicePassword);
+            // register the authenticator
+            eventLogClient.registerClientRequestFilter(formAuth);
+        } else {
+            // default basic authenticator
+            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
+            // register the authenticator
+            eventLogClient.registerClientRequestFilter(basicAuth);
+        }
+        return eventLogClient;
     }
 }

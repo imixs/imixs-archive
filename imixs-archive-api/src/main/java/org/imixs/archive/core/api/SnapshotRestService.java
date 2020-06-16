@@ -34,6 +34,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
@@ -128,7 +129,7 @@ public class SnapshotRestService implements Serializable {
 	@Path("/{uniqueid : ([0-9a-f]{8}-.*|[0-9a-f]{11}-.*)}/file/{file}")
 	public Response getWorkItemFile(@PathParam("uniqueid") String uniqueid, @PathParam("file") @Encoded String file,
 			@Context UriInfo uriInfo) {
-
+		boolean debug = logger.isLoggable(Level.FINE);
 		FileData fileData = null;
 		ItemCollection workItem;
 		String sTargetID = uniqueid;
@@ -161,8 +162,10 @@ public class SnapshotRestService implements Serializable {
 				if (fileContent != null) {
 					Response.ResponseBuilder builder = Response.ok(fileContent, fileData.getContentType());
 					// found -> return directy.
-					logger.info("......loaded filecontent form archive by MD5 checksum in "
+					if (debug) {
+						logger.finest("......loaded filecontent form archive by MD5 checksum in "
 							+ (System.currentTimeMillis() - l) + "ms");
+					}
 					return builder.build();
 				}
 

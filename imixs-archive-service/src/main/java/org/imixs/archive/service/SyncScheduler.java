@@ -12,10 +12,10 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.inject.Inject;
+import javax.ws.rs.NotFoundException;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.melman.RestAPIException;
-
 
 /**
  * The SyncScheduler starts a ManagedScheduledExecutorService to pull new
@@ -33,23 +33,17 @@ import org.imixs.melman.RestAPIException;
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 public class SyncScheduler {
 
-    @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
-    String syncServiceEndpoint;
-
     // timeout interval in ms
     @Inject
-    @ConfigProperty(name =ImixsArchiveApp.WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
     long interval;
 
-    // deadlock timeout interval in ms
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_DEADLOCK, defaultValue = "60000")
-    long deadLockInterval;
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
+    String workflowServiceEndpoint;
 
-   
     @Inject
-    SyncService archiveClientService;
+    SyncService archiveSyncService;
 
     @Resource
     ManagedScheduledExecutorService scheduler;
@@ -61,7 +55,7 @@ public class SyncScheduler {
      */
     @PostConstruct
     public void init() {
-        if (syncServiceEndpoint != null && !syncServiceEndpoint.isEmpty()) {
+        if (workflowServiceEndpoint != null && !workflowServiceEndpoint.isEmpty()) {
             logger.info("Starting ArchivePushService - inverval=" + interval + " ....");
             this.scheduler.scheduleAtFixedRate(this::run, interval, interval, TimeUnit.MILLISECONDS);
         }
@@ -75,15 +69,15 @@ public class SyncScheduler {
      * @throws ArchiveException
      */
     public void run() {
-
-        eventLogService.releaseDeadLocks(deadLockInterval, SnapshotService.EVENTLOG_TOPIC_ADD,
-                SnapshotService.EVENTLOG_TOPIC_REMOVE);
-
         try {
-            archiveClientService.processEventLog();
-        } catch (RestAPIException e) {
+            // release dead locks
+            archiveSyncService.releaseDeadLocks();
+
+            // process....
+            archiveSyncService.processEventLog();
+        } catch (NotFoundException | RestAPIException e) {
             logger.warning("unable to process event log: " + e.getMessage());
-            
+
         }
 
     }
