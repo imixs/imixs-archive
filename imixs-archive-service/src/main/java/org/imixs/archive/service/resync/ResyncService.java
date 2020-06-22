@@ -64,260 +64,258 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 @Stateless
 public class ResyncService {
 
-	public final static String TIMER_ID_SYNCSERVICE = "IMIXS_ARCHIVE_RESYNC_TIMER";
+    public final static String TIMER_ID_SYNCSERVICE = "IMIXS_ARCHIVE_RESYNC_TIMER";
 
-	public final static String ITEM_SYNCPOINT = "sync.point";
-	public final static String ITEM_SYNCCOUNT = "sync.count";
-	public final static String ITEM_SYNCSIZE = "sync.size";
-	public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
+    public final static String ITEM_SYNCPOINT = "sync.point";
+    public final static String ITEM_SYNCCOUNT = "sync.count";
+    public final static String ITEM_SYNCSIZE = "sync.size";
+    public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
 
-	public final static String MESSAGE_TOPIC = "sync";
-	private final static int MAX_COUNT = 100;
+    public final static String MESSAGE_TOPIC = "sync";
+    private final static int MAX_COUNT = 100;
 
+    @Resource
+    javax.ejb.TimerService timerService;
 
-	@Resource
-	javax.ejb.TimerService timerService;
+    @Inject
+    DataService dataService;
 
-	@Inject
-	DataService dataService;
+    @Inject
+    ClusterService clusterService;
 
-	@Inject
-	ClusterService clusterService;
+    @Inject
+    MessageService messageService;
 
-	@Inject
-	MessageService messageService;
+    @Inject
+    RemoteAPIService remoteAPIService;
 
-	@Inject
-	RemoteAPIService remoteAPIService;
+    @Inject
+    ResyncStatusHandler syncStatusHandler;
 
-	@Inject
-	ResyncStatusHandler syncStatusHandler;
+    private static Logger logger = Logger.getLogger(ResyncService.class.getName());
 
-	private static Logger logger = Logger.getLogger(ResyncService.class.getName());
+    /**
+     * This method initializes a new timer for the sync ....
+     * <p>
+     * The method also verifies the existence of the archive keyspace by loading the
+     * archive session object.
+     * 
+     * @throws ArchiveException
+     */
+    public void start() throws ArchiveException {
+        Timer timer = null;
 
-	/**
-	 * This method initializes a new timer for the sync ....
-	 * <p>
-	 * The method also verifies the existence of the archive keyspace by loading the
-	 * archive session object.
-	 * 
-	 * @throws ArchiveException
-	 */
-	public void start() throws ArchiveException {
-		Timer timer = null;
+        // try to cancel an existing timer for this workflowinstance
+        timer = findTimer();
+        if (timer != null) {
+            try {
+                timer.cancel();
+                timer = null;
+            } catch (Exception e) {
+                messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
+                throw new ArchiveException(ResyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
+                        " failed to cancle existing timer!");
+            }
+        }
 
-		// try to cancel an existing timer for this workflowinstance
-		timer = findTimer();
-		if (timer != null) {
-			try {
-				timer.cancel();
-				timer = null;
-			} catch (Exception e) {
-				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
-				throw new ArchiveException(ResyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
-						" failed to cancle existing timer!");
-			}
-		}
+        if (clusterService.getSession() != null) {
+            logger.finest("...starting scheduler sync-service ...");
+            TimerConfig timerConfig = new TimerConfig();
 
-		if (clusterService.getSession() != null) {
-			logger.finest("...starting scheduler sync-service ...");
-			TimerConfig timerConfig = new TimerConfig();
+            timerConfig.setInfo(TIMER_ID_SYNCSERVICE);
+            // New timer will start imediatly
+            timer = timerService.createSingleActionTimer(0, timerConfig);
+            // start and set statusmessage
+            if (timer != null) {
+                messageService.logMessage(MESSAGE_TOPIC, "Timer started.");
+            }
+        } else {
+            logger.warning("...Failed to initalize imixs-archive keyspace!");
+        }
 
-			timerConfig.setInfo(TIMER_ID_SYNCSERVICE);
-			// New timer will start imediatly
-			timer = timerService.createSingleActionTimer(0, timerConfig);
-			// start and set statusmessage
-			if (timer != null) {
-				messageService.logMessage(MESSAGE_TOPIC, "Timer started.");
-			}
-		} else {
-			logger.warning("...Failed to initalize imixs-archive keyspace!");
-		}
+    }
 
-	}
+    /**
+     * Stops the current sync
+     * 
+     * @throws ArchiveException
+     */
+    public void cancel() throws ArchiveException {
+        syncStatusHandler.setStatus(ResyncStatusHandler.STAUS_CANCELED);
+        messageService.logMessage(MESSAGE_TOPIC, "... sync canceled!");
 
-	/**
-	 * Stops the current sync
-	 * 
-	 * @throws ArchiveException
-	 */
-	public void cancel() throws ArchiveException {
-		syncStatusHandler.setStatus(ResyncStatusHandler.STAUS_CANCELED);
-		messageService.logMessage(MESSAGE_TOPIC, "... sync canceled!");
+        stop(findTimer());
+    }
 
-		stop(findTimer());
-	}
+    /**
+     * returns true if the service is running
+     * 
+     * @return
+     */
+    public boolean isRunning() {
+        return (findTimer() != null);
+    }
 
-	/**
-	 * returns true if the service is running
-	 * 
-	 * @return
-	 */
-	public boolean isRunning() {
-		return (findTimer() != null);
-	}
+    /**
+     * Cancels the running timer instance.
+     * 
+     * @throws ArchiveException
+     */
+    private void stop(Timer timer) throws ArchiveException {
+        if (timer != null) {
+            try {
+                timer.cancel();
+            } catch (Exception e) {
+                messageService.logMessage(MESSAGE_TOPIC, "Failed to stop timer - " + e.getMessage());
+            }
+            // update status message
+            messageService.logMessage(MESSAGE_TOPIC, "Timer stopped. ");
+        }
+    }
 
-	/**
-	 * Cancels the running timer instance.
-	 * 
-	 * @throws ArchiveException
-	 */
-	private void stop(Timer timer) throws ArchiveException {
-		if (timer != null) {
-			try {
-				timer.cancel();
-			} catch (Exception e) {
-				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop timer - " + e.getMessage());
-			}
-			// update status message
-			messageService.logMessage(MESSAGE_TOPIC, "Timer stopped. ");
-		}
-	}
+    /**
+     * This method returns a timer for a corresponding id if such a timer object
+     * exists.
+     * 
+     * @param id
+     * @return Timer
+     * @throws Exception
+     */
+    private Timer findTimer() {
+        for (Object obj : timerService.getTimers()) {
+            Timer timer = (javax.ejb.Timer) obj;
+            if (TIMER_ID_SYNCSERVICE.equals(timer.getInfo())) {
+                return timer;
+            }
+        }
+        return null;
+    }
 
-	/**
-	 * This method returns a timer for a corresponding id if such a timer object
-	 * exists.
-	 * 
-	 * @param id
-	 * @return Timer
-	 * @throws Exception
-	 */
-	private Timer findTimer() {
-		for (Object obj : timerService.getTimers()) {
-			Timer timer = (javax.ejb.Timer) obj;
-			if (TIMER_ID_SYNCSERVICE.equals(timer.getInfo())) {
-				return timer;
-			}
-		}
-		return null;
-	}
+    /**
+     * This is the method which processes the timeout event depending on the running
+     * timer settings.
+     * <p>
+     * The method reads MAX_COUNT snapshot workitems from a imixs workflow instance.
+     * 
+     * 
+     * @param timer
+     * @throws Exception
+     * @throws QueryException
+     */
+    @Timeout
+    void onTimeout(javax.ejb.Timer timer) throws Exception {
+        long syncPoint = 0;
+        int syncupdate = 0;
+        int syncread = 0;
+        long totalCount = 0;
+        long totalSize = 0;
+        ItemCollection metaData = null;
+        String lastUniqueID = null;
 
-	/**
-	 * This is the method which processes the timeout event depending on the running
-	 * timer settings.
-	 * <p>
-	 * The method reads MAX_COUNT snapshot workitems from a imixs workflow instance.
-	 * 
-	 * 
-	 * @param timer
-	 * @throws Exception
-	 * @throws QueryException
-	 */
-	@Timeout
-	void onTimeout(javax.ejb.Timer timer) throws Exception {
-		long syncPoint = 0;
-		int syncupdate = 0;
-		int syncread = 0;
-		long totalCount = 0;
-		long totalSize = 0;
-		ItemCollection metaData = null;
-		String lastUniqueID = null;
+        // start time....
+        long lProfiler = System.currentTimeMillis();
 
-		// start time....
-		long lProfiler = System.currentTimeMillis();
+        try {
 
-		try {
+            // load metadata and get last syncpoint
+            metaData = dataService.loadMetadata();
+            syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
+            totalCount = metaData.getItemValueLong(ITEM_SYNCCOUNT);
+            totalSize = metaData.getItemValueLong(ITEM_SYNCSIZE);
 
-			// load metadata and get last syncpoint
-			metaData = dataService.loadMetadata();
-			syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
-			totalCount = metaData.getItemValueLong(ITEM_SYNCCOUNT);
-			totalSize = metaData.getItemValueLong(ITEM_SYNCSIZE);
+            // ...start sync
+            logger.info("...start syncronizing at syncpoint " + new Date(syncPoint) + "...");
 
-			// ...start sync
-			logger.info("...start syncronizing at syncpoint " + new Date(syncPoint) + "...");
+            // Daylight Saving Time Correction
+            // issue #53
+            Date now = new Date();
+            if (syncPoint > now.getTime()) {
+                logger.warning("...current syncpoint (" + syncPoint + ") is in the future! Adjust Syncpoint to now ("
+                        + now.getTime() + ")....");
+                syncPoint = now.getTime();
+            }
 
-			// Daylight Saving Time Correction
-			// issue #53
-			Date now = new Date();
-			if (syncPoint > now.getTime()) {
-				logger.warning("...current syncpoint (" + syncPoint + ") is in the future! Adjust Syncpoint to now ("
-						+ now.getTime() + ")....");
-				syncPoint = now.getTime();
-			}
+            while (true) {
 
-			while (true) {
+                XMLDataCollection xmlDataCollection = remoteAPIService.readSyncData(syncPoint);
 
-				XMLDataCollection xmlDataCollection = remoteAPIService.readSyncData(syncPoint);
+                if (xmlDataCollection != null) {
+                    List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
 
-				if (xmlDataCollection != null) {
-					List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
+                    for (XMLDocument xmlDocument : snapshotList) {
 
-					for (XMLDocument xmlDocument : snapshotList) {
+                        ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
 
-						ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
+                        // update snypoint
+                        Date syncpointdate = snapshot.getItemValueDate("$modified");
+                        syncPoint = syncpointdate.getTime();
+                        logger.fine("......data found - new syncpoint=" + syncPoint);
 
-						// update snypoint
-						Date syncpointdate = snapshot.getItemValueDate("$modified");
-						syncPoint = syncpointdate.getTime();
-						logger.fine("......data found - new syncpoint=" + syncPoint);
+                        // verify if this snapshot is already stored - if so, we do not overwrite
+                        // the origin data
+                        if (!dataService.existSnapshot(snapshot.getUniqueID())) {
+                            // store data into archive
+                            lastUniqueID = snapshot.getUniqueID();
+                            dataService.saveSnapshot(snapshot);
+                            syncupdate++;
+                            totalCount++;
+                            totalSize = totalSize + dataService.calculateSize(xmlDocument);
+                        } else {
+                            // This is because in case of a restore, the same snapshot takes a new $modified
+                            // item. And we do not want to re-import the snapshot in the next sync cycle.
+                            // see issue #40
+                            logger.fine("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
+                        }
 
-						// verify if this snapshot is already stored - if so, we do not overwrite
-						// the origin data
-						if (!dataService.existSnapshot(snapshot.getUniqueID())) {
-							// store data into archive
-							lastUniqueID = snapshot.getUniqueID();
-							dataService.saveSnapshot(snapshot);
-							syncupdate++;
-							totalCount++;
-							totalSize = totalSize + dataService.calculateSize(xmlDocument);
-						} else {
-							// This is because in case of a restore, the same snapshot takes a new $modified
-							// item. And we do not want to re-import the snapshot in the next sync cycle.
-							// see issue #40
-							logger.fine("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
-						}
+                        syncread++;
 
-						syncread++;
+                        // update metadata
+                        metaData.setItemValue(ITEM_SYNCPOINT, syncPoint);
+                        metaData.setItemValue(ITEM_SYNCCOUNT, totalCount);
 
-						// update metadata
-						metaData.setItemValue(ITEM_SYNCPOINT, syncPoint);
-						metaData.setItemValue(ITEM_SYNCCOUNT, totalCount);
+                        metaData.setItemValue(ITEM_SYNCSIZE, totalSize);
+                        lastUniqueID = "0";
+                        dataService.saveMetadata(metaData);
 
-						metaData.setItemValue(ITEM_SYNCSIZE, totalSize);
-						lastUniqueID = "0";
-						dataService.saveMetadata(metaData);
-						
-						if (syncStatusHandler.getStatus()==ResyncStatusHandler.STAUS_CANCELED) {
-							break;
-						}
-					}
+                        if (syncStatusHandler.getStatus() == ResyncStatusHandler.STAUS_CANCELED) {
+                            break;
+                        }
+                    }
 
-					// print log message if data was synced
-					if (syncread > MAX_COUNT) {
-						messageService.logMessage(MESSAGE_TOPIC,
-								"... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
-										+ ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint "
-										+ new Date(syncPoint));
-						// reset count
-						syncread = 0;
-					}
-					
+                    // print log message if data was synced
+                    if (syncread > MAX_COUNT) {
+                        messageService.logMessage(MESSAGE_TOPIC,
+                                "... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
+                                        + ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint "
+                                        + new Date(syncPoint));
+                        // reset count
+                        syncread = 0;
+                    }
 
-					if (syncStatusHandler.getStatus()==ResyncStatusHandler.STAUS_CANCELED) {
-						break;
-					}
+                    if (syncStatusHandler.getStatus() == ResyncStatusHandler.STAUS_CANCELED) {
+                        break;
+                    }
 
-				} else {
-					// no more syncpoints
-					logger.finest("......no more data found for syncpoint: " + syncPoint);
-					break;
-				}
-			}
+                } else {
+                    // no more syncpoints
+                    logger.finest("......no more data found for syncpoint: " + syncPoint);
+                    break;
+                }
+            }
 
-			messageService.logMessage(MESSAGE_TOPIC,
-					"...no more data found at syncpoint " + new Date(syncPoint) + " -> finishing synchroization.");
-			stop(timer);
+            messageService.logMessage(MESSAGE_TOPIC,
+                    "...no more data found at syncpoint " + new Date(syncPoint) + " -> finishing synchroization.");
+            stop(timer);
 
-		} catch (ArchiveException | RuntimeException e) {
-			// print the stack trace
-			e.printStackTrace();
-			messageService.logMessage(MESSAGE_TOPIC, "sync failed "
-					+ ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
-					+ " : " + e.getMessage());
+        } catch (ArchiveException | RuntimeException e) {
+            // print the stack trace
+            e.printStackTrace();
+            messageService.logMessage(MESSAGE_TOPIC, "sync failed "
+                    + ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
+                    + " : " + e.getMessage());
 
-			stop(timer);
-		}
-	}
+            stop(timer);
+        }
+    }
 
 }

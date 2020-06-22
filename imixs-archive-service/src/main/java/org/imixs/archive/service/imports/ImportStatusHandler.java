@@ -33,19 +33,18 @@ import javax.ejb.Singleton;
 @Singleton
 public class ImportStatusHandler {
 
-	public static final byte STAUS_RUNNING = 1;
-	public static final byte STAUS_STOPPED = 0;
-	public static final byte STAUS_CANCELED = 2;
+    public static final byte STAUS_RUNNING = 1;
+    public static final byte STAUS_STOPPED = 0;
+    public static final byte STAUS_CANCELED = 2;
 
-	
-	private byte status = 0;
+    private byte status = 0;
 
-	public byte getStatus() {
-		return status;
-	}
+    public byte getStatus() {
+        return status;
+    }
 
-	public void setStatus(byte status) {
-		this.status = status;
-	}
+    public void setStatus(byte status) {
+        this.status = status;
+    }
 
 }

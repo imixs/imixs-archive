@@ -30,179 +30,169 @@ import org.imixs.workflow.ItemCollection;
 @RequestScoped
 public class ClusterDataController implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-	
-	private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
+    private static final long serialVersionUID = 1L;
 
-	String syncSizeUnit = null;
-	ItemCollection metaData = null;
- 
-	@Inject
-	ClusterService clusterService;
+    private static Logger logger = Logger.getLogger(ClusterDataController.class.getName());
 
-	@Inject
-	DataService dataService;
+    String syncSizeUnit = null;
+    ItemCollection metaData = null;
 
-	@Inject
-	ResyncService syncService;
+    @Inject
+    ClusterService clusterService;
 
-	@Inject
-	MessageService messageService;
-	
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
-	String contactPoint;
+    @Inject
+    DataService dataService;
 
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
-	String keySpace;
-	
+    @Inject
+    ResyncService syncService;
 
+    @Inject
+    MessageService messageService;
 
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, defaultValue = "1")
-	String repFactor;
+    @Inject
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
+    String contactPoint;
 
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, defaultValue = "SimpleStrategy")
-	String repClass;
-	
-	@Inject
-	@ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
-	String workflowServiceEndpoint;
+    @Inject
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
+    String keySpace;
 
-	
+    @Inject
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, defaultValue = "1")
+    String repFactor;
 
-	public ClusterDataController() {
-		super();
-	}
+    @Inject
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS, defaultValue = "SimpleStrategy")
+    String repClass;
 
-	/**
-	 * This method initializes a cluster and session obejct.
-	 * 
-	 * @throws ArchiveException
-	 * @see {@link ClusterDataController#close()}
-	 */
-	@PostConstruct
-	void init() {
-		// load metadata
-		try {
-			metaData = dataService.loadMetadata();
-		} catch (ArchiveException e) {
-			logger.severe("Failed to load meta data!");
-			e.printStackTrace();
-		}
-	}
+    @Inject
+    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
+    String workflowServiceEndpoint;
 
+    public ClusterDataController() {
+        super();
+    }
 
-	/**
-	 * Returns true if a connection to the specified keySpace was successful
-	 * 
-	 * @return true if session was successfull established.
-	 */
-	public boolean isConnected() {
-		return (clusterService.getSession() != null);
-	}
+    /**
+     * This method initializes a cluster and session obejct.
+     * 
+     * @throws ArchiveException
+     * @see {@link ClusterDataController#close()}
+     */
+    @PostConstruct
+    void init() {
+        // load metadata
+        try {
+            metaData = dataService.loadMetadata();
+        } catch (ArchiveException e) {
+            logger.severe("Failed to load meta data!");
+            e.printStackTrace();
+        }
+    }
 
-	/**
-	 * This method starts a restore process
-	 * 
-	 * 
-	 */
-	public void start() {
-		try {
-			syncService.start();
-		} catch (ArchiveException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public boolean isRunning() {
-		return syncService.isRunning();
-	}
+    /**
+     * Returns true if a connection to the specified keySpace was successful
+     * 
+     * @return true if session was successfull established.
+     */
+    public boolean isConnected() {
+        return (clusterService.getSession() != null);
+    }
 
-	/**
-	 * This method cancles the current sync
-	 * 
-	 * 
-	 * @throws ArchiveException
-	 */
-	public void cancel() {
-		try {
-			syncService.cancel();
-		} catch (ArchiveException e) {			
-			e.printStackTrace();
-		}
+    /**
+     * This method starts a restore process
+     * 
+     * 
+     */
+    public void start() {
+        try {
+            syncService.start();
+        } catch (ArchiveException e) {
+            e.printStackTrace();
+        }
+    }
 
-	}
-	   
-  
-	/**
-	 * returns the last reSync point of the current metaData object
-	 * 
-	 * @return
-	 */
-	public Date getSyncPoint() {
-		long lsyncPoint = metaData.getItemValueLong(ResyncService.ITEM_SYNCPOINT);
-		Date syncPoint = new Date(lsyncPoint);
-		return syncPoint;
-	}
+    public boolean isRunning() {
+        return syncService.isRunning();
+    }
 
-	public long getSyncCount() {
-		return metaData.getItemValueLong(ResyncService.ITEM_SYNCCOUNT);
-	}
+    /**
+     * This method cancles the current sync
+     * 
+     * 
+     * @throws ArchiveException
+     */
+    public void cancel() {
+        try {
+            syncService.cancel();
+        } catch (ArchiveException e) {
+            e.printStackTrace();
+        }
 
-	public String getSyncSize() {
-		long l = metaData.getItemValueLong(ResyncService.ITEM_SYNCSIZE);
-		String result = messageService.userFriendlyBytes(l);
+    }
 
-		String[] parts = result.split(" ");
-		syncSizeUnit = parts[1];
-		return parts[0];
-	}
+    /**
+     * returns the last reSync point of the current metaData object
+     * 
+     * @return
+     */
+    public Date getSyncPoint() {
+        long lsyncPoint = metaData.getItemValueLong(ResyncService.ITEM_SYNCPOINT);
+        Date syncPoint = new Date(lsyncPoint);
+        return syncPoint;
+    }
 
-	public String getSyncSizeUnit() {
-		return syncSizeUnit;
-	}
+    public long getSyncCount() {
+        return metaData.getItemValueLong(ResyncService.ITEM_SYNCCOUNT);
+    }
 
-	
-	public String getContactPoints() {
-		return contactPoint;
-	}
+    public String getSyncSize() {
+        long l = metaData.getItemValueLong(ResyncService.ITEM_SYNCSIZE);
+        String result = messageService.userFriendlyBytes(l);
 
-	public String getKeySpace() {
-		return keySpace;
-	}
+        String[] parts = result.split(" ");
+        syncSizeUnit = parts[1];
+        return parts[0];
+    }
 
-	
-	public String getReplicationFactor() {
-		return repFactor;
+    public String getSyncSizeUnit() {
+        return syncSizeUnit;
+    }
 
-	}
+    public String getContactPoints() {
+        return contactPoint;
+    }
 
-	public String getReplicationClass() {
-		return repClass;
-	}
+    public String getKeySpace() {
+        return keySpace;
+    }
 
-	public String getServiceEndpoint() {
-		return workflowServiceEndpoint;
-	}
+    public String getReplicationFactor() {
+        return repFactor;
 
-	
+    }
 
-	/**
-	 * Returns the message list in reverse order.
-	 * 
-	 * @return
-	 */
-	public List<String> getMessages() {
-		List<String> messageLog = messageService.getMessages(ResyncService.MESSAGE_TOPIC);
-		// revrese order (use cloned list)
-		List<String> result = new ArrayList<String>();
-		for (String message : messageLog) {
-			result.add(message);
-		}
-		Collections.reverse(result);
-		return result;
-	}
+    public String getReplicationClass() {
+        return repClass;
+    }
+
+    public String getServiceEndpoint() {
+        return workflowServiceEndpoint;
+    }
+
+    /**
+     * Returns the message list in reverse order.
+     * 
+     * @return
+     */
+    public List<String> getMessages() {
+        List<String> messageLog = messageService.getMessages(ResyncService.MESSAGE_TOPIC);
+        // revrese order (use cloned list)
+        List<String> result = new ArrayList<String>();
+        for (String message : messageLog) {
+            result.add(message);
+        }
+        Collections.reverse(result);
+        return result;
+    }
 }

@@ -57,54 +57,54 @@ import com.datastax.driver.core.Session;
 @Stateless
 public class MetatdataRestService {
 
-	@Inject
-	ClusterService clusterService;
+    @Inject
+    ClusterService clusterService;
 
-	@Inject
-	DataService dataService;
+    @Inject
+    DataService dataService;
 
-	@javax.ws.rs.core.Context
-	private static HttpServletRequest servletRequest;
+    @javax.ws.rs.core.Context
+    private static HttpServletRequest servletRequest;
 
-	private static Logger logger = Logger.getLogger(MetatdataRestService.class.getName());
+    private static Logger logger = Logger.getLogger(MetatdataRestService.class.getName());
 
-	/**
-	 * Ping test
-	 * 
-	 * @return time
-	 * @throws Exception
-	 */
-	@GET
-	@Path("/")
-	public String getSyncpoint() {
-		Session session = null;
-		Cluster cluster = null;
-		try {
-			logger.info("...read metadata...");
+    /**
+     * Ping test
+     * 
+     * @return time
+     * @throws Exception
+     */
+    @GET
+    @Path("/")
+    public String getSyncpoint() {
+        Session session = null;
+        Cluster cluster = null;
+        try {
+            logger.info("...read metadata...");
 //			cluster = clusterService.getCluster();
 //			session = clusterService.getArchiveSession(cluster);
 
-			ItemCollection metadata = dataService.loadMetadata();
+            ItemCollection metadata = dataService.loadMetadata();
 
-			String result = "syncpoint=" + metadata.getItemValueString(ResyncService.ITEM_SYNCPOINT);
-			result = result + "\ncount=" + metadata.getItemValueString(ResyncService.ITEM_SYNCCOUNT);
+            String result = "syncpoint=" + metadata.getItemValueString(ResyncService.ITEM_SYNCPOINT);
+            result = result + "\ncount=" + metadata.getItemValueString(ResyncService.ITEM_SYNCCOUNT);
 
-			return result;
+            return result;
 
-		} catch (Exception e) {
-			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
-			return "NO DATA";
+        } catch (Exception e) {
+            logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
+            return "NO DATA";
 
-		} finally {
-			// close session and cluster object
-			if (session != null) {
-				session.close();
-			}
-			if (cluster != null) {
-				cluster.close();
-			}
-		}
+        } finally {
+            // close session and cluster object
+            if (session != null) {
+                session.close();
+            }
+            if (cluster != null) {
+                cluster.close();
+            }
+        }
 
-	}
+    }
 
 }

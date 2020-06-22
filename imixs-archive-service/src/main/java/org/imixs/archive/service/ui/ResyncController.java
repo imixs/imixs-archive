@@ -32,100 +32,99 @@ import org.imixs.workflow.ItemCollection;
 @RequestScoped
 public class ResyncController implements Serializable {
 
-	public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+    public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
 
-	private static final long serialVersionUID = 1L;
-	private static Logger logger = Logger.getLogger(ResyncController.class.getName());
+    private static final long serialVersionUID = 1L;
+    private static Logger logger = Logger.getLogger(ResyncController.class.getName());
 
-	ItemCollection metaData = null;
-	String newSyncPoint = null;
+    ItemCollection metaData = null;
+    String newSyncPoint = null;
 
-	@Inject
-	ClusterService clusterService;
+    @Inject
+    ClusterService clusterService;
 
-	@Inject
-	ResyncService syncService;
+    @Inject
+    ResyncService syncService;
 
-	@Inject
-	DataService dataService;
+    @Inject
+    DataService dataService;
 
-	@Inject
-	MessageService messageService;
+    @Inject
+    MessageService messageService;
 
-	public ResyncController() {
-		super();
-	}
+    public ResyncController() {
+        super();
+    }
 
-	/**
-	 * This method initializes the default sync date
-	 * 
-	 * @throws ArchiveException
-	 */
-	@PostConstruct
-	void init() {
-		try {
-			// load metadata
-			metaData = dataService.loadMetadata();
-		} catch (ArchiveException e) {
-			logger.severe("Failed to load meta data!");
-			e.printStackTrace();
-		}
-	}
+    /**
+     * This method initializes the default sync date
+     * 
+     * @throws ArchiveException
+     */
+    @PostConstruct
+    void init() {
+        try {
+            // load metadata
+            metaData = dataService.loadMetadata();
+        } catch (ArchiveException e) {
+            logger.severe("Failed to load meta data!");
+            e.printStackTrace();
+        }
+    }
 
-	/**
-	 * Returns the newSyncPoint and computes the default value
-	 * 
-	 * @return
-	 */
-	public String getNewSyncPoint() {
-		if (newSyncPoint == null) {
-			// compute default
-			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-			newSyncPoint = dt.format(getSyncPoint());
+    /**
+     * Returns the newSyncPoint and computes the default value
+     * 
+     * @return
+     */
+    public String getNewSyncPoint() {
+        if (newSyncPoint == null) {
+            // compute default
+            SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+            newSyncPoint = dt.format(getSyncPoint());
 
-		}
-		return newSyncPoint;
-	}
+        }
+        return newSyncPoint;
+    }
 
-	public void setNewSyncPoint(String newSyncPoint) {
-		this.newSyncPoint = newSyncPoint;
-	}
+    public void setNewSyncPoint(String newSyncPoint) {
+        this.newSyncPoint = newSyncPoint;
+    }
 
-	/**
-	 * returns the syncpoint of the current configuration
-	 * 
-	 * @return
-	 */
-	public Date getSyncPoint() {
-		long lsyncPoint = metaData.getItemValueLong(ResyncService.ITEM_SYNCPOINT);
-		Date syncPoint = new Date(lsyncPoint);
-		return syncPoint;
-	}
+    /**
+     * returns the syncpoint of the current configuration
+     * 
+     * @return
+     */
+    public Date getSyncPoint() {
+        long lsyncPoint = metaData.getItemValueLong(ResyncService.ITEM_SYNCPOINT);
+        Date syncPoint = new Date(lsyncPoint);
+        return syncPoint;
+    }
 
-	/**
-	 * This method updates the current synpoint
-	 * 
-	 * @throws ArchiveException
-	 */
-	public void updateSyncPoint() {
-		try {
-			// update sync date...
-			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-			Date syncDate = dt.parse(newSyncPoint);
-			logger.info("......updateing syncpoint=" + this.newSyncPoint);
-			metaData.setItemValue(ResyncService.ITEM_SYNCPOINT, syncDate.getTime());
-			dataService.saveMetadata(metaData);
-			
-			
-			// restart sync?
-			if (!syncService.isRunning()) {
-				syncService.start();
-			}
+    /**
+     * This method updates the current synpoint
+     * 
+     * @throws ArchiveException
+     */
+    public void updateSyncPoint() {
+        try {
+            // update sync date...
+            SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+            Date syncDate = dt.parse(newSyncPoint);
+            logger.info("......updateing syncpoint=" + this.newSyncPoint);
+            metaData.setItemValue(ResyncService.ITEM_SYNCPOINT, syncDate.getTime());
+            dataService.saveMetadata(metaData);
 
-		} catch (ArchiveException | ParseException e) {
-			logger.severe("failed to set new syncpoint: " + e.getMessage());
-		}
+            // restart sync?
+            if (!syncService.isRunning()) {
+                syncService.start();
+            }
 
-	}
+        } catch (ArchiveException | ParseException e) {
+            logger.severe("failed to set new syncpoint: " + e.getMessage());
+        }
+
+    }
 
 }

@@ -205,7 +205,7 @@ public class DataService {
      */
     public ItemCollection loadSnapshot(String snapshotID, boolean mergeDocuments) throws ArchiveException {
         boolean debug = logger.isLoggable(Level.FINE);
-        
+
         ItemCollection snapshot = new ItemCollection();
         // select snapshot...
         String sql = STATEMENT_SELECT_SNAPSHOT;

@@ -48,67 +48,65 @@ import javax.ejb.Singleton;
 @Singleton
 public class MessageService {
 
-	private final static int MAX_COUNT = 32;
+    private final static int MAX_COUNT = 32;
 
-	private Map<String, List<String>> messageLog;
+    private Map<String, List<String>> messageLog;
 
-	// private List<String> messages;
+    // private List<String> messages;
 
-	private static Logger logger = Logger.getLogger(MessageService.class.getName());
+    private static Logger logger = Logger.getLogger(MessageService.class.getName());
 
-	/**
-	 * PostContruct event - loads the imixs.properties.
-	 */
-	@PostConstruct
-	void init() {
-		// initialize cache...
-		messageLog = new HashMap<String, List<String>>();
-		// messages=new ArrayList<String>();
-	}
+    /**
+     * PostContruct event - loads the imixs.properties.
+     */
+    @PostConstruct
+    void init() {
+        // initialize cache...
+        messageLog = new HashMap<String, List<String>>();
+        // messages=new ArrayList<String>();
+    }
 
-	public List<String> getMessages(String topic) {
-		List<String> messages = messageLog.get(topic);
-		if (messages == null) {
-			messages = new ArrayList<String>();
-		}
-		return messages;
-	}
+    public List<String> getMessages(String topic) {
+        List<String> messages = messageLog.get(topic);
+        if (messages == null) {
+            messages = new ArrayList<String>();
+        }
+        return messages;
+    }
 
-	
+    /**
+     * logs a new message into the message log
+     * 
+     * @param message
+     */
+    public void logMessage(String topic, String message) {
+        logger.info(topic + " => " + message);
+        SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
+        message = dateFormatDE.format(new Date()) + " : " + message;
+        List<String> messages = getMessages(topic);
+        messages.add(message);
+        // cut if max_count exeeded
+        while (messages.size() > MAX_COUNT) {
+            messages.remove(0);
+        }
+        // put message log
+        messageLog.put(topic, messages);
+    }
 
-	/**
-	 * logs a new message into the message log
-	 * 
-	 * @param message
-	 */
-	public void logMessage(String topic,String message) {
-		logger.info(topic + " => " + message);
-		SimpleDateFormat dateFormatDE = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
-		message = dateFormatDE.format(new Date()) + " : " + message;
-		List<String> messages=getMessages(topic);
-		messages.add(message);
-		// cut if max_count exeeded
-		while (messages.size() > MAX_COUNT) {
-			messages.remove(0);
-		}
-		// put message log
-		messageLog.put(topic, messages);
-	}
-
-	/**
-	 * Computes the file size into a user friendly format
-	 * 
-	 * @param size
-	 * @return
-	 */
-	public String userFriendlyBytes(long bytes) {
-		boolean si = true;
-		int unit = si ? 1000 : 1024;
-		if (bytes < unit)
-			return bytes + " B";
-		int exp = (int) (Math.log(bytes) / Math.log(unit));
-		String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
-		return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
-	}
+    /**
+     * Computes the file size into a user friendly format
+     * 
+     * @param size
+     * @return
+     */
+    public String userFriendlyBytes(long bytes) {
+        boolean si = true;
+        int unit = si ? 1000 : 1024;
+        if (bytes < unit)
+            return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+    }
 
 }

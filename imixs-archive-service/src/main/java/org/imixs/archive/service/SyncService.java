@@ -60,8 +60,7 @@ public class SyncService {
     @Inject
     @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_DEADLOCK, defaultValue = "60000")
     long deadLockInterval;
-    
-    
+
     @Inject
     DataService dataService;
 
@@ -138,8 +137,8 @@ public class SyncService {
     public void releaseDeadLocks() throws RestAPIException {
         // init client
         EventLogClient eventLogClient = initEventLogClient();
-    
-        eventLogClient.releaseDeadLocks( deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
+
+        eventLogClient.releaseDeadLocks(deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
                 ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
     }
 
@@ -159,7 +158,7 @@ public class SyncService {
         if (eventLogEntry == null) {
             return;
         }
-        
+
         boolean debug = logger.isLoggable(Level.FINE);
         String ref = eventLogEntry.getItemValueString("ref");
         String id = eventLogEntry.getItemValueString("id");
@@ -177,7 +176,7 @@ public class SyncService {
                 // TODO - we should now delete the snapshot! This will decrease the storage
                 // on the database. But is this bullet proved....?
                 if (debug) {
-                	logger.fine("...pulled " + ref + " in " + (System.currentTimeMillis() - l) + "ms");
+                    logger.fine("...pulled " + ref + " in " + (System.currentTimeMillis() - l) + "ms");
                 }
             }
         } catch (RestAPIException e) {

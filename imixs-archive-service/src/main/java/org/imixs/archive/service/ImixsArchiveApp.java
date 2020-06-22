@@ -45,11 +45,10 @@ import org.imixs.archive.service.util.MessageService;
 
 @ApplicationPath("api")
 public class ImixsArchiveApp extends Application {
-    
+
     public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
     public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
-   
-    
+
     // rest service endpoint
     public static final String WORKFLOW_SERVICE_ENDPOINT = "workflow.service.endpoint";
     public static final String WORKFLOW_SERVICE_USER = "workflow.service.user";
@@ -57,33 +56,33 @@ public class ImixsArchiveApp extends Application {
     public static final String WORKFLOW_SERVICE_AUTHMETHOD = "workflow.service.authmethod";
     public static final String WORKFLOW_SYNC_INTERVAL = "workflow.sync.interval";
     public static final String WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
-	
-	@Inject
-	ResyncService syncService;
 
-	@Inject
-	MessageService messageService;
+    @Inject
+    ResyncService syncService;
 
-	@Inject
-	ExportService exportService;
-	
-	public ImixsArchiveApp() {
-		super();
-	}
+    @Inject
+    MessageService messageService;
 
-	/**
-	 * Initialize the web application
-	 */
-	@PostConstruct
-	public void initialize() {
-		if (syncService != null) {
-			try {
-				syncService.start();
-				exportService.startScheduler();
-			} catch (ArchiveException e) {
-				messageService.logMessage(ResyncService.MESSAGE_TOPIC,"Failed to start scheduler - " + e.getMessage());
-				e.printStackTrace();
-			}
-		}
-	}
+    @Inject
+    ExportService exportService;
+
+    public ImixsArchiveApp() {
+        super();
+    }
+
+    /**
+     * Initialize the web application
+     */
+    @PostConstruct
+    public void initialize() {
+        if (syncService != null) {
+            try {
+                syncService.start();
+                exportService.startScheduler();
+            } catch (ArchiveException e) {
+                messageService.logMessage(ResyncService.MESSAGE_TOPIC, "Failed to start scheduler - " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
 }

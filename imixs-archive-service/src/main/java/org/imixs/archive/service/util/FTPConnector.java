@@ -48,8 +48,8 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 /**
  * The FTPConnector service provides methods to push a snapshot document into an
  * FTP storage. The snapshot is stored in a directory based on the snapshot
- * creation date. E.g. $created=2017-03-19 will put the data into the
- * sub directory /2017/03/
+ * creation date. E.g. $created=2017-03-19 will put the data into the sub
+ * directory /2017/03/
  * 
  * @version 1.0
  * @author rsoika
@@ -58,169 +58,169 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 @Stateless
 public class FTPConnector {
 
-	public static final String FTP_ERROR = "FTP_ERROR";
+    public static final String FTP_ERROR = "FTP_ERROR";
 
-	@Inject
-	DataService dataService;
+    @Inject
+    DataService dataService;
 
-	private static Logger logger = Logger.getLogger(FTPConnector.class.getName());
+    private static Logger logger = Logger.getLogger(FTPConnector.class.getName());
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_HOST, defaultValue = "")
-	String ftpServer;
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_HOST, defaultValue = "")
+    String ftpServer;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PATH, defaultValue = "")
-	String ftpPath;
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PATH, defaultValue = "")
+    String ftpPath;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PORT, defaultValue = "21")
-	int ftpPort;
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PORT, defaultValue = "21")
+    int ftpPort;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_USER, defaultValue = "")
-	String ftpUser;
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_USER, defaultValue = "")
+    String ftpUser;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PASSWORD, defaultValue = "")
-	String ftpPassword;
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PASSWORD, defaultValue = "")
+    String ftpPassword;
 
-	/**
-	 * This method transfers a snapshot to a ftp server.
-	 * 
-	 * @param snapshot
-	 * @throws ArchiveException
-	 */
-	public void put(ItemCollection snapshot) throws ArchiveException {
+    /**
+     * This method transfers a snapshot to a ftp server.
+     * 
+     * @param snapshot
+     * @throws ArchiveException
+     */
+    public void put(ItemCollection snapshot) throws ArchiveException {
 
-		if (ftpServer.isEmpty()) {
-			throw new ArchiveException(FTP_ERROR,
-					"FTP file transfer failed: no ftp host name provided (" + ExportService.ENV_EXPORT_FTP_HOST + ")!");
-		}
+        if (ftpServer.isEmpty()) {
+            throw new ArchiveException(FTP_ERROR,
+                    "FTP file transfer failed: no ftp host name provided (" + ExportService.ENV_EXPORT_FTP_HOST + ")!");
+        }
 
-		String snapshotID = snapshot.getUniqueID();
-		String originUnqiueID = dataService.getUniqueID(snapshotID);
-		byte[] rawData;
+        String snapshotID = snapshot.getUniqueID();
+        String originUnqiueID = dataService.getUniqueID(snapshotID);
+        byte[] rawData;
 
-		rawData = dataService.getRawData(snapshot);
-		String fileName = originUnqiueID + ".xml";
+        rawData = dataService.getRawData(snapshot);
+        String fileName = originUnqiueID + ".xml";
 
-		// Compute file path
-		Date created = snapshot.getItemValueDate(WorkflowKernel.CREATED);
-		String ftpWorkingPath = ftpPath;
-		if (!ftpWorkingPath.startsWith("/")) {
-			ftpWorkingPath = "/" + ftpWorkingPath;
-		}
-		if (!ftpWorkingPath.endsWith("/")) {
-			ftpWorkingPath = ftpWorkingPath + "/";
-		}
-		InputStream writer = null;
+        // Compute file path
+        Date created = snapshot.getItemValueDate(WorkflowKernel.CREATED);
+        String ftpWorkingPath = ftpPath;
+        if (!ftpWorkingPath.startsWith("/")) {
+            ftpWorkingPath = "/" + ftpWorkingPath;
+        }
+        if (!ftpWorkingPath.endsWith("/")) {
+            ftpWorkingPath = ftpWorkingPath + "/";
+        }
+        InputStream writer = null;
 
-		FTPClient ftpClient = null;
-		try {
-			logger.finest("......put " + fileName + " to FTP server: " + ftpServer + "...");
-			ftpClient = new FTPSClient("TLS", false);
-			ftpClient.setControlEncoding("UTF-8");
-			ftpClient.connect(ftpServer, ftpPort);
-			if (ftpClient.login(ftpUser, ftpPassword) == false) {
-				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: login failed!");
-			}
+        FTPClient ftpClient = null;
+        try {
+            logger.finest("......put " + fileName + " to FTP server: " + ftpServer + "...");
+            ftpClient = new FTPSClient("TLS", false);
+            ftpClient.setControlEncoding("UTF-8");
+            ftpClient.connect(ftpServer, ftpPort);
+            if (ftpClient.login(ftpUser, ftpPassword) == false) {
+                throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: login failed!");
+            }
 
-			ftpClient.enterLocalPassiveMode();
-			// ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
-			ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
-			ftpClient.setControlEncoding("UTF-8");
+            ftpClient.enterLocalPassiveMode();
+            // ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
+            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+            ftpClient.setControlEncoding("UTF-8");
 
-			// verify directories
-			if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
-				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing working directory '"
-						+ ftpWorkingPath + "' : " + ftpClient.getReplyString());
-			}
-			// test if we have the year as an subdirecory
-			changeWorkingDirectory(ftpClient, new SimpleDateFormat("yyyy").format(created));
-			changeWorkingDirectory(ftpClient, new SimpleDateFormat("MM").format(created));
+            // verify directories
+            if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
+                throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing working directory '"
+                        + ftpWorkingPath + "' : " + ftpClient.getReplyString());
+            }
+            // test if we have the year as an subdirecory
+            changeWorkingDirectory(ftpClient, new SimpleDateFormat("yyyy").format(created));
+            changeWorkingDirectory(ftpClient, new SimpleDateFormat("MM").format(created));
 
-			// upload file to FTP server.
-			writer = new ByteArrayInputStream(rawData);
+            // upload file to FTP server.
+            writer = new ByteArrayInputStream(rawData);
 
-			if (!ftpClient.storeFile(fileName, writer)) {
-				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: unable to write '" + ftpWorkingPath
-						+ fileName + "' : " + ftpClient.getReplyString());
-			}
+            if (!ftpClient.storeFile(fileName, writer)) {
+                throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: unable to write '" + ftpWorkingPath
+                        + fileName + "' : " + ftpClient.getReplyString());
+            }
 
-			logger.info("...." + ftpWorkingPath + fileName + " transfered successfull to " + ftpServer);
+            logger.info("...." + ftpWorkingPath + fileName + " transfered successfull to " + ftpServer);
 
-		} catch (IOException e) {
-			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
-		} finally {
-			// do logout....
-			try {
-				if (writer != null) {
-					writer.close();
-				}
-				ftpClient.logout();
-				ftpClient.disconnect();
-			} catch (IOException e) {
-				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
-			}
-		}
-	}
+        } catch (IOException e) {
+            throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
+        } finally {
+            // do logout....
+            try {
+                if (writer != null) {
+                    writer.close();
+                }
+                ftpClient.logout();
+                ftpClient.disconnect();
+            } catch (IOException e) {
+                throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
+            }
+        }
+    }
 
-	/**
-	 * This method reads a snapshot form the current working directory
-	 * 
-	 * @param snapshot
-	 * @throws ArchiveException
-	 * @return snapshot
-	 */
-	public ItemCollection get(FTPClient ftpClient, String fileName) throws ArchiveException {
-		if (ftpClient == null) {
-			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: no ftpClient provided!");
-		}
+    /**
+     * This method reads a snapshot form the current working directory
+     * 
+     * @param snapshot
+     * @throws ArchiveException
+     * @return snapshot
+     */
+    public ItemCollection get(FTPClient ftpClient, String fileName) throws ArchiveException {
+        if (ftpClient == null) {
+            throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: no ftpClient provided!");
+        }
 
-		long l = System.currentTimeMillis();
-		ByteArrayOutputStream bos = null;
-		try {
-			bos = new ByteArrayOutputStream();
-			ftpClient.retrieveFile(fileName, bos);
-			byte[] result = bos.toByteArray();
-			ItemCollection snapshot = XMLDocumentAdapter.readItemCollection(result);
-			logger.info("......" + fileName + " transfered successfull from " + ftpServer + " in "
-					+ (System.currentTimeMillis() - l) + "ms");
-			return snapshot;
-		} catch (IOException | JAXBException e) {
-			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
-		} finally {
-			// do logout....
-			try {
-				if (bos != null) {
-					bos.close();
-				}
-			} catch (IOException e) {
-				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
-			}
-		}
-	}
+        long l = System.currentTimeMillis();
+        ByteArrayOutputStream bos = null;
+        try {
+            bos = new ByteArrayOutputStream();
+            ftpClient.retrieveFile(fileName, bos);
+            byte[] result = bos.toByteArray();
+            ItemCollection snapshot = XMLDocumentAdapter.readItemCollection(result);
+            logger.info("......" + fileName + " transfered successfull from " + ftpServer + " in "
+                    + (System.currentTimeMillis() - l) + "ms");
+            return snapshot;
+        } catch (IOException | JAXBException e) {
+            throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
+        } finally {
+            // do logout....
+            try {
+                if (bos != null) {
+                    bos.close();
+                }
+            } catch (IOException e) {
+                throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
+            }
+        }
+    }
 
-	/**
-	 * This method changes the current working sub-directy. If no corresponding
-	 * directory exits the method creats one.
-	 * 
-	 * @throws ArchiveException
-	 */
-	private void changeWorkingDirectory(FTPClient ftpClient, String subDirectory) throws ArchiveException {
-		// test if we have the subdreictory
-		try {
-			if (!ftpClient.changeWorkingDirectory(subDirectory)) {
-				// try to creat it....
-				if (!ftpClient.makeDirectory(subDirectory)) {
-					throw new ArchiveException(FTP_ERROR, "FTP Error: unable to create sub-directory '" + subDirectory
-							+ "' : " + ftpClient.getReplyString());
-				}
-				ftpClient.changeWorkingDirectory(subDirectory);
-			}
-		} catch (IOException e) {
-			throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
-		}
-	}
+    /**
+     * This method changes the current working sub-directy. If no corresponding
+     * directory exits the method creats one.
+     * 
+     * @throws ArchiveException
+     */
+    private void changeWorkingDirectory(FTPClient ftpClient, String subDirectory) throws ArchiveException {
+        // test if we have the subdreictory
+        try {
+            if (!ftpClient.changeWorkingDirectory(subDirectory)) {
+                // try to creat it....
+                if (!ftpClient.makeDirectory(subDirectory)) {
+                    throw new ArchiveException(FTP_ERROR, "FTP Error: unable to create sub-directory '" + subDirectory
+                            + "' : " + ftpClient.getReplyString());
+                }
+                ftpClient.changeWorkingDirectory(subDirectory);
+            }
+        } catch (IOException e) {
+            throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
+        }
+    }
 }

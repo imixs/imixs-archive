@@ -33,159 +33,148 @@ import org.imixs.workflow.ItemCollection;
 @RequestScoped
 public class ExportDataController implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-	
-	private static Logger logger = Logger.getLogger(ExportDataController.class.getName());
+    private static final long serialVersionUID = 1L;
 
-	String syncSizeUnit = null;
-	ItemCollection metaData = null;
+    private static Logger logger = Logger.getLogger(ExportDataController.class.getName());
 
-	@Inject
-	ClusterService clusterService;
+    String syncSizeUnit = null;
+    ItemCollection metaData = null;
 
-	@Inject
-	DataService dataService;
+    @Inject
+    ClusterService clusterService;
 
-	@Inject
-	ExportService exportService;
+    @Inject
+    DataService dataService;
 
-	@Inject
-	MessageService messageService;
-	
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
-	String contactPoint;
+    @Inject
+    ExportService exportService;
 
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
-	String keySpace;
-	
+    @Inject
+    MessageService messageService;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_SCHEDULER_DEFINITION, defaultValue = "")
-	String schedulerDefinition;
+    @Inject
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
+    String contactPoint;
 
+    @Inject
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
+    String keySpace;
 
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_SCHEDULER_DEFINITION, defaultValue = "")
+    String schedulerDefinition;
 
-	
+    public ExportDataController() {
+        super();
+    }
 
-	public ExportDataController() {
-		super();
-	}
+    /**
+     * This method initializes a cluster and session obejct.
+     * 
+     * @throws ArchiveException
+     * @see {@link ExportDataController#close()}
+     */
+    @PostConstruct
+    void init() {
+        // load metadata
+        try {
+            metaData = dataService.loadMetadata();
+        } catch (ArchiveException e) {
+            logger.severe("Failed to load meta data!");
+            e.printStackTrace();
+        }
+    }
 
-	/**
-	 * This method initializes a cluster and session obejct.
-	 * 
-	 * @throws ArchiveException
-	 * @see {@link ExportDataController#close()}
-	 */
-	@PostConstruct
-	void init() {
-		// load metadata
-		try {
-			metaData = dataService.loadMetadata();
-		} catch (ArchiveException e) {
-			logger.severe("Failed to load meta data!");
-			e.printStackTrace();
-		}
-	}
+    /**
+     * This method starts a restore process
+     * 
+     * 
+     */
+    public void startExport() {
+        try {
+            exportService.startScheduler();
+        } catch (ArchiveException e) {
+            e.printStackTrace();
+        }
+    }
 
+    /**
+     * This method starts a restore process
+     * 
+     * 
+     */
+    public void stopExport() {
+        try {
+            exportService.stopScheduler();
+        } catch (ArchiveException e) {
+            e.printStackTrace();
+        }
+    }
 
+    /**
+     * returns the syncpoint of the current configuration
+     * 
+     * @return
+     */
+    public Date getExportPoint() {
+        long lsyncPoint = metaData.getItemValueLong(ExportService.ITEM_EXPORTPOINT);
+        Date syncPoint = new Date(lsyncPoint);
+        return syncPoint;
+    }
 
-	/**
-	 * This method starts a restore process
-	 * 
-	 * 
-	 */
-	public void startExport() {
-		try {
-			exportService.startScheduler();
-		} catch (ArchiveException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	/**
-	 * This method starts a restore process
-	 * 
-	 * 
-	 */
-	public void stopExport() {
-		try {
-			exportService.stopScheduler();
-		} catch (ArchiveException e) {
-			e.printStackTrace();
-		}
-	}
+    public long getExportCount() {
+        return metaData.getItemValueLong(ExportService.ITEM_EXPORTCOUNT);
+    }
 
-	/**
-	 * returns the syncpoint of the current configuration
-	 * 
-	 * @return
-	 */
-	public Date getExportPoint() {
-		long lsyncPoint = metaData.getItemValueLong(ExportService.ITEM_EXPORTPOINT);
-		Date syncPoint = new Date(lsyncPoint);
-		return syncPoint;
-	}
+    public String getExportSize() {
+        long l = metaData.getItemValueLong(ExportService.ITEM_EXPORTSIZE);
+        String result = messageService.userFriendlyBytes(l);
 
-	public long getExportCount() {
-		return metaData.getItemValueLong(ExportService.ITEM_EXPORTCOUNT);
-	}
+        String[] parts = result.split(" ");
+        syncSizeUnit = parts[1];
+        return parts[0];
+    }
 
-	public String getExportSize() {
-		long l = metaData.getItemValueLong(ExportService.ITEM_EXPORTSIZE);
-		String result = messageService.userFriendlyBytes(l);
+    public String getExportSizeUnit() {
+        return syncSizeUnit;
+    }
 
-		String[] parts = result.split(" ");
-		syncSizeUnit = parts[1];
-		return parts[0];
-	}
+    public String getScheduler() {
+        return schedulerDefinition;
+    }
 
-	public String getExportSizeUnit() {
-		return syncSizeUnit;
-	}
+    public Date getNextTimeout() {
+        return exportService.getNextTimeout();
+    }
 
-	
-	
+    /**
+     * Returns the message list in reverse order.
+     * 
+     * @return
+     */
+    public List<String> getMessages() {
+        List<String> messageLog = messageService.getMessages(ExportService.MESSAGE_TOPIC);
+        // revrese order (use cloned list)
+        List<String> result = new ArrayList<String>();
+        for (String message : messageLog) {
+            result.add(message);
+        }
+        Collections.reverse(result);
+        return result;
+    }
 
-	public String getScheduler() {
-		return schedulerDefinition;
-	}
+    /**
+     * This method reset the current synpoint to 0 and prepares a new export
+     * 
+     * 
+     * @throws ArchiveException
+     */
+    public void reset() {
+        try {
+            metaData = exportService.reset();
+        } catch (ArchiveException e) {
+            logger.severe("failed to reset export syncpoint: " + e.getMessage());
+        }
 
-	public Date getNextTimeout() {
-		return exportService.getNextTimeout();
-	}
-
-	/**
-	 * Returns the message list in reverse order.
-	 * 
-	 * @return
-	 */
-	public List<String> getMessages() {
-		List<String> messageLog = messageService.getMessages(ExportService.MESSAGE_TOPIC);
-		// revrese order (use cloned list)
-		List<String> result = new ArrayList<String>();
-		for (String message : messageLog) {
-			result.add(message);
-		}
-		Collections.reverse(result);
-		return result;
-	}
-	
-	
-	/**
-	 * This method reset the current synpoint to 0 and prepares a new export
-	 * 
-	 * 
-	 * @throws ArchiveException
-	 */
-	public void reset() {
-		try {
-			metaData=exportService.reset();
-		} catch (ArchiveException e) {
-			logger.severe("failed to reset export syncpoint: " + e.getMessage());
-		}
-
-	}
+    }
 }

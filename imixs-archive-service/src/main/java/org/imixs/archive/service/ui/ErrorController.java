@@ -15,36 +15,36 @@ import javax.inject.Named;
 @SessionScoped
 public class ErrorController implements Serializable {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	String message = null;
- 
-	public ErrorController() {
-		super();
-	}
+    String message = null;
 
-	public String getMessage() {
-		return message;
-	}
+    public ErrorController() {
+        super();
+    }
 
-	public void setMessage(String message) {
-		this.message = message;
-	}
+    public String getMessage() {
+        return message;
+    }
 
-	/**
-	 * adds an error message to the current message.
-	 * 
-	 * @param message
-	 */
-	public void addMessage(String message) {
-		this.message += "\n" + message;
-	}
+    public void setMessage(String message) {
+        this.message = message;
+    }
 
-	/**
-	 * reset the current error message
-	 */
-	public void reset() {
-		message = "";
-	}
+    /**
+     * adds an error message to the current message.
+     * 
+     * @param message
+     */
+    public void addMessage(String message) {
+        this.message += "\n" + message;
+    }
+
+    /**
+     * reset the current error message
+     */
+    public void reset() {
+        message = "";
+    }
 
 }

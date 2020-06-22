@@ -36,230 +36,230 @@ import org.imixs.workflow.ItemCollection;
 @RequestScoped
 public class RestoreController implements Serializable {
 
-	public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+    public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
 
-	private static final long serialVersionUID = 1L;
-	private static Logger logger = Logger.getLogger(RestoreController.class.getName());
+    private static final long serialVersionUID = 1L;
+    private static Logger logger = Logger.getLogger(RestoreController.class.getName());
 
-	long restoreDateFrom;
-	long restoreDateTo;
-	String restoreSizeUnit = null;
-	ItemCollection metaData = null;
+    long restoreDateFrom;
+    long restoreDateTo;
+    String restoreSizeUnit = null;
+    ItemCollection metaData = null;
 
-	protected List<ItemCollection> options = null;
+    protected List<ItemCollection> options = null;
 
-	@Inject
-	ClusterService clusterService;
+    @Inject
+    ClusterService clusterService;
 
-	@Inject
-	DataService dataService;
+    @Inject
+    DataService dataService;
 
-	@Inject
-	RestoreService restoreService;
+    @Inject
+    RestoreService restoreService;
 
-	@Inject
-	MessageService messageService;
+    @Inject
+    MessageService messageService;
 
-	public RestoreController() {
-		super();
-	}
+    public RestoreController() {
+        super();
+    }
 
-	/**
-	 * This method initializes the default sync date
-	 * 
-	 */
-	@PostConstruct
-	void init() {
-		try {
-			// load metadata
-			metaData = dataService.loadMetadata();
-			// load options
-			options = restoreService.getOptions(metaData);
-		} catch (ArchiveException e) {
-			logger.severe("Failed to load meta data!");
-			e.printStackTrace();
-		}
-	}
+    /**
+     * This method initializes the default sync date
+     * 
+     */
+    @PostConstruct
+    void init() {
+        try {
+            // load metadata
+            metaData = dataService.loadMetadata();
+            // load options
+            options = restoreService.getOptions(metaData);
+        } catch (ArchiveException e) {
+            logger.severe("Failed to load meta data!");
+            e.printStackTrace();
+        }
+    }
 
-	public String getRestoreFrom() {
+    public String getRestoreFrom() {
 
-		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-		return dt.format(restoreDateFrom);
+        SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+        return dt.format(restoreDateFrom);
 
-	}
+    }
 
-	public void setRestoreFrom(String restorePoint) throws ParseException {
-		if (restorePoint != null && !restorePoint.isEmpty()) {
-			// update sync date...
-			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-			try {
-				restoreDateFrom = dt.parse(restorePoint).getTime();
-			} catch (ParseException e) {
-				logger.severe("Unable to parse syncdate: " + e.getMessage());
-			}
-		}
-	}
+    public void setRestoreFrom(String restorePoint) throws ParseException {
+        if (restorePoint != null && !restorePoint.isEmpty()) {
+            // update sync date...
+            SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+            try {
+                restoreDateFrom = dt.parse(restorePoint).getTime();
+            } catch (ParseException e) {
+                logger.severe("Unable to parse syncdate: " + e.getMessage());
+            }
+        }
+    }
 
-	public String getRestoreTo() {
-		if (restoreDateTo == 0) {
-			// default current time
-			restoreDateTo = new Date().getTime();
+    public String getRestoreTo() {
+        if (restoreDateTo == 0) {
+            // default current time
+            restoreDateTo = new Date().getTime();
 
-			// NOTE:
-			// Because the current syncPoint has milisecont precission, but we format the
-			// restoreTo date in seconds only, we need to ajust the restoreTo timestamp per
-			// 1 second! Otherwise the last snaspshot is typically excluded from the restore
-			// because of its milisecond precission.
-			restoreDateTo = restoreDateTo + 1000; // !!
-		}
-		SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-		return dt.format(restoreDateTo);
-	}
+            // NOTE:
+            // Because the current syncPoint has milisecont precission, but we format the
+            // restoreTo date in seconds only, we need to ajust the restoreTo timestamp per
+            // 1 second! Otherwise the last snaspshot is typically excluded from the restore
+            // because of its milisecond precission.
+            restoreDateTo = restoreDateTo + 1000; // !!
+        }
+        SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+        return dt.format(restoreDateTo);
+    }
 
-	public void setRestoreTo(String restorePoint) {
-		if (restorePoint != null && !restorePoint.isEmpty()) {
-			// update sync date...
-			SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
-			try {
-				restoreDateTo = dt.parse(restorePoint).getTime();
-			} catch (ParseException e) {
-				logger.severe("Unable to parse syncdate: " + e.getMessage());
-			}
-		}
-	}
+    public void setRestoreTo(String restorePoint) {
+        if (restorePoint != null && !restorePoint.isEmpty()) {
+            // update sync date...
+            SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
+            try {
+                restoreDateTo = dt.parse(restorePoint).getTime();
+            } catch (ParseException e) {
+                logger.severe("Unable to parse syncdate: " + e.getMessage());
+            }
+        }
+    }
 
-	/**
-	 * returns the syncpoint of the current configuration
-	 * 
-	 * @return
-	 */
-	public Date getRestoreSyncPoint() {
-		long lsyncPoint;
-		lsyncPoint = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCPOINT);
-		Date syncPoint = new Date(lsyncPoint);
-		return syncPoint;
-	}
+    /**
+     * returns the syncpoint of the current configuration
+     * 
+     * @return
+     */
+    public Date getRestoreSyncPoint() {
+        long lsyncPoint;
+        lsyncPoint = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCPOINT);
+        Date syncPoint = new Date(lsyncPoint);
+        return syncPoint;
+    }
 
-	public long getRestoreCount() {
-		return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCCOUNT);
-	}
+    public long getRestoreCount() {
+        return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCCOUNT);
+    }
 
-	public long getRestoreErrors() {
-		return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCERRORS);
-	}
+    public long getRestoreErrors() {
+        return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCERRORS);
+    }
 
-	public String getRestoreSize() {
-		long l = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCSIZE);
-		String result = messageService.userFriendlyBytes(l);
-		String[] parts = result.split(" ");
-		restoreSizeUnit = parts[1];
-		return parts[0];
-	}
+    public String getRestoreSize() {
+        long l = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCSIZE);
+        String result = messageService.userFriendlyBytes(l);
+        String[] parts = result.split(" ");
+        restoreSizeUnit = parts[1];
+        return parts[0];
+    }
 
-	public String getRestoreSizeUnit() {
-		return restoreSizeUnit;
-	}
+    public String getRestoreSizeUnit() {
+        return restoreSizeUnit;
+    }
 
-	/**
-	 * returns the syncpoint of the current configuration
-	 * 
-	 * @return
-	 */
-	public long getSyncPoint() {
-		return metaData.getItemValueLong(ResyncService.ITEM_SYNCPOINT);
-	}
+    /**
+     * returns the syncpoint of the current configuration
+     * 
+     * @return
+     */
+    public long getSyncPoint() {
+        return metaData.getItemValueLong(ResyncService.ITEM_SYNCPOINT);
+    }
 
-	/**
-	 * returns the syncpoint of the current configuration
-	 * 
-	 * @return
-	 */
-	public String getSyncPointISO() {
-		SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-		Date date = new Date(getSyncPoint());
-		return dt.format(date);
-	}
+    /**
+     * returns the syncpoint of the current configuration
+     * 
+     * @return
+     */
+    public String getSyncPointISO() {
+        SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+        Date date = new Date(getSyncPoint());
+        return dt.format(date);
+    }
 
-	/**
-	 * This method starts a restore process
-	 * 
-	 * 
-	 */
-	@SuppressWarnings("unchecked")
-	public void startRestore() {
-		try {
-			logger.info("......init restore process: " + this.getRestoreFrom() + " to " + this.getRestoreTo());
-			restoreService.setOptions(options, metaData);
-			restoreService.start(restoreDateFrom, restoreDateTo,
-					metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS));
-		} catch (ArchiveException e) {
-			logger.severe("failed to start restore process: " + e.getMessage());
-		}
+    /**
+     * This method starts a restore process
+     * 
+     * 
+     */
+    @SuppressWarnings("unchecked")
+    public void startRestore() {
+        try {
+            logger.info("......init restore process: " + this.getRestoreFrom() + " to " + this.getRestoreTo());
+            restoreService.setOptions(options, metaData);
+            restoreService.start(restoreDateFrom, restoreDateTo,
+                    metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS));
+        } catch (ArchiveException e) {
+            logger.severe("failed to start restore process: " + e.getMessage());
+        }
 
-	}
+    }
 
-	/**
-	 * Returns true if a restore is running.
-	 * 
-	 * @return
-	 */
-	public boolean isRunning() {
-		Timer timer = restoreService.findTimer();
-		return (timer != null);
-	}
+    /**
+     * Returns true if a restore is running.
+     * 
+     * @return
+     */
+    public boolean isRunning() {
+        Timer timer = restoreService.findTimer();
+        return (timer != null);
+    }
 
-	public List<String> getMessages() {
-		return messageService.getMessages(RestoreService.MESSAGE_TOPIC);
-	}
+    public List<String> getMessages() {
+        return messageService.getMessages(RestoreService.MESSAGE_TOPIC);
+    }
 
-	/**
-	 * This methd returns a ItemCollection for each option
-	 * 
-	 * Example: <code>
-	 *   #{restoreController.options}
-	 * </code>
-	 * 
-	 * @return
-	 */
-	public List<ItemCollection> getOptions() {
-		return options;
-	}
+    /**
+     * This methd returns a ItemCollection for each option
+     * 
+     * Example: <code>
+     *   #{restoreController.options}
+     * </code>
+     * 
+     * @return
+     */
+    public List<ItemCollection> getOptions() {
+        return options;
+    }
 
-	public void setOptions(List<ItemCollection> options) {
-		this.options = options;
-	}
+    public void setOptions(List<ItemCollection> options) {
+        this.options = options;
+    }
 
-	/**
-	 * Adds a new filter option
-	 */
-	public void addOption() {
-		if (options == null) {
-			options = new ArrayList<ItemCollection>();
-		}
+    /**
+     * Adds a new filter option
+     */
+    public void addOption() {
+        if (options == null) {
+            options = new ArrayList<ItemCollection>();
+        }
 
-		ItemCollection itemCol = new ItemCollection();
-		itemCol.replaceItemValue("type", "filter");
-		options.add(itemCol);
+        ItemCollection itemCol = new ItemCollection();
+        itemCol.replaceItemValue("type", "filter");
+        options.add(itemCol);
 
-	}
+    }
 
-	/**
-	 * Removes an option by name
-	 * 
-	 * @param optionName
-	 */
-	public void removeOption(String optionName) {
-		if (options != null) {
+    /**
+     * Removes an option by name
+     * 
+     * @param optionName
+     */
+    public void removeOption(String optionName) {
+        if (options != null) {
 
-			int iPos = 0;
-			for (ItemCollection item : options) {
-				if (optionName.equals(item.getItemValueString("name"))) {
-					options.remove(iPos);
-					break;
-				}
-				iPos++;
-			}
-		}
-	}
+            int iPos = 0;
+            for (ItemCollection item : options) {
+                if (optionName.equals(item.getItemValueString("name"))) {
+                    options.remove(iPos);
+                    break;
+                }
+                iPos++;
+            }
+        }
+    }
 
 }

@@ -47,7 +47,7 @@ import org.imixs.archive.service.cassandra.ClusterService;
  * The service returns the count of workflow models
  * <p>
  * Example:
-  * <code>{"data":{"archive.version":2.2.0},"name":"imixs-archive","state":"UP"}</code>
+ * <code>{"data":{"archive.version":2.2.0},"name":"imixs-archive","state":"UP"}</code>
  * <p>
  * This check indicates the overall status of the cassandra cluster.
  * 

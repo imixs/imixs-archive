@@ -31,144 +31,131 @@ import org.imixs.workflow.ItemCollection;
 @RequestScoped
 public class ImportDataController implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-	
-	private static Logger logger = Logger.getLogger(ImportDataController.class.getName());
+    private static final long serialVersionUID = 1L;
 
-	String syncSizeUnit = null;
-	ItemCollection metaData = null;
+    private static Logger logger = Logger.getLogger(ImportDataController.class.getName());
 
-	@Inject
-	ClusterService clusterService;
+    String syncSizeUnit = null;
+    ItemCollection metaData = null;
 
-	@Inject
-	DataService dataService;
+    @Inject
+    ClusterService clusterService;
 
-	@Inject
-	ImportService importService;
+    @Inject
+    DataService dataService;
 
-	@Inject
-	MessageService messageService;
-	
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
-	String contactPoint;
+    @Inject
+    ImportService importService;
 
-	@Inject
-	@ConfigProperty(name =ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
-	String keySpace;
-	
+    @Inject
+    MessageService messageService;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_SCHEDULER_DEFINITION, defaultValue = "")
-	String schedulerDefinition;
+    @Inject
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
+    String contactPoint;
 
+    @Inject
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
+    String keySpace;
 
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_SCHEDULER_DEFINITION, defaultValue = "")
+    String schedulerDefinition;
 
-	
+    public ImportDataController() {
+        super();
+    }
 
-	public ImportDataController() {
-		super();
-	}
+    /**
+     * This method initializes a cluster and session obejct.
+     * 
+     * @throws ArchiveException
+     * @see {@link ImportDataController#close()}
+     */
+    @PostConstruct
+    void init() {
+        // load metadata
+        try {
+            metaData = dataService.loadMetadata();
+        } catch (ArchiveException e) {
+            logger.severe("Failed to load meta data!");
+            e.printStackTrace();
+        }
+    }
 
-	/**
-	 * This method initializes a cluster and session obejct.
-	 * 
-	 * @throws ArchiveException
-	 * @see {@link ImportDataController#close()}
-	 */
-	@PostConstruct
-	void init() {
-		// load metadata
-		try {
-			metaData = dataService.loadMetadata();
-		} catch (ArchiveException e) {
-			logger.severe("Failed to load meta data!");
-			e.printStackTrace();
-		}
-	}
+    /**
+     * This method starts a restore process
+     * 
+     * 
+     */
+    public void start() {
+        try {
+            importService.start();
+        } catch (ArchiveException e) {
+            e.printStackTrace();
+        }
+    }
 
+    /**
+     * returns the syncpoint of the current configuration
+     * 
+     * @return
+     */
+    public Date getImportPoint() {
+        long lsyncPoint = metaData.getItemValueLong(ImportService.ITEM_IMPORTPOINT);
+        Date syncPoint = new Date(lsyncPoint);
+        return syncPoint;
+    }
 
+    public long getImportCount() {
+        return metaData.getItemValueLong(ImportService.ITEM_IMPORTCOUNT);
+    }
 
-	/**
-	 * This method starts a restore process
-	 * 
-	 * 
-	 */ 
-	public void start() {
-		try {
-			importService.start();
-		} catch (ArchiveException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	
+    public String getImportSize() {
+        long l = metaData.getItemValueLong(ImportService.ITEM_IMPORTSIZE);
+        String result = messageService.userFriendlyBytes(l);
 
-	/**
-	 * returns the syncpoint of the current configuration
-	 * 
-	 * @return
-	 */
-	public Date getImportPoint() {
-		long lsyncPoint = metaData.getItemValueLong(ImportService.ITEM_IMPORTPOINT);
-		Date syncPoint = new Date(lsyncPoint);
-		return syncPoint;
-	}
+        String[] parts = result.split(" ");
+        syncSizeUnit = parts[1];
+        return parts[0];
+    }
 
-	public long getImportCount() {
-		return metaData.getItemValueLong(ImportService.ITEM_IMPORTCOUNT);
-	}
+    public String getImportSizeUnit() {
+        return syncSizeUnit;
+    }
 
-	public String getImportSize() {
-		long l = metaData.getItemValueLong(ImportService.ITEM_IMPORTSIZE);
-		String result = messageService.userFriendlyBytes(l);
+    /**
+     * Returns the message list in reverse order.
+     * 
+     * @return
+     */
+    public List<String> getMessages() {
+        List<String> messageLog = messageService.getMessages(ImportService.MESSAGE_TOPIC);
+        // revrese order (use cloned list)
+        List<String> result = new ArrayList<String>();
+        for (String message : messageLog) {
+            result.add(message);
+        }
+        Collections.reverse(result);
+        return result;
+    }
 
-		String[] parts = result.split(" ");
-		syncSizeUnit = parts[1];
-		return parts[0];
-	}
+    public boolean isRunning() {
+        return importService.isRunning();
+    }
 
-	public String getImportSizeUnit() {
-		return syncSizeUnit;
-	}
+    /**
+     * This method reset the current synpoint to 0 and prepares a new export
+     * 
+     * 
+     * @throws ArchiveException
+     */
+    public void cancel() {
+        try {
+            importService.cancel();
+        } catch (ArchiveException e) {
+            e.printStackTrace();
+        }
 
-	
-	
-
-	/**
-	 * Returns the message list in reverse order.
-	 * 
-	 * @return
-	 */
-	public List<String> getMessages() {
-		List<String> messageLog = messageService.getMessages(ImportService.MESSAGE_TOPIC);
-		// revrese order (use cloned list)
-		List<String> result = new ArrayList<String>();
-		for (String message : messageLog) {
-			result.add(message);
-		}
-		Collections.reverse(result);
-		return result;
-	}
-	
-	
-	public boolean isRunning() {
-		return importService.isRunning();
-	}
-
-	/**
-	 * This method reset the current synpoint to 0 and prepares a new export
-	 * 
-	 * 
-	 * @throws ArchiveException
-	 */
-	public void cancel() {
-		try {
-			importService.cancel();
-		} catch (ArchiveException e) {			
-			e.printStackTrace();
-		}
-
-	}
+    }
 }

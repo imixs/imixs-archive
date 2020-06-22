@@ -49,7 +49,8 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 /**
  * The ImportService imports the workflow data form a FTP storage into the
  * cassandra cluster. The import can be started by the method start(). The
- * import is implemented as a SingleActionTimer so the import can run in backgroud.
+ * import is implemented as a SingleActionTimer so the import can run in
+ * backgroud.
  * 
  * @version 1.0
  * @author rsoika
@@ -57,288 +58,288 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 @Stateless
 public class ImportService {
 
-	public final static String TIMER_ID_IMPORTSERVICE = "IMIXS_ARCHIVE_IMPORT_TIMER";
+    public final static String TIMER_ID_IMPORTSERVICE = "IMIXS_ARCHIVE_IMPORT_TIMER";
 
-	public final static String ITEM_IMPORTPOINT = "import.point";
-	public final static String ITEM_IMPORTCOUNT = "import.count";
-	public final static String ITEM_IMPORTSIZE = "import.size";
-	public final static String ITEM_IMPORTERRORS = "import.errors";
+    public final static String ITEM_IMPORTPOINT = "import.point";
+    public final static String ITEM_IMPORTCOUNT = "import.count";
+    public final static String ITEM_IMPORTSIZE = "import.size";
+    public final static String ITEM_IMPORTERRORS = "import.errors";
 
-	public final static String MESSAGE_TOPIC = "import";
-	public static final String FTP_ERROR = "FTP_ERROR";
+    public final static String MESSAGE_TOPIC = "import";
+    public static final String FTP_ERROR = "FTP_ERROR";
 
-	
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_HOST, defaultValue = "")
+    String ftpServer;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_HOST, defaultValue = "")
-	String ftpServer;
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PATH, defaultValue = "")
+    String ftpPath;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PATH, defaultValue = "")
-	String ftpPath;
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PORT, defaultValue = "21")
+    int ftpPort;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PORT, defaultValue = "21")
-	int ftpPort;
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_USER, defaultValue = "")
+    String ftpUser;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_USER, defaultValue = "")
-	String ftpUser;
+    @Inject
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PASSWORD, defaultValue = "")
+    String ftpPassword;
 
-	@Inject
-	@ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PASSWORD, defaultValue = "")
-	String ftpPassword;
+    @Inject
+    DataService dataService;
 
-	@Inject
-	DataService dataService;
+    @Inject
+    ClusterService clusterService;
 
-	@Inject
-	ClusterService clusterService;
+    @Inject
+    MessageService messageService;
 
-	@Inject
-	MessageService messageService;
+    @Inject
+    FTPConnector ftpConnector;
 
-	@Inject
-	FTPConnector ftpConnector;
-	
-	@Inject
-	ImportStatusHandler importStatusHandler;
+    @Inject
+    ImportStatusHandler importStatusHandler;
 
-	@Resource
-	javax.ejb.TimerService timerService;
+    @Resource
+    javax.ejb.TimerService timerService;
 
-	private static Logger logger = Logger.getLogger(ImportService.class.getName());
+    private static Logger logger = Logger.getLogger(ImportService.class.getName());
 
-	/**
-	 * This method initializes a new timer for the import ....
-	 * 
-	 * @throws ArchiveException
-	 */
-	public void start() throws ArchiveException {
-		Timer timer = null;
+    /**
+     * This method initializes a new timer for the import ....
+     * 
+     * @throws ArchiveException
+     */
+    public void start() throws ArchiveException {
+        Timer timer = null;
 
-		// try to cancel an existing timer for this workflowinstance
-		timer = findTimer();
-		if (timer != null) {
-			try {
-				timer.cancel();
-				timer = null;
-			} catch (Exception e) {
-				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
-				throw new ArchiveException(ExportService.class.getName(), ArchiveException.INVALID_WORKITEM,
-						" failed to cancel existing timer!");
-			}
-		}
+        // try to cancel an existing timer for this workflowinstance
+        timer = findTimer();
+        if (timer != null) {
+            try {
+                timer.cancel();
+                timer = null;
+            } catch (Exception e) {
+                messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
+                throw new ArchiveException(ExportService.class.getName(), ArchiveException.INVALID_WORKITEM,
+                        " failed to cancel existing timer!");
+            }
+        }
 
-		logger.finest("...starting scheduler import-service ...");
-		TimerConfig timerConfig = new TimerConfig();
+        logger.finest("...starting scheduler import-service ...");
+        TimerConfig timerConfig = new TimerConfig();
 
-		timerConfig.setInfo(TIMER_ID_IMPORTSERVICE);
-		// New timer will start imediatly
-		timer = timerService.createSingleActionTimer(0, timerConfig);
-		// start and set statusmessage
-		if (timer != null) {
-			messageService.logMessage(MESSAGE_TOPIC, "Timer started.");
-		}
+        timerConfig.setInfo(TIMER_ID_IMPORTSERVICE);
+        // New timer will start imediatly
+        timer = timerService.createSingleActionTimer(0, timerConfig);
+        // start and set statusmessage
+        if (timer != null) {
+            messageService.logMessage(MESSAGE_TOPIC, "Timer started.");
+        }
 
-	}
+    }
 
-	/**
-	 * This is the method which imports the data from teh FTP storrage.
-	 * 
-	 * @throws Exception
-	 * @throws QueryException
-	 */
-	@Timeout
-	void onTimeout(javax.ejb.Timer timer) throws ArchiveException {
-		importStatusHandler.setStatus(ImportStatusHandler.STAUS_RUNNING);
-		ItemCollection metaData = null;
-		long lastImportPoint = 0;
-		long totalCount = 0;
-		long importSize = 0;
-		String lastUniqueID = null;
+    /**
+     * This is the method which imports the data from teh FTP storrage.
+     * 
+     * @throws Exception
+     * @throws QueryException
+     */
+    @Timeout
+    void onTimeout(javax.ejb.Timer timer) throws ArchiveException {
+        importStatusHandler.setStatus(ImportStatusHandler.STAUS_RUNNING);
+        ItemCollection metaData = null;
+        long lastImportPoint = 0;
+        long totalCount = 0;
+        long importSize = 0;
+        String lastUniqueID = null;
 
-		if (ftpServer.isEmpty()) {
-			messageService.logMessage(MESSAGE_TOPIC,
-					"...Import failed - " + ExportService.ENV_EXPORT_FTP_HOST + " not defined!");
-			return;
-		}
+        if (ftpServer.isEmpty()) {
+            messageService.logMessage(MESSAGE_TOPIC,
+                    "...Import failed - " + ExportService.ENV_EXPORT_FTP_HOST + " not defined!");
+            return;
+        }
 
-		try {
+        try {
 
-			// load metadata and get last syncpoint
-			metaData = dataService.loadMetadata();
+            // load metadata and get last syncpoint
+            metaData = dataService.loadMetadata();
 
-			metaData.setItemValue(ITEM_IMPORTPOINT, lastImportPoint);
-			metaData.setItemValue(ITEM_IMPORTCOUNT, 0);
-			metaData.setItemValue(ITEM_IMPORTSIZE, 0);
-			dataService.saveMetadata(metaData);
+            metaData.setItemValue(ITEM_IMPORTPOINT, lastImportPoint);
+            metaData.setItemValue(ITEM_IMPORTCOUNT, 0);
+            metaData.setItemValue(ITEM_IMPORTSIZE, 0);
+            dataService.saveMetadata(metaData);
 
-			messageService.logMessage(MESSAGE_TOPIC, "...starting import from " + ftpServer + "...");
+            messageService.logMessage(MESSAGE_TOPIC, "...starting import from " + ftpServer + "...");
 
-			// init FTP Client
-			FTPSClient ftpClient = new FTPSClient("TLS", false);
-			ftpClient.setControlEncoding("UTF-8");
-			ftpClient.connect(ftpServer, ftpPort);
-			if (ftpClient.login(ftpUser, ftpPassword) == false) {
-				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: login failed!");
-			}
+            // init FTP Client
+            FTPSClient ftpClient = new FTPSClient("TLS", false);
+            ftpClient.setControlEncoding("UTF-8");
+            ftpClient.connect(ftpServer, ftpPort);
+            if (ftpClient.login(ftpUser, ftpPassword) == false) {
+                throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: login failed!");
+            }
 
-			ftpClient.enterLocalPassiveMode();
+            ftpClient.enterLocalPassiveMode();
 //			ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
-			ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
-			ftpClient.setControlEncoding("UTF-8");
+            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+            ftpClient.setControlEncoding("UTF-8");
 
-			ftpClient.setBufferSize(1024*64);
-			
-			// verify directories
-			String ftpRootPath = ftpPath;
-			if (!ftpRootPath.startsWith("/")) {
-				ftpRootPath = "/" + ftpRootPath;
-			}
-			if (!ftpRootPath.endsWith("/")) {
-				ftpRootPath = ftpRootPath + "/";
-			}
+            ftpClient.setBufferSize(1024 * 64);
 
-			if (!ftpClient.changeWorkingDirectory(ftpRootPath)) {
-				throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing workfing directory '"
-						+ ftpRootPath + "' : " + ftpClient.getReplyString());
-			}
+            // verify directories
+            String ftpRootPath = ftpPath;
+            if (!ftpRootPath.startsWith("/")) {
+                ftpRootPath = "/" + ftpRootPath;
+            }
+            if (!ftpRootPath.endsWith("/")) {
+                ftpRootPath = ftpRootPath + "/";
+            }
 
-			// check subdirectories.....
-			String ftpWorkingPath = "";
-			FTPFile[] directoryListYears = ftpClient.listDirectories();
-			for (FTPFile ftpFileYear : directoryListYears) {
-				if (ftpFileYear.isDirectory()) {
-					ftpWorkingPath = ftpFileYear.getName();
-					if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
-						throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing working directory '"
-								+ ftpWorkingPath + "' : " + ftpClient.getReplyString());
-					}
-					messageService.logMessage(MESSAGE_TOPIC, "......import path: " + ftpWorkingPath);
-					// now switch to Month....
-					FTPFile[] directoryListMonths = ftpClient.listDirectories();
-					for (FTPFile ftpFileMonth : directoryListMonths) {
-						if (ftpFileMonth.isDirectory()) {
-							ftpWorkingPath = ftpFileMonth.getName();
-							if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
-								throw new ArchiveException(FTP_ERROR,
-										"FTP file transfer failed: missing working directory '" + ftpWorkingPath
-												+ "' : " + ftpClient.getReplyString());
-							}
-							messageService.logMessage(MESSAGE_TOPIC, "......import path: " + ftpWorkingPath);
-							// read all files....
-							int count = 0;
-							FTPFile[] importFiles = ftpClient.listFiles();
-							for (FTPFile importFile : importFiles) {
-								if (importFile.isFile()) {
-									ItemCollection snapshot = ftpConnector.get(ftpClient, importFile.getName());
-									if (snapshot != null) {
-										if (!dataService.existSnapshot(snapshot.getUniqueID())) {
-											// import!
-											dataService.saveSnapshot(snapshot);
-											logger.info("...." + snapshot.getUniqueID() + " successfull imported");
-											count++;
-											totalCount++;
-											long _tmpSize = dataService
-													.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
-											logger.finest("......size=: " + _tmpSize);
-											importSize = importSize + _tmpSize;
+            if (!ftpClient.changeWorkingDirectory(ftpRootPath)) {
+                throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing workfing directory '"
+                        + ftpRootPath + "' : " + ftpClient.getReplyString());
+            }
 
-											lastImportPoint = dataService.getSnapshotTime(snapshot.getUniqueID());
-										}
-									}
-								}
-								if (importStatusHandler.getStatus()==ImportStatusHandler.STAUS_CANCELED) {
-									break;
-								}
-							}
+            // check subdirectories.....
+            String ftpWorkingPath = "";
+            FTPFile[] directoryListYears = ftpClient.listDirectories();
+            for (FTPFile ftpFileYear : directoryListYears) {
+                if (ftpFileYear.isDirectory()) {
+                    ftpWorkingPath = ftpFileYear.getName();
+                    if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
+                        throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing working directory '"
+                                + ftpWorkingPath + "' : " + ftpClient.getReplyString());
+                    }
+                    messageService.logMessage(MESSAGE_TOPIC, "......import path: " + ftpWorkingPath);
+                    // now switch to Month....
+                    FTPFile[] directoryListMonths = ftpClient.listDirectories();
+                    for (FTPFile ftpFileMonth : directoryListMonths) {
+                        if (ftpFileMonth.isDirectory()) {
+                            ftpWorkingPath = ftpFileMonth.getName();
+                            if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
+                                throw new ArchiveException(FTP_ERROR,
+                                        "FTP file transfer failed: missing working directory '" + ftpWorkingPath
+                                                + "' : " + ftpClient.getReplyString());
+                            }
+                            messageService.logMessage(MESSAGE_TOPIC, "......import path: " + ftpWorkingPath);
+                            // read all files....
+                            int count = 0;
+                            FTPFile[] importFiles = ftpClient.listFiles();
+                            for (FTPFile importFile : importFiles) {
+                                if (importFile.isFile()) {
+                                    ItemCollection snapshot = ftpConnector.get(ftpClient, importFile.getName());
+                                    if (snapshot != null) {
+                                        if (!dataService.existSnapshot(snapshot.getUniqueID())) {
+                                            // import!
+                                            dataService.saveSnapshot(snapshot);
+                                            logger.info("...." + snapshot.getUniqueID() + " successfull imported");
+                                            count++;
+                                            totalCount++;
+                                            long _tmpSize = dataService
+                                                    .calculateSize(XMLDocumentAdapter.getDocument(snapshot));
+                                            logger.finest("......size=: " + _tmpSize);
+                                            importSize = importSize + _tmpSize;
 
-							messageService.logMessage(MESSAGE_TOPIC, "......" + count + " snapshots imported...");
-							metaData.setItemValue(ITEM_IMPORTPOINT, lastImportPoint);
-							metaData.setItemValue(ITEM_IMPORTCOUNT, totalCount);
-							metaData.setItemValue(ITEM_IMPORTSIZE, importSize);
-							dataService.saveMetadata(metaData);
-							ftpClient.changeToParentDirectory();
-							if (importStatusHandler.getStatus()==ImportStatusHandler.STAUS_CANCELED) {
-								break;
-							}
-						}
-					}
+                                            lastImportPoint = dataService.getSnapshotTime(snapshot.getUniqueID());
+                                        }
+                                    }
+                                }
+                                if (importStatusHandler.getStatus() == ImportStatusHandler.STAUS_CANCELED) {
+                                    break;
+                                }
+                            }
 
-				}
-				if (importStatusHandler.getStatus()==ImportStatusHandler.STAUS_CANCELED) {
-					break;
-				}
-				ftpClient.changeToParentDirectory();
-			}
+                            messageService.logMessage(MESSAGE_TOPIC, "......" + count + " snapshots imported...");
+                            metaData.setItemValue(ITEM_IMPORTPOINT, lastImportPoint);
+                            metaData.setItemValue(ITEM_IMPORTCOUNT, totalCount);
+                            metaData.setItemValue(ITEM_IMPORTSIZE, importSize);
+                            dataService.saveMetadata(metaData);
+                            ftpClient.changeToParentDirectory();
+                            if (importStatusHandler.getStatus() == ImportStatusHandler.STAUS_CANCELED) {
+                                break;
+                            }
+                        }
+                    }
 
-		} catch (ArchiveException | RuntimeException | IOException e) {
+                }
+                if (importStatusHandler.getStatus() == ImportStatusHandler.STAUS_CANCELED) {
+                    break;
+                }
+                ftpClient.changeToParentDirectory();
+            }
 
-			e.printStackTrace();
-			messageService.logMessage(MESSAGE_TOPIC, "Import failed "
-					+ ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
-					+ " : " + e.getMessage());
+        } catch (ArchiveException | RuntimeException | IOException e) {
 
-		}
+            e.printStackTrace();
+            messageService.logMessage(MESSAGE_TOPIC, "Import failed "
+                    + ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
+                    + " : " + e.getMessage());
 
-		messageService.logMessage(MESSAGE_TOPIC, "... import completed!");
-		
-		stop(findTimer());
-	}
+        }
 
-	/**
-	 * Stops the current import
-	 * @throws ArchiveException 
-	 */
-	public void cancel() throws ArchiveException {
-		importStatusHandler.setStatus(ImportStatusHandler.STAUS_CANCELED);
-		messageService.logMessage(MESSAGE_TOPIC, "... import canceled!");
-		
-		stop(findTimer());
-	}
+        messageService.logMessage(MESSAGE_TOPIC, "... import completed!");
 
-	/**
-	 * Cancels the running timer instance.
-	 * 
-	 * @throws ArchiveException
-	 */
-	private void stop(Timer timer) throws ArchiveException {
-		if (timer != null) {
-			try {
-				timer.cancel();
-			} catch (Exception e) {
-				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop timer - " + e.getMessage());
-			}
-			// update status message
-			messageService.logMessage(MESSAGE_TOPIC, "Timer stopped. ");
-			importStatusHandler.setStatus(ImportStatusHandler.STAUS_STOPPED);
-		}
-	}
-	/**
-	 * returns true if the service is running
-	 * 
-	 * @return
-	 */
-	public boolean isRunning() {
-		return (findTimer()!=null);
-	}
+        stop(findTimer());
+    }
 
-	/**
-	 * This method returns a timer for a corresponding id if such a timer object
-	 * exists.
-	 * 
-	 * @param id
-	 * @return Timer
-	 * @throws Exception
-	 */
-	private Timer findTimer() {
-		for (Object obj : timerService.getTimers()) {
-			Timer timer = (javax.ejb.Timer) obj;
-			if (TIMER_ID_IMPORTSERVICE.equals(timer.getInfo())) {
-				return timer;
-			}
-		}
-		return null;
-	}
+    /**
+     * Stops the current import
+     * 
+     * @throws ArchiveException
+     */
+    public void cancel() throws ArchiveException {
+        importStatusHandler.setStatus(ImportStatusHandler.STAUS_CANCELED);
+        messageService.logMessage(MESSAGE_TOPIC, "... import canceled!");
+
+        stop(findTimer());
+    }
+
+    /**
+     * Cancels the running timer instance.
+     * 
+     * @throws ArchiveException
+     */
+    private void stop(Timer timer) throws ArchiveException {
+        if (timer != null) {
+            try {
+                timer.cancel();
+            } catch (Exception e) {
+                messageService.logMessage(MESSAGE_TOPIC, "Failed to stop timer - " + e.getMessage());
+            }
+            // update status message
+            messageService.logMessage(MESSAGE_TOPIC, "Timer stopped. ");
+            importStatusHandler.setStatus(ImportStatusHandler.STAUS_STOPPED);
+        }
+    }
+
+    /**
+     * returns true if the service is running
+     * 
+     * @return
+     */
+    public boolean isRunning() {
+        return (findTimer() != null);
+    }
+
+    /**
+     * This method returns a timer for a corresponding id if such a timer object
+     * exists.
+     * 
+     * @param id
+     * @return Timer
+     * @throws Exception
+     */
+    private Timer findTimer() {
+        for (Object obj : timerService.getTimers()) {
+            Timer timer = (javax.ejb.Timer) obj;
+            if (TIMER_ID_IMPORTSERVICE.equals(timer.getInfo())) {
+                return timer;
+            }
+        }
+        return null;
+    }
 }
