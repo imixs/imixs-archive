@@ -1,17 +1,35 @@
 package org.imixs.archive.service.cassandra;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Cluster.Builder;
+
+import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
+import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
@@ -44,6 +62,11 @@ public class ClusterService {
 	// optional environment settings
 	public static final String ENV_ARCHIVE_CLUSTER_AUTH_USER = "ARCHIVE_CLUSTER_AUTH_USER";
 	public static final String ENV_ARCHIVE_CLUSTER_AUTH_PASSWORD = "ARCHIVE_CLUSTER_AUTH_PASSWORD";
+	public static final String ENV_ARCHIVE_CLUSTER_SSL = "ARCHIVE_CLUSTER_SSL";
+	public static final String ENV_ARCHIVE_CLUSTER_SSL_TRUSTSTOREPATH = "ARCHIVE_CLUSTER_SSL_TRUSTSTOREPATH";
+	public static final String ENV_ARCHIVE_CLUSTER_SSL_TRUSTSTOREPASSWORD = "ARCHIVE_CLUSTER_SSL_TRUSTSTOREPASSWORD";
+	public static final String ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPATH = "ARCHIVE_CLUSTER_SSL_KEYSTOREPATH";
+	public static final String ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPASSWORD = "ARCHIVE_CLUSTER_SSL_KEYSTOREPASSWORD";
 
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "ARCHIVE_CLUSTER_REPLICATION_FACTOR";
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS = "ARCHIVE_CLUSTER_REPLICATION_CLASS";
@@ -79,15 +102,35 @@ public class ClusterService {
 	@Inject
 	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
 	String keySpace;
-	
+
 	@Inject
 	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_AUTH_USER, defaultValue = "")
 	String userid;
-	
+
 	@Inject
 	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_AUTH_PASSWORD, defaultValue = "")
 	String password;
-	
+
+	@Inject
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL, defaultValue = "false")
+	boolean bUseSSL;
+
+	@Inject
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_TRUSTSTOREPATH, defaultValue = "")
+	String truststorePath;
+
+	@Inject
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_TRUSTSTOREPASSWORD, defaultValue = "")
+	String truststorePwd;
+
+	@Inject
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPATH, defaultValue = "")
+	String keystorePath;
+
+	@Inject
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPASSWORD, defaultValue = "")
+	String keystorePwd;
+
 	private Cluster cluster;
 	private Session session;
 
@@ -161,7 +204,7 @@ public class ClusterService {
 	protected Cluster initCluster() throws ArchiveException {
 		// Boolean used to check if at least one host could be resolved
 		boolean found = false;
-		
+
 		if (contactPoint == null || contactPoint.isEmpty()) {
 			throw new ArchiveException(ArchiveException.MISSING_CONTACTPOINT,
 					"missing cluster contact points - verify configuration!");
@@ -181,26 +224,87 @@ public class ClusterService {
 			}
 		}
 		if (!found) {
-		    // No host could be resolved so we throw an exception
-		    throw new IllegalStateException("All provided hosts are unknown - check cluster status and configuration!");
+			// No host could be resolved so we throw an exception
+			throw new IllegalStateException("All provided hosts are unknown - check cluster status and configuration!");
 		}
-		
+
 		builder.withLoadBalancingPolicy(new RoundRobinPolicy());
 		builder.withRetryPolicy(DefaultRetryPolicy.INSTANCE);
 
 		// set optional credentials...
 		if (!userid.isEmpty()) {
-			builder.withCredentials(userid, password);
+			builder = builder.withCredentials(userid, password);
 		}
-		
-		cluster = builder.build();
-		// cluster = Cluster.builder().addContactPoint(contactPoint).build();
-		cluster.init();
 
+		// use SSL ?
+		if (bUseSSL) {
+			try {
+				// create ssl options based on environment settings...
+				SSLOptions options = createSSLOptions();
+				logger.severe("......creating cluster session with SSL...");
+				builder.withSSL(options);
+			} catch (KeyManagementException | UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException
+					| CertificateException | IOException e) {
+				logger.severe("Failed to connect withSSL: " + e.getMessage());
+				e.printStackTrace();
+			}
+		}
+
+		cluster = builder.build();
+		cluster.init();
 		logger.info("...cluster conection status = OK");
 
 		return cluster;
 
+	}
+
+	/**
+	 * Helper Method to generate sslOpens object for cassandra dataStax driver
+	 * withSSL.
+	 * <p>
+	 * At least the truststorePath is needed to establish a one way SSL connection.
+	 * <p>
+	 * The keystorePath is only needed in case 'require_client_auth = true' is set
+	 * in the cassandra.yaml file
+	 * 
+	 * @return sslOptons
+	 * @throws KeyStoreException
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyManagementException
+	 * @throws CertificateException
+	 * @throws UnrecoverableKeyException
+	 */
+	private SSLOptions createSSLOptions() throws KeyStoreException, FileNotFoundException, IOException,
+			NoSuchAlgorithmException, KeyManagementException, CertificateException, UnrecoverableKeyException {
+
+		TrustManagerFactory tmf = null;
+		if (truststorePath != null && !truststorePath.isEmpty()) {
+			KeyStore tks = KeyStore.getInstance("JKS");
+			tks.load((InputStream) new FileInputStream(new File(truststorePath)), truststorePwd.toCharArray());
+			tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+			tmf.init(tks);
+		} else {
+			logger.info("SSLOptions without truststore...");
+		}
+
+		KeyManagerFactory kmf = null;
+		if (null != keystorePath && !keystorePath.isEmpty()) {
+			KeyStore kks = KeyStore.getInstance("JKS");
+			kks.load((InputStream) new FileInputStream(new File(keystorePath)), keystorePwd.toCharArray());
+			kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+			kmf.init(kks, keystorePwd.toCharArray());
+		} else {
+			logger.info("SSLOptions without keystore...");
+		}
+
+		SSLContext sslContext = SSLContext.getInstance("TLS");
+		sslContext.init(kmf != null ? kmf.getKeyManagers() : null, tmf != null ? tmf.getTrustManagers() : null,
+				new SecureRandom());
+		RemoteEndpointAwareJdkSSLOptions sslOptions = RemoteEndpointAwareJdkSSLOptions.builder()
+				.withSSLContext(sslContext).build();
+		return sslOptions;
 	}
 
 	/**
