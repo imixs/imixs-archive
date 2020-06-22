@@ -85,6 +85,22 @@ The Imixs-Admin client can be started by the URL:
 	http://localhost:8082/
 
 
+
+## Security
+
+There are several ways how you can secure your Cassandra Cluster. For example you can activate a [Node-to-node encryption](https://docs.datastax.com/en/archived/cassandra/3.0/cassandra/configuration/secureSSLNodeToNode.html), a [Client-to-node encryption](https://docs.datastax.com/en/archived/cassandra/3.0/cassandra/configuration/secureSSLClientToNode.html) and a [Password Authenticator](https://docs.datastax.com/en/archived/cassandra/3.0/cassandra/configuration/secureConfigNativeAuth.html). If you do so you need to provide the Imixs-Archive Service with the necessary information. This can be done by setting the corresponding environment variables:
+
+
+      ARCHIVE_CLUSTER_AUTH_USER: "imixs"
+      ARCHIVE_CLUSTER_AUTH_PASSWORD: "adminadmin"
+      ARCHIVE_CLUSTER_SSL: "true"
+      ARCHIVE_CLUSTER_SSL_TRUSTSTOREPATH: "/cassandra.truststore"
+      ARCHIVE_CLUSTER_SSL_TRUSTSTOREPASSWORD: "adminadmin"
+
+In this example for a client authentication the user 'imixs' with password 'adminadmin' is provided. And for a secure communication the SSL connection between the client and the cluster is activated. In this case a valid truststore with a password need to be provided. See also [DataStax Java Driver SSL](https://docs.datastax.com/en/developer/java-driver/3.9/manual/ssl/).
+
+Find also information about Cassandara and SSL [here](https://ralph.blog.imixs.com/2020/06/22/setup-a-public-cassandra-cluster-with-docker/)
+
 ## Build with Maven 
 
 If you have not yet a Imixs-Archive-Service container, you can build the application from sources and create the docker image use the maven command:
