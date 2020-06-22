@@ -42,6 +42,9 @@ public class ClusterService {
 	public static final String ENV_ARCHIVE_CLUSTER_KEYSPACE = "ARCHIVE_CLUSTER_KEYSPACE";
 
 	// optional environment settings
+	public static final String ENV_ARCHIVE_CLUSTER_AUTH_USER = "ARCHIVE_CLUSTER_AUTH_USER";
+	public static final String ENV_ARCHIVE_CLUSTER_AUTH_PASSWORD = "ARCHIVE_CLUSTER_AUTH_PASSWORD";
+
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "ARCHIVE_CLUSTER_REPLICATION_FACTOR";
 	public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS = "ARCHIVE_CLUSTER_REPLICATION_CLASS";
 
@@ -76,7 +79,15 @@ public class ClusterService {
 	@Inject
 	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
 	String keySpace;
-
+	
+	@Inject
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_AUTH_USER, defaultValue = "")
+	String userid;
+	
+	@Inject
+	@ConfigProperty(name = ENV_ARCHIVE_CLUSTER_AUTH_PASSWORD, defaultValue = "")
+	String password;
+	
 	private Cluster cluster;
 	private Session session;
 
@@ -177,6 +188,11 @@ public class ClusterService {
 		builder.withLoadBalancingPolicy(new RoundRobinPolicy());
 		builder.withRetryPolicy(DefaultRetryPolicy.INSTANCE);
 
+		// set optional credentials...
+		if (!userid.isEmpty()) {
+			builder.withCredentials(userid, password);
+		}
+		
 		cluster = builder.build();
 		// cluster = Cluster.builder().addContactPoint(contactPoint).build();
 		cluster.init();
