@@ -24,15 +24,15 @@ OCR processing can be automatically activated for all new attached documents by 
 
 ### The OCRDocumentPlugin
 
-The TikaPlugin class _org.imixs.workflow.documents.TikaPlugin_ can be used as an alternative for the tika service mode 'auto'. The pugin extract  textual information from document attachments based on the model configuration. You need to add the plugin to your model to activate it. 
+The TikaPlugin class *org.imixs.archive.documents.OCRDocumentPlugin* can be used as an alternative for the tika service mode 'auto'. The pugin extract  textual information from document attachments based on the model configuration. You need to add the plugin to your model to activate it. 
 
 	org.imixs.archive.documents.OCRDocumentPlugin
 
 The environment variable *TIKA_SERVICE_MODE* must be set to 'model'.  
 
-### The TikaAdapter
+### The OCRDocumentAdapter
 
-The TikaAdapter class _org.imixs.workflow.documents.TikaAdatper_ is a signal adapter which can be bound on a specific BPMN event element.
+The Adapter class *org.imixs.archive.documents.OCRDocumentAdapter* is a signal adapter which can be bound on a specific BPMN event element.
 
 	org.imixs.archive.documents.OCRDocumentAdapter
 
