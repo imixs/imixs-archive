@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import org.imixs.archive.documents.PDFXMLExtractorPlugin;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.WorkflowMockEnvironment;
 import org.imixs.workflow.exceptions.ModelException;

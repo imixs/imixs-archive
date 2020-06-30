@@ -401,6 +401,23 @@ public class SnapshotService {
     }
 
     /**
+     * This method loads the snapshot for a given origin workItem .
+     * 
+     * @param workitem
+     * @return ItemCollection - snapshot object if found
+     */
+    public ItemCollection findSnapshot(ItemCollection workitem) {
+        String snapshotID;
+        // test if we have a $snapshotid
+        snapshotID = workitem.getItemValueString("$snapshotid");
+        if (!snapshotID.isEmpty()) {
+            return documentService.load(snapshotID);
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * This method returns the fileData from a snapshot by a given origin workItem
      * uniqueid.
      * 

@@ -1,11 +1,12 @@
-package org.imixs.workflow.documents;
+package org.imixs.archive.documents;
 
 import java.util.logging.Logger;
 
-import javax.ejb.EJB;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.imixs.archive.core.SnapshotService;
+import org.imixs.archive.ocr.OCRService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowContext;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
@@ -20,20 +21,26 @@ import org.imixs.workflow.exceptions.PluginException;
  * will react on the ProcessingEvent BEFORE_PROCESS. The plugin runs only in
  * case the TIKA_SERVICE_MODE is NOT set to 'auto'!
  * 
- * @see TikaDocumentService
+ * @see OCRDocumentService
  * @version 1.0
  * @author rsoika
  */
-public class TikaPlugin extends AbstractPlugin {
+public class OCRDocumentPlugin extends AbstractPlugin {
 
-    private static Logger logger = Logger.getLogger(TikaPlugin.class.getName());
-
-    @EJB
-    TikaDocumentService tikaDocumentService;
+    private static Logger logger = Logger.getLogger(OCRDocumentPlugin.class.getName());
 
     @Inject
-    @ConfigProperty(name = TikaDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
+    //TikaDocumentService tikaDocumentService;
+    OCRService ocrService;
+
+
+    @Inject
+    @ConfigProperty(name = OCRDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
+    
+    @Inject
+    SnapshotService snapshotService;
+  
 
     @Override
     public void init(WorkflowContext actx) throws PluginException {
@@ -52,7 +59,7 @@ public class TikaPlugin extends AbstractPlugin {
     public ItemCollection run(ItemCollection document, ItemCollection event) throws PluginException {
         if ("model".equalsIgnoreCase(serviceMode)) {
             // update the dms meta data
-            tikaDocumentService.extractText(document);
+            ocrService.extractText(document,snapshotService.findSnapshot(document));
         } else {
             logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode);
         }

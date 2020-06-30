@@ -26,7 +26,7 @@
  *      Ralph Soika - Software Developer
  */
 
-package org.imixs.workflow.documents;
+package org.imixs.archive.documents;
 
 import java.util.List;
 import java.util.logging.Logger;
