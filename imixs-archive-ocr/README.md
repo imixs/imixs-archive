@@ -1,6 +1,7 @@
 # Imixs-Archive-OCR
 
-*Imixs-Archive-OCR* is a sub-project of Imixs-Archive. The project provides methods to extract textual information from attached documents - including Optical character recognition -  during the processing phase. This information can be used for further processing or to search for documents
+*Imixs-Archive-OCR* is a sub-project of Imixs-Archive. The project provides methods to extract textual information from documents
+attached to a Workitem. The text content of attachmets is either extracted by the PDFBox API or by optical character recognition (OCR). This text content is stored in the $file attribute 'text' and can be use for further processing or to search for document content.
 
 
 ## OCR 
@@ -9,7 +10,7 @@ The *Optical character recognition (OCR)* is based on the [Apache Project 'Tika'
 
 ### The OCRService
 
-The *OCRService* extracts the textual information from file attachments. The service calls the Tika Rest API to extract the text information of a file. The following environment variables are mandatory:
+The *OCRService* extracts the textual information from file attachments. The service calls the PDFBox API,  or in case a PDF document does not contain text information the Tika Rest API to extract the text information of a file. The following environment variables are mandatory:
  
   * TIKA\_SERVICE\_ENDPONT - defines the Rest API end-point of the tika server.
   * TIKA\_SERVICE\_MODE - if set to 'auto' the TikaDocumentService reacts on the CDI event 'BEFORE\_PROCESS' and extracts the data automatically. If set to 'model' the *TikaPlugin* or the *TikaAdapter* can be used in a BPMN model to activate the OCR processing

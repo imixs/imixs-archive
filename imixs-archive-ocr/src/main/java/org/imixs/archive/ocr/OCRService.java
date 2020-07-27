@@ -25,13 +25,18 @@ import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.PluginException;
 
 /**
- * The OCRService extracts the textual information from document attachments.
- * The service sends file content to an instance of an Apache Tika Server to get
- * the text content. The result is stored in the $file attribute 'text'.
+ * The OCRService extracts the textual information from document attachments of
+ * a workitem.
  * <p>
- * The service expects a valid Rest API end-point defined by the Environment
- * Parameter 'TIKA_SERVICE_ENDPONT'. If the TIKA_SERVICE_ENDPONT is not set,
- * then the service will be skipped.
+ * The text information is stored in the $file attribute 'text'.
+ * <p>
+ * For PDF files with textual content the PDFBox api is used. In other cases,
+ * the method sends the content via a Rest API to the tika server for OCR
+ * processing.
+ * <p>
+ * For OCR processing the service expects a valid Rest API end-point defined by
+ * the Environment Parameter 'TIKA_SERVICE_ENDPONT'. If the TIKA_SERVICE_ENDPONT
+ * is not set, then the service will be skipped.
  * <p>
  * The environment parameter 'TIKA_SERVICE_MODE' must be set to 'auto' to enable
  * the service.
@@ -86,15 +91,15 @@ public class OCRService {
     /**
      * Extracts the textual information from document attachments.
      * <p>
-     * The method extracts the textual content for each new document of a given
-     * workitem. For PDF files with textual content the method calls the method
+     * The method extracts the textual content for each new file attachment of a
+     * given workitem. The text information is stored in the $file attribute 'text'.
+     * <p>
+     * For PDF files with textual content the method calls the method
      * 'extractTextFromPDF' using the PDFBox api. In other cases, the method sends
      * the content via a Rest API to the tika server for OCR processing.
      * <p>
-     * The result is stored into the fileData attribute 'text'
-     * <p>
      * The method also extracts files already stored in a snapshot workitem. In this
-     * case the method tests if the attribute 'text' already exists.
+     * case the method tests if the $file attribute 'text' already exists.
      * 
      * @param workitem - workitem with file attachments
      * @param _ocrmode - PDF_ONLY, OCR_ONLY, MIXED
