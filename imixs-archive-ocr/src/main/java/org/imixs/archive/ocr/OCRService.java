@@ -27,7 +27,7 @@ import org.imixs.workflow.exceptions.PluginException;
 /**
  * The OCRService extracts the textual information from document attachments.
  * The service sends file content to an instance of an Apache Tika Server to get
- * the text content.
+ * the text content. The result is stored in the $file attribute 'text'.
  * <p>
  * The service expects a valid Rest API end-point defined by the Environment
  * Parameter 'TIKA_SERVICE_ENDPONT'. If the TIKA_SERVICE_ENDPONT is not set,
@@ -44,6 +44,7 @@ import org.imixs.workflow.exceptions.PluginException;
 @Stateless
 public class OCRService {
 
+    public static final String FILE_ATTRIBUTE_TEXT = "text";
     public static final String DEFAULT_ENCODING = "UTF-8";
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
     public static final String ENV_TIKA_SERVICE_ENDPOINT = "tika.service.endpoint";
@@ -159,7 +160,7 @@ public class OCRService {
                         // store the ocrContent....
                         List<Object> list = new ArrayList<Object>();
                         list.add(ocrContent);
-                        fileData.setAttribute("text", list);
+                        fileData.setAttribute(FILE_ATTRIBUTE_TEXT, list);
 
                     } catch (IOException e) {
                         throw new PluginException(OCRService.class.getSimpleName(), PLUGIN_ERROR,
@@ -183,7 +184,7 @@ public class OCRService {
     @SuppressWarnings("unchecked")
     private boolean hasOCRContent(FileData fileData) {
         if (fileData != null) {
-            List<String> ocrContentList = (List<String>) fileData.getAttribute("text");
+            List<String> ocrContentList = (List<String>) fileData.getAttribute(FILE_ATTRIBUTE_TEXT);
             if (ocrContentList != null && ocrContentList.size() > 0 && ocrContentList.get(0) != null) {
                 return true;
             }
