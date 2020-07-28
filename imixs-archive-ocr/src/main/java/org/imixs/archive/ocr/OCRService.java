@@ -301,7 +301,7 @@ public class OCRService {
                             logger.warning("Invalid tika option : '" + option + "'  key must start with 'X-Tika'");
                         }
                     } else {
-                        logger.warning("Invalid tika option : '" + option + "'  character '=' expreced!");
+                        logger.warning("Invalid tika option : '" + option + "'  character '=' expeced!");
                     }
                 }
             }

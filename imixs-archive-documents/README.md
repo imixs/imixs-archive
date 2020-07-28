@@ -38,6 +38,17 @@ The Adapter class *org.imixs.archive.documents.OCRDocumentAdapter* is a signal a
 
 The TikaAdapter allows a more fine grained configuration of OCR processing. The environment variable *TIKA_SERVICE_MODE* must be set to 'model'. 
 
+### OCR Tika Options
+
+Both, the *OCRDocumentPlugin* as also the *OCRDocumentAdapter* can be configured on the BPMN Event level with optional Tika options. The tika options can be configured in the workflow result of the BPMN event element with the tag '*tika*' and the name '*options*'. See the following example:
+
+	<!-- Tika Options -->
+	<tika name="options">X-Tika-PDFocrStrategy=OCR_AND_TEXT_EXTRACTION</tika>
+	<tika name="options">X-Tika-PDFOcrImageType=RGB</tika>
+	<tika name="options">X-Tika-PDFOcrDPI=400</tika>
+
+In this example configuration the OCR processing will be started with 3 additional tika options. For more details about the OCR configuration see the [Imixs-Archive-OCR project](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ocr).
+
 
 ## Searching Documents
 

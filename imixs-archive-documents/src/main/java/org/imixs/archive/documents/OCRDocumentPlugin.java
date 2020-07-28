@@ -1,5 +1,6 @@
 package org.imixs.archive.documents;
 
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
@@ -30,7 +31,6 @@ public class OCRDocumentPlugin extends AbstractPlugin {
     private static Logger logger = Logger.getLogger(OCRDocumentPlugin.class.getName());
 
     @Inject
-    //TikaDocumentService tikaDocumentService;
     OCRService ocrService;
 
 
@@ -55,11 +55,17 @@ public class OCRDocumentPlugin extends AbstractPlugin {
      * 
      * @throws PluginException
      */
+    @SuppressWarnings("unchecked")
     @Override
     public ItemCollection run(ItemCollection document, ItemCollection event) throws PluginException {
         if ("model".equalsIgnoreCase(serviceMode)) {
+            
+            // read optional tika options
+            ItemCollection evalItemCollection = this.getWorkflowService().evalWorkflowResult(event, "tika", document, false);
+            List<String> tikaOptions = evalItemCollection.getItemValue("options");
+
             // update the dms meta data
-            ocrService.extractText(document,snapshotService.findSnapshot(document));
+            ocrService.extractText(document,snapshotService.findSnapshot(document),null,tikaOptions);
         } else {
             logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode);
         }
