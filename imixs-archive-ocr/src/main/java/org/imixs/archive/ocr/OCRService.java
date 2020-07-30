@@ -12,6 +12,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
@@ -108,6 +109,7 @@ public class OCRService {
      */
     public void extractText(ItemCollection workitem, ItemCollection snapshot, String _ocrmode, List<String> options)
             throws PluginException {
+        boolean debug = logger.isLoggable(Level.FINE);
 
         // overwrite ocrmode?
         if (_ocrmode != null) {
@@ -128,13 +130,17 @@ public class OCRService {
                     String ocrContent = null;
                     // extract the text content...
                     try {
-                        logger.info("...text extraction '" + originFileData.getName() + "'...");
+                        if (debug) {
+                            logger.fine("...text extraction '" + originFileData.getName() + "'...");
+                        }
                         // test for simple text extraction via PDFBox
                         if (isPDF(originFileData)) {
                             // PDF_ONLY, OCR_ONLY, PDF_AND_OCR
                             if ("OCR_ONLY".equals(ocrMode)) {
                                 // OCR Only
-                                logger.info("...force orc scan for pdfs...");
+                                if (debug) {
+                                    logger.fine("...force orc scan for pdfs...");
+                                }
                                 ocrContent = doORCProcessing(originFileData, options);
                             } else {
                                 // try PDFBox....
@@ -175,8 +181,9 @@ public class OCRService {
             }
 
         }
-        logger.fine("...extracted textual information in " + (System.currentTimeMillis() - l) + "ms");
-
+        if (debug) {
+            logger.fine("...extracted textual information in " + (System.currentTimeMillis() - l) + "ms");
+        }
     }
 
     /**
@@ -211,7 +218,6 @@ public class OCRService {
      * @return origin fileData object
      */
     private FileData fetchOriginFileData(FileData fileData, ItemCollection snapshot) {
-
         // test if the given fileData object has a content....
         byte[] fileContent = fileData.getContent();
         if (fileContent != null && fileContent.length > 1) {
@@ -255,20 +261,24 @@ public class OCRService {
      * @throws IOException
      */
     public String doORCProcessing(FileData fileData, List<String> options) throws IOException {
+        boolean debug = logger.isLoggable(Level.FINE);
 
         // read the Tika Service Enpoint
         if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
             return null;
         }
 
-        logger.info("...ocr scanning....");
-
+        if (debug) {
+            logger.fine("...ocr scanning....");
+        }
         // adapt ContentType
         String contentType = adaptContentType(fileData);
 
         // validate content type
         if (!acceptContentType(contentType)) {
-            logger.fine("contentType '" + contentType + " is not supported by Tika Server");
+            if (debug) {
+                logger.fine("contentType '" + contentType + " is not supported by Tika Server");
+            }
             return null;
         }
 
@@ -344,7 +354,11 @@ public class OCRService {
      * @return
      */
     public String doPDFTextExtraction(FileData fileData) {
-        logger.info("...pdf text extraction....");
+        boolean debug = logger.isLoggable(Level.FINE);
+
+        if (debug) {
+            logger.fine("...pdf text extraction....");
+        }
         PDDocument doc = null;
         String result = null;
         try {
@@ -353,7 +367,10 @@ public class OCRService {
             PDFTextStripper pdfStripper = new PDFTextStripper();
             // Retrieving text from PDF document
             result = pdfStripper.getText(doc);
-            logger.finest("<RESULT>" + result + "</RESULT>");
+            if (debug) {
+                logger.finest("<RESULT>" + result + "</RESULT>");
+            }
+
             // Closing the document
             doc.close();
         } catch (IOException e) {
@@ -378,8 +395,12 @@ public class OCRService {
      * @throws IOException
      */
     private String readResponse(URLConnection urlConnection, String encoding) throws IOException {
+        boolean debug = logger.isLoggable(Level.FINE);
+
         // get content of result
-        logger.finest("......readResponse....");
+        if (debug) {
+            logger.finest("......readResponse....");
+        }
         StringWriter writer = new StringWriter();
         BufferedReader in = null;
         try {
@@ -398,7 +419,9 @@ public class OCRService {
                 in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
-                logger.finest("......" + inputLine);
+                if (debug) {
+                    logger.finest("......" + inputLine);
+                }
                 // append text plus new line!
                 writer.write(inputLine + "\n");
             }
