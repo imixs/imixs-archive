@@ -322,6 +322,7 @@ public class SnapshotService {
                 documentEvent.getDocument().getFileNames().size());
         documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_NAMES,
                 documentEvent.getDocument().getFileNames());
+        // TODO : $file.count and $file.names is computed by ItemCollection and can be removed from here.
 
         // 6. store the snapshot uniqeId into the origin-workitem ($snapshotID)
         documentEvent.getDocument().replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
