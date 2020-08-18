@@ -50,7 +50,7 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
  * The ExportService exports the workflow data stored in the cassandra cluster
- * into a FTP storage. The service class runns a TimerService based on the given
+ * into a FTP storage. The service class runs a TimerService based on the given
  * scheduler configuration.
  * <p>
  * The service automatially starts during deployment.
@@ -410,6 +410,7 @@ public class ExportService {
                     if (latestSnapshot.equals(snapshotID)) {
                         // we did NOT find a later snapshot, so this is the one we should export
                         ItemCollection snapshot = dataService.loadSnapshot(snapshotID);
+                        lastUniqueID=snapshot.getUniqueID();
                         // test if the $modified date is behind our current sync point....
                         Date snaptshotDate = snapshot.getItemValueDate("$modified");
                         if (snaptshotDate.getTime() > syncPoint) {

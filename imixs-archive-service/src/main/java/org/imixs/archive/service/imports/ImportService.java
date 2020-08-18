@@ -214,7 +214,6 @@ public class ImportService {
                         throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: missing working directory '"
                                 + ftpWorkingPath + "' : " + ftpClient.getReplyString());
                     }
-                    messageService.logMessage(MESSAGE_TOPIC, "......import path: " + ftpWorkingPath);
                     // now switch to Month....
                     FTPFile[] directoryListMonths = ftpClient.listDirectories();
                     for (FTPFile ftpFileMonth : directoryListMonths) {
@@ -225,14 +224,18 @@ public class ImportService {
                                         "FTP file transfer failed: missing working directory '" + ftpWorkingPath
                                                 + "' : " + ftpClient.getReplyString());
                             }
-                            messageService.logMessage(MESSAGE_TOPIC, "......import path: " + ftpWorkingPath);
+
+                            messageService.logMessage(MESSAGE_TOPIC,
+                                    "......import: " + ftpFileYear.getName() + "/" + ftpWorkingPath + " ...");
                             // read all files....
                             int count = 0;
+                            int verified = 0;
                             FTPFile[] importFiles = ftpClient.listFiles();
                             for (FTPFile importFile : importFiles) {
                                 if (importFile.isFile()) {
                                     ItemCollection snapshot = ftpConnector.get(ftpClient, importFile.getName());
                                     if (snapshot != null) {
+                                        verified++;
                                         if (!dataService.existSnapshot(snapshot.getUniqueID())) {
                                             // import!
                                             dataService.saveSnapshot(snapshot);
@@ -253,7 +256,9 @@ public class ImportService {
                                 }
                             }
 
-                            messageService.logMessage(MESSAGE_TOPIC, "......" + count + " snapshots imported...");
+                            messageService.logMessage(MESSAGE_TOPIC,
+                                    "......" + ftpFileYear.getName() + "/" + ftpWorkingPath + ": " + verified
+                                            + " snapshots verified, " + count + " snapshots imported...");
                             metaData.setItemValue(ITEM_IMPORTPOINT, lastImportPoint);
                             metaData.setItemValue(ITEM_IMPORTCOUNT, totalCount);
                             metaData.setItemValue(ITEM_IMPORTSIZE, importSize);

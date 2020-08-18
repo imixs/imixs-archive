@@ -148,7 +148,7 @@ public class FTPConnector {
                         + fileName + "' : " + ftpClient.getReplyString());
             }
 
-            logger.info("...." + ftpWorkingPath + fileName + " transfered successfull to " + ftpServer);
+            logger.finest("...." + ftpWorkingPath + fileName + " transfered successfull to " + ftpServer);
 
         } catch (IOException e) {
             throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
@@ -185,7 +185,7 @@ public class FTPConnector {
             ftpClient.retrieveFile(fileName, bos);
             byte[] result = bos.toByteArray();
             ItemCollection snapshot = XMLDocumentAdapter.readItemCollection(result);
-            logger.info("......" + fileName + " transfered successfull from " + ftpServer + " in "
+            logger.finest("......" + fileName + " transfered successfull from " + ftpServer + " in "
                     + (System.currentTimeMillis() - l) + "ms");
             return snapshot;
         } catch (IOException | JAXBException e) {
