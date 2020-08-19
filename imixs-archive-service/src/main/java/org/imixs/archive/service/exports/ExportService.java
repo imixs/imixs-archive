@@ -402,34 +402,42 @@ public class ExportService {
                 long lProfiler = System.currentTimeMillis();
                 logger.info("...export sync point=" + localDateSyncPoint);
                 List<String> result = dataService.loadSnapshotsByDate(localDateSyncPoint);
+
+                logger.info("..." + result.size() + " snapshots found");
                 // iterate over all snapshots....
                 for (String snapshotID : result) {
                     // for each snapshotID test if we find a later snapshotID (created after our
                     // current sync point)...
                     String latestSnapshot = findLatestSnapshotID(snapshotID);
-                    if (latestSnapshot.equals(snapshotID)) {
-                        // we did NOT find a later snapshot, so this is the one we should export
-                        ItemCollection snapshot = dataService.loadSnapshot(snapshotID);
-                        lastUniqueID=snapshot.getUniqueID();
-                        // test if the $modified date is behind our current sync point....
-                        Date snaptshotDate = snapshot.getItemValueDate("$modified");
-                        if (snaptshotDate.getTime() > syncPoint) {
-                            // start export for this snapshot
-                            ftpConnector.put(snapshot);
 
-                            long _tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
-                            logger.finest("......size=: " + _tmpSize);
-                            exportSize = exportSize + _tmpSize;
-                            exportCount++;
-                            localCount++;
+                    if (latestSnapshot == null) {
+                        logger.warning("... unable to find latest snapshotid for " + snapshotID
+                                + " (not part of this archive or data source was deleted)");
+                    } else {
+                        if (latestSnapshot.equals(snapshotID)) {
+                            // we did NOT find a later snapshot, so this is the one we should export
+                            ItemCollection snapshot = dataService.loadSnapshot(snapshotID);
+                            lastUniqueID = snapshot.getUniqueID();
+                            // test if the $modified date is behind our current sync point....
+                            Date snaptshotDate = snapshot.getItemValueDate("$modified");
+                            if (snaptshotDate.getTime() > syncPoint) {
+                                // start export for this snapshot
+                                ftpConnector.put(snapshot);
 
-                            // compute latesExportPoint we found so far...
-                            if (snaptshotDate.getTime() > latestExportPoint) {
-                                latestExportPoint = snaptshotDate.getTime();
+                                long _tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
+                                logger.finest("......size=: " + _tmpSize);
+                                exportSize = exportSize + _tmpSize;
+                                exportCount++;
+                                localCount++;
+
+                                // compute latesExportPoint we found so far...
+                                if (snaptshotDate.getTime() > latestExportPoint) {
+                                    latestExportPoint = snaptshotDate.getTime();
+                                }
+
                             }
 
                         }
-
                     }
 
                     // update meta data?
