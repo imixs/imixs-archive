@@ -34,7 +34,6 @@ import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.RemoteAPIService;
 import org.imixs.archive.service.cassandra.ClusterService;

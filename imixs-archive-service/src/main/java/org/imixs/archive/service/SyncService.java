@@ -21,11 +21,10 @@ import org.imixs.melman.FormAuthenticator;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.InvalidAccessException;
-import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 /**
  * The SyncService pulls a Snapshot into the cassandra archive. The service uses
- * an asynchronious mechanism based on the Imixs EventLog.
+ * an asynchronous mechanism based on the Imixs EventLog.
  * <p>
  * The service connects to an Imixs-Workflow instance by the Rest Client to read
  * new snapshot data.
