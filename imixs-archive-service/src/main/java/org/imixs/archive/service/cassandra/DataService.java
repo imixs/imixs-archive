@@ -324,9 +324,9 @@ public class DataService {
     }
 
     /**
-     * This helper method loades the content of a document defned by its MD5
+     * This helper method loads the content of a document defned by its MD5
      * checksum. The data of the document is stored in chunked 1md data blocks in
-     * the tabe 'documents_data'
+     * the table 'documents_data'
      * 
      * @param itemCol
      * @throws ArchiveException
@@ -346,7 +346,7 @@ public class DataService {
         }
 
         ResultSet rs = clusterService.getSession().execute(sql);
-        // collect all dat blocks (which are sorted by its sort_id....
+        // collect all data blocks (which are sorted by its sort_id)....
         Iterator<Row> resultIter = rs.iterator();
         ByteArrayOutputStream bOutput = new ByteArrayOutputStream(1024 * 1024);
         try {
