@@ -51,7 +51,7 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
  * The SyncService is implemented as a SingleActionTimer so the sync can run in
  * backgroud.
  * <p>
- * The service automatially starts during deployment. When all the data is
+ * The service automatically starts during deployment. When all the data is
  * synchronized (syncpoint == last snapshot), the service terminates.
  * <p>
  * To access the data form the Imixs-Workflow instance uses RemoteAPIService.

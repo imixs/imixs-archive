@@ -142,8 +142,8 @@ public class SyncService {
     }
 
     /**
-     * Thie method lookups the event log entries and pushes new snapshots into the
-     * archvie service.
+     * This method lookups the event log entries and pushes new snapshots into the
+     * archive service.
      * <p>
      * The method returns a AsyncResult to indicate the completion of the push. A
      * client can use this information for further control.

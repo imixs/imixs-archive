@@ -441,7 +441,7 @@ public class DataService {
      */
     public void deleteSnapshot(String snapshotID) throws ArchiveException {
 
-        logger.info("......delete snapshot and documents for:" + snapshotID);
+        logger.finest("......delete snapshot and documents for:" + snapshotID);
         String uniqueID = this.getUniqueID(snapshotID);
         ItemCollection snapshot = loadSnapshot(snapshotID, false);
 
@@ -639,7 +639,7 @@ public class DataService {
         int snapshotHistory = snapshot.getItemValueInteger(ITEM_SNAPSHOT_HISTORY);
         if (snapshotHistory > 0) {
             if (debug) {
-                logger.finest("......$snapshothistory=" + snapshotHistory);
+                logger.finest("......$snapshot.history=" + snapshotHistory);
             }
             String uniqueid = this.getUniqueID(snapshot.getUniqueID());
 
@@ -689,13 +689,19 @@ public class DataService {
                 logger.finest("......search snapshot id: " + sql);
             }
             rs = clusterService.getSession().execute(sql);
+            int deletions = 0;
             resultIter = rs.iterator();
             while (resultIter.hasNext()) {
                 Row row = resultIter.next();
                 String id = row.getString(1);
                 deleteSnapshot(id);
+                deletions++;
             }
-
+            if (deletions >= 2) {
+                // we do only log if more than one old history snapshot exist in the archive.
+                // during normal life cycle we do not print any message...
+                logger.info("...deleted " + deletions + " deprecated snapshots form history (" + uniqueid + ")");
+            }
         }
 
     }

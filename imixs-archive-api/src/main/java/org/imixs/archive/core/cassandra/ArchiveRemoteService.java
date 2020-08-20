@@ -21,16 +21,12 @@ import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 
 /**
- * The ArchiveRemoteService pushes a Snapshot into a remote cassandra archive.
- * The service uses an asynchronious mechanism based on the Imixs EventLog. The
- * service also provides a method to load a file from the remote archvie.
- * <p>
- * The service connects to the Imixs-Archive Service by a Rest Client to push
- * and read data.
+ * The ArchiveRemoteService provides a method to load a file form a remote
+ * cassandra archive.
  * <p>
  * The service is triggered by the ArchivePushService on a scheduled basis.
  * 
- * @version 1.1
+ * @version 1.2
  * @author ralph.soika@imixs.com
  */
 @Stateless
