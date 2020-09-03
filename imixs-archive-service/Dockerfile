@@ -8,4 +8,4 @@ COPY ./src/docker/imixsrealm.properties ${WILDFLY_CONFIG}/
 COPY ./src/docker/standalone.xml ${WILDFLY_CONFIG}/
 
 # add application artifacts
-COPY ./src/docker/apps/* ${WILDFLY_DEPLOYMENT}/   
+COPY ./target/imixs-archive-service.war ${WILDFLY_DEPLOYMENT}/   
