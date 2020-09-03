@@ -15,7 +15,18 @@ The Rest API which is part the *Imixs-Archive-Service* provides methods to updat
  * GET /archive/snapshot/{id}/file/{file} - loads the file content from a snapshot by its filename 
  * GET /archive/md5/{md5} - loads the file content by its MD5 checksum (recommended)
 
-## The Sync Service
+
+## The SyncService
+
+The SyncService pulls a Snapshot data from a remote workflow instance into the cassandra archive. The service uses an asynchronous mechanism based on the Imixs EventLog.
+
+The service connects to an Imixs-Workflow instance by the Rest Client to read new snapshot data.
+The service is triggered by the SyncScheduler implementing a ManagedScheduledExecutorService.
+ 
+**Note:** A EventLog entry in the remote workflow instance is only created in case the ARCHIVE_SERVICE_ENDPOINT is defined by the remote system. See also the *SnapshotService* EJB in the [imixs-archive-api](../imixs-archive-api/README.md). 
+ 
+ 
+## The ResyncService
 
 The *Imixs-Archive-Service* provides a feature to automatically resync all business process data and documents into the Cassandra Cluster. 
 You can retrieve a single process instance based on a timeline or restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
