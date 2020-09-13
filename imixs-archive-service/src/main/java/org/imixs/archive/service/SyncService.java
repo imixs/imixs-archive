@@ -11,6 +11,7 @@ import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
+import javax.ws.rs.client.ClientRequestFilter;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.cassandra.DataService;
@@ -78,13 +79,41 @@ public class SyncService {
         String topic = null;
         String id = null;
         String ref = null;
-
+        DocumentClient documentClient=null;
+        EventLogClient eventLogClient=null;
+        try {
+            ClientRequestFilter crf=null;
+            // create authenticator
+            if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
+                // default basic authenticator
+                FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
+                        workflowServicePassword);
+                crf=formAuth;
+               
+            } else {
+                // default basic authenticator
+                BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
+                crf=basicAuth;
+                
+            }
+            
+             documentClient = new DocumentClient(workflowServiceEndpoint);
+            documentClient.registerClientRequestFilter(crf);
+             eventLogClient = new EventLogClient(workflowServiceEndpoint);
+            eventLogClient.registerClientRequestFilter(crf);
+            
         // init clients
-        EventLogClient eventLogClient = initEventLogClient();
-        DocumentClient documentClient = initDocumentClient();
+//        EventLogClient eventLogClient = initEventLogClient();
+//        DocumentClient documentClient = initDocumentClient();
 
+        
+         
+            
         // max 100 entries per iteration
         eventLogClient.setPageSize(100);
+        
+        
+     //Should fail!
         List<ItemCollection> events = eventLogClient.searchEventLog(ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
                 ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
 
@@ -121,6 +150,17 @@ public class SyncService {
                 // eventLogService.removeEvent(eventLogEntry.getId());
             }
         }
+        
+        } finally {
+            // explicit logout for testing!
+            if (eventLogClient!=null) {
+                eventLogClient.logout(); 
+            }
+            if (documentClient!=null) {
+                documentClient.logout();
+            }
+           
+        }
     }
 
     /**
@@ -134,11 +174,40 @@ public class SyncService {
     @Asynchronous
     @TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
     public void releaseDeadLocks() throws RestAPIException {
+        EventLogClient eventLogClient=null;
+        try {
+            ClientRequestFilter crf=null;
+            // create authenticator
+            if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
+                // default basic authenticator
+                FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
+                        workflowServicePassword);
+                crf=formAuth;
+               
+            } else {
+                // default basic authenticator
+                BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
+                crf=basicAuth;
+                
+            }
+             eventLogClient = new EventLogClient(workflowServiceEndpoint);
+            eventLogClient.registerClientRequestFilter(crf);
+            
+            
         // init client
-        EventLogClient eventLogClient = initEventLogClient();
+      //  EventLogClient eventLogClient = initEventLogClient();
 
         eventLogClient.releaseDeadLocks(deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
                 ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
+        
+        } finally {
+            // explicit logout for testing!
+            if (eventLogClient!=null) {
+                eventLogClient.logout(); 
+            }
+           
+           
+        }
     }
 
     /**
@@ -190,49 +259,5 @@ public class SyncService {
         }
     }
 
-    /**
-     * Helper method to initialize a Melman Workflow Client based on the current
-     * archive configuration.
-     */
-    private DocumentClient initDocumentClient() {
-        logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
-        DocumentClient documentClient = new DocumentClient(workflowServiceEndpoint);
-        // Test authentication method
-        if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
-            // default basic authenticator
-            FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
-                    workflowServicePassword);
-            // register the authenticator
-            documentClient.registerClientRequestFilter(formAuth);
-        } else {
-            // default basic authenticator
-            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
-            // register the authenticator
-            documentClient.registerClientRequestFilter(basicAuth);
-        }
-        return documentClient;
-    }
-
-    /**
-     * Helper method to initalize a Melman Workflow Client based on the current
-     * archive configuration.
-     */
-    private EventLogClient initEventLogClient() {
-        logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
-        EventLogClient eventLogClient = new EventLogClient(workflowServiceEndpoint);
-        // Test authentication method
-        if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
-            // default basic authenticator
-            FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
-                    workflowServicePassword);
-            // register the authenticator
-            eventLogClient.registerClientRequestFilter(formAuth);
-        } else {
-            // default basic authenticator
-            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
-            // register the authenticator
-            eventLogClient.registerClientRequestFilter(basicAuth);
-        }
-        return eventLogClient;
-    }
+ 
 }
