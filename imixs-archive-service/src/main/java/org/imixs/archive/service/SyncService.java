@@ -11,14 +11,11 @@ import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
-import javax.ws.rs.client.ClientRequestFilter;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.melman.BasicAuthenticator;
 import org.imixs.melman.DocumentClient;
 import org.imixs.melman.EventLogClient;
-import org.imixs.melman.FormAuthenticator;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.InvalidAccessException;
@@ -33,7 +30,7 @@ import org.imixs.workflow.exceptions.InvalidAccessException;
  * The service is triggered by the SyncScheduler implementing a
  * ManagedScheduledExecutorService.
  * 
- * @version 1.0
+ * @version 2.0
  * @author ralph.soika@imixs.com
  */
 @Stateless
@@ -75,45 +72,20 @@ public class SyncService {
      * 
      * @throws RestAPIException
      **/
-    public void processEventLog() throws RestAPIException {
+    public void processEventLog(EventLogClient eventLogClient, DocumentClient documentClient) throws RestAPIException {
         String topic = null;
         String id = null;
         String ref = null;
-        DocumentClient documentClient=null;
-        EventLogClient eventLogClient=null;
-        try {
-            ClientRequestFilter crf=null;
-            // create authenticator
-            if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
-                // default basic authenticator
-                FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
-                        workflowServicePassword);
-                crf=formAuth;
-               
-            } else {
-                // default basic authenticator
-                BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
-                crf=basicAuth;
-                
-            }
-            
-             documentClient = new DocumentClient(workflowServiceEndpoint);
-            documentClient.registerClientRequestFilter(crf);
-             eventLogClient = new EventLogClient(workflowServiceEndpoint);
-            eventLogClient.registerClientRequestFilter(crf);
-            
-        // init clients
-//        EventLogClient eventLogClient = initEventLogClient();
-//        DocumentClient documentClient = initDocumentClient();
 
+
+        if ( documentClient == null || eventLogClient == null) {
+            // no client object
+            logger.fine("...no eventLogClient available!");
+            return;
+        }
         
-         
-            
         // max 100 entries per iteration
         eventLogClient.setPageSize(100);
-        
-        
-     //Should fail!
         List<ItemCollection> events = eventLogClient.searchEventLog(ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
                 ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
 
@@ -150,17 +122,7 @@ public class SyncService {
                 // eventLogService.removeEvent(eventLogEntry.getId());
             }
         }
-        
-        } finally {
-            // explicit logout for testing!
-            if (eventLogClient!=null) {
-                eventLogClient.logout(); 
-            }
-            if (documentClient!=null) {
-                documentClient.logout();
-            }
-           
-        }
+
     }
 
     /**
@@ -173,41 +135,17 @@ public class SyncService {
      */
     @Asynchronous
     @TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
-    public void releaseDeadLocks() throws RestAPIException {
-        EventLogClient eventLogClient=null;
-        try {
-            ClientRequestFilter crf=null;
-            // create authenticator
-            if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
-                // default basic authenticator
-                FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
-                        workflowServicePassword);
-                crf=formAuth;
-               
-            } else {
-                // default basic authenticator
-                BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
-                crf=basicAuth;
-                
-            }
-             eventLogClient = new EventLogClient(workflowServiceEndpoint);
-            eventLogClient.registerClientRequestFilter(crf);
-            
-            
-        // init client
-      //  EventLogClient eventLogClient = initEventLogClient();
+    public void releaseDeadLocks(EventLogClient eventLogClient) throws RestAPIException {
 
-        eventLogClient.releaseDeadLocks(deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
-                ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
-        
-        } finally {
-            // explicit logout for testing!
-            if (eventLogClient!=null) {
-                eventLogClient.logout(); 
-            }
-           
-           
+        if (eventLogClient == null) {
+            // no client object
+            logger.fine("...no eventLogClient available!");
+            return;
         }
+        eventLogClient.releaseDeadLocks(deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
+                    ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
+
+      
     }
 
     /**
@@ -223,7 +161,9 @@ public class SyncService {
     public void pullSnapshot(ItemCollection eventLogEntry, DocumentClient documentClient, EventLogClient eventLogClient)
             throws ArchiveException {
 
-        if (eventLogEntry == null) {
+        if (eventLogEntry == null || documentClient == null || eventLogClient == null) {
+            // no client object
+            logger.fine("...no eventLogClient available!");
             return;
         }
 
@@ -259,5 +199,4 @@ public class SyncService {
         }
     }
 
- 
 }
