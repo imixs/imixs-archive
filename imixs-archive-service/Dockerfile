@@ -1,11 +1,14 @@
-FROM imixs/wildfly:1.2.7
+FROM payara/micro:5.201
 
-# Imixs-Microservice Version 1.0.2
-MAINTAINER ralph.soika@imixs.com
+LABEL description="Imixs-Microservice"
+LABEL maintainer="ralph.soika@imixs.com"
 
-# add configuration files
-COPY ./src/docker/imixsrealm.properties ${WILDFLY_CONFIG}/
-COPY ./src/docker/standalone.xml ${WILDFLY_CONFIG}/
+# Deploy artefacts
+COPY ./target/imixs-archive-service.war $DEPLOY_DIR
 
-# add application artifacts
-COPY ./target/imixs-archive-service.war ${WILDFLY_DEPLOYMENT}/   
+# add lauch options
+CMD ["--deploymentDir", "/opt/payara/deployments", "--rootDir", "/opt/payara/config"]
+
+
+
+
