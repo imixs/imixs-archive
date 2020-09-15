@@ -79,7 +79,7 @@ public class ArchiveRestService {
     DataService dataService;
 
     @javax.ws.rs.core.Context
-    private static HttpServletRequest servletRequest;
+    private HttpServletRequest servletRequest;
 
     private static Logger logger = Logger.getLogger(ArchiveRestService.class.getName());
 
