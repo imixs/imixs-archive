@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -95,10 +96,10 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 public class SnapshotRestService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
+  
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
-    String archiveServiceEndpoint;
+    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT)
+    Optional<String> archiveServiceEndpoint;    
 
     @javax.ws.rs.core.Context
     private HttpServletRequest servletRequest;
@@ -154,7 +155,7 @@ public class SnapshotRestService implements Serializable {
 
         // test if we can load the file content by the md5 checksum form the cassandra
         // archive
-        if (!archiveServiceEndpoint.isEmpty()) {
+        if (archiveServiceEndpoint.isPresent() && !archiveServiceEndpoint.get().isEmpty()) {
             try {
                 long l = System.currentTimeMillis();
                 byte[] fileContent;

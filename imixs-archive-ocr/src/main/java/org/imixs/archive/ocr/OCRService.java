@@ -12,6 +12,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -61,8 +62,8 @@ public class OCRService {
     private static Logger logger = Logger.getLogger(OCRService.class.getName());
 
     @Inject
-    @ConfigProperty(name = ENV_TIKA_SERVICE_ENDPOINT, defaultValue = "")
-    String serviceEndpoint;
+    @ConfigProperty(name = ENV_TIKA_SERVICE_ENDPOINT)
+    Optional<String> serviceEndpoint;
 
     @Inject
     @ConfigProperty(name = OCRService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
@@ -264,7 +265,7 @@ public class OCRService {
         boolean debug = logger.isLoggable(Level.FINE);
 
         // read the Tika Service Enpoint
-        if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
+        if (!serviceEndpoint.isPresent() || serviceEndpoint.get().isEmpty()) {
             return null;
         }
 
@@ -286,7 +287,7 @@ public class OCRService {
         HttpURLConnection urlConnection = null;
         PrintWriter writer = null;
         try {
-            urlConnection = (HttpURLConnection) new URL(serviceEndpoint).openConnection();
+            urlConnection = (HttpURLConnection) new URL(serviceEndpoint.get()).openConnection();
             urlConnection.setRequestMethod("PUT");
             urlConnection.setDoOutput(true);
             urlConnection.setDoInput(true);

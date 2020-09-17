@@ -23,6 +23,7 @@
 package org.imixs.archive.service.imports;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
@@ -69,24 +70,24 @@ public class ImportService {
     public static final String FTP_ERROR = "FTP_ERROR";
 
     @Inject
-    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_HOST, defaultValue = "")
-    String ftpServer;
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_HOST)
+    Optional<String> ftpServer;
 
     @Inject
-    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PATH, defaultValue = "")
-    String ftpPath;
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PATH)
+    Optional<String> ftpPath;
 
     @Inject
     @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PORT, defaultValue = "21")
     int ftpPort;
 
     @Inject
-    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_USER, defaultValue = "")
-    String ftpUser;
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_USER)
+    Optional<String> ftpUser;
 
     @Inject
-    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PASSWORD, defaultValue = "")
-    String ftpPassword;
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PASSWORD)
+    Optional<String> ftpPassword;
 
     @Inject
     DataService dataService;

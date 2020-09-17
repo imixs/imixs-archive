@@ -22,6 +22,7 @@
  *******************************************************************************/
 package org.imixs.archive.service;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
@@ -58,20 +59,20 @@ public class RemoteAPIService {
     private static Logger logger = Logger.getLogger(RemoteAPIService.class.getName());
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
-    String workflowServiceEndpoint;
+    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT)
+    Optional<String> workflowServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_USER, defaultValue = "")
-    String workflowServiceUser;
+    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_USER)
+    Optional<String> workflowServiceUser;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_PASSWORD, defaultValue = "")
-    String workflowServicePassword;
+    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_PASSWORD)
+    Optional<String> workflowServicePassword;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_AUTHMETHOD, defaultValue = "")
-    String workflowServiceAuthMethod;
+    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_AUTHMETHOD)
+    Optional<String> workflowServiceAuthMethod;
 
     /**
      * This method read sync data. The method returns the first workitem from the
@@ -170,19 +171,19 @@ public class RemoteAPIService {
 
         logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
 
-        DocumentClient documentClient = new DocumentClient(workflowServiceEndpoint);
+        DocumentClient documentClient = new DocumentClient(workflowServiceEndpoint.get());
 
         // Test authentication method
-        if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
+        if ("Form".equalsIgnoreCase(workflowServiceAuthMethod.get())) {
             // default basic authenticator
-            FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
-                    workflowServicePassword);
+            FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(), workflowServiceUser.get(),
+                    workflowServicePassword.get());
             // register the authenticator
             documentClient.registerClientRequestFilter(formAuth);
 
         } else {
             // default basic authenticator
-            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
+            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser.get(), workflowServicePassword.get());
             // register the authenticator
             documentClient.registerClientRequestFilter(basicAuth);
         }

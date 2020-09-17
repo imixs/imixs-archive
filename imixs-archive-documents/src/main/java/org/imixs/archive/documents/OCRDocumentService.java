@@ -1,5 +1,6 @@
 package org.imixs.archive.documents;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
@@ -45,8 +46,8 @@ public class OCRDocumentService {
     private static Logger logger = Logger.getLogger(OCRDocumentService.class.getName());
 
     @Inject
-    @ConfigProperty(name = ENV_TIKA_SERVICE_ENDPOINT, defaultValue = "")
-    String serviceEndpoint;
+    @ConfigProperty(name = ENV_TIKA_SERVICE_ENDPOINT)
+    Optional<String> serviceEndpoint;
 
     @Inject
     @ConfigProperty(name = OCRDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
@@ -69,7 +70,7 @@ public class OCRDocumentService {
      */
     public void onBeforeProcess(@Observes ProcessingEvent processingEvent) throws PluginException {
     
-        if (serviceEndpoint == null || serviceEndpoint.isEmpty()) {
+        if (!serviceEndpoint.isPresent() || serviceEndpoint.get().isEmpty()) {
             return;
         }
        

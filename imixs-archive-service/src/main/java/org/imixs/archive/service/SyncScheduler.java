@@ -1,5 +1,6 @@
 package org.imixs.archive.service;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
@@ -45,20 +46,20 @@ public class SyncScheduler {
     long interval;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
-    String workflowServiceEndpoint;
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_ENDPOINT)
+    Optional<String> workflowServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_AUTHMETHOD, defaultValue = "")
-    String workflowServiceAuthMethod;
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_AUTHMETHOD)
+    Optional<String> workflowServiceAuthMethod;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_USER, defaultValue = "")
-    String workflowServiceUser;
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_USER)
+    Optional<String> workflowServiceUser;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_PASSWORD, defaultValue = "")
-    String workflowServicePassword;
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_PASSWORD)
+    Optional<String> workflowServicePassword;
 
     @Inject
     SyncService archiveSyncService;
@@ -73,7 +74,7 @@ public class SyncScheduler {
      */
     @PostConstruct
     public void init() {
-        if (workflowServiceEndpoint != null && !workflowServiceEndpoint.isEmpty()) {
+        if (workflowServiceEndpoint.isPresent()) {
             logger.info("Starting Archive SyncScheduler - interval=" + interval + "ms ....");
 
             // Registering a non-persistent Timer Service.
@@ -105,14 +106,14 @@ public class SyncScheduler {
 
         try {
             // Test the authentication method and create a corresponding Authenticator
-            if ("Form".equalsIgnoreCase(workflowServiceAuthMethod)) {
+            if ("Form".equalsIgnoreCase(workflowServiceAuthMethod.get())) {
                 // test if a JSESSIONID exists?
                 String jSessionID = (String) timer.getInfo();
                 if (jSessionID == null || jSessionID.isEmpty()) {
                     // no - we need to login first and store the JSESSIONID in a new timer object...
                     // create a FormAuthenticator
-                    FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, workflowServiceUser,
-                            workflowServicePassword);
+                    FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(), workflowServiceUser.get(),
+                            workflowServicePassword.get());
                     // Authentication successful - do we have a JSESSIONID?
                     String jsessionID = formAuth.getJsessionID();
                     if (jsessionID != null && !jsessionID.isEmpty()) {
@@ -128,21 +129,21 @@ public class SyncScheduler {
                 } else {
                     // we have already a jsessionCooke Data object - so create a new
                     // FormAuthenticator form the JSESSIONID
-                    FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint, jSessionID);
+                    FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(), jSessionID);
                     authenticator = formAuth;
                 }
             } else {
                 // Default behaviro - use a BasicAuthenticator
-                BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser, workflowServicePassword);
+                BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser.get(), workflowServicePassword.get());
                 authenticator = basicAuth;
             }
 
             // do we have a valid authentication?
             if (authenticator != null) {
                 // yes - create the client objects
-                documentClient = new DocumentClient(workflowServiceEndpoint);
+                documentClient = new DocumentClient(workflowServiceEndpoint.get());
                 documentClient.registerClientRequestFilter(authenticator);
-                eventLogClient = new EventLogClient(workflowServiceEndpoint);
+                eventLogClient = new EventLogClient(workflowServiceEndpoint.get());
                 eventLogClient.registerClientRequestFilter(authenticator);
 
                 // release dead locks...

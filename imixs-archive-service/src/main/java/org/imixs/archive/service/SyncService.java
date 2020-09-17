@@ -1,6 +1,7 @@
 package org.imixs.archive.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,20 +39,20 @@ import org.imixs.workflow.exceptions.InvalidAccessException;
 public class SyncService {
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
-    String workflowServiceEndpoint;
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_ENDPOINT)
+    Optional<String> workflowServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_USER, defaultValue = "")
-    String workflowServiceUser;
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_USER)
+    Optional<String> workflowServiceUser;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_PASSWORD, defaultValue = "")
-    String workflowServicePassword;
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_PASSWORD)
+    Optional<String> workflowServicePassword;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_AUTHMETHOD, defaultValue = "")
-    String workflowServiceAuthMethod;
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_AUTHMETHOD)
+    Optional<String> workflowServiceAuthMethod;
 
     // deadlock timeout interval in ms
     @Inject
