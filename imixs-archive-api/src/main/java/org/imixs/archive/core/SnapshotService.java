@@ -32,6 +32,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -168,8 +169,8 @@ public class SnapshotService {
     int iSnapshotHistory;
 
     @Inject
-    @ConfigProperty(name = ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
-    String archiveServiceEndpoint;
+    @ConfigProperty(name = ARCHIVE_SERVICE_ENDPOINT)
+    Optional<String> archiveServiceEndpoint;
 
     private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
@@ -337,7 +338,7 @@ public class SnapshotService {
         cleanSnaphostHistory(snapshot.getUniqueID());
 
         // 9. write event log entry...
-        if (archiveServiceEndpoint != null && !archiveServiceEndpoint.isEmpty()) {
+        if (!archiveServiceEndpoint.isPresent()) {
             if (debug) {
                 logger.finest("......create event log entry " + EVENTLOG_TOPIC_ADD);
             }
