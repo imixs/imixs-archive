@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
@@ -78,12 +79,12 @@ public class FTPConnector {
     int ftpPort;
 
     @Inject
-    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_USER, defaultValue = "")
-    String ftpUser;
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_USER)
+    Optional<String> ftpUser;
 
     @Inject
-    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PASSWORD, defaultValue = "")
-    String ftpPassword;
+    @ConfigProperty(name = ExportService.ENV_EXPORT_FTP_PASSWORD)
+    Optional<String> ftpPassword;
 
     /**
      * This method transfers a snapshot to a ftp server.

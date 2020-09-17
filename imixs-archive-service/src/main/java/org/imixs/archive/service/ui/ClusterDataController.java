@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
@@ -50,12 +51,12 @@ public class ClusterDataController implements Serializable {
     MessageService messageService;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
-    String contactPoint;
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS)
+    Optional<String> contactPoint;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
-    String keySpace;
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE)
+    Optional<String> keySpace;
 
     @Inject
     @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR, defaultValue = "1")
@@ -66,8 +67,8 @@ public class ClusterDataController implements Serializable {
     String repClass;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT, defaultValue = "")
-    String workflowServiceEndpoint;
+    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT)
+    Optional<String> workflowServiceEndpoint;
 
     public ClusterDataController() {
         super();

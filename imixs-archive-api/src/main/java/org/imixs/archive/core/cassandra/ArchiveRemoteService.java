@@ -1,5 +1,6 @@
 package org.imixs.archive.core.cassandra;
 
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,19 +35,19 @@ import org.imixs.workflow.ItemCollection;
 public class ArchiveRemoteService {
 
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT, defaultValue = "")
-    String archiveServiceEndpoint;
+    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT)
+    Optional<String> archiveServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_USER, defaultValue = "")
-    String archiveServiceUser;
+    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_USER)
+    Optional<String> archiveServiceUser;
 
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_PASSWORD, defaultValue = "")
-    String archiveServicePassword;
+    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_PASSWORD)
+    Optional<String> archiveServicePassword;
 
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_AUTHMETHOD, defaultValue = "")
+    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_AUTHMETHOD, defaultValue = "Basic")
     String archiveServiceAuthMethod;
 
     private static Logger logger = Logger.getLogger(ArchiveRemoteService.class.getName());
@@ -123,17 +124,17 @@ public class ArchiveRemoteService {
         if (debug) {
             logger.finest("...... ARCHIVE_SERVICE_ENDPOINT = " + archiveServiceEndpoint);
         }
-        DocumentClient documentClient = new DocumentClient(archiveServiceEndpoint);
+        DocumentClient documentClient = new DocumentClient(archiveServiceEndpoint.get());
         // Test authentication method
         if ("Form".equalsIgnoreCase(archiveServiceAuthMethod)) {
             // default basic authenticator
-            FormAuthenticator formAuth = new FormAuthenticator(archiveServiceEndpoint, archiveServiceUser,
-                    archiveServicePassword);
+            FormAuthenticator formAuth = new FormAuthenticator(archiveServiceEndpoint.get(), archiveServiceUser.get(),
+                    archiveServicePassword.get());
             // register the authenticator
             documentClient.registerClientRequestFilter(formAuth);
         } else {
             // default basic authenticator
-            BasicAuthenticator basicAuth = new BasicAuthenticator(archiveServiceUser, archiveServicePassword);
+            BasicAuthenticator basicAuth = new BasicAuthenticator(archiveServiceUser.get(), archiveServicePassword.get());
             // register the authenticator
             documentClient.registerClientRequestFilter(basicAuth);
         }

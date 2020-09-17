@@ -28,6 +28,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
@@ -87,12 +88,12 @@ public class ExportService {
     public final static String MESSAGE_TOPIC = "export";
 
     @Inject
-    @ConfigProperty(name = ENV_EXPORT_SCHEDULER_DEFINITION, defaultValue = "")
-    String schedulerDefinition;
+    @ConfigProperty(name = ENV_EXPORT_SCHEDULER_DEFINITION)
+    Optional<String> schedulerDefinition;
 
     @Inject
-    @ConfigProperty(name = ENV_EXPORT_FTP_HOST, defaultValue = "")
-    String ftpServer;
+    @ConfigProperty(name = ENV_EXPORT_FTP_HOST)
+    Optional<String> ftpServer;
 
     @Resource
     javax.ejb.TimerService timerService;

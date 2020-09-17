@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
@@ -53,16 +54,16 @@ public class ExportDataController implements Serializable {
     MessageService messageService;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
-    String contactPoint;
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_CONTACTPOINTS)
+    Optional<String> contactPoint;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
-    String keySpace;
+    @ConfigProperty(name = ClusterService.ENV_ARCHIVE_CLUSTER_KEYSPACE)
+    Optional<String> keySpace;
 
     @Inject
-    @ConfigProperty(name = ExportService.ENV_EXPORT_SCHEDULER_DEFINITION, defaultValue = "")
-    String schedulerDefinition;
+    @ConfigProperty(name = ExportService.ENV_EXPORT_SCHEDULER_DEFINITION)
+    Optional<String> schedulerDefinition;
 
     public ExportDataController() {
         super();

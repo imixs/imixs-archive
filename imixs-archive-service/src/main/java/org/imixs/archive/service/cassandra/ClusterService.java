@@ -12,6 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
@@ -96,40 +97,40 @@ public class ClusterService {
     String repClass;
 
     @Inject
-    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_CONTACTPOINTS, defaultValue = "")
-    String contactPoint;
+    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_CONTACTPOINTS)
+    Optional<String> contactPoint;
 
     @Inject
-    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_KEYSPACE, defaultValue = "")
-    String keySpace;
+    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_KEYSPACE)
+    Optional<String> keySpace;
 
     @Inject
-    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_AUTH_USER, defaultValue = "")
-    String userid;
+    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_AUTH_USER)
+    Optional<String> userid;
 
     @Inject
-    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_AUTH_PASSWORD, defaultValue = "")
-    String password;
+    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_AUTH_PASSWORD)
+    Optional<String> password;
 
     @Inject
     @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL, defaultValue = "false")
     boolean bUseSSL;
 
     @Inject
-    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_TRUSTSTOREPATH, defaultValue = "")
-    String truststorePath;
+    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_TRUSTSTOREPATH)
+    Optional<String> truststorePath;
 
     @Inject
-    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_TRUSTSTOREPASSWORD, defaultValue = "")
-    String truststorePwd;
+    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_TRUSTSTOREPASSWORD)
+    Optional<String> truststorePwd;
 
     @Inject
-    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPATH, defaultValue = "")
-    String keystorePath;
+    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPATH)
+    Optional<String> keystorePath;
 
     @Inject
-    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPASSWORD, defaultValue = "")
-    String keystorePwd;
+    @ConfigProperty(name = ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPASSWORD)
+    Optional<String> keystorePwd;
 
     private Cluster cluster;
     private Session session;
@@ -173,18 +174,18 @@ public class ClusterService {
      */
     private Session initArchiveSession() throws ArchiveException {
 
-        if (!isValidKeyspaceName(keySpace)) {
+        if (!isValidKeyspaceName(keySpace.get())) {
             throw new ArchiveException(ArchiveException.INVALID_KEYSPACE, "keyspace '" + keySpace + "' name invalid.");
         }
 
         // try to open keySpace
         logger.info("......conecting keyspace '" + keySpace + "'...");
         try {
-            session = cluster.connect(keySpace);
+            session = cluster.connect(keySpace.get());
         } catch (InvalidQueryException e) {
             logger.warning("......conecting keyspace '" + keySpace + "' failed: " + e.getMessage());
             // create keyspace...
-            session = createKeySpace(keySpace);
+            session = createKeySpace(keySpace.get());
         }
         if (session != null) {
             logger.finest("......keyspace conection status = OK");
@@ -205,14 +206,14 @@ public class ClusterService {
         // Boolean used to check if at least one host could be resolved
         boolean found = false;
 
-        if (contactPoint == null || contactPoint.isEmpty()) {
+        if (!contactPoint.isPresent() || contactPoint.get().isEmpty()) {
             throw new ArchiveException(ArchiveException.MISSING_CONTACTPOINT,
                     "missing cluster contact points - verify configuration!");
         }
 
         logger.info("...cluster conecting: " + contactPoint);
         Builder builder = Cluster.builder();
-        String[] hosts = contactPoint.split(",");
+        String[] hosts = contactPoint.get().split(",");
         for (String host : hosts) {
             try {
                 builder.addContactPoint(host);
@@ -232,8 +233,8 @@ public class ClusterService {
         builder.withRetryPolicy(DefaultRetryPolicy.INSTANCE);
 
         // set optional credentials...
-        if (!userid.isEmpty()) {
-            builder = builder.withCredentials(userid, password);
+        if (!userid.get().isEmpty()) {
+            builder = builder.withCredentials(userid.get(), password.get());
         }
 
         // use SSL ?
@@ -280,9 +281,9 @@ public class ClusterService {
             NoSuchAlgorithmException, KeyManagementException, CertificateException, UnrecoverableKeyException {
 
         TrustManagerFactory tmf = null;
-        if (truststorePath != null && !truststorePath.isEmpty()) {
+        if (truststorePath.isPresent() && !truststorePath.get().isEmpty()) {
             KeyStore tks = KeyStore.getInstance("JKS");
-            tks.load((InputStream) new FileInputStream(new File(truststorePath)), truststorePwd.toCharArray());
+            tks.load((InputStream) new FileInputStream(new File(truststorePath.get())), truststorePwd.get().toCharArray());
             tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(tks);
         } else {
@@ -290,11 +291,11 @@ public class ClusterService {
         }
 
         KeyManagerFactory kmf = null;
-        if (null != keystorePath && !keystorePath.isEmpty()) {
+        if (keystorePath.isPresent() && !keystorePath.get().isEmpty()) {
             KeyStore kks = KeyStore.getInstance("JKS");
-            kks.load((InputStream) new FileInputStream(new File(keystorePath)), keystorePwd.toCharArray());
+            kks.load((InputStream) new FileInputStream(new File(keystorePath.get())), keystorePwd.get().toCharArray());
             kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(kks, keystorePwd.toCharArray());
+            kmf.init(kks, keystorePwd.get().toCharArray());
         } else {
             logger.info("SSLOptions without keystore...");
         }
