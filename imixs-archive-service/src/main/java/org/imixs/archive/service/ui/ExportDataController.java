@@ -141,7 +141,7 @@ public class ExportDataController implements Serializable {
     }
 
     public String getScheduler() {
-        return schedulerDefinition;
+        return schedulerDefinition.get();
     }
 
     public Date getNextTimeout() {

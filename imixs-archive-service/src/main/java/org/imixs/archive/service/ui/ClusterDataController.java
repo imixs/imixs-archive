@@ -161,11 +161,11 @@ public class ClusterDataController implements Serializable {
     }
 
     public String getContactPoints() {
-        return contactPoint;
+        return contactPoint.get();
     }
 
     public String getKeySpace() {
-        return keySpace;
+        return keySpace.get();
     }
 
     public String getReplicationFactor() {
@@ -178,7 +178,7 @@ public class ClusterDataController implements Serializable {
     }
 
     public String getServiceEndpoint() {
-        return workflowServiceEndpoint;
+        return workflowServiceEndpoint.get();
     }
 
     /**

@@ -285,12 +285,12 @@ public class ExportService {
         timerConfig.setInfo(TIMER_ID_EXPORTSERVICE);
         ScheduleExpression scheduerExpression = new ScheduleExpression();
 
-        if (schedulerDefinition.isEmpty()) {
+        if (!schedulerDefinition.isPresent() || schedulerDefinition.get().isEmpty()) {
             messageService.logMessage(MESSAGE_TOPIC, "no scheduler definition found!");
             return null;
         }
 
-        String calendarConfiguation[] = schedulerDefinition.split("(\\r?\\n)|(;)|(,)");
+        String calendarConfiguation[] = schedulerDefinition.get().split("(\\r?\\n)|(;)|(,)");
 
         // try to parse the configuration list....
         for (String confgEntry : calendarConfiguation) {
@@ -366,7 +366,7 @@ public class ExportService {
         ItemCollection metaData = null;
         String lastUniqueID = null;
 
-        if (ftpServer.isEmpty()) {
+        if (!ftpServer.isPresent() || ftpServer.get().isEmpty()) {
             messageService.logMessage(MESSAGE_TOPIC, "...Export failed - " + ENV_EXPORT_FTP_HOST + " not defined!");
             stop(timer);
             return;

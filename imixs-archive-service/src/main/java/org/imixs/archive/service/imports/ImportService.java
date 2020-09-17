@@ -158,7 +158,7 @@ public class ImportService {
         long importSize = 0;
         String lastUniqueID = null;
 
-        if (ftpServer.isEmpty()) {
+        if (!ftpServer.isPresent() || ftpServer.get().isEmpty()) {
             messageService.logMessage(MESSAGE_TOPIC,
                     "...Import failed - " + ExportService.ENV_EXPORT_FTP_HOST + " not defined!");
             return;
@@ -179,8 +179,8 @@ public class ImportService {
             // init FTP Client
             FTPSClient ftpClient = new FTPSClient("TLS", false);
             ftpClient.setControlEncoding("UTF-8");
-            ftpClient.connect(ftpServer, ftpPort);
-            if (ftpClient.login(ftpUser, ftpPassword) == false) {
+            ftpClient.connect(ftpServer.get(), ftpPort);
+            if (ftpClient.login(ftpUser.get(), ftpPassword.get()) == false) {
                 throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: login failed!");
             }
 
@@ -192,7 +192,7 @@ public class ImportService {
             ftpClient.setBufferSize(1024 * 64);
 
             // verify directories
-            String ftpRootPath = ftpPath;
+            String ftpRootPath = ftpPath.get();
             if (!ftpRootPath.startsWith("/")) {
                 ftpRootPath = "/" + ftpRootPath;
             }

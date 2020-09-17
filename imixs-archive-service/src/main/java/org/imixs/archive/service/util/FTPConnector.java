@@ -123,7 +123,7 @@ public class FTPConnector {
             ftpClient = new FTPSClient("TLS", false);
             ftpClient.setControlEncoding("UTF-8");
             ftpClient.connect(ftpServer, ftpPort);
-            if (ftpClient.login(ftpUser, ftpPassword) == false) {
+            if (ftpClient.login(ftpUser.get(), ftpPassword.get()) == false) {
                 throw new ArchiveException(FTP_ERROR, "FTP file transfer failed: login failed!");
             }
 
