@@ -4,6 +4,7 @@ import static org.mockito.Mockito.when;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.ejb.SessionContext;
@@ -91,7 +92,7 @@ public class TestSnapshotService {
 		workitem.replaceItemValue(WorkflowKernel.EVENTID, 10);
 
 		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
-
+		snapshotService.archiveServiceEndpoint=Optional.of("");
 		snapshotService.onSave(documentEvent);
 
 		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
@@ -141,6 +142,7 @@ public class TestSnapshotService {
 		
 		
 		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
+		snapshotService.archiveServiceEndpoint=Optional.of("");
 		snapshotService.onSave(documentEvent);
 		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
 
@@ -236,6 +238,7 @@ public class TestSnapshotService {
 
 		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
 
+		snapshotService.archiveServiceEndpoint=Optional.of("");
 		snapshotService.onSave(documentEvent);
 
 		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
