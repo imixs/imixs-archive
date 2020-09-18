@@ -128,8 +128,8 @@ public class DataService {
         // verify if this snapshot is already stored - if so, we do not overwrite
         // the origin data. See issue #40
         if (existSnapshot(snapshotID)) {
-            // skipp!
-            logger.warning("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
+            // skip!
+            logger.info("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
             return;
         }
 

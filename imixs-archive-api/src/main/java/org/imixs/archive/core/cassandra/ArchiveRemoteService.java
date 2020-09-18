@@ -25,7 +25,8 @@ import org.imixs.workflow.ItemCollection;
  * The ArchiveRemoteService provides a method to load a file form a remote
  * cassandra archive.
  * <p>
- * The service is triggered by the ArchivePushService on a scheduled basis.
+ * The service is called by Imixs-Office-Workflow to load documents from the
+ * cassandra archive.
  * 
  * @version 1.2
  * @author ralph.soika@imixs.com
@@ -47,8 +48,8 @@ public class ArchiveRemoteService {
     Optional<String> archiveServicePassword;
 
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_AUTHMETHOD, defaultValue = "Basic")
-    String archiveServiceAuthMethod;
+    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_AUTHMETHOD)
+    Optional<String> archiveServiceAuthMethod;
 
     private static Logger logger = Logger.getLogger(ArchiveRemoteService.class.getName());
 
@@ -70,6 +71,11 @@ public class ArchiveRemoteService {
             return null;
         }
 
+        if (!archiveServiceEndpoint.isPresent() || archiveServiceEndpoint.get().isEmpty()) {
+            logger.warning("missing archive service endpoint - verify configuration!");
+            return null;
+        }
+
         boolean debug = logger.isLoggable(Level.FINE);
 
         // first we lookup the FileData object
@@ -81,19 +87,22 @@ public class ArchiveRemoteService {
 
                 try {
                     DocumentClient documentClient = initDocumentClient();
-                    Client rsClient = documentClient.newClient();
-                    String url = archiveServiceEndpoint + "/archive/md5/" + md5;
-                    Response reponse = rsClient.target(url).request(MediaType.APPLICATION_OCTET_STREAM).get();
+                    if (documentClient == null) {
+                        logger.warning("Unable to initalize document client!");
+                    } else {
+                        Client rsClient = documentClient.newClient();
+                        String url = archiveServiceEndpoint.get() + "/archive/md5/" + md5;
+                        Response reponse = rsClient.target(url).request(MediaType.APPLICATION_OCTET_STREAM).get();
 
-                    // InputStream is = reponse.readEntity(InputStream.class);
-                    byte[] fileContent = reponse.readEntity(byte[].class);
-                    if (fileContent != null && fileContent.length > 0) {
-                        if (debug) {
-                            logger.finest("......md5 data object found");
+                        // InputStream is = reponse.readEntity(InputStream.class);
+                        byte[] fileContent = reponse.readEntity(byte[].class);
+                        if (fileContent != null && fileContent.length > 0) {
+                            if (debug) {
+                                logger.finest("......md5 data object found");
+                            }
+                            return fileContent;
                         }
-                        return fileContent;
                     }
-
                 } catch (ProcessingException e) {
                     String message = null;
                     if (e.getCause() != null) {
@@ -108,9 +117,7 @@ public class ArchiveRemoteService {
             } else {
                 return null;
             }
-
         }
-
         return null;
 
     }
@@ -119,25 +126,34 @@ public class ArchiveRemoteService {
      * Helper method to initalize a Melman Workflow Client based on the current
      * archive configuration.
      */
-    public DocumentClient initDocumentClient() {
+    private DocumentClient initDocumentClient() {
         boolean debug = logger.isLoggable(Level.FINE);
-        if (debug) {
-            logger.finest("...... ARCHIVE_SERVICE_ENDPOINT = " + archiveServiceEndpoint);
-        }
         DocumentClient documentClient = new DocumentClient(archiveServiceEndpoint.get());
-        // Test authentication method
-        if ("Form".equalsIgnoreCase(archiveServiceAuthMethod)) {
-            // default basic authenticator
-            FormAuthenticator formAuth = new FormAuthenticator(archiveServiceEndpoint.get(), archiveServiceUser.get(),
-                    archiveServicePassword.get());
-            // register the authenticator
-            documentClient.registerClientRequestFilter(formAuth);
-        } else {
-            // default basic authenticator
-            BasicAuthenticator basicAuth = new BasicAuthenticator(archiveServiceUser.get(), archiveServicePassword.get());
-            // register the authenticator
-            documentClient.registerClientRequestFilter(basicAuth);
+        // test if authentication is needed?
+        if (archiveServiceAuthMethod.isPresent()) {
+            // Test authentication method
+            if ("form".equalsIgnoreCase(archiveServiceAuthMethod.get())) {
+                if (debug) {
+                    logger.finest("......Form Based authentication");
+                }
+                // form authenticator
+                FormAuthenticator formAuth = new FormAuthenticator(archiveServiceEndpoint.get(),
+                        archiveServiceUser.get(), archiveServicePassword.get());
+                // register the authenticator
+                documentClient.registerClientRequestFilter(formAuth);
+            }
+            if ("basic".equalsIgnoreCase(archiveServiceAuthMethod.get())) {
+                if (debug) {
+                    logger.finest("......Basic authentication");
+                }
+                // basic authenticator
+                BasicAuthenticator basicAuth = new BasicAuthenticator(archiveServiceUser.get(),
+                        archiveServicePassword.get());
+                // register the authenticator
+                documentClient.registerClientRequestFilter(basicAuth);
+            }
         }
+
         return documentClient;
     }
 }
