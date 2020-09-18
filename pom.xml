@@ -80,7 +80,8 @@
 		<org.imixs.workflow.version>5.2.5-SNAPSHOT</org.imixs.workflow.version>
 		<org.imixs.melman.version>1.0.19</org.imixs.melman.version>
 		<apache.pdfbox.version>2.0.19</apache.pdfbox.version>
-		<microprofile.version>2.2</microprofile.version>
+		<microprofile.version>3.0</microprofile.version>
+		<microprofile-metrics.version>2.3</microprofile-metrics.version>
 	</properties>
 
 	<build>
@@ -313,7 +314,7 @@
 		<dependency>
 			<groupId>org.eclipse.microprofile.metrics</groupId>
 			<artifactId>microprofile-metrics-api</artifactId>
-			<version>${microprofile.version}</version>
+			<version>${microprofile-metrics.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
