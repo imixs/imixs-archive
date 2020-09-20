@@ -211,7 +211,7 @@ public class ClusterService {
                     "missing cluster contact points - verify configuration!");
         }
 
-        logger.info("...cluster conecting: " + contactPoint);
+        logger.info("...cluster conecting: " + contactPoint.get());
         Builder builder = Cluster.builder();
         String[] hosts = contactPoint.get().split(",");
         for (String host : hosts) {
@@ -233,7 +233,7 @@ public class ClusterService {
         builder.withRetryPolicy(DefaultRetryPolicy.INSTANCE);
 
         // set optional credentials...
-        if (!userid.get().isEmpty()) {
+        if (userid.isPresent() && !userid.get().isEmpty()) {
             builder = builder.withCredentials(userid.get(), password.get());
         }
 
