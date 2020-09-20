@@ -338,7 +338,7 @@ public class SnapshotService {
         cleanSnaphostHistory(snapshot.getUniqueID());
 
         // 9. write event log entry...
-        if (!archiveServiceEndpoint.isPresent()) {
+        if (archiveServiceEndpoint.isPresent() && !archiveServiceEndpoint.get().isEmpty()) {
             if (debug) {
                 logger.finest("......create event log entry " + EVENTLOG_TOPIC_ADD);
             }
