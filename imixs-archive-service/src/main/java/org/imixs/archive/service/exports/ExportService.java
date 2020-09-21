@@ -421,7 +421,7 @@ public class ExportService {
                             lastUniqueID = snapshot.getUniqueID();
                             // test if the $modified date is behind our current sync point....
                             Date snaptshotDate = snapshot.getItemValueDate("$modified");
-                            if (snaptshotDate.getTime() > syncPoint) {
+                            if (snaptshotDate!=null && snaptshotDate.getTime() > syncPoint) {
                                 // start export for this snapshot
                                 ftpConnector.put(snapshot);
 
@@ -443,7 +443,6 @@ public class ExportService {
 
                     // update meta data?
                     if (localCount >= 100) {
-
                         messageService.logMessage(MESSAGE_TOPIC,
                                 "...... [" + localDateSyncPoint + "] " + localCount + " snapshots exported in "
                                         + (System.currentTimeMillis() - lProfiler) + "ms, last export="

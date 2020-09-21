@@ -218,11 +218,13 @@ public class DataService {
         if (row != null) {
             // load ItemCollection object
             ByteBuffer data = row.getBytes(COLUMN_DATA);
-            if (data.hasArray()) {
+            if (data!=null && data.hasArray()) {
                 snapshot = getItemCollection(data.array());
 
                 // next we need to load the document data if exists...
                 mergeDocumentData(snapshot);
+            } else {
+                logger.warning("no data found for snapshotId '"+snapshotID+"'");
             }
         } else {
             // does not exist - create empty object
