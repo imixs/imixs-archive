@@ -187,20 +187,20 @@ public class ArchiveRestService {
                 Response.ResponseBuilder builder = Response.ok(fileContent, contentType);
                 return builder.build();
             } else {
-                logger.warning("ArchiveRestService unable to open file by md5 checksum: '" + md5 + "'");
+                logger.warning("Unable to open file by md5 checksum: '" + md5 + "' - no content!");
                 // workitem not found
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
 
         } catch (Exception e) {
             logger.severe(
-                    "ArchiveRestService unable to open file by md5 checksum: '" + md5 + "' - error: " + e.getMessage());
+                    "Unable to open file by md5 checksum: '" + md5 + "' - error: " + e.getMessage());
             if (debug) {
                 e.printStackTrace();
             }
         }
 
-        logger.severe("ArchiveRestService unable to open file by md5 checksum: '" + md5 + "'");
+        logger.severe("Unable to open file by md5 checksum: '" + md5 + "'");
         return Response.status(Response.Status.NOT_FOUND).build();
 
     }
