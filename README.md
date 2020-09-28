@@ -6,13 +6,17 @@
 _Imixs-Archive_ is an open source project designed to provide a transparent and sustaining solution for long-term audit-proof archiving of business data. In this context, business data means not only documents but also the comprehensible documentation of business processes.
 Imixs-Archive is a sub-project of the Human-Centric Workflow engine [Imixs-Workflow](http://www.imixs.org), which provides a powerful platform to describe and execute business processes. 
 
+<img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-archive-architecture.png" width="800"/>	
+
+
 ## Architecture
 
 The project pursues the following main objectives:
 
  - Archive business data in a highly available Big Data Platform
+ - Optical Character Recognition (OCR) and text extraction
  - Retrieve archived business data 
- - Analyze archived business data 
+ - Big Data Analysis
  - Data recovery after a data loss 
  
  
