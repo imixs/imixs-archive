@@ -52,7 +52,6 @@ public class OCRDocumentAdapter implements SignalAdapter {
         if ("model".equalsIgnoreCase(serviceMode)) {
             logger.finest("...running api adapter...");
 
-           
             try {
                 // read opitonal tika options
                 ItemCollection evalItemCollection = workflowService.evalWorkflowResult(event, "tika", document, false);
@@ -64,7 +63,8 @@ public class OCRDocumentAdapter implements SignalAdapter {
                 throw new AdapterException(e.getErrorContext(), e.getErrorCode(), e.getMessage(), e);
             }
         } else {
-            logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode);
+            logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode
+                    + " - running the OCRDocumentAdapter requires serviceMode=model");
         }
 
         return document;

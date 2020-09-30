@@ -33,14 +33,12 @@ public class OCRDocumentPlugin extends AbstractPlugin {
     @Inject
     OCRService ocrService;
 
-
     @Inject
     @ConfigProperty(name = OCRDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
-    
+
     @Inject
     SnapshotService snapshotService;
-  
 
     @Override
     public void init(WorkflowContext actx) throws PluginException {
@@ -59,15 +57,17 @@ public class OCRDocumentPlugin extends AbstractPlugin {
     @Override
     public ItemCollection run(ItemCollection document, ItemCollection event) throws PluginException {
         if ("model".equalsIgnoreCase(serviceMode)) {
-            
+
             // read optional tika options
-            ItemCollection evalItemCollection = this.getWorkflowService().evalWorkflowResult(event, "tika", document, false);
+            ItemCollection evalItemCollection = this.getWorkflowService().evalWorkflowResult(event, "tika", document,
+                    false);
             List<String> tikaOptions = evalItemCollection.getItemValue("options");
 
             // update the dms meta data
-            ocrService.extractText(document,snapshotService.findSnapshot(document),null,tikaOptions);
+            ocrService.extractText(document, snapshotService.findSnapshot(document), null, tikaOptions);
         } else {
-            logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode);
+            logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode
+                    + " - running the OCRDocumentPlugin requires serviceMode=model");
         }
         return document;
     }
