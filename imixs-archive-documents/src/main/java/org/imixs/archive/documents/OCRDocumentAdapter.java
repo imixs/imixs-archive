@@ -64,7 +64,7 @@ public class OCRDocumentAdapter implements SignalAdapter {
             }
         } else {
             logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode
-                    + " - running the OCRDocumentAdapter requires serviceMode=model");
+                    + " - running the OCRDocumentAdapter the env TIKA_SERVICE_MODE should be set to 'model'");
         }
 
         return document;

@@ -67,7 +67,7 @@ public class OCRDocumentPlugin extends AbstractPlugin {
             ocrService.extractText(document, snapshotService.findSnapshot(document), null, tikaOptions);
         } else {
             logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode
-                    + " - running the OCRDocumentPlugin requires serviceMode=model");
+                    + " - running the OCRDocumentPlugin the env TIKA_SERVICE_MODE should be set to 'model'");
         }
         return document;
     }
