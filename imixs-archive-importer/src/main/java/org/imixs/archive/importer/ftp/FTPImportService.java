@@ -26,7 +26,7 @@
  *      Ralph Soika - Software Developer
  */
 
-package org.imixs.archive.importer.adapter;
+package org.imixs.archive.importer.ftp;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -51,19 +51,20 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
-;
 
 /**
- * The FTPImportAdapter reacts on DocumentImportEvent and processes a FTP data
+ * The FTPImportService reacts on DocumentImportEvent and processes a FTP data
  * source.
+ * <p>
+ * The implementation is based on org.apache.commons.net.ftp
  * 
  * @author rsoika
  *
- */ 
+ */
 @Stateless
-public class FTPImportAdapter {
+public class FTPImportService {
 
-    private static Logger logger = Logger.getLogger(FTPImportAdapter.class.getName());
+    private static Logger logger = Logger.getLogger(FTPImportService.class.getName());
 
     @EJB
     WorkflowService workflowService;
@@ -78,7 +79,7 @@ public class FTPImportAdapter {
      * This method reacts on a CDI ImportEvent and reads documents form a ftp
      * server.
      * 
-     *  
+     * 
      */
     public void onEvent(@Observes DocumentImportEvent event) {
 
@@ -118,18 +119,18 @@ public class FTPImportAdapter {
             ftpPort = "21";
         }
 
-        FTPClient ftpClient = null; 
+        FTPClient ftpClient = null;
         try {
             logger.finest("......read directories ...");
-            
-            documentImportService.logMessage("Connecting to FTP server: " + ftpServer,event);
-            
+
+            documentImportService.logMessage("Connecting to FTP server: " + ftpServer, event);
+
             // TLS
             ftpClient = new FTPSClient("TLS", false);
             ftpClient.setControlEncoding("UTF-8");
             ftpClient.connect(ftpServer, Integer.parseInt(ftpPort));
             if (ftpClient.login(ftpUser, ftpPassword) == false) {
-                documentImportService.logMessage("FTP file transfer failed: login failed!",event);
+                documentImportService.logMessage("FTP file transfer failed: login failed!", event);
                 event.setResult(DocumentImportEvent.PROCESSING_ERROR);
                 return;
             }
@@ -152,8 +153,7 @@ public class FTPImportAdapter {
                     // if this is a directory or symlink then we do ignore this entry
                     if (!file.isFile()) {
                         documentImportService.logMessage(
-                                "'" + file.getName() + "' os not a valid file, object will be ignored!",
-                                event);
+                                "'" + file.getName() + "' os not a valid file, object will be ignored!", event);
                         continue;
                     }
                     logger.info("import file " + file.getName() + "...");
@@ -166,7 +166,7 @@ public class FTPImportAdapter {
                                     + rawData.length);
                             // create new workitem
                             createWorkitem(event.getSource(), file.getName(), rawData);
-                        documentImportService.logMessage("....imported '" + file.getName() + "'",event);
+                            documentImportService.logMessage("....imported '" + file.getName() + "'", event);
                             count++;
                         } else {
                             documentImportService.logMessage(
@@ -177,7 +177,7 @@ public class FTPImportAdapter {
                         ftpClient.deleteFile(fullFileName);
                     } catch (AccessDeniedException | ProcessingErrorException | PluginException | ModelException e) {
 
-                        documentImportService.logMessage("FTP import failed: " + e.getMessage(),event);
+                        documentImportService.logMessage("FTP import failed: " + e.getMessage(), event);
                         event.setResult(DocumentImportEvent.PROCESSING_ERROR);
                         return;
                     }
@@ -192,7 +192,8 @@ public class FTPImportAdapter {
             int r = ftpClient.getReplyCode();
             logger.severe("FTP ReplyCode=" + r);
 
-            documentImportService.logMessage("FTP file transfer failed (replyCode=" + r + ") : " + e.getMessage(),event);
+            documentImportService.logMessage("FTP file transfer failed (replyCode=" + r + ") : " + e.getMessage(),
+                    event);
             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
             return;
 
@@ -203,7 +204,7 @@ public class FTPImportAdapter {
                 ftpClient.logout();
                 ftpClient.disconnect();
             } catch (IOException e) {
-                documentImportService.logMessage("FTP file transfer failed: " + e.getMessage(),event);
+                documentImportService.logMessage("FTP file transfer failed: " + e.getMessage(), event);
                 event.setResult(DocumentImportEvent.PROCESSING_ERROR);
                 return;
             }
@@ -231,7 +232,6 @@ public class FTPImportAdapter {
         workitem.event(source.getItemValueInteger(DocumentImportService.SOURCE_ITEM_EVENT));
         workitem.setWorkflowGroup(source.getItemValueString("workflowgroup"));
 
-        
         String contentType = MediaType.WILDCARD;
         if (fileName.toLowerCase().endsWith(".pdf")) {
             contentType = "Application/PDF";

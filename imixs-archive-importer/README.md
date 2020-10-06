@@ -56,6 +56,15 @@ The CDI Bean DocumentImportController is used to display and select data sources
 
 
 
+# FTP Importer
+
+The FTP Importer Service can be used to import documents form a FTP server. 
+
+
+# Mail Importer
+
+The Mail Importer Service is used to import documents form a IMAP server. This module provides also services to convert Java Mail Message objects into HTML or PDF.
+
 
 
 

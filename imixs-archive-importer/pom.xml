@@ -23,10 +23,11 @@
 		<dependency>
 			<groupId>commons-net</groupId>
 			<artifactId>commons-net</artifactId>
-			<version>3.6</version>
+			<scope>compile</scope>
 		</dependency>
 		
 	
 	</dependencies>
   
+  <name>Imixs-Archive Importer</name>
 </project>
