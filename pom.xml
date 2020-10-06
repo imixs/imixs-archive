@@ -11,6 +11,7 @@
 		<module>imixs-archive-service</module>
 		<module>imixs-archive-documents</module>
 		<module>imixs-archive-ocr</module>
+		<module>imixs-archive-importer</module>
 	</modules>
 
 	<description>Imixs Workflow Archive </description>
