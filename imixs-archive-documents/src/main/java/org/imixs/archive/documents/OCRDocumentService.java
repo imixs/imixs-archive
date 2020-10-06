@@ -37,20 +37,16 @@ public class OCRDocumentService {
 
     public static final String DEFAULT_ENCODING = "UTF-8";
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
-    public static final String ENV_TIKA_SERVICE_ENDPOINT = "tika.service.endpoint";
-    public static final String ENV_TIKA_SERVICE_MODE = "tika.service.mode";
-
-    public static final String ENV_TIKA_OCR_MODE = "tika.ocr.mode"; // PDF_ONLY, OCR_ONLY, MIXED
 
     @SuppressWarnings("unused")
     private static Logger logger = Logger.getLogger(OCRDocumentService.class.getName());
 
     @Inject
-    @ConfigProperty(name = ENV_TIKA_SERVICE_ENDPOINT)
+    @ConfigProperty(name = OCRService.ENV_OCR_SERVICE_ENDPOINT)
     Optional<String> serviceEndpoint;
 
     @Inject
-    @ConfigProperty(name = OCRDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
+    @ConfigProperty(name = OCRService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
 
 

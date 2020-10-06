@@ -1,7 +1,7 @@
 # Imixs-Archive-OCR
 
 *Imixs-Archive-OCR* is a sub-project of Imixs-Archive. The project provides methods to extract textual information from documents
-attached to a Workitem. The text content of attachmets is either extracted by the PDFBox API or by optical character recognition (OCR). This text content is stored in the $file attribute 'text' and can be use for further processing or to search for document content.
+attached to a Workitem. The text content of attachments is either extracted by the PDFBox API or by optical character recognition (OCR). This text content is stored in the $file attribute 'text' and can be use for further processing or to search for document content.
 
 
 ## OCR 
@@ -10,7 +10,7 @@ The *Optical character recognition (OCR)* is based on the [Apache Project 'Tika'
 
 ### The OCRService
 
-The *OCRService* extracts the textual information from file attachments. The service calls the PDFBox API,  or in case a PDF document does not contain text information the Tika Rest API to extract the text information of a file. The following environment variables are mandatory:
+The *OCRService* extracts the textual information from file attachments calling the Tika Rest API Service endpoint. The following environment variables are mandatory:
  
   * TIKA\_SERVICE\_ENDPONT - defines the Rest API end-point of the tika server.
   * TIKA\_SERVICE\_MODE - if set to 'auto' the TikaDocumentService reacts on the CDI event 'BEFORE\_PROCESS' and extracts the data automatically. If set to 'model' the *TikaPlugin* or the *TikaAdapter* can be used in a BPMN model to activate the OCR processing
@@ -18,13 +18,15 @@ The *OCRService* extracts the textual information from file attachments. The ser
 See also the [Docker Image Imixs/Tika](https://cloud.docker.com/u/imixs/repository/docker/imixs/tika) for further information
 
 
-### The OCR MODE
+### PDF Modes
 
-With the optional environment variable  TIKA\_OCR\_MODE the OCR behavior can be controlled:
+For PDF files, the service can use the PDFBox API to extract textual information. This is faster than a OCR scan. In case a PDF document does not contain text information the Tika Rest API is used to extract the text information from a pdf file.
 
-  * PDF_ONLY -  OCR processing is disabled and text is extracted only from PDF files if available. All other files are ignored
-  * OCR_ONLY - pdf and all other files are always OCR scanned.  
-  * MIXED - OCR processing is only performed in case no text data can be extracted from a given PDF file (default)
+With the optional environment variable OCR\_PDF\_MODE the behavior how text is extracted from a PDF file can be controlled:
+
+  * TEXT_ONLY -  OCR processing is disabled and text is extracted only from PDF files using the PDFBox API. If a pdf file does not contain text data no text will be extracted!
+  * TEXT_AND_OCR - OCR processing is only performed in case no text data can be extracted from a given PDF file (default)
+  * OCR_ONLY - pdf files will always be OCR scanned even if the pdf file contains text data.  
 
 For further configuration see also the docker project [Imixs/tika](https://github.com/imixs/imixs-docker/tree/master/tika).
 
@@ -45,7 +47,7 @@ For example to set the DPI mode call:
 	options.add("X-Tika-PDFOcrDPI=400");
 	
 	// start ocr 
-	tikaDocumentService.extractText(workitem, "MIXED", options)
+	tikaDocumentService.extractText(workitem, "TEXT_AND_OCR", options)
 
 **Note:** Options set by this method call overwrite the options defined in a tika config file. 
 

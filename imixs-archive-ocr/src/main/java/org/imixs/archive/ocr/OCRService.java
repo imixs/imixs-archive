@@ -35,6 +35,8 @@ import org.imixs.workflow.exceptions.PluginException;
  * For PDF files with textual content the PDFBox api is used. In other cases,
  * the method sends the content via a Rest API to the tika server for OCR
  * processing.
+ * The environment variable OCR_PDF_MODE defines how PDF files will be scanned. Possible 
+ * values are  TEXT_ONLY | OCR_ONLY | TEXT_AND_OCR (default)
  * <p>
  * For OCR processing the service expects a valid Rest API end-point defined by
  * the Environment Parameter 'TIKA_SERVICE_ENDPONT'. If the TIKA_SERVICE_ENDPONT
@@ -54,24 +56,24 @@ public class OCRService {
     public static final String FILE_ATTRIBUTE_TEXT = "text";
     public static final String DEFAULT_ENCODING = "UTF-8";
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
-    public static final String ENV_TIKA_SERVICE_ENDPOINT = "tika.service.endpoint";
-    public static final String ENV_TIKA_SERVICE_MODE = "tika.service.mode";
-
-    public static final String ENV_TIKA_OCR_MODE = "tika.ocr.mode"; // PDF_ONLY, OCR_ONLY, MIXED
-
+    public static final String ENV_OCR_SERVICE_ENDPOINT = "ocr.service.endpoint";
+    public static final String ENV_OCR_SERVICE_MODE = "ocr.service.mode";
+    public static final String ENV_OCR_PDF_MODE = "ocr.scan.mode"; // TEXT_ONLY, OCR_ONLY, TEXT_AND_OCR (default)
+    
+    public static final String PDF_MODE_TEXT_ONLY="TEXT_ONLY";
+    public static final String PDF_MODE_OCR_ONLY="OCR_ONLY";
+    public static final String PDF_MODE_TEXT_AND_OCR="TEXT_AND_OCR";
+    
+    
     private static Logger logger = Logger.getLogger(OCRService.class.getName());
 
     @Inject
-    @ConfigProperty(name = ENV_TIKA_SERVICE_ENDPOINT)
+    @ConfigProperty(name = ENV_OCR_SERVICE_ENDPOINT)
     Optional<String> serviceEndpoint;
 
     @Inject
-    @ConfigProperty(name = OCRService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
-    String serviceMode;
-
-    @Inject
-    @ConfigProperty(name = ENV_TIKA_OCR_MODE, defaultValue = "PDF_AND_OCR")
-    String ocrMode;
+    @ConfigProperty(name = ENV_OCR_PDF_MODE, defaultValue = PDF_MODE_TEXT_AND_OCR)
+    String pdfMode;
 
     /**
      * Extracts the textual information from document attachments.
@@ -87,7 +89,7 @@ public class OCRService {
      * @throws PluginException
      */
     public void extractText(ItemCollection workitem, ItemCollection snapshot) throws PluginException {
-        extractText(workitem, snapshot, ocrMode, null);
+        extractText(workitem, snapshot, pdfMode, null);
     }
 
     /**
@@ -104,17 +106,23 @@ public class OCRService {
      * case the method tests if the $file attribute 'text' already exists.
      * 
      * @param workitem - workitem with file attachments
-     * @param _ocrmode - PDF_ONLY, OCR_ONLY, MIXED
+     * @param pdf_mode - TEXT_ONLY, OCR_ONLY, TEXT_AND_OCR
      * @param options  - optional tika header params
      * @throws PluginException
      */
-    public void extractText(ItemCollection workitem, ItemCollection snapshot, String _ocrmode, List<String> options)
+    public void extractText(ItemCollection workitem, ItemCollection snapshot, String pdf_mode, List<String> options)
             throws PluginException {
         boolean debug = logger.isLoggable(Level.FINE);
 
         // overwrite ocrmode?
-        if (_ocrmode != null) {
-            this.ocrMode = _ocrmode;
+        if (pdf_mode != null) {
+            this.pdfMode = pdf_mode;
+        }
+
+        // validate OCR MODE....
+        if ("TEXT_ONLY, OCR_ONLY, TEXT_AND_OCR".indexOf(pdfMode) == -1) {
+            throw new PluginException(OCRService.class.getSimpleName(), PLUGIN_ERROR,
+                    "Invalid TIKA_OCR_MODE - exprected one of the following options: TEXT_ONLY | OCR_ONLY | TEXT_AND_OCR");
         }
 
         long l = System.currentTimeMillis();
@@ -136,8 +144,8 @@ public class OCRService {
                         }
                         // test for simple text extraction via PDFBox
                         if (isPDF(originFileData)) {
-                            // PDF_ONLY, OCR_ONLY, PDF_AND_OCR
-                            if ("OCR_ONLY".equals(ocrMode)) {
+                            
+                            if (PDF_MODE_OCR_ONLY.equals(pdfMode)) {
                                 // OCR Only
                                 if (debug) {
                                     logger.fine("...force orc scan for pdfs...");
@@ -152,14 +160,14 @@ public class OCRService {
                                     ocrContent = null;
                                 }
 
-                                if (ocrContent == null && ("MIXED".equals(ocrMode))) {
+                                if (ocrContent == null && (PDF_MODE_TEXT_AND_OCR.equals(pdfMode))) {
                                     // lets try it with OCR...
                                     ocrContent = doORCProcessing(originFileData, options);
                                 }
                             }
                         } else {
                             // for all other files than PDF we do a ocr scann if not PDF_ONLY mode
-                            if (!"PDF_ONLY".equals(ocrMode)) {
+                            if (!PDF_MODE_TEXT_ONLY.equals(pdfMode)) {
                                 ocrContent = doORCProcessing(originFileData, options);
                             }
                         }

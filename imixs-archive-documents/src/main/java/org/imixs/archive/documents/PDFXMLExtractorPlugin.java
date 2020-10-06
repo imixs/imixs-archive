@@ -80,7 +80,7 @@ public class PDFXMLExtractorPlugin extends AbstractPlugin {
 	@Override
 	public ItemCollection run(ItemCollection document, ItemCollection event) throws PluginException {
 		byte[] xmlData = null;
-		ItemCollection evalItemCollection = getWorkflowService().evalWorkflowResult(event, document, false);
+		ItemCollection evalItemCollection = getWorkflowService().evalWorkflowResult(event,"item", document, false);
 
 		if (evalItemCollection == null) {
 			return document;

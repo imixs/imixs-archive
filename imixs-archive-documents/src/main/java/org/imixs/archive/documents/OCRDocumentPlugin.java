@@ -34,7 +34,7 @@ public class OCRDocumentPlugin extends AbstractPlugin {
     OCRService ocrService;
 
     @Inject
-    @ConfigProperty(name = OCRDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
+    @ConfigProperty(name = OCRService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
 
     @Inject
@@ -67,7 +67,7 @@ public class OCRDocumentPlugin extends AbstractPlugin {
             ocrService.extractText(document, snapshotService.findSnapshot(document), null, tikaOptions);
         } else {
             logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode
-                    + " - running the OCRDocumentPlugin the env TIKA_SERVICE_MODE should be set to 'model'");
+                    + " - running the OCRDocumentAdapter the env TIKA_SERVICE_MODE should be set to 'model'. Plugin will be ignored!");
         }
         return document;
     }

@@ -17,7 +17,22 @@ import org.imixs.workflow.exceptions.PluginException;
 /**
  * The TikaDocumentAdapter reacts on ProcessingEvent to auto extract the text
  * content.
+ * <p>
+ * The adapter expect the following environment setting
  * 
+ * TIKA_SERVICE_MODE: "MODEL"
+ * 
+ * You can set additional options to be passed to the Tika Service
+ * 
+ * <p>
+ * 
+ * <pre>
+ * {@code
+        <tika name="options">X-Tika-PDFocrStrategy=OCR_ONLY</tika>
+        <tika name="options">X-Tika-PDFOcrImageType=RGB</tika>
+        <tika name="options">X-Tika-PDFOcrDPI=400</tika>
+   }
+ * </pre>
  * 
  * @see OCRDocumentService
  * @version 1.0
@@ -28,7 +43,7 @@ public class OCRDocumentAdapter implements SignalAdapter {
     private static Logger logger = Logger.getLogger(OCRDocumentAdapter.class.getName());
 
     @Inject
-    @ConfigProperty(name = OCRDocumentService.ENV_TIKA_SERVICE_MODE, defaultValue = "auto")
+    @ConfigProperty(name = OCRService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
 
     @Inject
@@ -64,7 +79,7 @@ public class OCRDocumentAdapter implements SignalAdapter {
             }
         } else {
             logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode
-                    + " - running the OCRDocumentAdapter the env TIKA_SERVICE_MODE should be set to 'model'");
+                    + " - running the OCRDocumentAdapter the env TIKA_SERVICE_MODE should be set to 'model'. Adapter will be ignored!");
         }
 
         return document;
