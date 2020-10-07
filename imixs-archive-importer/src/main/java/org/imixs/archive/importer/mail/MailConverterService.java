@@ -99,7 +99,7 @@ public class MailConverterService {
                 if (isHtmlContent(rawText)) {
                     // HTML content found!
                     // convert embedded images to in-line HTML code.
-                    htmlResult = convertEmbeddedHTMLImages(rawText, bodyPart);
+                    htmlResult = convertEmbeddedHTMLImages(rawText, bodyPart, message);
                     break;
                 }
             }
@@ -112,67 +112,58 @@ public class MailConverterService {
         }
 
         // insert mail header
-        htmlResult=insertEmailHeader(message,htmlResult);
-        
+        htmlResult = insertEmailHeader(message, htmlResult);
+
         return htmlResult;
     }
 
-   
     /**
      * This method extracts the embedded images for a htmlMultipart object and
      * converts the content to inline image HTML tags.
      * 
      */
-    private String convertEmbeddedHTMLImages(String html, BodyPart htmlBodyPart)
+    private String convertEmbeddedHTMLImages(String html, BodyPart htmlBodyPart, final MimeMessage message)
             throws IOException, MessagingException {
 
         Matcher m = IMG_CID_REGEX.matcher(html);
         while (m.find()) {
             String toBeReplaced = m.group(0);
+            if (toBeReplaced.endsWith("\"")) {
+                toBeReplaced = toBeReplaced.substring(0, toBeReplaced.length() - 1);
+            }
             String contentID = "<" + m.group(1) + ">";
             logger.fine("...contentID=" + contentID);
             logger.fine("...toBeReplaced=" + toBeReplaced);
 
-            Multipart mp = (Multipart) htmlBodyPart.getContent();
-            int partCount = mp.getCount();
-            logger.fine(" found " + partCount + " embedded parts");
-            for (int i = 0; i < mp.getCount(); i++) {
-                Part bp = mp.getBodyPart(i);
-                // test if this is the embedded image we are looking for..
-                if (bp instanceof javax.mail.internet.MimeBodyPart) {
-                    MimeBodyPart mbp = (MimeBodyPart) bp;
-                    logger.fine("...verify part " + i);
-                    logger.fine("...contentID=" + mbp.getContentID());
-                    logger.fine("...contentType=" + mbp.getContentType());
-                    if (mbp.getContentType().startsWith("image/")) {
-                        // fetch content to byte array
-                        ByteArrayOutputStream aos = new ByteArrayOutputStream();
-                        mbp.writeTo(aos);
+            //Multipart mp = (Multipart) htmlBodyPart.getContent();
+            // MimeBodyPart mbp=findImagePart(mp, contentID);
+            MimeBodyPart mbp = findMimeBodyPartByID(message, contentID);
 
-                        String imgContent = aos.toString();
+            if (mbp != null) {
+                // fetch content to byte array
+                ByteArrayOutputStream aos = new ByteArrayOutputStream();
+                mbp.writeTo(aos);
 
-                        String[] teile = imgContent.split("\\r\\n");
-                        // find empty line...
-                        String newContent = "";
-                        boolean start = false;
-                        for (String base64part : teile) {
-                            if (start == true) {
-                                newContent = newContent + base64part;
-                            } else {
-                                if (base64part.isEmpty()) {
-                                    start = true;
-                                }
-                            }
+                String imgContent = aos.toString();
+
+                String[] teile = imgContent.split("\\r\\n");
+                // find empty line...
+                String newContent = "";
+                boolean start = false;
+                for (String base64part : teile) {
+                    if (start == true) {
+                        newContent = newContent + base64part;
+                    } else {
+                        if (base64part.isEmpty()) {
+                            start = true;
                         }
-
-                        String newDataSrc = "data:" + mbp.getContentType() + ";base64," + newContent;
-
-                        html = html.replace(toBeReplaced, newDataSrc);
-                        logger.fine("new data src=" + newDataSrc);
                     }
-
                 }
 
+                String newDataSrc = "data:" + mbp.getContentType() + ";base64," + newContent;
+
+                html = html.replace(toBeReplaced, newDataSrc);
+                logger.fine("new data src=" + newDataSrc);
             }
 
         }
@@ -255,18 +246,97 @@ public class MailConverterService {
         return null;
     }
 
-    
+   
+
     /**
-     * This helper method inserts a email header into a HTML mail with the subject and receiver information.
+     * Returns a MimeBodyPart with an image part of a MimeMessage. 
+     * The method iterates over all MulitPart objects of a given MimeMessage.
+     * The  MimeBodyPart is identified by its id.
+     * This method is called by the method
+     */
+    private MimeBodyPart findMimeBodyPartByID(final MimeMessage message, String id) throws MessagingException, IOException {
+        // iterate over all body parts...
+        Multipart multiPart = (Multipart) message.getContent();
+        int countBodyParts = multiPart.getCount();
+        for (int i = 0; i < countBodyParts; i++) {
+            BodyPart bodyPart = multiPart.getBodyPart(i);
+            // if this is a Multipart than we iterate over all its embedded  body parts...
+            if (bodyPart.isMimeType("multipart/*")) {
+                Multipart mp = (Multipart) bodyPart.getContent();
+                MimeBodyPart mbp = findMimeBodyPartByID(mp, id);
+                if (mbp != null) {
+                    return mbp;
+                }
+            }
+    
+            if (bodyPart.isMimeType("image/*")) {
+                // test if this is the image we are looking for...
+                if (isImagePart(bodyPart, id)) {
+                    return (MimeBodyPart) bodyPart;
+                } 
+            }
+        }
+        return null;
+    
+    }
+
+    /**
+     * Returns a MimeBodyPart with an image embedded in a Multipart object.
+     * The  MimeBodyPart is identified by its id.
+     * This method is called by the method
+     */
+    private MimeBodyPart findMimeBodyPartByID(Multipart mp, String id) throws MessagingException, IOException {
+        // iterate multiparts...
+        for (int i = 0; i < mp.getCount(); i++) {
+            Part bp = mp.getBodyPart(i);
+
+            // test if we have a mime body part
+            if (isImagePart(bp,id)) {
+                // found!
+                return (MimeBodyPart) bp;
+            }
+            // if we have a multipart call recursive...
+            if (bp instanceof Multipart) {
+                return findMimeBodyPartByID((Multipart) bp, id);
+            }
+        }
+        return null;
+
+    }
+    /**
+     * This method compares the details of a given MimeBodyPart with a given ID.
+     * @param bp
+     * @param id
+     * @return true in case the part is a image part and matches the given id
+     * @throws MessagingException
+     */
+    private boolean isImagePart(Part bp, String id) throws MessagingException {
+        if (bp instanceof javax.mail.internet.MimeBodyPart) {
+            MimeBodyPart mbp = (MimeBodyPart) bp;
+            String currentID = mbp.getContentID();
+            String contentType = mbp.getContentType();
+            logger.fine("...contentID=" + currentID);
+            logger.fine("...contentType=" + contentType);
+            if (mbp.getContentType().startsWith("image/") && currentID.equals(id)) {
+                return true;
+            }
+
+        }
+        return false;
+    }
+
+    /**
+     * This helper method inserts a email header into a HTML mail with the subject
+     * and receiver information.
      * 
      * @param html
      * @return
-     * @throws MessagingException 
+     * @throws MessagingException
      */
-    private String insertEmailHeader(final MimeMessage message,String html) throws MessagingException {
-        
+    private String insertEmailHeader(final MimeMessage message, String html) throws MessagingException {
+
         String subject = message.getSubject();
-        
+
         String sentDateStr = null;
         try {
             Date sentDate = message.getSentDate();
@@ -275,7 +345,6 @@ public class MailConverterService {
             // fallback to raw value
             sentDateStr = message.getHeader("date", null);
         }
-       
 
         String from = message.getHeader("From", null);
         if (from == null) {
@@ -300,9 +369,9 @@ public class MailConverterService {
                 // ignore this error
             }
         }
-        
-        String[] recipientsCC= new String[0];
-         recipientsRaw = message.getHeader("CC", null);
+
+        String[] recipientsCC = new String[0];
+        recipientsRaw = message.getHeader("CC", null);
         if (recipientsRaw != null && !recipientsRaw.isEmpty()) {
             try {
                 recipientsRaw = MimeUtility.unfold(recipientsRaw);
@@ -315,52 +384,49 @@ public class MailConverterService {
             }
         }
 
-        
-        String[] recipientsBCC= new String[0];
+        String[] recipientsBCC = new String[0];
         recipientsRaw = message.getHeader("BCC", null);
-       if (recipientsRaw != null && !recipientsRaw.isEmpty()) {
-           try {
-               recipientsRaw = MimeUtility.unfold(recipientsRaw);
-               recipientsBCC = recipientsRaw.split(",");
-               for (int i = 0; i < recipientsBCC.length; i++) {
-                   recipientsBCC[i] = MimeUtility.decodeText(recipientsBCC[i]);
-               }
-           } catch (Exception e) {
-               // ignore this error
-           }
-       }
-        
-       
-       
-       // build a html header box....
-       String mailHeader="<table style=\"border:none;\">\n" + 
-               "  <tr><td><strong>Date: </strong></td><td>" + sentDateStr + "</td></tr>\n" + 
-               "  <tr><td><strong>From: </strong></td><td>" + from + "</td></tr>\n" + 
-               "  <tr><td><strong>Subject: </strong></td><td>" + subject + "</td></tr>\n" + 
-               "  <tr><td><strong>To: </strong></td><td>" +  String.join(",", recipientsTo)  + "</td></tr>\n";
-       
-       if (recipientsCC.length>0) {
-           mailHeader=mailHeader+  "  <tr><td><strong>CC: </strong></td><td>" +  String.join(",", recipientsCC)  + "</td></tr>\n";
-           
-       }
-       if (recipientsBCC.length>0) {
-           mailHeader=mailHeader+  "  <tr><td><strong>BCC: </strong></td><td>" +  String.join(",", recipientsBCC)  + "</td></tr>\n";
-           
-       }
+        if (recipientsRaw != null && !recipientsRaw.isEmpty()) {
+            try {
+                recipientsRaw = MimeUtility.unfold(recipientsRaw);
+                recipientsBCC = recipientsRaw.split(",");
+                for (int i = 0; i < recipientsBCC.length; i++) {
+                    recipientsBCC[i] = MimeUtility.decodeText(recipientsBCC[i]);
+                }
+            } catch (Exception e) {
+                // ignore this error
+            }
+        }
 
-       mailHeader=mailHeader+  "</table><hr />";
-       
-       
-       // insert after <body
-       int iPos=html.toLowerCase().indexOf("<body");
-       iPos=html.indexOf(">",iPos+4)+1;
-       
-       String result=html.substring(0,iPos);
-       result=result+mailHeader;
-       result=result+html.substring(iPos);
-       
-       return result;
-       
+        // build a html header box....
+        String mailHeader = "<table style=\"border:none;\">\n" + "  <tr><td><strong>Date: </strong></td><td>"
+                + sentDateStr + "</td></tr>\n" + "  <tr><td><strong>From: </strong></td><td>" + from + "</td></tr>\n"
+                + "  <tr><td><strong>Subject: </strong></td><td>" + subject + "</td></tr>\n"
+                + "  <tr><td><strong>To: </strong></td><td>" + String.join(",", recipientsTo) + "</td></tr>\n";
+
+        if (recipientsCC.length > 0) {
+            mailHeader = mailHeader + "  <tr><td><strong>CC: </strong></td><td>" + String.join(",", recipientsCC)
+                    + "</td></tr>\n";
+
+        }
+        if (recipientsBCC.length > 0) {
+            mailHeader = mailHeader + "  <tr><td><strong>BCC: </strong></td><td>" + String.join(",", recipientsBCC)
+                    + "</td></tr>\n";
+
+        }
+
+        mailHeader = mailHeader + "</table><hr />";
+
+        // insert after <body
+        int iPos = html.toLowerCase().indexOf("<body");
+        iPos = html.indexOf(">", iPos + 4) + 1;
+
+        String result = html.substring(0, iPos);
+        result = result + mailHeader;
+        result = result + html.substring(iPos);
+
+        return result;
+
     }
-    
+
 }
