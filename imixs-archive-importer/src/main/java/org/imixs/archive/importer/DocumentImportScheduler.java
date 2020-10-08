@@ -73,7 +73,7 @@ public class DocumentImportScheduler implements Scheduler {
             // load all sources
             List<ItemCollection> sources = documentImportService.loadSourcesFromConfiguration(configuration);
             if (sources.size() > 0) {
-                documentImportService.logMessage("...Starting processing " + sources.size() + " sources", configuration);
+                documentImportService.logMessage("Document import starting - " + sources.size() + " sources found...", configuration);
                 for (ItemCollection source : sources) {
                     // Finally fire the DocumentImportEvent. This allows CDI Observers to process
                     // the import
@@ -85,9 +85,9 @@ public class DocumentImportScheduler implements Scheduler {
                         logger.severe("...Document Import Error");
                     }
                 }
-                documentImportService.logMessage("...All sources processed", configuration);
+                documentImportService.logMessage("Document import completed.", configuration);
             } else {
-                documentImportService.logMessage("...No sources defined!", configuration);
+                documentImportService.logMessage("No sources defined.", configuration);
                 return configuration;
             }
         }

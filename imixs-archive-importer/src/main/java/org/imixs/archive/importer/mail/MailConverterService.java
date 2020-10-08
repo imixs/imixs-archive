@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 import javax.mail.BodyPart;
+import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
@@ -79,7 +80,7 @@ public class MailConverterService {
      * 
      * @throws Exception
      */
-    public String convertToHTML(final MimeMessage message) throws IOException, MessagingException {
+    public String convertToHTML(final Message message) throws IOException, MessagingException {
         logger.fine("Start converting MimeMessage...");
         String htmlResult = null;
         String rawText = null;
@@ -112,8 +113,11 @@ public class MailConverterService {
         }
 
         // insert mail header
-        htmlResult = insertEmailHeader(message, htmlResult);
-
+        try {
+            htmlResult = insertEmailHeader((MimeMessage) message, htmlResult);
+        } catch (Exception e) {
+            logger.warning("unable to insert html header into message object: " + e.getMessage());
+        }
         return htmlResult;
     }
 
@@ -122,7 +126,7 @@ public class MailConverterService {
      * converts the content to inline image HTML tags.
      * 
      */
-    private String convertEmbeddedHTMLImages(String html, BodyPart htmlBodyPart, final MimeMessage message)
+    private String convertEmbeddedHTMLImages(String html, BodyPart htmlBodyPart, final Message message)
             throws IOException, MessagingException {
 
         Matcher m = IMG_CID_REGEX.matcher(html);
@@ -135,7 +139,7 @@ public class MailConverterService {
             logger.fine("...contentID=" + contentID);
             logger.fine("...toBeReplaced=" + toBeReplaced);
 
-            //Multipart mp = (Multipart) htmlBodyPart.getContent();
+            // Multipart mp = (Multipart) htmlBodyPart.getContent();
             // MimeBodyPart mbp=findImagePart(mp, contentID);
             MimeBodyPart mbp = findMimeBodyPartByID(message, contentID);
 
@@ -246,21 +250,18 @@ public class MailConverterService {
         return null;
     }
 
-   
-
     /**
-     * Returns a MimeBodyPart with an image part of a MimeMessage. 
-     * The method iterates over all MulitPart objects of a given MimeMessage.
-     * The  MimeBodyPart is identified by its id.
-     * This method is called by the method
+     * Returns a MimeBodyPart with an image part of a MimeMessage. The method
+     * iterates over all MulitPart objects of a given MimeMessage. The MimeBodyPart
+     * is identified by its id. This method is called by the method
      */
-    private MimeBodyPart findMimeBodyPartByID(final MimeMessage message, String id) throws MessagingException, IOException {
+    private MimeBodyPart findMimeBodyPartByID(final Message message, String id) throws MessagingException, IOException {
         // iterate over all body parts...
         Multipart multiPart = (Multipart) message.getContent();
         int countBodyParts = multiPart.getCount();
         for (int i = 0; i < countBodyParts; i++) {
             BodyPart bodyPart = multiPart.getBodyPart(i);
-            // if this is a Multipart than we iterate over all its embedded  body parts...
+            // if this is a Multipart than we iterate over all its embedded body parts...
             if (bodyPart.isMimeType("multipart/*")) {
                 Multipart mp = (Multipart) bodyPart.getContent();
                 MimeBodyPart mbp = findMimeBodyPartByID(mp, id);
@@ -268,22 +269,21 @@ public class MailConverterService {
                     return mbp;
                 }
             }
-    
+
             if (bodyPart.isMimeType("image/*")) {
                 // test if this is the image we are looking for...
                 if (isImagePart(bodyPart, id)) {
                     return (MimeBodyPart) bodyPart;
-                } 
+                }
             }
         }
         return null;
-    
+
     }
 
     /**
-     * Returns a MimeBodyPart with an image embedded in a Multipart object.
-     * The  MimeBodyPart is identified by its id.
-     * This method is called by the method
+     * Returns a MimeBodyPart with an image embedded in a Multipart object. The
+     * MimeBodyPart is identified by its id. This method is called by the method
      */
     private MimeBodyPart findMimeBodyPartByID(Multipart mp, String id) throws MessagingException, IOException {
         // iterate multiparts...
@@ -291,7 +291,7 @@ public class MailConverterService {
             Part bp = mp.getBodyPart(i);
 
             // test if we have a mime body part
-            if (isImagePart(bp,id)) {
+            if (isImagePart(bp, id)) {
                 // found!
                 return (MimeBodyPart) bp;
             }
@@ -303,8 +303,10 @@ public class MailConverterService {
         return null;
 
     }
+
     /**
      * This method compares the details of a given MimeBodyPart with a given ID.
+     * 
      * @param bp
      * @param id
      * @return true in case the part is a image part and matches the given id

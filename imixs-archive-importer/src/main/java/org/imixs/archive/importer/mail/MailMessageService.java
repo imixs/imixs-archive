@@ -31,7 +31,6 @@ import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
 
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
@@ -64,7 +63,7 @@ public class MailMessageService {
      * @throws MessagingException
      * @throws IOException
      */
-    public void attachHTMLMessage(MimeMessage message, ItemCollection workitem) throws IOException, MessagingException {
+    public void attachHTMLMessage(Message message, ItemCollection workitem) throws IOException, MessagingException {
         logger.fine("...attach message as html file...");
         // convert email to html...
         String htmlMessage = mailConverterService.convertToHTML(message);

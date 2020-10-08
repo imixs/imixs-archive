@@ -46,7 +46,6 @@ import javax.mail.Part;
 import javax.mail.Session;
 import javax.mail.Store;
 import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
 
 import org.imixs.archive.importer.DocumentImportEvent;
 import org.imixs.archive.importer.DocumentImportService;
@@ -140,8 +139,7 @@ public class IMAPImportService {
             props.setProperty("mail.store.protocol", "imaps");
             Session session = Session.getDefaultInstance(props, null);
             Store store = session.getStore("imaps");
-
-            documentImportService.logMessage("Connecting to IMAP server: " + imapServer + " : " + imapFolder, event);
+            documentImportService.logMessage("...connecting to IMAP server: " + imapServer + " : " + imapFolder, event);
 
             store.connect(imapServer, new Integer(imapPort), imapUser, imapPassword);
             IMAPFolder inbox = (IMAPFolder) store.getFolder(imapFolder);
@@ -162,9 +160,7 @@ public class IMAPImportService {
             for (Message message : messages) {
                 Address[] fromAddress = message.getFrom();
                 logger.finest("......receifed mail from: " + fromAddress[0].toString());
-
                 ItemCollection workitem = createWorkitem(event.getSource());
-
                 if (!DETACH_MODE_NONE.equals(detachOption)) {
                     // scan for attachments....
                     Multipart multiPart = (Multipart) message.getContent();
@@ -184,14 +180,12 @@ public class IMAPImportService {
                             byte[] content = readAllBytes(input);
                             FileData fileData = new FileData(fileName, content, part.getContentType(), null);
                             workitem.addFileData(fileData);
-
                         }
                     }
                 }
-
                 // in DETACH_MODE_ALL we attache the mail body as a html file
-                if (DETACH_MODE_ALL.equals(detachOption) && message instanceof MimeMessage) {
-                    mailMessageService.attachHTMLMessage((MimeMessage) message, workitem);
+                if (DETACH_MODE_ALL.equals(detachOption)) {
+                    mailMessageService.attachHTMLMessage(message, workitem);
                 }
 
                 // attach the full e-mail in case of DETACH_MODE_PDF or DETACH_MODE_NONE
@@ -201,17 +195,14 @@ public class IMAPImportService {
 
                 // finally process the workitem
                 workitem = workflowService.processWorkItemByNewTransaction(workitem);
- 
+
                 // move message into the archive-folder
-                Message [] messageList = {message};
-                inbox.moveMessages( messageList, archiveFolder);
-                
+                Message[] messageList = { message };
+                inbox.moveMessages(messageList, archiveFolder);
             }
 
             documentImportService.logMessage("finished", event);
-
         } catch (AccessDeniedException | ProcessingErrorException | PluginException | ModelException e) {
-
             documentImportService.logMessage("IMAP import failed: " + e.getMessage(), event);
             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
             return;
@@ -223,8 +214,6 @@ public class IMAPImportService {
         }
 
     }
-    
-  
 
     /**
      * This method opens the IMAP archive folder. If the folder does not exist, the
@@ -242,7 +231,6 @@ public class IMAPImportService {
         // open Archive folder
         String imapArchiveFolder = sourceOptions.getProperty("ARCHIVE_FOLDER", ARCHIVE_DEFAULT_NAME);
         documentImportService.logMessage("...ARCHIVE_FOLDER = " + imapArchiveFolder, event);
-
         IMAPFolder archive = (IMAPFolder) inbox.getFolder(imapArchiveFolder);
         // if archive folder did not exist create it...
         if (archive.exists() == false) {
@@ -257,7 +245,6 @@ public class IMAPImportService {
         archive.open(Folder.READ_WRITE);
         return archive;
     }
-
 
     /**
      * Creates and processes a new workitem with a given filedata
@@ -275,7 +262,6 @@ public class IMAPImportService {
         workitem.task(source.getItemValueInteger(DocumentImportService.SOURCE_ITEM_TASK));
         workitem.event(source.getItemValueInteger(DocumentImportService.SOURCE_ITEM_EVENT));
         workitem.setWorkflowGroup(source.getItemValueString("workflowgroup"));
-
         return workitem;
     }
 

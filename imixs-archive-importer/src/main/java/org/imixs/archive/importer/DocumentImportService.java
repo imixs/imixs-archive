@@ -42,9 +42,9 @@ import org.imixs.workflow.exceptions.PluginException;
  * import source.
  * 
  * @author rsoika
- *  
+ * 
  */
-@Stateless 
+@Stateless
 @LocalBean
 public class DocumentImportService {
 
@@ -114,30 +114,28 @@ public class DocumentImportService {
     }
 
     /**
-     * This helper method evaluates the options and returns a Properties object 
+     * This helper method evaluates the options and returns a Properties object
      * 
      * @throws PluginException
      */
     public Properties getOptionsProperties(ItemCollection source) {
-        Properties properties=new Properties();
+        Properties properties = new Properties();
         String optionsText = source.getItemValueString(SOURCE_ITEM_OPTIONS);
-        
+
         // split in new lines
         String[] options = optionsText.split("\n");
-        
         logger.fine("...read source properties");
-        for (String sProperty :options) {
-            
+        for (String sProperty : options) {
+            // remove \r
+            sProperty = sProperty.replace("\r", "");
             int ipos = sProperty.indexOf('=');
             if (ipos > 0) {
                 String sKey = sProperty.substring(0, sProperty.indexOf('='));
                 String sValue = sProperty.substring(sProperty.indexOf('=') + 1);
-                properties.setProperty(sKey, sValue);
+                properties.setProperty(sKey.trim(), sValue.trim());
             }
         }
-        
         return properties;
-
     }
 
 }
