@@ -104,7 +104,6 @@ public class MailConverterService {
                     break;
                 }
             }
-
         }
 
         // if we have not found a HTML content than we build a default html structure
@@ -163,18 +162,19 @@ public class MailConverterService {
                         }
                     }
                 }
-
                 String newDataSrc = "data:" + mbp.getContentType() + ";base64," + newContent;
-
                 html = html.replace(toBeReplaced, newDataSrc);
                 logger.fine("new data src=" + newDataSrc);
             }
-
         }
-
         return html;
     }
 
+    /**
+     * Helper method to convert a text message into a html block
+     * @param rawText
+     * @return
+     */
     private String buildHtmlfromPlainText(String rawText) {
         String htmlResult = null;
 
@@ -283,25 +283,41 @@ public class MailConverterService {
 
     /**
      * Returns a MimeBodyPart with an image embedded in a Multipart object. The
-     * MimeBodyPart is identified by its id. This method is called by the method
+     * MimeBodyPart is identified by its id. This method is called recursive
+     * depending on embedded body parts.
      */
     private MimeBodyPart findMimeBodyPartByID(Multipart mp, String id) throws MessagingException, IOException {
-        // iterate multiparts...
+        // iterate over all parts...
         for (int i = 0; i < mp.getCount(); i++) {
             Part bp = mp.getBodyPart(i);
-
-            // test if we have a mime body part
+            // test if we have a matching mime body part
             if (isImagePart(bp, id)) {
                 // found!
                 return (MimeBodyPart) bp;
             }
-            // if we have a multipart call recursive...
+
+            // for multipart/* which are not an instance of Multipart we verify the content
+            if (bp.isMimeType("multipart/*") && !(bp instanceof Multipart)) {
+                // this case is true for e.g. multipart/related or multipart/alternative
+                if (bp.getContent() instanceof Multipart) {
+                    // recursive call to check the embedded parts
+                    MimeBodyPart mimeBodyPart = findMimeBodyPartByID((Multipart) bp.getContent(), id);
+                    if (mimeBodyPart != null) {
+                        // found!
+                        return mimeBodyPart;
+                    }
+                }
+            }
             if (bp instanceof Multipart) {
-                return findMimeBodyPartByID((Multipart) bp, id);
+                // recursive call to check the embedded parts
+                MimeBodyPart mimeBodyPart = findMimeBodyPartByID((Multipart) bp, id);
+                if (mimeBodyPart != null) {
+                    // found!
+                    return mimeBodyPart;
+                }
             }
         }
         return null;
-
     }
 
     /**
@@ -428,7 +444,6 @@ public class MailConverterService {
         result = result + html.substring(iPos);
 
         return result;
-
     }
 
 }
