@@ -47,6 +47,8 @@ import org.imixs.workflow.ItemCollection;
 @LocalBean
 public class MailMessageService {
 
+ 
+    
     @EJB
     MailConverterService mailConverterService;
 
@@ -68,7 +70,7 @@ public class MailMessageService {
         String htmlMessage = mailConverterService.convertToHTML(message);
         // attache file
         String filename = message.getSubject() + ".html";
-        FileData fileData = new FileData(filename, htmlMessage.getBytes(), "text/html", null);
+        FileData fileData = new FileData(filename, htmlMessage.getBytes("UTF-8"), "text/html", null);
         workitem.addFileData(fileData);
     }
 

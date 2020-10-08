@@ -65,6 +65,14 @@ The FTP Importer Service can be used to import documents form a FTP server.
 
 The Mail Importer Service is used to import documents form a IMAP server. This module provides also services to convert Java Mail Message objects into HTML or PDF.
 
+## Detachment Mode
 
+The Mail Importer Service provides the ability to detach files from an mail message object. The behaviour can be configured by the option property named "DETACH_MODE". The following detach modes are supported:
 
+ - PDF - only PDF files attached will be detached together with the origin .eml file to the workitem. This is the default mode.
+ - ALL - all files will be detached and the email content will be attached as a HTML file to the workitem.
+ - NONE - no files will be detached and the origin email object will be attached as a .eml file to the workitem.
 
+To set the detachment mode add the DETACH_MODE to the option list of the IMAP source:
+
+	DETACH_MODE=ALL

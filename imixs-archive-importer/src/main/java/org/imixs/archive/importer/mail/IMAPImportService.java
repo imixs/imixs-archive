@@ -31,8 +31,6 @@ package org.imixs.archive.importer.mail;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -64,13 +62,27 @@ import org.imixs.workflow.exceptions.ProcessingErrorException;
 import com.sun.mail.imap.IMAPFolder;
 
 /**
- * The EmailImportAdapter scanns a IMAP account
+ * The EmailImportAdapter scans a IMAP account
+ * <p>
+ * The method creates for each email in the INBOX a workitem based on the
+ * configuration defined by the import source.
+ * <p>
+ * Finally the method moves the mail form the INBOX into an archive folder. If
+ * the archive folder does not exist, the method creates the folder. The folder
+ * name can be configured by the property ARCHIVE_FOLDER. The default name is
+ * 'imixs-archive'
+ * 
  * 
  * @author rsoika
  *
  */
 @Stateless
 public class IMAPImportService {
+
+    public static final String DETACH_MODE_PDF = "PDF";
+    public static final String DETACH_MODE_ALL = "ALL";
+    public static final String DETACH_MODE_NONE = "NONE";
+    public static final String ARCHIVE_DEFAULT_NAME = "imixs-archive";
 
     private static Logger logger = Logger.getLogger(IMAPImportService.class.getName());
 
@@ -82,14 +94,16 @@ public class IMAPImportService {
 
     @EJB
     DocumentImportService documentImportService;
-    
+
     @EJB
     MailMessageService mailMessageService;
 
     /**
-     * This method reacts on a CDI ImportEvent and reads documents form a ftp
+     * This method reacts on a CDI ImportEvent and reads documents form a IMAP
      * server.
-     * 
+     * <p>
+     * Depending on the DETACH_MODE the method will detach file attachments form the
+     * email.
      * 
      */
     public void onEvent(@Observes DocumentImportEvent event) {
@@ -127,58 +141,71 @@ public class IMAPImportService {
             Session session = Session.getDefaultInstance(props, null);
             Store store = session.getStore("imaps");
 
-            documentImportService.logMessage("Connecting to IMAP server: " + imapServer, event);
+            documentImportService.logMessage("Connecting to IMAP server: " + imapServer + " : " + imapFolder, event);
 
             store.connect(imapServer, new Integer(imapPort), imapUser, imapPassword);
             IMAPFolder inbox = (IMAPFolder) store.getFolder(imapFolder);
-            inbox.open(Folder.READ_ONLY);
+            inbox.open(Folder.READ_WRITE);
 
-            // fetches new messages from server
+            // Depending on the DETACH_MODE attachments will be added to the new workitem.
+            Properties sourceOptions = documentImportService.getOptionsProperties(event.getSource());
+            String detachOption = sourceOptions.getProperty("DETACH_MODE", DETACH_MODE_PDF);
+            documentImportService.logMessage("...DETACH_MODE = " + detachOption, event);
+
+            // open archive folder...
+            IMAPFolder archiveFolder = openImapArchive(store, inbox, sourceOptions, event);
+
+            // fetches all messages from the INBOX...
             Message[] messages = inbox.getMessages();
+            documentImportService.logMessage("..." + messages.length + " new messages found", event);
 
             for (Message message : messages) {
-
                 Address[] fromAddress = message.getFrom();
-                documentImportService.logMessage("...receifed mail from: " + fromAddress[0].toString(), event);
-
+                logger.finest("......receifed mail from: " + fromAddress[0].toString());
 
                 ItemCollection workitem = createWorkitem(event.getSource());
 
-                List<Multipart> partsToDelete=new ArrayList<Multipart>();
-                // scan for attachements....
-                Multipart multiPart = (Multipart) message.getContent();
-                for (int i = 0; i < multiPart.getCount(); i++) {
-                    MimeBodyPart part = (MimeBodyPart) multiPart.getBodyPart(i);
-                    if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
-                        // this part is attachment
-                        InputStream input = part.getInputStream();
-                        byte[] content = readAllBytes(input);
-                        FileData fileData = new FileData(part.getFileName(), content, part.getContentType(), null);
-                        workitem.addFileData(fileData);
-                        partsToDelete.add(multiPart);
+                if (!DETACH_MODE_NONE.equals(detachOption)) {
+                    // scan for attachments....
+                    Multipart multiPart = (Multipart) message.getContent();
+                    for (int i = 0; i < multiPart.getCount(); i++) {
+                        MimeBodyPart part = (MimeBodyPart) multiPart.getBodyPart(i);
+                        if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
+                            String fileName = part.getFileName();
+
+                            // detach only add PDF files?
+                            if (DETACH_MODE_PDF.equals(detachOption)) {
+                                if (!fileName.toLowerCase().endsWith(".pdf")) {
+                                    continue; // skip this attachment
+                                }
+                            }
+                            // add this attachment
+                            InputStream input = part.getInputStream();
+                            byte[] content = readAllBytes(input);
+                            FileData fileData = new FileData(fileName, content, part.getContentType(), null);
+                            workitem.addFileData(fileData);
+
+                        }
                     }
                 }
 
-               
-                // Find the html body
-                if (message instanceof MimeMessage) {
+                // in DETACH_MODE_ALL we attache the mail body as a html file
+                if (DETACH_MODE_ALL.equals(detachOption) && message instanceof MimeMessage) {
                     mailMessageService.attachHTMLMessage((MimeMessage) message, workitem);
                 }
-               
-                
-                // finally we attache the full e-mail....
-                mailMessageService.attachMessage(message,workitem);
-               
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                message.writeTo(baos);
-                String filename=message.getSubject()+".eml";
-                FileData fileData = new FileData(filename, baos.toByteArray(), "message/rfc822", null);
-                workitem.addFileData(fileData);
-                
-                
+
+                // attach the full e-mail in case of DETACH_MODE_PDF or DETACH_MODE_NONE
+                if (!DETACH_MODE_ALL.equals(detachOption)) {
+                    mailMessageService.attachMessage(message, workitem);
+                }
+
                 // finally process the workitem
                 workitem = workflowService.processWorkItemByNewTransaction(workitem);
-
+ 
+                // move message into the archive-folder
+                Message [] messageList = {message};
+                inbox.moveMessages( messageList, archiveFolder);
+                
             }
 
             documentImportService.logMessage("finished", event);
@@ -196,6 +223,41 @@ public class IMAPImportService {
         }
 
     }
+    
+  
+
+    /**
+     * This method opens the IMAP archive folder. If the folder does not exist, the
+     * method creates the folder. The folder name can be configured by the property
+     * ARCHIVE_FOLDER. The default name is 'imixs-archive'
+     * 
+     * @param sourceOptions
+     * @param store
+     * @param event
+     * @return
+     * @throws MessagingException
+     */
+    private IMAPFolder openImapArchive(Store store, IMAPFolder inbox, Properties sourceOptions,
+            DocumentImportEvent event) throws MessagingException {
+        // open Archive folder
+        String imapArchiveFolder = sourceOptions.getProperty("ARCHIVE_FOLDER", ARCHIVE_DEFAULT_NAME);
+        documentImportService.logMessage("...ARCHIVE_FOLDER = " + imapArchiveFolder, event);
+
+        IMAPFolder archive = (IMAPFolder) inbox.getFolder(imapArchiveFolder);
+        // if archive folder did not exist create it...
+        if (archive.exists() == false) {
+            logger.info("...creating folder '" + imapArchiveFolder + "'");
+            boolean isCreated = archive.create(Folder.HOLDS_MESSAGES);
+            if (isCreated) {
+                logger.info("...folder sucessfull created");
+            } else {
+                logger.info("...failed to create new archvie folder!");
+            }
+        }
+        archive.open(Folder.READ_WRITE);
+        return archive;
+    }
+
 
     /**
      * Creates and processes a new workitem with a given filedata
@@ -251,6 +313,5 @@ public class IMAPImportService {
                 }
         }
     }
-    
-   
+
 }
