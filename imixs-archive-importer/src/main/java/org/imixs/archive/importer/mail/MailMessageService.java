@@ -22,8 +22,10 @@
  *******************************************************************************/
 package org.imixs.archive.importer.mail;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
@@ -46,8 +48,6 @@ import org.imixs.workflow.ItemCollection;
 @LocalBean
 public class MailMessageService {
 
- 
-    
     @EJB
     MailConverterService mailConverterService;
 
@@ -74,6 +74,32 @@ public class MailMessageService {
     }
 
     /**
+     * This method extracts a HTML representation from a MimeMessage and converts
+     * the HTML into a PDF file by using the Goteberg Sevice. The method adds the
+     * PDF file to a given workitem.
+     * <p>
+     * The name of the attached file is _subject_.html
+     * 
+     * @param message
+     * @throws MessagingException
+     * @throws IOException
+     */
+    public void attachPDFMessage(Message message, ItemCollection workitem, String gotebergServiceEndpoint)
+            throws IOException, MessagingException {
+        logger.fine("...attach message as html file...");
+        // convert email to html...
+        String htmlMessage = mailConverterService.convertToHTML(message);
+        byte[] pdfContent = GotenbergClient.convertHTML("http://gotenberg:3000/",
+                new ByteArrayInputStream(htmlMessage.getBytes(StandardCharsets.UTF_8)));
+        if (pdfContent != null) {
+            // attache file
+            String filename = message.getSubject() + ".pdf";
+            FileData fileData = new FileData(filename, pdfContent, "application/pdf", null);
+            workitem.addFileData(fileData);
+        }
+    }
+
+    /**
      * This method attaches a Mail Message object as a .eml file to a given
      * workitem.
      * <p>
@@ -83,7 +109,7 @@ public class MailMessageService {
      * @throws MessagingException
      * @throws IOException
      */
-    public void attachMessage(Message message, ItemCollection workitem) throws IOException, MessagingException  {
+    public void attachMessage(Message message, ItemCollection workitem) throws IOException, MessagingException {
         logger.fine("...attach message as eml file...");
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         message.writeTo(baos);

@@ -66,14 +66,18 @@ import com.sun.mail.imap.IMAPFolder;
  * The method creates for each email in the INBOX a workitem based on the
  * configuration defined by the import source.
  * <p>
- * Finally the method moves the mail form the INBOX into an archive folder. If
- * the archive folder does not exist, the method creates the folder. The folder
- * name can be configured by the property ARCHIVE_FOLDER. The default name is
- * 'imixs-archive'
- * 
+ * After the message was imported successfully, the message will be moved form
+ * the INBOX into an archive folder. If the archive folder does not exist, the
+ * method creates the folder. The folder name can be configured by the property
+ * ARCHIVE_FOLDER. The default name is 'imixs-archive'
+ * <p>
+ * The email message can be converted into HTML or PDF in case the DETACHE_MODE
+ * is set to ALL. To generate the message in PDF format a gotenberg service is
+ * expected to convert HTML to PDF. The gotenberg service endpoint can be
+ * defined by the option 'GOTENBERG_SERVICE'
  * 
  * @author rsoika
- *
+ * @version 1.0
  */
 @Stateless
 public class IMAPImportService {
@@ -183,9 +187,28 @@ public class IMAPImportService {
                         }
                     }
                 }
-                // in DETACH_MODE_ALL we attache the mail body as a html file
+                // in DETACH_MODE_ALL we attache the mail body as a PDF or HTML file
                 if (DETACH_MODE_ALL.equals(detachOption)) {
-                    mailMessageService.attachHTMLMessage(message, workitem);
+                    // do we have a gotenberg service?
+                    String gotenbergService = sourceOptions.getProperty("GOTENBERG_SERVICE");
+                    if (gotenbergService != null && !gotenbergService.isEmpty()) {
+                        try {
+                            logger.info("using gotenbergservice: " + gotenbergService);
+                            mailMessageService.attachPDFMessage(message, workitem, gotenbergService);
+                        } catch (IOException eio) {
+                            // there was a problem to call the gotenberg service - fallback to HTML
+                            documentImportService
+                                    .logMessage(
+                                            "... connectiong to gotenberg service '" + gotenbergService + "' failed: "
+                                                    + eio.getMessage() + " message will be added in HTML format!",
+                                            event);
+                            // attach email as HTML....
+                            mailMessageService.attachHTMLMessage(message, workitem);
+                        }
+                    } else {
+                        // attach the email as HTML....
+                        mailMessageService.attachHTMLMessage(message, workitem);
+                    }
                 }
 
                 // attach the full e-mail in case of DETACH_MODE_PDF or DETACH_MODE_NONE

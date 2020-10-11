@@ -76,3 +76,23 @@ The Mail Importer Service provides the ability to detach files from an mail mess
 To set the detachment mode add the DETACH_MODE to the option list of the IMAP source:
 
 	DETACH_MODE=ALL
+
+
+## The Archive Folder
+
+After the Mail Importer has imported a single message successfully the message will be moved into a IMAP archive folder named 'imixs-archive'. This folder will be automatically created if it does not yet exist on the IMAP server.
+You can change the name of the archive folder by setting the option 'ARVICE_FOLDER'
+
+	ARCHIVE_FOLDER=Invoice-Archive
+
+	
+	
+## Gotenberg HTML PDF Converter
+
+[Gotenberg](https://thecodingmachine.github.io/gotenberg/) is a Docker-powered stateless API for converting HTML, Markdown and Office documents to PDF. This service can be used to convert a Mail into PDF. To activate this feature add the following options to the import source:
+
+	DETACH_MODE=ALL
+	GOTENBERG_SERVICE=http://gotenberg:3000
+
+
+
