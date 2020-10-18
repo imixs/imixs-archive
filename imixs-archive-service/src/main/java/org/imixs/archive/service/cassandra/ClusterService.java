@@ -242,7 +242,7 @@ public class ClusterService {
             try {
                 // create ssl options based on environment settings...
                 SSLOptions options = createSSLOptions();
-                logger.severe("......creating cluster session with SSL...");
+                logger.finest("......creating cluster session with SSL...");
                 builder.withSSL(options);
             } catch (KeyManagementException | UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException
                     | CertificateException | IOException e) {
