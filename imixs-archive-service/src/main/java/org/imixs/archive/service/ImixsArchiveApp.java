@@ -55,6 +55,7 @@ public class ImixsArchiveApp extends Application {
     public static final String WORKFLOW_SERVICE_PASSWORD = "workflow.service.password";
     public static final String WORKFLOW_SERVICE_AUTHMETHOD = "workflow.service.authmethod";
     public static final String WORKFLOW_SYNC_INTERVAL = "workflow.sync.interval";
+    public static final String WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
     public static final String WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
 
     @Inject

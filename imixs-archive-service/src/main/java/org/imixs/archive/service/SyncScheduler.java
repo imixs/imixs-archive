@@ -26,7 +26,7 @@ import org.imixs.melman.RestAPIException;
 
 /**
  * The SyncScheduler starts a TimerService to pull new snapshot events from the
- * workflow instance and push the snapshot data into the cassandra clsuter
+ * workflow instance and push the snapshot data into the cassandra cluster
  *
  * @see SyncService
  * @author ralph.soika@imixs.com
@@ -44,6 +44,10 @@ public class SyncScheduler {
     @Inject
     @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
     long interval;
+
+    @Inject
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_INITIALDELAY, defaultValue = "30000")
+    long initialDelay;
 
     @Inject
     @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_ENDPOINT)
@@ -75,13 +79,13 @@ public class SyncScheduler {
     @PostConstruct
     public void init() {
         if (workflowServiceEndpoint.isPresent()) {
-            logger.info("Starting Archive SyncScheduler - interval=" + interval + "ms ....");
-
+            logger.info("Starting Archive SyncScheduler - initalDelay=" + initialDelay + "ms  inverval=" + interval
+                    + "ms ....");
             // Registering a non-persistent Timer Service.
             final TimerConfig timerConfig = new TimerConfig();
             timerConfig.setInfo(""); // empty info string indicates no JSESSIONID!
             timerConfig.setPersistent(false);
-            timerService.createIntervalTimer(interval, interval, timerConfig);
+            timerService.createIntervalTimer(initialDelay, interval, timerConfig);
         }
     }
 
@@ -112,8 +116,8 @@ public class SyncScheduler {
                 if (jSessionID == null || jSessionID.isEmpty()) {
                     // no - we need to login first and store the JSESSIONID in a new timer object...
                     // create a FormAuthenticator
-                    FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(), workflowServiceUser.get(),
-                            workflowServicePassword.get());
+                    FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(),
+                            workflowServiceUser.get(), workflowServicePassword.get());
                     // Authentication successful - do we have a JSESSIONID?
                     String jsessionID = formAuth.getJsessionID();
                     if (jsessionID != null && !jsessionID.isEmpty()) {
@@ -134,7 +138,8 @@ public class SyncScheduler {
                 }
             } else {
                 // Default behaviro - use a BasicAuthenticator
-                BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser.get(), workflowServicePassword.get());
+                BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser.get(),
+                        workflowServicePassword.get());
                 authenticator = basicAuth;
             }
 
