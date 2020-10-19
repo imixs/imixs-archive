@@ -704,7 +704,11 @@ public class DataService {
                     break;
                 }
             }
-            logger.info("...deleted " + deletions + " deprecated snapshots form history (" + uniqueid + ")");
+            if (deletions >= 2) {
+                // we do only log if more than one old history snapshot exist in the archive.
+                // during normal life cycle we do not print any message...
+                logger.info("...deleted " + deletions + " deprecated snapshots form history (" + uniqueid + ")");
+            }
         }
 
     }
