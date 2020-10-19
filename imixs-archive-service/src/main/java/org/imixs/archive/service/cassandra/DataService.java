@@ -669,8 +669,8 @@ public class DataService {
                 snapshotcount++;
             }
 
-            // if the size of the Resultset is smaller or equal than the snapshotHistory we can skip
-            if (snapshotcount <= snapshotHistory) {
+            // if the size of the Resultset is smaller than the snapshotHistory we can skip
+            if (snapshotcount < snapshotHistory) {
                 return;
             }
 
@@ -682,9 +682,8 @@ public class DataService {
             // descending
             sql = sql + " ORDER BY snapshot ASC";
 
-            // set LIMIT to 100 + $snapshot.history
-            int maxcount=100 + snapshotHistory;
-            sql = sql + " LIMIT "+maxcount;
+            // set LIMIT to 100
+            sql = sql + " LIMIT 100";
 
             // set uniqueid
             sql = sql.replace("'?'", "'" + uniqueid + "'");
@@ -699,10 +698,6 @@ public class DataService {
                 String id = row.getString(1);
                 deleteSnapshot(id);
                 deletions++;
-                // stop in for the 100
-                if (deletions==100) {
-                    break;
-                }
             }
             if (deletions >= 2) {
                 // we do only log if more than one old history snapshot exist in the archive.
