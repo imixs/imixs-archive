@@ -44,8 +44,6 @@ public class ClusterDataController implements Serializable {
     @Inject
     DataService dataService;
 
-    @Inject
-    ResyncService syncService;
 
     @Inject
     MessageService messageService;
@@ -100,38 +98,7 @@ public class ClusterDataController implements Serializable {
         return (clusterService.getSession() != null);
     }
 
-    /**
-     * This method starts a restore process
-     * 
-     * 
-     */
-    public void start() {
-        try {
-            syncService.start();
-        } catch (ArchiveException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public boolean isRunning() {
-        return syncService.isRunning();
-    }
-
-    /**
-     * This method cancles the current sync
-     * 
-     * 
-     * @throws ArchiveException
-     */
-    public void cancel() {
-        try {
-            syncService.cancel();
-        } catch (ArchiveException e) {
-            e.printStackTrace();
-        }
-
-    }
-
+   
     /**
      * returns the last reSync point of the current metaData object
      * 

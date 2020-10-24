@@ -19,20 +19,22 @@
 				<div class="row">
 					<div class="col-12">
 						<div class="monitor-portlet">
-							<h1>Set a New Syncpoint:</h1>
+							<h1>Sync-Point:</h1>
 
-							<p class="small">Define a new syncpoint to perform a full or
-								partial resynchronization of the workflow instance.</p>
+							<p class="small">Defining a new sync-point will perform a full or
+								partial re-synchronization of the workflow instance.</p>
 							<table style="width: 100%;">
 
 								<tr>
-									<td style="width: 25%;">Last Syncpoint:</td>
+									<td style="width: 25%;">Last Sync-Point:</td>
 									<td>#{resyncController.syncPoint}</td>
 								</tr>
 
 								<tr>
-									<td>New Syncpoint:</td>
-									<td><h:inputText name="syncPoint" value="#{resyncController.newSyncPoint}"></h:inputText>
+									<td>Next Sync-Point:</td>
+									<td><h:inputText name="syncPoint"
+									  value="#{resyncController.newSyncPoint}"
+									  disabled="#{resyncController.isRunning()}"></h:inputText>
 										Format: yyyy-MM-dd'T'HH:mm:ss</td>
 								</tr>
 							</table>
@@ -41,10 +43,82 @@
 
 				</div>
 
-				<p style="margin-left: 10px;">
-					<h:commandButton value="submit" action="monitor.xhtml"
-						actionListener="#{resyncController.updateSyncPoint()}"></h:commandButton>
-				</p>
+				
+				
+								<!-- Resync Status -->
+				<div class="row">
+
+					<div class="col-12">
+						<div class="monitor-portlet">
+
+							<h1><span>Resync Status: </span> 
+							<ui:fragment
+											rendered="#{resyncController.isRunning()}">
+							<span class="typcn typcn-media-record"
+												style="font-size: 1.3em; color: #5c9e5c;float:none"></span>
+												<span> RUNNING</span>
+										</ui:fragment> <ui:fragment rendered="#{!resyncController.isRunning()}">
+							 <span class="typcn typcn-media-record"
+												style="font-size: 1.3em; color: #e84848;float:none"></span><span> STOPPED</span>
+										</ui:fragment></h1>
+
+							<p class="lead" style="float: left; width: 48%;">
+								<span class="typcn typcn-shopping-cart" style="color: #5c9e5c;"></span>
+								#{clusterDataController.syncSize} <span style="font-size: 0.3em">#{clusterDataController.syncSizeUnit}</span>
+							</p>
+
+							<p class="lead" style="">
+								<span class="typcn typcn-arrow-repeat-outline"
+									style="color: #5c9e5c;"></span>
+								#{clusterDataController.syncCount} <span
+									style="font-size: 0.3em">total syncs</span>
+							</p>
+
+							<p class="small">Last ReSync:
+								#{clusterDataController.syncPoint}  </p>
+							
+							<!-- Start / Stop sync scheduler -->
+							<p style="margin-top: 10px;">
+								<h:commandButton value="Refresh"
+									action="resync?faces-redirect=true"
+									rendered="#{resyncController.isRunning()}"></h:commandButton>
+									
+								<h:commandButton value="Start"
+									action="resync?faces-redirect=true"
+									rendered="#{!resyncController.isRunning()}"
+									actionListener="#{resyncController.updateSyncPoint()}"></h:commandButton>
+
+								<h:commandButton value="Stop"
+									action="resync?faces-redirect=true"
+									rendered="#{resyncController.isRunning()}"
+									actionListener="#{resyncController.cancel()}"></h:commandButton>
+							
+							</p>
+
+
+						</div>
+					</div>
+				</div>
+
+
+
+				<!-- Resync Log -->
+				<div class="row">
+
+
+					<div class="col-12">
+						<div class="monitor-portlet">
+							<h1>Resync-Log:</h1>
+							<p class="small">
+								<ui:repeat var="entry" value="#{clusterDataController.messages}">
+								#{entry}
+								<br />
+								</ui:repeat>
+							</p>
+						</div>
+					</div>
+
+				</div>
 
 			</div>
 		</h:form>
