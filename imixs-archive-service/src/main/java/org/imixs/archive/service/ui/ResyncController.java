@@ -44,7 +44,7 @@ public class ResyncController implements Serializable {
     ClusterService clusterService;
 
     @Inject
-    ResyncService syncService;
+    ResyncService resyncService;
 
     @Inject
     DataService dataService;
@@ -117,8 +117,8 @@ public class ResyncController implements Serializable {
             dataService.saveMetadata(metaData);
 
             // restart sync?
-            if (!syncService.isRunning()) {
-                syncService.start();
+            if (!resyncService.isRunning()) {
+                resyncService.start();
             }
 
         } catch (ArchiveException | ParseException e) {
@@ -126,5 +126,28 @@ public class ResyncController implements Serializable {
         }
 
     }
+    
+    /**
+     * Returns true if the sync service is actually running
+     * @return
+     */
+    public boolean isRunning() {
+        return resyncService.isRunning();
+    }
+
+    /**
+     * This method cancels a current running sny process
+     * 
+     * @throws ArchiveException
+     */
+    public void cancel() {
+        try {
+            resyncService.cancel();
+        } catch (ArchiveException e) {
+            e.printStackTrace();
+        }
+
+    }
+
 
 }

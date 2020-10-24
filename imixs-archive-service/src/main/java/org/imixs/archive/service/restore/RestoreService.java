@@ -84,384 +84,418 @@ import com.datastax.driver.core.Session;
 @Stateless
 public class RestoreService {
 
-    public final static String TIMER_ID_RESTORESERVICE = "IMIXS_ARCHIVE_RESTORE_TIMER";
-    public final static long TIMER_INTERVAL_DURATION = 60000;
+	public final static String TIMER_ID_RESTORESERVICE = "IMIXS_ARCHIVE_RESTORE_TIMER";
+	public final static long TIMER_INTERVAL_DURATION = 60000;
 
-    public final static String ITEM_RESTORE_FROM = "restore.from";
-    public final static String ITEM_RESTORE_TO = "restore.to";
-    public final static String ITEM_RESTORE_SYNCPOINT = "restore.point";
-    public final static String ITEM_RESTORE_SYNCCOUNT = "restore.count";
-    public final static String ITEM_RESTORE_SYNCERRORS = "restore.errors";
-    public final static String ITEM_RESTORE_SYNCSIZE = "restore.size";
-    public final static String ITEM_RESTORE_OPTIONS = "restore.options";
+	public final static String ITEM_RESTORE_FROM = "restore.from";
+	public final static String ITEM_RESTORE_TO = "restore.to";
+	public final static String ITEM_RESTORE_SYNCPOINT = "restore.point";
+	public final static String ITEM_RESTORE_SYNCCOUNT = "restore.count";
+	public final static String ITEM_RESTORE_SYNCERRORS = "restore.errors";
+	public final static String ITEM_RESTORE_SYNCSIZE = "restore.size";
+	public final static String ITEM_RESTORE_OPTIONS = "restore.options";
 
-    public final static String MESSAGE_TOPIC = "restore";
+	public final static String MESSAGE_TOPIC = "restore";
 
-    private static Logger logger = Logger.getLogger(RestoreService.class.getName());
+	private static Logger logger = Logger.getLogger(RestoreService.class.getName());
 
-    @Inject
-    DataService dataService;
+	@Inject
+	DataService dataService;
 
-    @Inject
-    ClusterService clusterService;
+	@Inject
+	ClusterService clusterService;
 
-    @Inject
-    MessageService messageService;
+	@Inject
+	MessageService messageService;
 
-    @Inject
-    RemoteAPIService remoteAPIService;
+	@Inject
+	RemoteAPIService remoteAPIService;
 
-    @Resource
-    javax.ejb.TimerService timerService;
+	@Resource
+	javax.ejb.TimerService timerService;
 
-    /**
-     * Starts a new restore process with a EJB TimerService
-     * <p>
-     * The Timer will be started imediatly with a intervall duration defined by the
-     * constante TIMER_INTERVAL_DURATION
-     * <p>
-     * The meta data for the restore process is stored in the metadata object.
-     * <p>
-     * The restore process selects snapshot data by date (SNAPSHOTS_BY_MODIFIED).
-     * The current date is stored in the meta data. The meta data is updated after
-     * each iteration.
-     * 
-     * @param datFrom - syncpoint from
-     * @param datTo   - syncpoint to
-     * @param options - optional list of item map.
-     * @throws ArchiveException
-     */
-    @SuppressWarnings("rawtypes")
-    public void start(long restoreFrom, long restoreTo, List<Map> options) throws ArchiveException {
-        Timer timer = null;
+	/**
+	 * Starts a new restore process with a EJB TimerService
+	 * <p>
+	 * The Timer will be started imediatly with a intervall duration defined by the
+	 * constante TIMER_INTERVAL_DURATION
+	 * <p>
+	 * The meta data for the restore process is stored in the metadata object.
+	 * <p>
+	 * The restore process selects snapshot data by date (SNAPSHOTS_BY_MODIFIED).
+	 * The current date is stored in the meta data. The meta data is updated after
+	 * each iteration.
+	 * 
+	 * @param datFrom - syncpoint from
+	 * @param datTo   - syncpoint to
+	 * @param options - optional list of item map.
+	 * @throws ArchiveException
+	 */
+	@SuppressWarnings("rawtypes")
+	public void start(long restoreFrom, long restoreTo, List<Map> options) throws ArchiveException {
+		Timer timer = null;
 
-        // try to cancel an existing timer for this workflowinstance
-        timer = findTimer();
-        if (timer != null) {
-            try {
-                timer.cancel();
-                timer = null;
-            } catch (Exception e) {
-                messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
-                throw new ArchiveException(ResyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
-                        " failed to cancle existing timer!");
-            }
-        }
+		// try to cancel an existing timer for this workflowinstance
+		timer = findTimer();
+		if (timer != null) {
+			try {
+				timer.cancel();
+				timer = null;
+			} catch (Exception e) {
+				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
+				throw new ArchiveException(ResyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
+						" failed to cancle existing timer!");
+			}
+		}
 
-        logger.info("...starting scheduler restore-service...");
+		logger.info("...starting scheduler restore-service...");
 
-        // store information into metdata object
-        Session session = null;
-        Cluster cluster = null;
-        try {
-            logger.info("...... restore from=" + dataService.getSyncPointISO(restoreFrom));
-            logger.info("...... restore   to=" + dataService.getSyncPointISO(restoreTo));
-            // ...start sync
-            ItemCollection metaData = dataService.loadMetadata();
-            metaData.setItemValue(ITEM_RESTORE_FROM, restoreFrom);
-            metaData.setItemValue(ITEM_RESTORE_TO, restoreTo);
-            metaData.setItemValue(ITEM_RESTORE_SYNCPOINT, restoreFrom);
-            metaData.setItemValue(ITEM_RESTORE_SYNCCOUNT, 0);
-            metaData.setItemValue(ITEM_RESTORE_SYNCSIZE, 0);
-            metaData.setItemValue(ITEM_RESTORE_OPTIONS, options);
+		// store information into metdata object
+		Session session = null;
+		Cluster cluster = null;
+		try {
+			logger.info("...... restore from=" + dataService.getSyncPointISO(restoreFrom));
+			logger.info("...... restore   to=" + dataService.getSyncPointISO(restoreTo));
+			// ...start sync
+			ItemCollection metaData = dataService.loadMetadata();
+			metaData.setItemValue(ITEM_RESTORE_FROM, restoreFrom);
+			metaData.setItemValue(ITEM_RESTORE_TO, restoreTo);
+			metaData.setItemValue(ITEM_RESTORE_SYNCPOINT, restoreFrom);
+			metaData.setItemValue(ITEM_RESTORE_SYNCCOUNT, 0);
+			metaData.setItemValue(ITEM_RESTORE_SYNCSIZE, 0);
+			metaData.setItemValue(ITEM_RESTORE_OPTIONS, options);
 
-            // update metadata
-            dataService.saveMetadata(metaData);
-            timer = timerService.createTimer(new Date(), TIMER_INTERVAL_DURATION, TIMER_ID_RESTORESERVICE);
+			// update metadata
+			dataService.saveMetadata(metaData);
+			timer = timerService.createTimer(new Date(), TIMER_INTERVAL_DURATION, TIMER_ID_RESTORESERVICE);
 
-            // start and set statusmessage
-            if (timer != null) {
-                messageService.logMessage(MESSAGE_TOPIC, "Timer started.");
-            }
-        } catch (Exception e) {
-            logger.warning("...Failed to update metadata: " + e.getMessage());
+			// start and set statusmessage
+			if (timer != null) {
+				messageService.logMessage(MESSAGE_TOPIC, "Timer started.");
+			}
+		} catch (Exception e) {
+			logger.warning("...Failed to update metadata: " + e.getMessage());
 
-        } finally {
-            // close session and cluster object
-            if (session != null) {
-                session.close();
-            }
-            if (cluster != null) {
-                cluster.close();
-            }
-        }
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
+		}
 
-    }
+	}
 
-    /**
-     * This method processes the timeout event. The method reads all snapshotIDs per
-     * day between the restore time range restore.from - restore.to.
-     * <p>
-     * If no snapshotIDs were found for a day, the syncpoint will be adjusted for
-     * one day.
-     * <p>
-     * If snapshotIDs for a day exists, than the method tests if a snapshot is the
-     * latest one for the requested restore timerange. If so, than the snapshot will
-     * be resotored.
-     * 
-     * @param timer
-     * @throws Exception
-     * @throws QueryException
-     */
-    @Timeout
-    void onTimeout(javax.ejb.Timer timer) throws Exception {
-        Session session = null;
-        Cluster cluster = null;
-        ItemCollection metadata = null;
-        // Calendar calendarSyncPoint;
-        long syncpoint;
-        int restoreCount = 0;
-        int restoreErrors = 0;
-        long restoreSize = 0;
-        long startTime = System.currentTimeMillis();
-        try {
-            // read the metdata
-            metadata = dataService.loadMetadata();
-            // compute current restore day....
-            syncpoint = metadata.getItemValueLong(ITEM_RESTORE_SYNCPOINT);
-            List<ItemCollection> options = getOptions(metadata);
-            LocalDateTime localDateSyncPoint = new Date(syncpoint).toInstant().atZone(ZoneId.systemDefault())
-                    .toLocalDateTime();
-            // compute to date....
-            long restoreFrom = metadata.getItemValueLong(ITEM_RESTORE_FROM);
-            long restoreTo = metadata.getItemValueLong(ITEM_RESTORE_TO);
-            LocalDateTime localDateRestoreTo = new Date(restoreTo).toInstant().atZone(ZoneId.systemDefault())
-                    .toLocalDateTime();
-            logger.info("......restore:    from " + dataService.getSyncPointISO(restoreFrom) + " to "
-                    + dataService.getSyncPointISO(restoreTo));
-            logger.info("......restore.point:  " + dataService.getSyncPointISO(syncpoint));
-            // we search for snapshotIDs until we found one or the syncdate is after the
-            // restore.to point.
-            while (localDateRestoreTo.isAfter(localDateSyncPoint)) {
+	/**
+	 * Stops the current restore process
+	 * 
+	 * @throws ArchiveException
+	 */
+	public void cancel() throws ArchiveException {
+		messageService.logMessage(MESSAGE_TOPIC, "... restore process canceled!");
 
-                List<String> snapshotIDs = dataService.loadSnapshotsByDate(localDateSyncPoint.toLocalDate());
-                // verify all snapshots of this day....
-                if (!snapshotIDs.isEmpty()) {
-                    logger.info("......restore snapshot date " + localDateSyncPoint);
-                    // print out the snapshotIDs we found
-                    for (String snapshotID : snapshotIDs) {
+		stop(findTimer());
+	}
 
-                        String latestSnapshot = findLatestSnapshotID(snapshotID, restoreFrom, restoreTo);
+	/**
+	 * Cancels the running timer instance.
+	 * 
+	 * @throws ArchiveException
+	 */
+	private void stop(Timer timer) throws ArchiveException {
+		if (timer != null) {
+			try {
+				timer.cancel();
+			} catch (Exception e) {
+				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop timer - " + e.getMessage());
+			}
+			// update status message
+			messageService.logMessage(MESSAGE_TOPIC, "Timer stopped. ");
+		}
+	}
 
-                        // did we found a snapshot to restore?
-                        ItemCollection snapshot;
-                        if (latestSnapshot != null) {
-                            // yes!
-                            // lets see if this snapshot is already restored or synced?
-                            String remoteSnapshotID = remoteAPIService
-                                    .readSnapshotIDByUniqueID(dataService.getUniqueID(latestSnapshot));
-                            if (latestSnapshot.equals(remoteSnapshotID)) {
-                                logger.finest(
-                                        "......no need to restore - snapshot:" + latestSnapshot + " is up to date!");
-                            } else {
-                                // test the filter options
-                                if (matchFilterOptions(latestSnapshot, options)) {
-                                    long _tmpSize = -1;
-                                    try {
-                                        logger.finest("......restoring: " + latestSnapshot);
-                                        snapshot = dataService.loadSnapshot(latestSnapshot);
-                                        _tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
-                                        logger.finest("......size=: " + _tmpSize);
+	/**
+	 * This method processes the timeout event. The method reads all snapshotIDs per
+	 * day between the restore time range restore.from - restore.to.
+	 * <p>
+	 * If no snapshotIDs were found for a day, the syncpoint will be adjusted for
+	 * one day.
+	 * <p>
+	 * If snapshotIDs for a day exists, than the method tests if a snapshot is the
+	 * latest one for the requested restore timerange. If so, than the snapshot will
+	 * be resotored.
+	 * 
+	 * @param timer
+	 * @throws Exception
+	 * @throws QueryException
+	 */
+	@Timeout
+	void onTimeout(javax.ejb.Timer timer) throws Exception {
+		Session session = null;
+		Cluster cluster = null;
+		ItemCollection metadata = null;
+		// Calendar calendarSyncPoint;
+		long syncpoint;
+		int restoreCount = 0;
+		int restoreErrors = 0;
+		long restoreSize = 0;
+		long startTime = System.currentTimeMillis();
 
-                                        remoteAPIService.restoreSnapshot(snapshot);
+		try {
+			// read the metdata
+			metadata = dataService.loadMetadata();
+			// read last restor stat....
+			restoreCount = metadata.getItemValueInteger(ITEM_RESTORE_SYNCCOUNT);
+			restoreSize = metadata.getItemValueInteger(ITEM_RESTORE_SYNCSIZE);
+			restoreErrors = metadata.getItemValueInteger(ITEM_RESTORE_SYNCERRORS);
 
-                                        restoreSize = restoreSize + _tmpSize;
-                                        restoreCount++;
-                                        snapshot = null;
-                                    } catch (Exception e) {
-                                        logger.severe("...Failed to restore '" + latestSnapshot + "' ("
-                                                + messageService.userFriendlyBytes(_tmpSize) + ") - " + e.getMessage());
-                                        restoreErrors++;
-                                    }
-                                }
-                            }
-                        } else {
-                            logger.warning(
-                                    ".... unexpected data situation:  we found no latest snapthost matching our restore time range!");
-                        }
-                    }
-                }
+			// compute current restore day....
+			syncpoint = metadata.getItemValueLong(ITEM_RESTORE_SYNCPOINT);
+			List<ItemCollection> options = getOptions(metadata);
+			LocalDateTime localDateSyncPoint = new Date(syncpoint).toInstant().atZone(ZoneId.systemDefault())
+					.toLocalDateTime();
+			// compute to date....
+			long restoreFrom = metadata.getItemValueLong(ITEM_RESTORE_FROM);
+			long restoreTo = metadata.getItemValueLong(ITEM_RESTORE_TO);
+			LocalDateTime localDateRestoreTo = new Date(restoreTo).toInstant().atZone(ZoneId.systemDefault())
+					.toLocalDateTime();
+			logger.info("......restore:    from " + dataService.getSyncPointISO(restoreFrom) + " to "
+					+ dataService.getSyncPointISO(restoreTo));
+			logger.info("......restore.point:  " + dataService.getSyncPointISO(syncpoint));
+			// we search for snapshotIDs until we found one or the syncdate is after the
+			// restore.to point.
+			while (localDateRestoreTo.isAfter(localDateSyncPoint)) {
 
-                // adjust snyncdate for one day....
-                localDateSyncPoint = localDateSyncPoint.plusDays(1);
-                // update metadata...
-                Date date = Date.from(localDateSyncPoint.atZone(ZoneId.systemDefault()).toInstant());
-                metadata.setItemValue(ITEM_RESTORE_SYNCPOINT, date.getTime());
-                metadata.setItemValue(ITEM_RESTORE_SYNCCOUNT, restoreCount);
-                metadata.setItemValue(ITEM_RESTORE_SYNCSIZE, restoreSize);
-                metadata.setItemValue(ITEM_RESTORE_SYNCERRORS, restoreErrors);
+				List<String> snapshotIDs = dataService.loadSnapshotsByDate(localDateSyncPoint.toLocalDate());
+				// verify all snapshots of this day....
+				if (!snapshotIDs.isEmpty()) {
+					logger.info("......restore snapshot date " + localDateSyncPoint);
+					// print out the snapshotIDs we found
+					for (String snapshotID : snapshotIDs) {
 
-                dataService.saveMetadata(metadata);
-            }
+						String latestSnapshot = findLatestSnapshotID(snapshotID, restoreFrom, restoreTo);
 
-            logger.info("...restore finished in: " + (System.currentTimeMillis() - startTime) + "ms");
-            logger.info(".......final syncpoint: " + localDateSyncPoint);
-            logger.info(".......total count:" + restoreCount);
-            logger.info(".......total size:" + messageService.userFriendlyBytes(restoreSize));
-            logger.info(".......total errors:" + restoreErrors);
+						// did we found a snapshot to restore?
+						ItemCollection snapshot;
+						if (latestSnapshot != null) {
+							// yes!
+							// lets see if this snapshot is already restored or synced?
+							String remoteSnapshotID = remoteAPIService
+									.readSnapshotIDByUniqueID(dataService.getUniqueID(latestSnapshot));
+							if (latestSnapshot.equals(remoteSnapshotID)) {
+								logger.finest(
+										"......no need to restore - snapshot:" + latestSnapshot + " is up to date!");
+							} else {
+								// test the filter options
+								if (matchFilterOptions(latestSnapshot, options)) {
+									long _tmpSize = -1;
+									try {
+										logger.finest("......restoring: " + latestSnapshot);
+										snapshot = dataService.loadSnapshot(latestSnapshot);
+										_tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
+										logger.finest("......size=: " + _tmpSize);
 
-            timer.cancel();
+										remoteAPIService.restoreSnapshot(snapshot);
 
-        } catch (Exception e) {
-            logger.severe("Failed to restore data: " + e.getMessage());
-            // cancle timer
-            timer.cancel();
-        } finally {
-            // close session and cluster object
-            if (session != null) {
-                session.close();
-            }
-            if (cluster != null) {
-                cluster.close();
-            }
-        }
+										restoreSize = restoreSize + _tmpSize;
+										restoreCount++;
+										snapshot = null;
+									} catch (Exception e) {
+										logger.severe("...Failed to restore '" + latestSnapshot + "' ("
+												+ messageService.userFriendlyBytes(_tmpSize) + ") - " + e.getMessage());
+										restoreErrors++;
+									}
+								}
+							}
+						} else {
+							logger.warning(
+									".... unexpected data situation:  we found no latest snapthost matching our restore time range!");
+						}
+					}
+				}
 
-    }
+				// adjust snyncdate for one day....
+				localDateSyncPoint = localDateSyncPoint.plusDays(1);
+				// update metadata...
+				Date date = Date.from(localDateSyncPoint.atZone(ZoneId.systemDefault()).toInstant());
+				metadata.setItemValue(ITEM_RESTORE_SYNCPOINT, date.getTime());
+				metadata.setItemValue(ITEM_RESTORE_SYNCCOUNT, restoreCount);
+				metadata.setItemValue(ITEM_RESTORE_SYNCSIZE, restoreSize);
+				metadata.setItemValue(ITEM_RESTORE_SYNCERRORS, restoreErrors);
 
-    /**
-     * The method finds for a given SnapshotID the corresponding latest snapshotID
-     * within a time range. Therefor the method loads the complete list of
-     * snapshotIDs and compares each id with the given time range. The latest one
-     * from the list will be returned.
-     * 
-     * @param snapshotID  - a snapshotID to be analyzed
-     * @param restoreFrom - time range from
-     * @param restoreTo   - time range to
-     * @param session     - cassandra session
-     * @return latest snapshot ID within the time range or null if no snapshot
-     *         matches the timerange.
-     */
-    String findLatestSnapshotID(String snapshotID, long restoreFrom, long restoreTo) {
-        String latestSnapshot = null;
-        String uniqueID = dataService.getUniqueID(snapshotID);
+				dataService.saveMetadata(metadata);
+			}
 
-        String sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
+			logger.info("...restore finished in: " + (System.currentTimeMillis() - startTime) + "ms");
+			logger.info(".......final syncpoint: " + localDateSyncPoint);
+			logger.info(".......total count:" + restoreCount);
+			logger.info(".......total size:" + messageService.userFriendlyBytes(restoreSize));
+			logger.info(".......total errors:" + restoreErrors);
 
-        // set uniqueid
-        sql = sql.replace("'?'", "'" + uniqueID + "'");
+			timer.cancel();
 
-        // now add the date range...
-        sql = sql + " AND snapshot>='" + uniqueID + "-" + restoreFrom + "'";
-        sql = sql + " AND snapshot<='" + uniqueID + "-" + restoreTo + "'";
+		} catch (Exception e) {
+			logger.severe("Failed to restore data: " + e.getMessage());
+			// cancle timer
+			timer.cancel();
+		} finally {
+			// close session and cluster object
+			if (session != null) {
+				session.close();
+			}
+			if (cluster != null) {
+				cluster.close();
+			}
+		}
 
-        // set reverse order
-        sql = sql + " ORDER BY snapshot DESC";
+	}
 
-        // set LIMIT = 1
-        sql = sql + " LIMIT 1";
+	/**
+	 * The method finds for a given SnapshotID the corresponding latest snapshotID
+	 * within a time range. Therefor the method loads the complete list of
+	 * snapshotIDs and compares each id with the given time range. The latest one
+	 * from the list will be returned.
+	 * 
+	 * @param snapshotID  - a snapshotID to be analyzed
+	 * @param restoreFrom - time range from
+	 * @param restoreTo   - time range to
+	 * @param session     - cassandra session
+	 * @return latest snapshot ID within the time range or null if no snapshot
+	 *         matches the timerange.
+	 */
+	String findLatestSnapshotID(String snapshotID, long restoreFrom, long restoreTo) {
+		String latestSnapshot = null;
+		String uniqueID = dataService.getUniqueID(snapshotID);
 
-        logger.finest("......query latest snapshot by date: " + sql);
-        ResultSet rs = clusterService.getSession().execute(sql);
+		String sql = DataService.STATEMENT_SELECT_SNAPSHOTS_BY_UNIQUEID;
 
-        // take the first one...
+		// set uniqueid
+		sql = sql.replace("'?'", "'" + uniqueID + "'");
 
-        Iterator<Row> resultIter = rs.iterator();
-        if (resultIter.hasNext()) {
-            Row row = resultIter.next();
-            latestSnapshot = row.getString(1);
-        }
+		// now add the date range...
+		sql = sql + " AND snapshot>='" + uniqueID + "-" + restoreFrom + "'";
+		sql = sql + " AND snapshot<='" + uniqueID + "-" + restoreTo + "'";
 
-        return latestSnapshot;
-    }
+		// set reverse order
+		sql = sql + " ORDER BY snapshot DESC";
 
-    /**
-     * This method tests if a set of given filter optiosn matches the item data of a
-     * snapshot. Therfore in case that options are defined the method loads a
-     * temporary snapshot data with out the documents and compares all filter
-     * options. If no options are defined, or all options match the temporary
-     * snapshot data , the method returns true.
-     * 
-     * @param snapshotID - a snapshot id
-     * @param options    - a list of options
-     * @param session    - cassandra session
-     * @return true if no options are defined, or all options match the snapshot
-     *         data
-     * @throws ArchiveException
-     */
-    boolean matchFilterOptions(String snapshotID, List<ItemCollection> options) throws ArchiveException {
-        ItemCollection _tmp_snapshot_data = null;
+		// set LIMIT = 1
+		sql = sql + " LIMIT 1";
 
-        // do we have options to filter the snapshot?
-        if (options == null || options.size() == 0) {
-            // no options - match = true!
-            return true;
-        }
+		logger.finest("......query latest snapshot by date: " + sql);
+		ResultSet rs = clusterService.getSession().execute(sql);
 
-        // load snapshot data without document data and verify the options
-        _tmp_snapshot_data = dataService.loadSnapshot(snapshotID, false);
-        for (ItemCollection option : options) {
-            String itemName = option.getItemValueString("name");
-            Pattern regexPattern = Pattern.compile(option.getItemValueString("filter").trim());
+		// take the first one...
 
-            // did the filter match al values?
-            List<String> valueList = _tmp_snapshot_data.getItemValueList(itemName, String.class);
-            for (String value : valueList) {
-                if (!regexPattern.matcher(value).find()) {
-                    logger.fine(" snapshot value '" + value + "' did not match filter option '" + regexPattern + "'");
-                    _tmp_snapshot_data = null;
-                    return false;
-                }
-            }
-        }
-        // all filter did match!
-        _tmp_snapshot_data = null;
-        return true;
-    }
+		Iterator<Row> resultIter = rs.iterator();
+		if (resultIter.hasNext()) {
+			Row row = resultIter.next();
+			latestSnapshot = row.getString(1);
+		}
 
-    /**
-     * This method returns a timer for a corresponding id if such a timer object
-     * exists.
-     * 
-     * @param id
-     * @return Timer
-     * @throws Exception
-     */
-    public Timer findTimer() {
-        for (Object obj : timerService.getTimers()) {
-            Timer timer = (javax.ejb.Timer) obj;
-            if (TIMER_ID_RESTORESERVICE.equals(timer.getInfo())) {
-                return timer;
-            }
-        }
-        return null;
-    }
+		return latestSnapshot;
+	}
 
-    /**
-     * returns the optional embedded Map List of the options, stored in the metadata
-     * object.
-     */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public List<ItemCollection> getOptions(ItemCollection metaData) {
-        // convert current list of options into a list of ItemCollection elements
-        ArrayList<ItemCollection> result = new ArrayList<ItemCollection>();
-        List<Object> mapOrderItems = metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS);
-        for (Object mapOderItem : mapOrderItems) {
-            if (mapOderItem instanceof Map) {
-                ItemCollection itemCol = new ItemCollection((Map) mapOderItem);
-                result.add(itemCol);
-            }
-        }
-        return result;
-    }
+	/**
+	 * This method tests if a set of given filter optiosn matches the item data of a
+	 * snapshot. Therfore in case that options are defined the method loads a
+	 * temporary snapshot data with out the documents and compares all filter
+	 * options. If no options are defined, or all options match the temporary
+	 * snapshot data , the method returns true.
+	 * 
+	 * @param snapshotID - a snapshot id
+	 * @param options    - a list of options
+	 * @param session    - cassandra session
+	 * @return true if no options are defined, or all options match the snapshot
+	 *         data
+	 * @throws ArchiveException
+	 */
+	boolean matchFilterOptions(String snapshotID, List<ItemCollection> options) throws ArchiveException {
+		ItemCollection _tmp_snapshot_data = null;
 
-    /**
-     * Convert a List of ItemCollections back into a List of Map elements
-     * 
-     * @param options  - list of options
-     * @param metaData - metaData object
-     */
-    @SuppressWarnings({ "rawtypes" })
-    public void setOptions(List<ItemCollection> options, ItemCollection metaData) {
-        List<Map> mapOrderItems = new ArrayList<Map>();
-        // convert the option ItemCollection elements into a List of Map
-        if (options != null) {
-            logger.fine("Convert option items into Map...");
-            // iterate over all items..
-            for (ItemCollection orderItem : options) {
-                mapOrderItems.add(orderItem.getAllItems());
-            }
-            metaData.replaceItemValue(RestoreService.ITEM_RESTORE_OPTIONS, mapOrderItems);
-        }
-    }
+		// do we have options to filter the snapshot?
+		if (options == null || options.size() == 0) {
+			// no options - match = true!
+			return true;
+		}
+
+		// load snapshot data without document data and verify the options
+		_tmp_snapshot_data = dataService.loadSnapshot(snapshotID, false);
+		for (ItemCollection option : options) {
+			String itemName = option.getItemValueString("name");
+			Pattern regexPattern = Pattern.compile(option.getItemValueString("filter").trim());
+
+			// did the filter match al values?
+			List<String> valueList = _tmp_snapshot_data.getItemValueList(itemName, String.class);
+			for (String value : valueList) {
+				if (!regexPattern.matcher(value).find()) {
+					logger.fine(" snapshot value '" + value + "' did not match filter option '" + regexPattern + "'");
+					_tmp_snapshot_data = null;
+					return false;
+				}
+			}
+		}
+		// all filter did match!
+		_tmp_snapshot_data = null;
+		return true;
+	}
+
+	/**
+	 * This method returns a timer for a corresponding id if such a timer object
+	 * exists.
+	 * 
+	 * @param id
+	 * @return Timer
+	 * @throws Exception
+	 */
+	public Timer findTimer() {
+		for (Object obj : timerService.getTimers()) {
+			Timer timer = (javax.ejb.Timer) obj;
+			if (TIMER_ID_RESTORESERVICE.equals(timer.getInfo())) {
+				return timer;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * returns the optional embedded Map List of the options, stored in the metadata
+	 * object.
+	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<ItemCollection> getOptions(ItemCollection metaData) {
+		// convert current list of options into a list of ItemCollection elements
+		ArrayList<ItemCollection> result = new ArrayList<ItemCollection>();
+		List<Object> mapOrderItems = metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS);
+		for (Object mapOderItem : mapOrderItems) {
+			if (mapOderItem instanceof Map) {
+				ItemCollection itemCol = new ItemCollection((Map) mapOderItem);
+				result.add(itemCol);
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Convert a List of ItemCollections back into a List of Map elements
+	 * 
+	 * @param options  - list of options
+	 * @param metaData - metaData object
+	 */
+	@SuppressWarnings({ "rawtypes" })
+	public void setOptions(List<ItemCollection> options, ItemCollection metaData) {
+		List<Map> mapOrderItems = new ArrayList<Map>();
+		// convert the option ItemCollection elements into a List of Map
+		if (options != null) {
+			logger.fine("Convert option items into Map...");
+			// iterate over all items..
+			for (ItemCollection orderItem : options) {
+				mapOrderItems.add(orderItem.getAllItems());
+			}
+			metaData.replaceItemValue(RestoreService.ITEM_RESTORE_OPTIONS, mapOrderItems);
+		}
+	}
 
 }

@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
 import javax.ejb.Timer;
 import javax.enterprise.context.RequestScoped;
+import javax.enterprise.context.SessionScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
 
@@ -33,7 +34,7 @@ import org.imixs.workflow.ItemCollection;
  *
  */
 @Named
-@RequestScoped
+@SessionScoped
 public class RestoreController implements Serializable {
 
     public static final String ISO_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
@@ -70,6 +71,14 @@ public class RestoreController implements Serializable {
      */
     @PostConstruct
     void init() {
+        reset();
+    }
+    
+    /**
+     * This method initializes the default sync date
+     * 
+     */
+    public void reset() {
         try {
             // load metadata
             metaData = dataService.loadMetadata();
@@ -82,7 +91,6 @@ public class RestoreController implements Serializable {
     }
 
     public String getRestoreFrom() {
-
         SimpleDateFormat dt = new SimpleDateFormat(ISO_DATETIME_FORMAT);
         return dt.format(restoreDateFrom);
 
@@ -198,6 +206,21 @@ public class RestoreController implements Serializable {
 
     }
 
+    /**
+     * This method cancels a current running sny process
+     * 
+     * @throws ArchiveException
+     */
+    public void stopRestore() {
+        try {
+        	restoreService.cancel();
+        } catch (ArchiveException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    
     /**
      * Returns true if a restore is running.
      * 

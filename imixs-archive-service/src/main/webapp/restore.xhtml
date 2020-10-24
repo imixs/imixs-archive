@@ -7,6 +7,14 @@
 	xmlns:fn="http://xmlns.jcp.org/jsp/jstl/functions"
 	template="/layout/template.xhtml">
 
+
+	<h:head>
+		<!--  reload the meta data object -->
+		<f:metadata>
+			<f:viewAction action="#{restoreController.reset()}" />
+		</f:metadata>
+	</h:head>
+	
 	<ui:define name="content">
 	
 		<ui:param name="isrunning" value="#{restoreController.isRunning()}"></ui:param>
@@ -81,7 +89,7 @@
 								<span class="typcn typcn-arrow-repeat-outline"
 									style="color: #5c9e5c;"></span>
 								#{restoreController.restoreCount} <span style="font-size: 0.3em">total
-									syncs</span>
+									restored</span>
 							</p>
 
 							<p class="lead" style="">
@@ -89,20 +97,25 @@
 								#{restoreController.restoreErrors} <span style="font-size: 0.3em">Errors</span>
 							</p>
 
-							<p class="small">Last Restore Syncpoint:
+							<p class="small">Last Restore Sync-Point:
 								#{restoreController.restoreSyncPoint}</p>
 						</div>
 					</div>
 				</div>
 
 				<p style="margin-left: 10px;">
-					<h:commandButton value="start" action="restore?faces-redirect=true"
+				
+					<h:commandButton value="Refresh"
+						action="restore?faces-redirect=true"
+						rendered="#{isrunning}"></h:commandButton>
+							
+					<h:commandButton value="Start" action="restore?faces-redirect=true"
 						rendered="#{!isrunning}"
 						actionListener="#{restoreController.startRestore()}"></h:commandButton>
 
-					<h:commandButton value="stop"  action="restore?faces-redirect=true"
+					<h:commandButton value="Stop"  action="restore?faces-redirect=true"
 						rendered="#{isrunning}"
-						actionListener="#{restoreController.startRestore()}"></h:commandButton>
+						actionListener="#{restoreController.stopRestore()}"></h:commandButton>
 				</p>
 			</div>
 
