@@ -19,8 +19,6 @@ import java.util.logging.Logger;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
@@ -34,9 +32,8 @@ import org.imixs.workflow.exceptions.PluginException;
  * <p>
  * For PDF files with textual content the PDFBox api is used. In other cases,
  * the method sends the content via a Rest API to the tika server for OCR
- * processing.
- * The environment variable OCR_PDF_MODE defines how PDF files will be scanned. Possible 
- * values are  TEXT_ONLY | OCR_ONLY | TEXT_AND_OCR (default)
+ * processing. The environment variable OCR_PDF_MODE defines how PDF files will
+ * be scanned. Possible values are TEXT_ONLY | OCR_ONLY | TEXT_AND_OCR (default)
  * <p>
  * For OCR processing the service expects a valid Rest API end-point defined by
  * the Environment Parameter 'TIKA_SERVICE_ENDPONT'. If the TIKA_SERVICE_ENDPONT
@@ -58,13 +55,13 @@ public class OCRService {
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
     public static final String ENV_OCR_SERVICE_ENDPOINT = "ocr.service.endpoint";
     public static final String ENV_OCR_SERVICE_MODE = "ocr.service.mode";
-    public static final String ENV_OCR_PDF_MODE = "ocr.scan.mode"; // TEXT_ONLY, OCR_ONLY, TEXT_AND_OCR (default)
-    
-    public static final String PDF_MODE_TEXT_ONLY="TEXT_ONLY";
-    public static final String PDF_MODE_OCR_ONLY="OCR_ONLY";
-    public static final String PDF_MODE_TEXT_AND_OCR="TEXT_AND_OCR";
-    
-    
+    public static final String ENV_OCR_STRATEGY = "ocr.strategy"; // NO_OCR, OCR_ONLY, OCR_AND_TEXT_EXTRACTION (default)
+
+    public static final String OCR_STRATEGY_NO_OCR = "NO_OCR";
+    public static final String OCR_STRATEGY_OCR_AND_TEXT_EXTRACTION = "OCR_AND_TEXT_EXTRACTION";
+    public static final String OCR_STRATEGY_OCR_ONLY = "OCR_ONLY";
+    public static final String OCR_STRATEGY_AUTO = "AUTO"; // default
+
     private static Logger logger = Logger.getLogger(OCRService.class.getName());
 
     @Inject
@@ -72,8 +69,8 @@ public class OCRService {
     Optional<String> serviceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ENV_OCR_PDF_MODE, defaultValue = PDF_MODE_TEXT_AND_OCR)
-    String pdfMode;
+    @ConfigProperty(name = ENV_OCR_STRATEGY, defaultValue = OCR_STRATEGY_AUTO)
+    String ocrStategy;
 
     /**
      * Extracts the textual information from document attachments.
@@ -89,7 +86,7 @@ public class OCRService {
      * @throws PluginException
      */
     public void extractText(ItemCollection workitem, ItemCollection snapshot) throws PluginException {
-        extractText(workitem, snapshot, pdfMode, null);
+        extractText(workitem, snapshot, ocrStategy, null);
     }
 
     /**
@@ -110,21 +107,42 @@ public class OCRService {
      * @param options  - optional tika header params
      * @throws PluginException
      */
-    public void extractText(ItemCollection workitem, ItemCollection snapshot, String pdf_mode, List<String> options)
+    public void extractText(ItemCollection workitem, ItemCollection snapshot, String _ocrStategy, List<String> options)
             throws PluginException {
         boolean debug = logger.isLoggable(Level.FINE);
 
+        if (options == null) {
+            options = new ArrayList<String>();
+        }
+
         // overwrite ocrmode?
-        if (pdf_mode != null) {
-            this.pdfMode = pdf_mode;
+        if (_ocrStategy != null) {
+            this.ocrStategy = _ocrStategy;
         }
 
         // validate OCR MODE....
-        if ("TEXT_ONLY, OCR_ONLY, TEXT_AND_OCR".indexOf(pdfMode) == -1) {
+        if ("AUTO, NO_OCR, OCR_ONLY, OCR_AND_TEXT_EXTRACTION".indexOf(ocrStategy) == -1) {
             throw new PluginException(OCRService.class.getSimpleName(), PLUGIN_ERROR,
-                    "Invalid TIKA_OCR_MODE - expected one of the following options: TEXT_ONLY | OCR_ONLY | TEXT_AND_OCR");
+                    "Invalid TIKA_OCR_MODE - expected one of the following options: NO_OCR | OCR_ONLY | OCR_AND_TEXT_EXTRACTION");
         }
 
+
+        // if the options did not already include the X-Tika-PDFOcrStrategy than we add
+        // it now...
+        boolean hasPDFOcrStrategy = options.stream()
+                .anyMatch(s -> s.toLowerCase().startsWith("X-Tika-PDFOcrStrategy=".toLowerCase()));
+        if (!hasPDFOcrStrategy) {
+            // we do need to set a OcrStrategy from the environment...
+            options.add("X-Tika-PDFOcrStrategy=" + ocrStategy);
+        }
+
+        // print tika options...
+        if (debug) {
+            for (String opt : options) {
+                logger.info("......  Tika Option = " + opt);
+            }
+        }
+        
         long l = System.currentTimeMillis();
         // List<ItemCollection> currentDmsList = DMSHandler.getDmsList(workitem);
         List<FileData> files = workitem.getFileData();
@@ -136,50 +154,22 @@ public class OCRService {
                 // yes - fetch the origin fileData object....
                 FileData originFileData = fetchOriginFileData(fileData, snapshot);
                 if (originFileData != null) {
-                    String ocrContent = null;
+                    String textContent = null;
                     // extract the text content...
                     try {
                         if (debug) {
                             logger.fine("...text extraction '" + originFileData.getName() + "'...");
                         }
-                        // test for simple text extraction via PDFBox
-                        if (isPDF(originFileData)) {
-                            
-                            if (PDF_MODE_OCR_ONLY.equals(pdfMode)) {
-                                // OCR Only
-                                if (debug) {
-                                    logger.fine("...force orc scan for pdfs...");
-                                }
-                                ocrContent = doORCProcessing(originFileData, options);
-                            } else {
-                                // try PDFBox....
-                                ocrContent = doPDFTextExtraction(originFileData);
-                                // if we have not a meaningful content we discard the result and try the tika
-                                // api...
-                                if (ocrContent != null && ocrContent.length() < 16) {
-                                    ocrContent = null;
-                                }
+                        textContent = doORCProcessing(originFileData, options);
 
-                                if (ocrContent == null && (PDF_MODE_TEXT_AND_OCR.equals(pdfMode))) {
-                                    // lets try it with OCR...
-                                    ocrContent = doORCProcessing(originFileData, options);
-                                }
-                            }
-                        } else {
-                            // for all other files than PDF we do a ocr scann if not PDF_ONLY mode
-                            if (!PDF_MODE_TEXT_ONLY.equals(pdfMode)) {
-                                ocrContent = doORCProcessing(originFileData, options);
-                            }
-                        }
-
-                        if (ocrContent == null) {
-                            logger.warning("Unable to extract ocr-content for '" + fileData.getName() + "'");
-                            ocrContent = "";
+                        if (textContent == null) {
+                            logger.warning("Unable to extract text-content for '" + fileData.getName() + "'");
+                            textContent = "";
                         }
 
                         // store the ocrContent....
                         List<Object> list = new ArrayList<Object>();
-                        list.add(ocrContent);
+                        list.add(textContent);
                         fileData.setAttribute(FILE_ATTRIBUTE_TEXT, list);
 
                     } catch (IOException e) {
@@ -193,66 +183,6 @@ public class OCRService {
         if (debug) {
             logger.fine("...extracted textual information in " + (System.currentTimeMillis() - l) + "ms");
         }
-    }
-
-    /**
-     * This method returns true if a given FileData object has already a ocr content
-     * object stored. This can be verified by the existence of the 'text' attribute.
-     * 
-     * @param fileData - fileData object to be verified
-     * @return
-     */
-    @SuppressWarnings("unchecked")
-    private boolean hasOCRContent(FileData fileData) {
-        if (fileData != null) {
-            List<String> ocrContentList = (List<String>) fileData.getAttribute(FILE_ATTRIBUTE_TEXT);
-            if (ocrContentList != null && ocrContentList.size() > 0 && ocrContentList.get(0) != null) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * This method fetches the origin FileData object. In case the content of the
-     * FileData object was already stored in a snapshot, the method loads the origin
-     * FileData object form the snapshot workitem.
-     * <p>
-     * The method returns null if no content can be found. In this case warning is
-     * logged.
-     * 
-     * @param fileData - fileData object to be analyzed
-     * @param workitem - origin workitme holding a reference to a optional snapshot
-     *                 workitem
-     * @return origin fileData object
-     */
-    private FileData fetchOriginFileData(FileData fileData, ItemCollection snapshot) {
-        // test if the given fileData object has a content....
-        byte[] fileContent = fileData.getContent();
-        if (fileContent != null && fileContent.length > 1) {
-            // the fileData object contains the origin content.
-            // no snapshot need to be loaded here!
-            return fileData;
-        }
-
-        // load the snapshot FileData...
-        // FileData snapshotFileData =
-        // snapshotService.getWorkItemFile(workitem.getUniqueID(), fileData.getName());
-
-        if (snapshot != null) {
-            FileData snapshotFileData = snapshot.getFileData(fileData.getName());
-
-            if (snapshotFileData != null) {
-                fileContent = snapshotFileData.getContent();
-                if (fileContent != null && fileContent.length > 1) {
-                    // return the snapshot FileData object
-                    return snapshotFileData;
-                }
-            }
-        }
-        // no content found!
-        logger.warning("no content found for fileData '" + fileData.getName() + "'!");
-        return null;
     }
 
     /**
@@ -274,6 +204,8 @@ public class OCRService {
 
         // read the Tika Service Enpoint
         if (!serviceEndpoint.isPresent() || serviceEndpoint.get().isEmpty()) {
+            logger.severe(
+                    "No OCR_SERVICE_ENDPOINT is missing - OCRprocessing not supported without a valid tika server endpoint!");
             return null;
         }
 
@@ -349,52 +281,63 @@ public class OCRService {
     }
 
     /**
-     * This method extracts the text from the given content of an PDF file. In case
-     * the pdf file does not contains text the pdf can be forwarded to the tika
-     * service for OCR scanning. In this case we append the header attribute
-     * X-Tika-PDFOcrStrategy=ocr_only.
-     * <p>
-     * Extracting text is one of the main features of the PDF box library. You can
-     * extract text using the getText() method of the PDFTextStripper class. This
-     * class extracts all the text from the given PDF document.
+     * This method returns true if a given FileData object has already a ocr content
+     * object stored. This can be verified by the existence of the 'text' attribute.
      * 
-     * 
-     * @param content
+     * @param fileData - fileData object to be verified
      * @return
      */
-    public String doPDFTextExtraction(FileData fileData) {
-        boolean debug = logger.isLoggable(Level.FINE);
-
-        if (debug) {
-            logger.fine("...pdf text extraction....");
-        }
-        PDDocument doc = null;
-        String result = null;
-        try {
-            doc = PDDocument.load(fileData.getContent());
-
-            PDFTextStripper pdfStripper = new PDFTextStripper();
-            // Retrieving text from PDF document
-            result = pdfStripper.getText(doc);
-            if (debug) {
-                logger.finest("<RESULT>" + result + "</RESULT>");
+    @SuppressWarnings("unchecked")
+    private boolean hasOCRContent(FileData fileData) {
+        if (fileData != null) {
+            List<String> ocrContentList = (List<String>) fileData.getAttribute(FILE_ATTRIBUTE_TEXT);
+            if (ocrContentList != null && ocrContentList.size() > 0 && ocrContentList.get(0) != null) {
+                return true;
             }
+        }
+        return false;
+    }
 
-            // Closing the document
-            doc.close();
-        } catch (IOException e) {
-            logger.warning("unable to load pdf : " + e.getMessage());
+    /**
+     * This method fetches the origin FileData object. In case the content of the
+     * FileData object was already stored in a snapshot, the method loads the origin
+     * FileData object form the snapshot workitem.
+     * <p>
+     * The method returns null if no content can be found. In this case warning is
+     * logged.
+     * 
+     * @param fileData - fileData object to be analyzed
+     * @param workitem - origin workitme holding a reference to a optional snapshot
+     *                 workitem
+     * @return origin fileData object
+     */
+    private FileData fetchOriginFileData(FileData fileData, ItemCollection snapshot) {
+        // test if the given fileData object has a content....
+        byte[] fileContent = fileData.getContent();
+        if (fileContent != null && fileContent.length > 1) {
+            // the fileData object contains the origin content.
+            // no snapshot need to be loaded here!
+            return fileData;
+        }
 
-        } finally {
-            if (doc != null) {
-                try {
-                    doc.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+        // load the snapshot FileData...
+        // FileData snapshotFileData =
+        // snapshotService.getWorkItemFile(workitem.getUniqueID(), fileData.getName());
+
+        if (snapshot != null) {
+            FileData snapshotFileData = snapshot.getFileData(fileData.getName());
+
+            if (snapshotFileData != null) {
+                fileContent = snapshotFileData.getContent();
+                if (fileContent != null && fileContent.length > 1) {
+                    // return the snapshot FileData object
+                    return snapshotFileData;
                 }
             }
         }
-        return result;
+        // no content found!
+        logger.warning("no content found for fileData '" + fileData.getName() + "'!");
+        return null;
     }
 
     /**
@@ -495,21 +438,6 @@ public class OCRService {
         return contentType;
     }
 
-    /**
-     * Returns true if the filename ends for '.pdf' or the contentType contains pdf.
-     * 
-     * @param filename
-     * @param contentType
-     * @return
-     */
-    private boolean isPDF(FileData fileData) {
-        if (fileData.getName().toLowerCase().endsWith(".pdf")) {
-            return true;
-        }
-        if (fileData.getContentType().contains("pdf")) {
-            return true;
-        }
-        return false;
-    }
+   
 
 }

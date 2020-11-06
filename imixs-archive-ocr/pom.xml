@@ -15,14 +15,6 @@
 			<groupId>org.imixs.workflow</groupId>
 			<artifactId>imixs-workflow-core</artifactId>
 		</dependency>
-		
-	
-		<!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
-		<dependency>
-			<groupId>org.apache.pdfbox</groupId>
-			<artifactId>pdfbox</artifactId>
-			<version>${apache.pdfbox.version}</version>
-		</dependency>
 
 	</dependencies>
   	<name>Imixs-Archive OCR</name>

@@ -12,8 +12,9 @@ The *Optical character recognition (OCR)* is based on the [Apache Project 'Tika'
 
 The *OCRDocumentService* extracts the textual information from file attachments during the processing life cycle. The service calls the Imixs-Archvie OCRService to extract the text information of a file. The following environment variables are mandatory:
  
-  * TIKA\_SERVICE\_ENDPONT - defines the Rest API end-point of the tika server.
-  * TIKA\_SERVICE\_MODE - if set to 'auto' the TikaDocumentService reacts on the CDI event 'BEFORE\_PROCESS' and extracts the data automatically. If set to 'model' the *TikaPlugin* or the *TikaAdapter* can be used in a BPMN model to activate the OCR processing
+  * OCR\_SERVICE\_ENDPONT - defines the Rest API end-point of the tika server.
+  
+  * OCR\_SERVICE\_MODE - if set to 'auto' the TikaDocumentService reacts on the CDI event 'BEFORE\_PROCESS' and extracts the data automatically. If set to 'model' the *TikaPlugin* or the *TikaAdapter* can be used in a BPMN model to activate the OCR processing
 
 See also the [Imixs-Archive OCR project](../imixs-archive-ocr/) for further information about the OCR service. 
   
