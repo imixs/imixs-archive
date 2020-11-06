@@ -45,9 +45,28 @@ Both, the *OCRDocumentPlugin* as also the *OCRDocumentAdapter* can be configured
 	<!-- Tika Options -->
 	<tika name="options">X-Tika-PDFocrStrategy=OCR_AND_TEXT_EXTRACTION</tika>
 	<tika name="options">X-Tika-PDFOcrImageType=RGB</tika>
-	<tika name="options">X-Tika-PDFOcrDPI=400</tika>
+	<tika name="options">X-Tika-PDFOcrDPI=72</tika>
+	<tika name="options">X-Tika-OCRLanguage=eng+deu</tika>
 
-In this example configuration the OCR processing will be started with 3 additional tika options. For more details about the OCR configuration see the [Imixs-Archive-OCR project](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ocr).
+In this example configuration the OCR processing will be started with 4 additional tika options. 
+
+ - X-Tika-PDFOcrImageType=RGB  - set color mode
+ - X-Tika-PDFOcrDPI=72     - set DPI to 72
+ - X-Tika-OCRLanguage=deu  - set OCR language to german
+
+
+#### Overriding the configured language as part of your request
+
+Different requests may need processing using different language models. These can be specified for specific requests using the X-Tika-OCRLanguage custom header. An example of this is shown below:
+
+	X-Tika-OCRLanguage=deu
+
+Or for multiple languages:
+
+	X-Tika-OCRLanguage: eng+fra"
+
+
+For more details about the OCR configuration see the [Imixs-Archive-OCR project](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ocr).
 
 
 ## Searching Documents

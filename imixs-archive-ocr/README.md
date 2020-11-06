@@ -1,7 +1,6 @@
 # Imixs-Archive-OCR
 
-*Imixs-Archive-OCR* is a sub-project of Imixs-Archive. The project provides methods to extract textual information from documents
-attached to a Workitem. The text content of attachments is either extracted by the PDFBox API or by optical character recognition (OCR). This text content is stored in the $file attribute 'text' and can be use for further processing or to search for document content.
+*Imixs-Archive-OCR* is a sub-project of Imixs-Archive. The project is decoupled form the Imixs-Workflow Engine and provides a service component to extract textual information from documents attached to a Workitem. The text content of attachments is either extracted by the PDFBox API or by optical character recognition (OCR). This text content is stored in the $file attribute 'text' and can be use for further processing or to search for document content.
 
 
 ## OCR 
@@ -43,9 +42,9 @@ For example to set the DPI mode call:
 	// define options
 	List<String> options=new ArrayList<String>();
 	options.add("X-Tika-PDFocrStrategy=OCR_AND_TEXT_EXTRACTION");
-	options.add("X-Tika-PDFOcrImageType=RGB");
-	options.add("X-Tika-PDFOcrDPI=400");
-	
+	options.add("X-Tika-PDFOcrImageType=RGB"); 	//  support colors 
+	options.add("X-Tika-PDFOcrDPI=72");    			// set DPI
+	options.add("X-Tika-OCRLanguage=eng"); 			// set english language	
 	// start ocr 
 	tikaDocumentService.extractText(workitem, "TEXT_AND_OCR", options)
 
@@ -53,7 +52,9 @@ For example to set the DPI mode call:
 
 You have various options to configure the Tika server. Find details about how to configure imixs-tika [here](https://github.com/imixs/imixs-docker/tree/master/tika).	
 
-
+ - https://cwiki.apache.org/confluence/display/TIKA/TikaServer
+ - https://cwiki.apache.org/confluence/display/TIKA/TikaOCR
+ - https://cwiki.apache.org/confluence/display/tika/PDFParser%20(Apache%20PDFBox)
 
 
 ## How to Install

@@ -122,7 +122,7 @@ public class OCRService {
         // validate OCR MODE....
         if ("TEXT_ONLY, OCR_ONLY, TEXT_AND_OCR".indexOf(pdfMode) == -1) {
             throw new PluginException(OCRService.class.getSimpleName(), PLUGIN_ERROR,
-                    "Invalid TIKA_OCR_MODE - exprected one of the following options: TEXT_ONLY | OCR_ONLY | TEXT_AND_OCR");
+                    "Invalid TIKA_OCR_MODE - expected one of the following options: TEXT_ONLY | OCR_ONLY | TEXT_AND_OCR");
         }
 
         long l = System.currentTimeMillis();
