@@ -28,7 +28,7 @@ In the example above a 2048-bit RSA key pair valid for 365 days under the specif
 The *Imixs-Archive Signature API* provides a signing service which expects the following environment settings:
 
  * SIGNATURE_KEYSTORE_PATH - path from which the keystore is loaded
- * SIGNATURE_KEYSTORE_PASSWORD - the password used to check the integrity of the keystore, the password used to unlock the keystore
+ * SIGNATURE_KEYSTORE_PASSWORD - the password used to unlock the keystore
  * SIGNATURE_KEYSTORE_TYPE - keystore file extension (defautl =.jks)
  * SIGNATURE_TSA_URL - an optional Time Stamping Authority (TSA) server
 

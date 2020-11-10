@@ -32,11 +32,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -69,19 +67,16 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceDictionary;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceStream;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.ExternalSigningSupport;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
-import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
-import org.apache.pdfbox.util.Hex;
 import org.apache.pdfbox.util.Matrix;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.core.SnapshotService;
 
 /**
  * The SignatureService provides method to sign a PDF document.
@@ -133,17 +128,54 @@ public class SignatureService {
 
 	private static Logger logger = Logger.getLogger(SignatureService.class.getName());
 
-	private SignatureOptions signatureOptions;
-	private boolean externalSigning;
-	private boolean lateExternalSigning = false;
-
-	// private File imageFile = null;
-	private Certificate[] certificateChain;
-
-	private PrivateKey privateKey;
-
-	private Certificate[] getCertificateChain() {
-		return certificateChain;
+	
+	/**
+	 * Method Opens the keystore with the given password and creates a new signed
+	 * PDF file based on the given PDF File and a signature image.
+	 * <p>
+	 * generate pkcs12-keystore-file with
+	 * <p>
+	 * {@code
+	  keytool -storepass 123456 -storetype PKCS12 -keystore file.p12 -genkey -alias client -keyalg RSA
+	  }
+	 *
+	 * @param documentFile   - File to be signed
+	 * @param signatureImage - image of visible signature
+	 * 
+	 * @throws java.security.KeyStoreException
+	 * @throws java.security.cert.CertificateException
+	 * @throws java.io.IOException
+	 * @throws java.security.NoSuchAlgorithmException
+	 * 
+	 */
+	public void signPDF(File documentFile, File signatureImage)
+			throws IOException, NoSuchAlgorithmException, CertificateException, KeyStoreException {
+	
+		logger.info("......open keystore");
+	
+		KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+		File key = new File(keyStorePath);
+		keyStore.load(new FileInputStream(key), keyStorePassword.toCharArray());
+	
+		File signedDocumentFile;
+		String name = documentFile.getName();
+		String substring = name.substring(0, name.lastIndexOf('.'));
+		signedDocumentFile = new File(documentFile.getParent(), substring + "_signed.pdf");
+	
+		// Set the signature rectangle
+		// Although PDF coordinates start from the bottom, humans start from the top.
+		// So a human would want to position a signature (x,y) units from the
+		// top left of the displayed page, and the field has a horizontal width and a
+		// vertical height
+		// regardless of page rotation.
+		Rectangle2D humanRect = new Rectangle2D.Float(50, 660, 170, 50);
+	
+		
+		createSignedPDF(documentFile, signedDocumentFile, humanRect, "Signature1", signatureImage, keyStore,
+				keyStorePassword.toCharArray(),false);
+		
+	
+		
 	}
 
 	/**
@@ -156,19 +188,20 @@ public class SignatureService {
 	 * @param tsaUrl             optional TSA url
 	 * @param signatureFieldName optional name of an existing (unsigned) signature
 	 *                           field
+	 * @param externalSigning 	 optional boolean flag to trigger an external signing process
 	 * @throws IOException
 	 */
-	private void createSignedPDF(File inputFile, File signedFile, Rectangle2D humanRect, String tsaUrl,
-			String signatureFieldName, File imageFile, KeyStore keyStore, char[] keyStorePassword) throws IOException {
+	private void createSignedPDF(File inputFile, File signedFile, Rectangle2D humanRect, 
+			String signatureFieldName, File imageFile, KeyStore keyStore, char[] keyStorePassword,boolean externalSigning) throws IOException {
+		
+		SignatureOptions signatureOptions=null;
+		
 		if (inputFile == null || !inputFile.exists()) {
 			throw new IOException("Document for signing does not exist");
 		}
 
-		// try (FileOutputStream fos = new FileOutputStream(signedFile); PDDocument doc
+		
 		// = Loader.loadPDF(inputFile)) {
-
-		// PDDocument doci = PDDocument.load(inputFile);
-
 		try (FileOutputStream fos = new FileOutputStream(signedFile); PDDocument doc = PDDocument.load(inputFile)) {
 			int accessPermissions = SigUtils.getMDPPermission(doc);
 			if (accessPermissions == 1) {
@@ -246,11 +279,18 @@ public class SignatureService {
 			// Signature sig = new Signature(certificateChain, privateKey);
 
 			Signature sig = null;
+			Certificate[] certificateChain =null;
 			try {
 				String alias = "client";
 				certificateChain = keyStore.getCertificateChain(alias);
 
-				sig = new Signature(certificateChain, keyStore, keyStorePassword, alias, tsaUrl);
+				// test if a TSA URL was injected....
+				String sTsaUrl=null;
+				if (tsaURL.isPresent() && !tsaURL.get().isEmpty()) {
+					sTsaUrl=tsaURL.get();
+				}
+				
+				sig = new Signature(certificateChain, keyStore, keyStorePassword, alias, sTsaUrl);
 			} catch (UnrecoverableKeyException | CertificateNotYetValidException | CertificateExpiredException
 					| KeyStoreException | NoSuchAlgorithmException | IOException e) {
 				// TODO Auto-generated catch block
@@ -259,46 +299,19 @@ public class SignatureService {
 
 			// register signature dictionary and sign interface
 			signatureOptions = new SignatureOptions();
-			signatureOptions.setVisualSignature(createVisualSignatureTemplate(doc, 0, rect, signature, imageFile));
+			signatureOptions.setVisualSignature(createVisualSignatureTemplate(doc, 0, rect, signature, imageFile,certificateChain));
 			signatureOptions.setPage(0);
 			doc.addSignature(signature, sig, signatureOptions);
 
-			if (isExternalSigning()) {
-				ExternalSigningSupport externalSigning = doc.saveIncrementalForExternalSigning(fos);
+			if (externalSigning) {
+				ExternalSigningSupport externalSigningSupport = doc.saveIncrementalForExternalSigning(fos);
 				// invoke external signature service
-				byte[] cmsSignature = sig.sign(externalSigning.getContent());
+				byte[] cmsSignature = sig.sign(externalSigningSupport.getContent());
 
-				// Explanation of late external signing (off by default):
-				// If you want to add the signature in a separate step, then set an empty byte
-				// array
-				// and call signature.getByteRange() and remember the offset
-				// signature.getByteRange()[1]+1.
-				// you can write the ascii hex signature at a later time even if you don't have
-				// this
-				// PDDocument object anymore, with classic java file random access methods.
-				// If you can't remember the offset value from ByteRange because your context
-				// has changed,
-				// then open the file with PDFBox, find the field with findExistingSignature()
-				// or
-				// PDDocument.getLastSignatureDictionary() and get the ByteRange from there.
-				// Close the file and then write the signature as explained earlier in this
-				// comment.
-				if (isLateExternalSigning()) {
-					// this saves the file with a 0 signature
-					externalSigning.setSignature(new byte[0]);
-
-					// remember the offset (add 1 because of "<")
-					int offset = signature.getByteRange()[1] + 1;
-
-					// now write the signature at the correct offset without any PDFBox methods
-					try (RandomAccessFile raf = new RandomAccessFile(signedFile, "rw")) {
-						raf.seek(offset);
-						raf.write(Hex.getBytes(cmsSignature));
-					}
-				} else {
-					// set signature bytes received from the service and save the file
-					externalSigning.setSignature(cmsSignature);
-				}
+				
+				// set signature bytes received from the service and save the file
+				externalSigningSupport.setSignature(cmsSignature);
+				
 			} else {
 				// write incremental (only for signing purpose)
 				doc.saveIncremental(fos);
@@ -359,7 +372,7 @@ public class SignatureService {
 	// create a template PDF document with empty signature and return it as a
 	// stream.
 	private InputStream createVisualSignatureTemplate(PDDocument srcDoc, int pageNum, PDRectangle rect,
-			PDSignature signature, File imageFile) throws IOException {
+			PDSignature signature, File imageFile,Certificate[] certificateChain) throws IOException {
 		try (PDDocument doc = new PDDocument()) {
 			PDPage page = new PDPage(srcDoc.getPage(pageNum).getMediaBox());
 			doc.addPage(page);
@@ -446,7 +459,7 @@ public class SignatureService {
 				cs.newLineAtOffset(fontSize, height - leading);
 				cs.setLeading(leading);
 
-				X509Certificate cert = (X509Certificate) getCertificateChain()[0];
+				X509Certificate cert = (X509Certificate) certificateChain[0];
 
 				// https://stackoverflow.com/questions/2914521/
 				X500Name x500Name = new X500Name(cert.getSubjectX500Principal().getName());
@@ -475,61 +488,8 @@ public class SignatureService {
 		}
 	}
 
-	// Find an existing signature (assumed to be empty). You will usually not need
-	// this.
-//	private PDSignature findExistingSignature(PDAcroForm acroForm, String sigFieldName) {
-//		PDSignature signature = null;
-//		PDSignatureField signatureField;
-//		if (acroForm != null) {
-//			signatureField = (PDSignatureField) acroForm.getField(sigFieldName);
-//			if (signatureField != null) {
-//				// retrieve signature dictionary
-//				signature = signatureField.getSignature();
-//				if (signature == null) {
-//					signature = new PDSignature();
-//					// after solving PDFBOX-3524
-//					// signatureField.setValue(signature)
-//					// until then:
-//					signatureField.getCOSObject().setItem(COSName.V, signature);
-//				} else {
-//					throw new IllegalStateException("The signature field " + sigFieldName + " is already signed.");
-//				}
-//			}
-//		}
-//		return signature;
-//	}
+	
 
-	/**
-	 * Set if external signing scenario should be used. If {@code false},
-	 * SignatureInterface would be used for signing.
-	 * <p>
-	 * Default: {@code false}
-	 * </p>
-	 * 
-	 * @param externalSigning {@code true} if external signing should be performed
-	 */
-	public void setExternalSigning(boolean externalSigning) {
-		this.externalSigning = externalSigning;
-	}
-
-	public boolean isExternalSigning() {
-		return externalSigning;
-	}
-
-	public boolean isLateExternalSigning() {
-		return lateExternalSigning;
-	}
-
-	/**
-	 * Set late external signing. Enable this if you want to activate the demo code
-	 * where the signature is kept and added in an extra step without using PDFBox
-	 * methods. This is disabled by default.
-	 *
-	 * @param lateExternalSigning
-	 */
-	public void setLateExternalSigning(boolean lateExternalSigning) {
-		this.lateExternalSigning = lateExternalSigning;
-	}
 
 	// Find an existing signature (assumed to be empty). You will usually not need
 	// this.
@@ -553,63 +513,6 @@ public class SignatureService {
 			}
 		}
 		return signature;
-	}
-
-	/**
-	 * Method Opens the keystore with the given password and creates a new signed
-	 * PDF file based on the given PDF File and a signature image.
-	 * <p>
-	 * generate pkcs12-keystore-file with
-	 * <p>
-	 * {@code
-	  keytool -storepass 123456 -storetype PKCS12 -keystore file.p12 -genkey -alias client -keyalg RSA
-	  }
-	 *
-	 * @param documentFile   - File to be signed
-	 * @param signatureImage - image of visible signature
-	 * 
-	 * @throws java.security.KeyStoreException
-	 * @throws java.security.cert.CertificateException
-	 * @throws java.io.IOException
-	 * @throws java.security.NoSuchAlgorithmException
-	 * 
-	 */
-	public void signPDF(File documentFile, File signatureImage)
-			throws IOException, NoSuchAlgorithmException, CertificateException, KeyStoreException {
-
-		logger.info("......open keystore");
-
-		KeyStore keyStore = KeyStore.getInstance(keyStoreType);
-		File key = new File(keyStorePath);
-		keyStore.load(new FileInputStream(key), keyStorePassword.toCharArray());
-
-		File signedDocumentFile;
-		String name = documentFile.getName();
-		String substring = name.substring(0, name.lastIndexOf('.'));
-		signedDocumentFile = new File(documentFile.getParent(), substring + "_signed.pdf");
-
-		// Set the signature rectangle
-		// Although PDF coordinates start from the bottom, humans start from the top.
-		// So a human would want to position a signature (x,y) units from the
-		// top left of the displayed page, and the field has a horizontal width and a
-		// vertical height
-		// regardless of page rotation.
-		Rectangle2D humanRect = new Rectangle2D.Float(50, 660, 170, 50);
-
-		String sTsaUrl=null;
-		if (tsaURL.isPresent() && !tsaURL.get().isEmpty()) {
-			sTsaUrl=tsaURL.get();
-		}
-		
-		createSignedPDF(documentFile, signedDocumentFile, humanRect,sTsaUrl, "Signature1", signatureImage, keyStore,
-				keyStorePassword.toCharArray());
-		
-		
-//		
-//		private void createSignedPDF(File inputFile, File signedFile, Rectangle2D humanRect, String tsaUrl,
-//				String signatureFieldName, File imageFile, KeyStore keyStore, char[] keyStorePassword) 
-//		
-		
 	}
 
 }
