@@ -57,7 +57,6 @@ import org.bouncycastle.asn1.x509.DistributionPointName;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
-import org.imixs.archive.signature.CertificateVerificationException;
 
 /**
  * Copied from Apache CXF 2.4.9, initial version:

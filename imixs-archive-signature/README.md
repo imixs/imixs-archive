@@ -25,7 +25,7 @@ In the example above a 2048-bit RSA key pair valid for 365 days under the specif
 You can find more details about how to manage the keystore [here](docs/KEYTOOL.md). 
  
  
-### The Signature Service
+### The Signing Service
 
 The *Imixs-Archive Signature API* provides a signing service which expects the following environment settings:
 

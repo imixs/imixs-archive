@@ -54,7 +54,7 @@ import org.bouncycastle.tsp.TSPException;
 import org.bouncycastle.tsp.TimeStampToken;
 import org.bouncycastle.util.Selector;
 import org.bouncycastle.util.Store;
-import org.imixs.archive.signature.CertificateVerificationException;
+import org.imixs.archive.signature.cert.CertificateVerificationException;
 import org.imixs.archive.signature.cert.CertificateVerifier;
 
 /**

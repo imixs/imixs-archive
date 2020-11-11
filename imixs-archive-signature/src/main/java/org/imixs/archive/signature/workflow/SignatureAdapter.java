@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 import javax.inject.Inject;
 
 import org.imixs.archive.core.SnapshotService;
-import org.imixs.archive.signature.SignatureService;
+import org.imixs.archive.signature.SigningService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.SignalAdapter;
@@ -32,7 +32,7 @@ public class SignatureAdapter implements SignalAdapter {
 	private static Logger logger = Logger.getLogger(SignatureAdapter.class.getName());
 
 	@Inject
-	SignatureService signatureService;
+	SigningService signatureService;
 
 	@Inject
 	SnapshotService snapshotService;

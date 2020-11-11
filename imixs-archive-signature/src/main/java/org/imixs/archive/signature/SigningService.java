@@ -103,7 +103,7 @@ import org.imixs.archive.signature.util.SigUtils;
  */
 @Stateless
 @LocalBean
-public class SignatureService {
+public class SigningService {
 
 	public final static String ENV_SIGNATURE_TSA_URL = "signature.tsa.url";
 	public final static String ENV_SIGNATURE_KEYSTORE_DEFAULT_ALIAS = "signature.keystore.default.alias";
@@ -123,7 +123,7 @@ public class SignatureService {
 
 	
 	
-	private static Logger logger = Logger.getLogger(SignatureService.class.getName());
+	private static Logger logger = Logger.getLogger(SigningService.class.getName());
 
 	/**
 	 * Method Opens the keystore with the given password and creates a new signed
