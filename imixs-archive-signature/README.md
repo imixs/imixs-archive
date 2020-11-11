@@ -22,7 +22,7 @@ The keystore expects a password. This password will be used later by the *Imixs-
 In the example above a 2048-bit RSA key pair valid for 365 days under the specified alias 'imixs' was generated. 
  The key pair is added into the keystore file with default ‘.jks’ extension. The keystore and certificate can be adjusted to your needs.
  
-You can find more details about how to manage the keystore [here](doc/KEYTOOL.md). 
+You can find more details about how to manage the keystore [here](docs/KEYTOOL.md). 
  
  
 ### The Signature Service
