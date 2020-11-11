@@ -281,7 +281,8 @@ public class SignatureService {
 			Signature sig = null;
 			Certificate[] certificateChain =null;
 			try {
-				String alias = "client";
+				//String alias = "imixs-com";
+				String alias = "tiger";
 				certificateChain = keyStore.getCertificateChain(alias);
 
 				// test if a TSA URL was injected....

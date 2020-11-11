@@ -8,9 +8,9 @@ To sign a PDF document, a signature with an available algorithms is created base
 
 ### Creating a keystore
 
-The *Imixs-Archive Signature API* expects a keystore containing certificates and key pairs to create a signature. The keystore is independent form this API and can be linked by an environment variable. 
+The *Imixs-Archive Signature API* expects a keystore containing certificates and key pairs to create a signature. The keystore can be managed with the java command line tool *keytool* and is independent form this API and can be linked by an environment variable. 
 
-From the keystore, a private key will be used to create the signature, and the public one will be exported in a certificate. The Keystore can keep several keys pairs, each of them is created with a proper alias to be able to distinguish them. To create keystore you  need to use the key and certificate management tool *keytool*. Keytool is provided with standard JDK, so usaly no additional installation is necessary. 
+From the keystore, a private key will be used to create the signature, and the public one will be exported in a certificate. The Keystore can keep several keys pairs, each of them is created with a proper alias to be able to distinguish them. To create keystore you  need to use the key and certificate management tool *keytool*. Keytool is provided with standard JDK, so usual no additional installation is necessary. 
 
 To create a self-signed certificate with the alias 'imixs' run:
 
@@ -20,7 +20,9 @@ To create a self-signed certificate with the alias 'imixs' run:
 The keystore expects a password. This password will be used later by the *Imixs-Archive Signature API* to open the keystore and to create a signature.
 
 In the example above a 2048-bit RSA key pair valid for 365 days under the specified alias 'imixs' was generated. 
- The key pair is added into the keystore file with default ‘.jks’ extension. The private key is used later to sign a pdf, the public one will be used to signature verification. The keystore and certificate can be adjusted to your needs.
+ The key pair is added into the keystore file with default ‘.jks’ extension. The keystore and certificate can be adjusted to your needs.
+ 
+You can find more details about how to manage the keystore [here](doc/KEYTOOL.md). 
  
  
 ### The Signature Service
@@ -42,5 +44,5 @@ To integrate the *Imixs-Archive Signature API* the SignatureAdapter can be added
 	
 	
 
-
- 
+	
+	
