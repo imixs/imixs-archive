@@ -67,7 +67,7 @@ import org.bouncycastle.operator.ContentVerifierProvider;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
-import org.imixs.archive.signature.SigUtils;
+import org.imixs.archive.signature.util.SigUtils;
 
 /**
  * Helper Class for OCSP-Operations with bouncy castle.

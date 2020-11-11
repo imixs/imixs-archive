@@ -2,7 +2,6 @@ package org.imixs.archive.signature;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -24,6 +23,7 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
+import org.imixs.archive.signature.util.ValidationTimeStamp;
 
 /**
  * SignatureInterface sample implementation.
@@ -42,27 +42,25 @@ public class Signature implements SignatureInterface {
 	private PrivateKey privateKey;
 	private String tsaUrl;
 
-	public Signature(Certificate[] certificateChain, PrivateKey privateKey) {
-		super();
-		this.certificateChain = certificateChain;
-		this.privateKey = privateKey;
+	public Signature(Certificate[] certificateChain, PrivateKey privateKey)
+			throws UnrecoverableKeyException, CertificateNotYetValidException, CertificateExpiredException,
+			KeyStoreException, NoSuchAlgorithmException, IOException {
+		this(certificateChain, privateKey, null);
 	}
 
-	public Signature(Certificate[] certificateChain, KeyStore keyStore, char[] keyStorePassword,
-			String appCertificateAlias, String _tsaURL) throws KeyStoreException, UnrecoverableKeyException,
-			NoSuchAlgorithmException, IOException, CertificateNotYetValidException, CertificateExpiredException {
+	public Signature(Certificate[] certificateChain, PrivateKey privateKey, String _tsaURL)
+			throws KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException, IOException,
+			CertificateNotYetValidException, CertificateExpiredException {
+		super();
 		this.certificateChain = certificateChain;
 		this.tsaUrl = _tsaURL;
-		this.privateKey = (PrivateKey) keyStore.getKey(appCertificateAlias, keyStorePassword);
-
+		this.privateKey = privateKey;
 		if (certificateChain != null && certificateChain.length > 0) {
 			Certificate certificate = this.certificateChain[0];
-
 			if (certificate instanceof X509Certificate) {
 				((X509Certificate) certificate).checkValidity();
 			}
 		}
-
 	}
 
 	/**

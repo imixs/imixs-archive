@@ -53,8 +53,8 @@ public class SignatureAdapter implements SignalAdapter {
 
 			if (fileName.toLowerCase().endsWith(".pdf")) {
 				try {
-
-					logger.info("......signing pdf: " + fileName);
+					String alias=workflowService.getUserName();
+					logger.info("......signing " + fileName + " by '" + alias +"'...");
 					FileData fileData = document.getFileData(fileName);
 
 					byte[] sourceContent = fileData.getContent();
@@ -68,11 +68,12 @@ public class SignatureAdapter implements SignalAdapter {
 					Path path = Paths.get(fileName);
 					Files.write(path, sourceContent);
 
-					File f = new File(fileName);
+					File filePDFSource = new File(fileName);
 					
-					File bild=new File("/opt/imixs-keystore/Sign_Ralph_Soika.jpg");
+					File fileSignatureImage=new File("/opt/imixs-keystore/"+alias+".jpg");
 					
-					signatureService.signPDF(f, bild);
+					
+					signatureService.signPDF(filePDFSource, alias,fileSignatureImage);
 					
 
 					// attache the new generated file....
@@ -82,7 +83,7 @@ public class SignatureAdapter implements SignalAdapter {
 					byte[] targetContent = Files.readAllBytes(Paths.get(newFileName));
 					document.addFileData(new FileData(newFileName, targetContent, "application/pdf", null));
 
-					logger.info("......signing pdf: " + fileName + " completed!");
+					logger.info("......signing " + fileName + " completed!");
 
 				} catch (IOException | NoSuchAlgorithmException | CertificateException | KeyStoreException e) {
 					throw new AdapterException(this.getClass().getSimpleName(), "SIGNING_ERROR", e.getMessage(), e);
