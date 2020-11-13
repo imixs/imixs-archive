@@ -302,9 +302,7 @@ public class SigningService {
 				if (tsaURL.isPresent() && !tsaURL.get().isEmpty()) {
 					sTsaUrl = tsaURL.get();
 				}
-				
-				PrivateKey testprivateKey = keystoreService.loadPrivateKey("tiger");
-				
+					
 				PrivateKey privateKey = keystoreService.loadPrivateKey(certAlias);
 				signature = new Signature(certificateChain, privateKey, sTsaUrl);
 			} catch (UnrecoverableKeyException | CertificateNotYetValidException | CertificateExpiredException
