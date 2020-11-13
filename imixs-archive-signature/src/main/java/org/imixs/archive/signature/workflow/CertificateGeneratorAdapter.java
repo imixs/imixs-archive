@@ -31,7 +31,9 @@ public class CertificateGeneratorAdapter implements SignalAdapter {
 	public ItemCollection execute(ItemCollection document, ItemCollection event) throws AdapterException {
 
 		logger.info("...adding new certificate for user sepp");
-		keystoreService.addEntry("sepp");
+	
+		
+		//keystoreService.addEntry("sepp");
 		
 		
 

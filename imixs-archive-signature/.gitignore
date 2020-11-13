@@ -15,4 +15,5 @@ target/
 deployments/
 docker-compose-ignore.yml
 src/test/resources/keystore/
+src/test/resources/*.cer
 

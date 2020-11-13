@@ -39,7 +39,6 @@ import javax.ejb.Singleton;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.signature.draft.CertGenerator;
 
 /**
  * The KeystoreService provides methods to open a java keystore and find
@@ -54,145 +53,132 @@ import org.imixs.archive.signature.draft.CertGenerator;
 @Singleton
 public class KeystoreService {
 
-	public final static String ENV_SIGNATURE_KEYSTORE_PATH = "signature.keystore.path";
-	public final static String ENV_SIGNATURE_KEYSTORE_PASSWORD = "signature.keystore.password";
-	public final static String ENV_SIGNATURE_KEYSTORE_TYPE = "signature.keystore.type";
-	@Inject
-	@ConfigProperty(name = ENV_SIGNATURE_KEYSTORE_PATH, defaultValue = "/")
-	String keyStorePath;
+    public final static String ENV_SIGNATURE_KEYSTORE_PATH = "signature.keystore.path";
+    public final static String ENV_SIGNATURE_KEYSTORE_PASSWORD = "signature.keystore.password";
+    public final static String ENV_SIGNATURE_KEYSTORE_TYPE = "signature.keystore.type";
+    @Inject
+    @ConfigProperty(name = ENV_SIGNATURE_KEYSTORE_PATH, defaultValue = "/")
+    String keyStorePath;
 
-	@Inject
-	@ConfigProperty(name = ENV_SIGNATURE_KEYSTORE_PASSWORD, defaultValue = "/")
-	String keyStorePassword;
+    @Inject
+    @ConfigProperty(name = ENV_SIGNATURE_KEYSTORE_PASSWORD, defaultValue = "/")
+    String keyStorePassword;
 
-	
-	@Inject
-	@ConfigProperty(name = ENV_SIGNATURE_KEYSTORE_TYPE, defaultValue = ".jks")
-	String keyStoreType;
+    @Inject
+    @ConfigProperty(name = ENV_SIGNATURE_KEYSTORE_TYPE, defaultValue = ".jks")
+    String keyStoreType;
 
-	private static Logger logger = Logger.getLogger(KeystoreService.class.getName());
+    private static Logger logger = Logger.getLogger(KeystoreService.class.getName());
 
-	
-	
-	
-	
-	public KeystoreService(String keyStorePath, String keyStorePassword, String keyStoreType) {
-		super();
-		this.keyStorePath = keyStorePath;
-		this.keyStorePassword = keyStorePassword;
-		this.keyStoreType = keyStoreType;
-	}
-
-	public KeystoreService() {
+    public KeystoreService(String keyStorePath, String keyStorePassword, String keyStoreType) {
         super();
-        //  Auto-generated constructor stub
+        this.keyStorePath = keyStorePath;
+        this.keyStorePassword = keyStorePassword;
+        this.keyStoreType = keyStoreType;
+    }
+
+    public KeystoreService() {
+        super();
+        // Auto-generated constructor stub
     }
 
     /**
-	 * Open a java keyStore based on the environment variables
-	 * SIGNATURE_KEYSTORE_PATH , SIGNATURE_KEYSTORE_TYPE and
-	 * SIGNATURE_KEYSTORE_PASSWORD
-	 * 
-	 * @throws KeyStoreException
-	 * @throws IOException
-	 * @throws FileNotFoundException
-	 * @throws CertificateException
-	 * @throws NoSuchAlgorithmException
-	 * 
-	 */
-	public KeyStore openKeyStore() throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
-			FileNotFoundException, IOException {
+     * Open a java keyStore based on the environment variables
+     * SIGNATURE_KEYSTORE_PATH , SIGNATURE_KEYSTORE_TYPE and
+     * SIGNATURE_KEYSTORE_PASSWORD
+     * 
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws FileNotFoundException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     * 
+     */
+    public KeyStore openKeyStore() throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
+            FileNotFoundException, IOException {
 
-		logger.info("......open keystore");
+        logger.info("......open keystore");
 
-		KeyStore keyStore = KeyStore.getInstance(keyStoreType);
-		File key = new File(keyStorePath);
-		keyStore.load(new FileInputStream(key), keyStorePassword.toCharArray());
-		
-		return keyStore;
-	}
+        KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+        File key = new File(keyStorePath);
 
-	/**
-	 * Loads a certificate chain by a given alias.
-	 * <p>
-	 * If a certificate for the given alias name does not exist in the keystore than
-	 * the default alias (SIGNATURE_KEYSTORE_DEFAULT_ALIAS) will be loaded.
-	 * <p>
-	 * The method returns null if no certificate was found!
-	 * 
-	 * @throws CertificateException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyStoreException
-	 */
-	public Certificate[] loadCertificate(String alias) {
+        if (!key.exists()) {
+            logger.warning("keystore " + keyStorePath + " does not exists - create empty keystore!");
+            keyStore.load(null, keyStorePassword.toCharArray());
+        } else {
+            keyStore.load(new FileInputStream(key), keyStorePassword.toCharArray());
+        }
 
-		Certificate[] certificateChain = null;
-		try {
-			KeyStore keyStore;
-			keyStore = openKeyStore();
-			// Now we try to load the certificateChat for the given alias
-			String certAlias = alias;
-			if (certAlias != null && !certAlias.isEmpty()) {
-				certificateChain = keyStore.getCertificateChain(certAlias);
-			}
-		} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
-			logger.warning("Failed to load certificate chain for alias '" + alias + "' - " + e.getMessage());
-			certificateChain = null;
-		}
+        return keyStore;
+    }
 
-		return certificateChain;
-	}
+    /**
+     * Loads a certificate chain by a given alias.
+     * <p>
+     * If a certificate for the given alias name does not exist in the keystore than
+     * the default alias (SIGNATURE_KEYSTORE_DEFAULT_ALIAS) will be loaded.
+     * <p>
+     * The method returns null if no certificate was found!
+     * 
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     * @throws KeyStoreException
+     */
+    public Certificate[] loadCertificate(String alias) {
 
-	/**
-	 * Loads a private key by a given alias name and password.
-	 * 
-	 * @param alias
-	 * @return PrivateKey or null if not found
-	 */
-	public PrivateKey loadPrivateKey(String alias,String password) {
-		KeyStore keyStore;
-		PrivateKey privateKey = null;
+        Certificate[] certificateChain = null;
+        try {
+            KeyStore keyStore;
+            keyStore = openKeyStore();
+            // Now we try to load the certificateChat for the given alias
+            String certAlias = alias;
+            if (certAlias != null && !certAlias.isEmpty()) {
+                certificateChain = keyStore.getCertificateChain(certAlias);
+            }
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
+            logger.warning("Failed to load certificate chain for alias '" + alias + "' - " + e.getMessage());
+            certificateChain = null;
+        }
 
-		try {
-			keyStore = openKeyStore();
-			
-			
-			//achtung hier ist das passwort falsch weil dass das vom key ist bzw. "" weil wir keins haben!°!!!!!!!!!!!!!!!!1
-			//privateKey = (PrivateKey) keyStore.getKey(alias,keyStorePassword.toCharArray());
-			privateKey = (PrivateKey) keyStore.getKey(alias,password.toCharArray());
-			
-		} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException
-				| UnrecoverableKeyException e) {
-			logger.warning("Failed to load certificate chain for alias '" + alias + "' - " + e.getMessage());
-			privateKey = null;
-		}
+        return certificateChain;
+    }
 
-		return privateKey;
-	}
-	
-	/**
+    /**
+     * Loads a private key by a given alias name and password. The password can be
+     * null if the key was stored into the keystore with an empty password.
+     * 
+     * @param alias
+     * @return PrivateKey or null if not found
+     */
+    public PrivateKey loadPrivateKey(String alias, String password) {
+        KeyStore keyStore;
+        PrivateKey privateKey = null;
+
+        try {
+            keyStore = openKeyStore();
+            if (password == null) {
+                password = ""; // empty password
+            }
+            privateKey = (PrivateKey) keyStore.getKey(alias, password.toCharArray());
+
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException
+                | UnrecoverableKeyException e) {
+            logger.warning("Failed to load PrivateKey '" + alias + "' from keystore - " + e.getMessage());
+            privateKey = null;
+        }
+
+        return privateKey;
+    }
+
+    /**
      * Loads a private key by a given alias name with an empty password.
      * 
      * @param alias
      * @return PrivateKey or null if not found
      */
-	   public PrivateKey loadPrivateKey(String alias) {
-	       return loadPrivateKey(alias,"");
-	   }
-	
-	
-	public void addEntry(String alias) {
-		KeyStore keyStore;
-		try {
-			keyStore = openKeyStore();
-			
-			CertGenerator.createNewEntry(keyStore, alias, keyStorePassword.toCharArray());
-		} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException
-				 e) {
-			logger.warning("Failed to load certificate chain for alias '" + alias + "' - " + e.getMessage());
-			
-		}
+    public PrivateKey loadPrivateKey(String alias) {
+        return loadPrivateKey(alias, "");
+    }
 
-	}
-	
+
 }
