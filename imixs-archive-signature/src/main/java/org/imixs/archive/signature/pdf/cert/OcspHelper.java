@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.imixs.archive.signature.cert;
+package org.imixs.archive.signature.pdf.cert;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -67,7 +67,7 @@ import org.bouncycastle.operator.ContentVerifierProvider;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
-import org.imixs.archive.signature.util.SigUtils;
+import org.imixs.archive.signature.pdf.util.SigUtils;
 
 /**
  * Helper Class for OCSP-Operations with bouncy castle.

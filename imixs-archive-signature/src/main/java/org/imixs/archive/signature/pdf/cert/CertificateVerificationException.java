@@ -1,4 +1,4 @@
-package org.imixs.archive.signature.cert;
+package org.imixs.archive.signature.pdf.cert;
 
 /**
  * Copied from Apache CXF 2.4.9, initial version:

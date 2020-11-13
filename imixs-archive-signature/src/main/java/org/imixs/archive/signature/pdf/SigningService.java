@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.archive.signature;
+package org.imixs.archive.signature.pdf;
 
 import java.awt.Color;
 import java.awt.geom.AffineTransform;
@@ -76,7 +76,8 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.signature.util.SigUtils;
+import org.imixs.archive.signature.KeystoreService;
+import org.imixs.archive.signature.pdf.util.SigUtils;
 
 /**
  * The SignatureService provides method to sign a PDF document.
@@ -165,6 +166,9 @@ public class SigningService {
 		// regardless of page rotation.
 		Rectangle2D humanRect = new Rectangle2D.Float(50, 660, 170, 50);
 
+		alias="sepp";
+		//alias="tiger";
+		
 		createSignedPDF(documentFile, signedDocumentFile, alias, humanRect, "Signature1", signatureImage, false);
 
 	}
@@ -298,6 +302,9 @@ public class SigningService {
 				if (tsaURL.isPresent() && !tsaURL.get().isEmpty()) {
 					sTsaUrl = tsaURL.get();
 				}
+				
+				PrivateKey testprivateKey = keystoreService.loadPrivateKey("tiger");
+				
 				PrivateKey privateKey = keystoreService.loadPrivateKey(certAlias);
 				signature = new Signature(certificateChain, privateKey, sTsaUrl);
 			} catch (UnrecoverableKeyException | CertificateNotYetValidException | CertificateExpiredException

@@ -1,4 +1,4 @@
-package org.imixs.archive.signature;
+package org.imixs.archive.signature.pdf;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +23,7 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
-import org.imixs.archive.signature.util.ValidationTimeStamp;
+import org.imixs.archive.signature.pdf.util.ValidationTimeStamp;
 
 /**
  * SignatureInterface sample implementation.
