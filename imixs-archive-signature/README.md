@@ -53,12 +53,30 @@ The SignatureAdapter integrates the *Imixs-Archive Signature API* into a busines
 	
 The SignatureAdapter does throw a PluginException in case not certificate for the current user was not found by the CA Service. The CAService can be used to generate user certificates	based on a root certificate. 
 
+#### Configuration
 The adapter creates a new  certificate (autocreate=true) or signs the document with the root certificate if no user certificate exists (rootsignature=true)
 
 	<signature name="autocreate">true</signature>
 	<signature name="rootsignature">false</signature>
-   
-   
+	<signature name="filepattern">order.pdf</signature>
+
+**autocreate**
+
+If autocreate=true than in case no certificate for the current user exists, the SignatureAdaper will create a certificate on the fly.
+
+**rootsignature**
+
+If no no certificate for the current user exists, a document will be signed with the root certificate.
+
+**filepattern**
+
+A  regular expression to filter the attachments do be signed by the plugin. If no file pattern is set, only PDF files will be signed 
+
+	(^.+\\.([pP][dD][fF])$).
+
+The following example will sign all pdf files with the sufix 'order.pdf'
+
+	 (^.+order.pdf)
 
 You can find general details about how to use an Adapter with Imixs-Workflow [here](https://www.imixs.org/doc/core/adapter-api.html).
 
