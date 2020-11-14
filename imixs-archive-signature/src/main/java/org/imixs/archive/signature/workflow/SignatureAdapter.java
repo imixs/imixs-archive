@@ -2,9 +2,6 @@ package org.imixs.archive.signature.workflow;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -41,7 +38,6 @@ import org.imixs.workflow.exceptions.ProcessingErrorException;
  * the current user name. If no certificate exits, the adapter creates a new
  * certificate (autocreate=true) or signs the document with the root certificate
  * (rootsignature=true)
- * 
  * <p>
  * 
  * <pre>
@@ -121,10 +117,10 @@ public class SignatureAdapter implements SignalAdapter {
                         // compute alias validate existence of certificate
                         String certAlias = workflowService.getUserName();
                         logger.info("......signing " + fileName + " by '" + certAlias + "'...");
-                        
+
                         // we assume an empty password for certificate
                         String certPassword = "";
-                        
+
                         // test if a certificate exits....
                         if (!caService.existsCertificate(certAlias)) {
                             if (autocreate) {
@@ -160,24 +156,17 @@ public class SignatureAdapter implements SignalAdapter {
                             sourceContent = fileData.getContent();
                         }
 
-                        Path path = Paths.get(fileName);
-                        Files.write(path, sourceContent);
-                        File filePDFSource = new File(fileName);
+                        // Path path = Paths.get(fileName);
+                        // Files.write(path, sourceContent);
+                        // File filePDFSource = new File(fileName);
                         File fileSignatureImage = new File("/opt/imixs-keystore/" + certAlias + ".jpg");
-                        signatureService.signPDF(filePDFSource, certAlias, certPassword, fileSignatureImage);
+                        FileData signedFileData = signatureService.signPDF(fileData, certAlias, certPassword,
+                                fileSignatureImage);
 
-                        // attache the new generated file....
-                        String name = fileName;
-                        String substring = name.substring(0, name.lastIndexOf('.'));
-                        String newFileName = substring + "_signed.pdf";
-                        byte[] targetContent = Files.readAllBytes(Paths.get(newFileName));
-                        document.addFileData(new FileData(newFileName, targetContent, "application/pdf", null));
-
-                        logger.info("......signing " + fileName + " completed!");
-
-                        break;
+                        // ad the signed pdf file to the workitem
+                        document.addFileData(signedFileData);
+                        logger.info("......signing " + fileName + " completed!");                     
                     }
-
                 }
             }
         } catch (IOException | SigningException | CertificateVerificationException | UnrecoverableKeyException

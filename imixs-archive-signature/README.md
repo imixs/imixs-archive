@@ -9,6 +9,33 @@ The signing process did not only sign a PDF document with a X509 certificate, bu
 
 The implementation is based on the Apache project [PDFBox](https://pdfbox.apache.org/) and the Crypto-API [Bouncycastle](http://bouncycastle.org/). 
 
+## Installation
+
+The *Imixs-Archive Signature API* can be added to the Imixs-Workflow engine with the following maven dependencies:
+
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-archive-signature</artifactId>
+			<version>${org.imixs.archive.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<!-- Apache PDFBox -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>2.0.19</version>
+			<scope>compile</scope>
+		</dependency>
+		<!-- Bouncycastle -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcmail-jdk15on</artifactId>
+			<version>1.67</version>
+			<scope>compile</scope>
+		</dependency>
+		
+
+
 ## Signing a PDF Document
 
 To sign a PDF document, a signature with a X509 certificate is created based on the content of the PDF document. The signature is written back into a new signed version of the origin document. The X509 certificates are stored in a java keystore. 

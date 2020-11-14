@@ -28,7 +28,6 @@ import java.awt.geom.Rectangle2D;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStoreException;
@@ -79,11 +78,16 @@ import org.imixs.archive.signature.KeystoreService;
 import org.imixs.archive.signature.pdf.cert.CertificateVerificationException;
 import org.imixs.archive.signature.pdf.cert.SigningException;
 import org.imixs.archive.signature.pdf.util.SigUtils;
+import org.imixs.workflow.FileData;
 
 /**
- * The SignatureService provides methods to sign a PDF document on a X509 certificate.
+ * The SignatureService provides methods to sign a PDF document on a X509
+ * certificate. The service adds a digital signature and also a visual signature.
+ * The method 'signPDF' expects a Imixs FileData object containing
+ * the content of the PDF file to be signed.
  * <p>
- * The service expects the existence of a valid X509 certificate stored in the keystore. 
+ * The service expects the existence of a valid X509 certificate stored in the
+ * keystore.
  * <p>
  * The service supports the following environment variables:
  * <ul>
@@ -114,7 +118,6 @@ public class SigningService {
     @Inject
     KeystoreService keystoreService;
 
-  
     @Inject
     @ConfigProperty(name = ENV_SIGNATURE_TSA_URL)
     Optional<String> tsaURL;
@@ -134,25 +137,25 @@ public class SigningService {
      * @param documentFile   - File to be signed
      * @param alias          - the alias used to sign the document. The alias should
      *                       be listed in the keystore.
+     * 
+     * 
      * @param signatureImage - image of visible signature
+     * @return signed FileData object
+     * 
      * @throws SigningException
      * @throws CertificateVerificationException
      * 
-     * @throws java.security.KeyStoreException
-     * @throws java.security.cert.CertificateException
-     * @throws java.io.IOException
-     * @throws java.security.NoSuchAlgorithmException
+     * 
      * 
      */
-    public void signPDF(File documentFile, String certAlias, String certPassword, File signatureImage)
+    public FileData signPDF(FileData inputFileData, String certAlias, String certPassword, File signatureImage)
             throws CertificateVerificationException, SigningException {
 
-        logger.info("......signPDF '" + documentFile.getName() + "' ...");
+        logger.info("......signPDF '" + inputFileData.getName() + "' ...");
 
-        File signedDocumentFile;
-        String name = documentFile.getName();
+        String name = inputFileData.getName();
         String substring = name.substring(0, name.lastIndexOf('.'));
-        signedDocumentFile = new File(documentFile.getParent(), substring + "_signed.pdf");
+        String signedFileName = substring + "_signed.pdf";
 
         // Set the signature rectangle
         // Although PDF coordinates start from the bottom, humans start from the top.
@@ -162,7 +165,10 @@ public class SigningService {
         // regardless of page rotation.
         Rectangle2D humanRect = new Rectangle2D.Float(50, 660, 170, 50);
 
-        createSignedPDF(documentFile, signedDocumentFile, certAlias,certPassword, humanRect, "Signature1", signatureImage, false);
+        FileData signedFileData = createSignedPDF(inputFileData, signedFileName, certAlias, certPassword, humanRect,
+                "Signature1", signatureImage, false);
+
+        return signedFileData;
 
     }
 
@@ -182,18 +188,23 @@ public class SigningService {
      * @throws CertificateVerificationException
      * @throws SigningException
      */
-    private void createSignedPDF(File inputFile, File signedFile, String certAlias,String certPassword, Rectangle2D humanRect,
-            String signatureFieldName, File imageFile, boolean externalSigning)
-            throws CertificateVerificationException, SigningException {
+    private FileData createSignedPDF(FileData inputFileData, String signedFileName, String certAlias,
+            String certPassword, Rectangle2D humanRect, String signatureFieldName, File imageFile,
+            boolean externalSigning) throws CertificateVerificationException, SigningException {
 
         SignatureOptions signatureOptions = null;
+        byte[] signedContent = null;
 
-        if (inputFile == null || !inputFile.exists()) {
-            throw new SigningException("Document '" + inputFile + "' for signing does not exist");
+        if (inputFileData == null || inputFileData.getContent().length == 0) {
+            throw new SigningException("empty file data");
         }
 
         // = Loader.loadPDF(inputFile)) {
-        try (FileOutputStream fos = new FileOutputStream(signedFile); PDDocument doc = PDDocument.load(inputFile)) {
+        // ByteArrayOutputStream
+        // try (FileOutputStream fos = new FileOutputStream(signedFile); PDDocument doc
+        // = PDDocument.load(inputFileData.getContent())) {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                PDDocument doc = PDDocument.load(inputFileData.getContent())) {
             int accessPermissions = SigUtils.getMDPPermission(doc);
             if (accessPermissions == 1) {
                 throw new SigningException(
@@ -274,8 +285,8 @@ public class SigningService {
 
             certificateChain = keystoreService.loadCertificate(certAlias);
             if (certificateChain == null || certificateChain.length == 0) {
-               throw new CertificateVerificationException("...certificate alias '" + certAlias
-                            + "' not found in keystore"); 
+                throw new CertificateVerificationException(
+                        "...certificate alias '" + certAlias + "' not found in keystore");
             }
 
             // create the Signature for signing.....
@@ -286,9 +297,8 @@ public class SigningService {
                     sTsaUrl = tsaURL.get();
                 }
                 // load the corresponding private key from the keystore...
-                PrivateKey privateKey = keystoreService.loadPrivateKey(certAlias,certPassword);
-                
-                
+                PrivateKey privateKey = keystoreService.loadPrivateKey(certAlias, certPassword);
+
                 // create a signature object..
                 signature = new Signature(certificateChain, privateKey, sTsaUrl);
             } catch (UnrecoverableKeyException | CertificateNotYetValidException | CertificateExpiredException
@@ -311,7 +321,7 @@ public class SigningService {
             doc.addSignature(pdSignature, signature, signatureOptions);
 
             if (externalSigning) {
-                ExternalSigningSupport externalSigningSupport = doc.saveIncrementalForExternalSigning(fos);
+                ExternalSigningSupport externalSigningSupport = doc.saveIncrementalForExternalSigning(bos);
                 // invoke external signature service
                 byte[] cmsSignature = signature.sign(externalSigningSupport.getContent());
 
@@ -320,7 +330,8 @@ public class SigningService {
 
             } else {
                 // write incremental (only for signing purpose)
-                doc.saveIncremental(fos);
+                doc.saveIncremental(bos);
+                signedContent = bos.toByteArray();
             }
 
         } catch (IOException e) {
@@ -336,6 +347,10 @@ public class SigningService {
             // See https://issues.apache.org/jira/browse/PDFBOX-3743
             IOUtils.closeQuietly(signatureOptions);
         }
+
+        // return the new singed FileData object
+        FileData signedFileData = new FileData(signedFileName, signedContent, "application/pdf", null);
+        return signedFileData;
     }
 
     private PDRectangle createSignatureRectangle(PDDocument doc, Rectangle2D humanRect) {
