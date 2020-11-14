@@ -5,98 +5,177 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
+import org.bouncycastle.operator.OperatorCreationException;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
+import org.imixs.archive.signature.ca.CAService;
 import org.imixs.archive.signature.pdf.SigningService;
+import org.imixs.archive.signature.pdf.cert.CertificateVerificationException;
+import org.imixs.archive.signature.pdf.cert.SigningException;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.SignalAdapter;
 import org.imixs.workflow.engine.WorkflowService;
 import org.imixs.workflow.exceptions.AdapterException;
+import org.imixs.workflow.exceptions.PluginException;
+import org.imixs.workflow.exceptions.ProcessingErrorException;
 
 /**
- * The SignatureAdapter signes a PDF document
+ * The SignatureAdapter signs a PDF document.
+ * <p>
+ * The adapter creates a digital signature with the certificate associated with
+ * the current user name. If no certificate exits, the adapter creates a new
+ * certificate (autocreate=true) or signs the document with the root certificate
+ * (rootsignature=true)
+ * 
+ * <p>
+ * 
+ * <pre>
+ * {@code
+        <signature name="autocreate">true</signature>
+        <signature name="rootsignature">true</signature>
+   }
+ * </pre>
  * 
  * @version 1.0
  * @author rsoika
  */
 public class SignatureAdapter implements SignalAdapter {
 
-	private static Logger logger = Logger.getLogger(SignatureAdapter.class.getName());
+    private static Logger logger = Logger.getLogger(SignatureAdapter.class.getName());
 
-	@Inject
-	SigningService signatureService;
+    @Inject
+    @ConfigProperty(name = SigningService.ENV_SIGNATURE_ROOTCERT_ALIAS)
+    Optional<String> rootCertAlias;
 
-	@Inject
-	SnapshotService snapshotService;
+    @Inject
+    @ConfigProperty(name = SigningService.ENV_SIGNATURE_ROOTCERT_PASSWORD)
+    Optional<String> rootCertPassword;
 
-	@Inject
-	WorkflowService workflowService;
+    @Inject
+    SigningService signatureService;
 
-	/**
-	 * This method posts a text from an attachment to the Imixs-ML Analyse service
-	 * endpoint
-	 */
-	@Override
-	public ItemCollection execute(ItemCollection document, ItemCollection event) throws AdapterException {
+    @Inject
+    CAService caService;
 
-		// find first PDF file....
-		List<String> fileNames = document.getFileNames();
-		for (String fileName : fileNames) {
+    @Inject
+    SnapshotService snapshotService;
 
-			if (fileName.toLowerCase().endsWith(".pdf")) {
-				try {
-					String alias=workflowService.getUserName();
-					alias="tiger";
-					alias="sepp";
-					logger.info("......signing " + fileName + " by '" + alias +"'...");
-					FileData fileData = document.getFileData(fileName);
+    @Inject
+    WorkflowService workflowService;
 
-					byte[] sourceContent = fileData.getContent();
-					if (sourceContent.length == 0) {
-						// load from snapshot
-						ItemCollection snapshot = snapshotService.findSnapshot(document);
-						fileData = snapshot.getFileData(fileName);
-						sourceContent = fileData.getContent();
-					}
+    /**
+     * This method posts a text from an attachment to the Imixs-ML Analyse service
+     * endpoint
+     */
+    @Override
+    public ItemCollection execute(ItemCollection document, ItemCollection event) throws AdapterException {
+        boolean autocreate = true;
+        boolean rootsignature = false;
 
-					Path path = Paths.get(fileName);
-					Files.write(path, sourceContent);
+        // find first PDF file....
+        List<String> fileNames = document.getFileNames();
+        for (String fileName : fileNames) {
 
-					File filePDFSource = new File(fileName);
-					
-					File fileSignatureImage=new File("/opt/imixs-keystore/"+alias+".jpg");
-					
-					
-					signatureService.signPDF(filePDFSource, alias,fileSignatureImage);
-					
+            if (fileName.toLowerCase().endsWith(".pdf")) {
+                try {
 
-					// attache the new generated file....
-					String name = fileName;
-					String substring = name.substring(0, name.lastIndexOf('.'));
-					String newFileName = substring + "_signed.pdf";
-					byte[] targetContent = Files.readAllBytes(Paths.get(newFileName));
-					document.addFileData(new FileData(newFileName, targetContent, "application/pdf", null));
+                    // read signature options
+                    ItemCollection evalItemCollection = workflowService.evalWorkflowResult(event, "signature", document,
+                            false);
+                    if (evalItemCollection != null) {
+                        if (evalItemCollection.hasItem("autocreate")) {
+                            autocreate = evalItemCollection.getItemValueBoolean("autocreate");
+                        }
+                        if (evalItemCollection.hasItem("rootsignature")) {
+                            rootsignature = evalItemCollection.getItemValueBoolean("rootsignature");
+                        }
+                    }
 
-					logger.info("......signing " + fileName + " completed!");
+                    // compute alias validate existence of certificate
+                    String certAlias = workflowService.getUserName();
+                    logger.info("......signing " + fileName + " by '" + certAlias + "'...");
 
-				} catch (IOException | NoSuchAlgorithmException | CertificateException | KeyStoreException e) {
-					throw new AdapterException(this.getClass().getSimpleName(), "SIGNING_ERROR", e.getMessage(), e);
-				}
+                    // we assume an empty password for certificate
+                    String certPassword = "";
 
-				break;
-			}
+                    // test if a certificate exits....
+                    if (!caService.existsCertificate(certAlias)) {
+                        if (autocreate) {
+                            // create new certificate....
+                            caService.createCertificate(certAlias, null);
+                        } else {
+                            // try to fetch the root certificate
+                            if (rootsignature && rootCertAlias.isPresent()) {
+                                certAlias = rootCertAlias.get();
+                                // set SIGNATURE_ROOTCERT_PASSWORD
+                                if (rootCertPassword.isPresent()) {
+                                    certPassword = rootCertPassword.get();
+                                }
+                            } else {
+                                throw new CertificateVerificationException("certificate for alias '" + certAlias
+                                        + "' not found. Missing default certificate alias (SIGNATURE_KEYSTORE_DEFAULT_ALIAS)!");
+                            }
+                        }
+                        // test existence of default certificate
+                        if (!caService.existsCertificate(certAlias)) {
+                            throw new ProcessingErrorException(this.getClass().getSimpleName(), "SIGNING_ERROR",
+                                    "No certificate exists for user '" + certAlias + "'");
+                        }
+                    }
 
-		}
+                    FileData fileData = document.getFileData(fileName);
 
-		return document;
-	}
+                    byte[] sourceContent = fileData.getContent();
+                    if (sourceContent.length == 0) {
+                        // load from snapshot
+                        ItemCollection snapshot = snapshotService.findSnapshot(document);
+                        fileData = snapshot.getFileData(fileName);
+                        sourceContent = fileData.getContent();
+                    }
+
+                    Path path = Paths.get(fileName);
+                    Files.write(path, sourceContent);
+                    File filePDFSource = new File(fileName);
+                    File fileSignatureImage = new File("/opt/imixs-keystore/" + certAlias + ".jpg");
+                    signatureService.signPDF(filePDFSource, certAlias, certPassword, fileSignatureImage);
+
+                    // attache the new generated file....
+                    String name = fileName;
+                    String substring = name.substring(0, name.lastIndexOf('.'));
+                    String newFileName = substring + "_signed.pdf";
+                    byte[] targetContent = Files.readAllBytes(Paths.get(newFileName));
+                    document.addFileData(new FileData(newFileName, targetContent, "application/pdf", null));
+
+                    logger.info("......signing " + fileName + " completed!");
+
+                } catch (IOException | SigningException | CertificateVerificationException | PluginException
+                        | UnrecoverableKeyException | InvalidKeyException | KeyStoreException | NoSuchAlgorithmException
+                        | NoSuchProviderException | OperatorCreationException | CertificateException
+                        | SignatureException e) {
+                    throw new ProcessingErrorException(this.getClass().getSimpleName(), "SIGNING_ERROR", e.getMessage(),
+                            e);
+                }
+
+                break;
+            }
+
+        }
+
+        return document;
+    }
 
 }

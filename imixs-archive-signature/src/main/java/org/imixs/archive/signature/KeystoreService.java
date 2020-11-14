@@ -25,6 +25,7 @@ package org.imixs.archive.signature;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -97,7 +98,7 @@ public class KeystoreService {
     public KeyStore openKeyStore() throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
             FileNotFoundException, IOException {
 
-        logger.info("......open keystore");
+        logger.finest("......open keystore");
 
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);
         File key = new File(keyStorePath);
@@ -125,7 +126,7 @@ public class KeystoreService {
      * @throws KeyStoreException
      */
     public Certificate[] loadCertificate(String alias) {
-
+        logger.finest("......load certificate '" + alias+"'");
         Certificate[] certificateChain = null;
         try {
             KeyStore keyStore;
@@ -153,6 +154,7 @@ public class KeystoreService {
     public PrivateKey loadPrivateKey(String alias, String password) {
         KeyStore keyStore;
         PrivateKey privateKey = null;
+        logger.finest("......load PrivateKey '" + alias+"'");
 
         try {
             keyStore = openKeyStore();
@@ -180,5 +182,36 @@ public class KeystoreService {
         return loadPrivateKey(alias, "");
     }
 
+    /**
+     * This method stores the certificate into the keystore.
+     * 
+     * @param certificateChain - the certificate chain to be stored
+     * @param privKey          - the associated private key
+     * @param password         - optional password to protect the entry, can be null
+     * @param alias            - alias name to store the entry
+     * 
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     * @throws Exception
+     */
+    public void storeCertificate(Certificate[] certificateChain, PrivateKey privKey, String password,
+            String alias) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+
+        logger.info("...store X509Certificate for alias '" + alias + "' into keystore...");
+        // open the keystore
+        KeyStore keyStore = openKeyStore();
+        // add key entry
+        if (password == null || password.isEmpty()) {
+            // no password provided
+            keyStore.setKeyEntry(alias, privKey, null, certificateChain);
+        } else {
+            keyStore.setKeyEntry(alias, privKey, password.toCharArray(), certificateChain);
+        }
+        // store keystore into filesystem...
+        FileOutputStream keyStoreOs = new FileOutputStream(keyStorePath);
+        keyStore.store(keyStoreOs, keyStorePassword.toCharArray());
+    }
 
 }

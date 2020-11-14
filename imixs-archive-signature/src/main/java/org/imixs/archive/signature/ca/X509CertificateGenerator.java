@@ -3,6 +3,7 @@ package org.imixs.archive.signature.ca;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -12,6 +13,7 @@ import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -26,6 +28,7 @@ import org.bouncycastle.asn1.x500.style.RFC4519Style;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -43,12 +46,13 @@ import org.imixs.archive.signature.KeystoreService;
 
 /**
  * The X509CertificateGenerator provides static methods to generate
- * X509Certificates to be used for digital Signatures. Certificates can be singed
- * by an existing root or intermediate Certificate stored in a keystore. The
- * X509CertificateGenerator is used by the Imixs-Archive CAService.
+ * X509Certificates to be used for digital Signatures. Certificates can be
+ * singed by an existing root or intermediate Certificate stored in a keystore.
+ * The X509CertificateGenerator is used by the Imixs-Archive CAService.
  * <p>
- * Certificates stored in the keystore can be protected with an additional optional password.
- * This is recommended for root certificates and intermediate certificates.
+ * Certificates stored in the keystore can be protected with an additional
+ * optional password. This is recommended for root certificates and intermediate
+ * certificates.
  * 
  * <p>
  * The DEFAULT_KEY_ALGORITHM is "RSA", the DEFAULT_SIGNATURE_ALGORITHM is
@@ -69,32 +73,16 @@ public class X509CertificateGenerator {
     private static final String DEFAULT_SIGNATURE_ALGORITHM = "SHA256withRSA";
     private static Logger logger = Logger.getLogger(KeystoreService.class.getName());
 
-    private KeyStore keyStore = null;
-    private X509Certificate rootCert = null;
-    private PrivateKey rootPrivateKey = null;
-
     private String keyAlgorithm = DEFAULT_KEY_ALGORITHM;
     private String signatureAlgorithm = DEFAULT_SIGNATURE_ALGORITHM;
-    private KeyPairGenerator keyPairGenerator = null;
+    // private KeyPairGenerator keyPairGenerator = null;
 
-    public X509CertificateGenerator(KeyStore keyStore, String rootCertAlias, String rootCertPassword)
+    public X509CertificateGenerator()
             throws KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException, NoSuchProviderException {
         super();
-        this.keyStore = keyStore;
-
-        // load root cert...
-        this.rootCert = (X509Certificate) keyStore.getCertificate(rootCertAlias);
-        if (rootCertPassword == null) {
-            rootCertPassword = ""; // empty password
-        }
-        this.rootPrivateKey = (PrivateKey) keyStore.getKey(rootCertAlias, rootCertPassword.toCharArray());
 
         // Add the BouncyCastle Provider
         Security.addProvider(new BouncyCastleProvider());
-
-        // Initialize a new KeyPair generator
-        keyPairGenerator = KeyPairGenerator.getInstance(getKeyAlgorithm(), BC_PROVIDER);
-        keyPairGenerator.initialize(2048);
 
     }
 
@@ -116,7 +104,10 @@ public class X509CertificateGenerator {
 
     /**
      * This method generates a self signed root certificate. The root certificate
-     * can be used to genereate signed X509Certificates.
+     * can be used to generate signed X509Certificates.
+     * <p>
+     * The method returns the root certificate.
+     * 
      * 
      * @param rootKeyPair - key pair used to generated the certificate
      * @param cn          - common name of the root certificate
@@ -162,6 +153,7 @@ public class X509CertificateGenerator {
         X509Certificate rootCert = new JcaX509CertificateConverter().setProvider(BC_PROVIDER)
                 .getCertificate(rootCertHolder);
 
+        // return the certificate
         return rootCert;
     }
 
@@ -170,16 +162,29 @@ public class X509CertificateGenerator {
      * given root/intermediate certificate by generating a CSR (Certificate Signing
      * Request).
      * <p>
-     * The method stores certificates finally in the given keystore.
+     * The method returns a certificate chain containing the issuer certificate and
+     * the root certificate. A certificate chain can be stored in a keyStore.
      * 
+     * @throws NoSuchAlgorithmException
+     * @throws OperatorCreationException
+     * @throws CertIOException
+     * @throws CertificateException
+     * @throws SignatureException
+     * @throws NoSuchProviderException
+     * @throws InvalidKeyException
      * @see https://gist.github.com/vivekkr12/c74f7ee08593a8c606ed96f4b62a208a
      *
      */
-    public X509Certificate generateSignedCertificate(KeyPair issuedCertKeyPair, String cn, String ou, String o, String city,
-            String state, String country) throws Exception {
+    public X509Certificate[] generateSignedCertificate(X509Certificate rootCert, PrivateKey rootPrivateKey,
+            KeyPair issuedCertKeyPair, String cn, String ou, String o, String city, String state, String country)
+            throws NoSuchAlgorithmException, OperatorCreationException, CertIOException, CertificateException,
+            InvalidKeyException, NoSuchProviderException, SignatureException {
 
-        logger.info("...generating new certificate for user " + cn + "...");
+        logger.fine("...generating new certificate for user " + cn + "...");
 
+        if (cn == null || cn.isEmpty()) {
+            throw new IllegalArgumentException("cn is empty or null!");
+        }
         // Setup start date to yesterday and end date for 1 year validity
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DATE, -1);
@@ -216,11 +221,18 @@ public class X509CertificateGenerator {
 
         X500NameBuilder builder = new X500NameBuilder(RFC4519Style.INSTANCE);
         builder.addRDN(RFC4519Style.cn, cn);
-        builder.addRDN(RFC4519Style.ou, ou);
-        builder.addRDN(RFC4519Style.o, o);
-        builder.addRDN(RFC4519Style.l, city);
-        builder.addRDN(RFC4519Style.st, state);
-
+        if (ou != null && !ou.isEmpty()) {
+            builder.addRDN(RFC4519Style.ou, ou);
+        }
+        if (o != null && !o.isEmpty()) {
+            builder.addRDN(RFC4519Style.o, o);
+        }
+        if (city != null && !city.isEmpty()) {
+            builder.addRDN(RFC4519Style.l, city);
+        }
+        if (state != null && !state.isEmpty()) {
+            builder.addRDN(RFC4519Style.st, state);
+        }
         X509v3CertificateBuilder issuedCertBuilder = new X509v3CertificateBuilder(rootCertIssuer, issuedCertSerialNum,
                 startDate, endDate, builder.build(), csr.getSubjectPublicKeyInfo());
 
@@ -246,7 +258,11 @@ public class X509CertificateGenerator {
         // Verify the issued cert signature against the root (issuer) cert
         issuedCert.verify(rootCert.getPublicKey(), BC_PROVIDER);
 
-        return issuedCert;
+        // Build a certificate chain. First the issuerCert and then the rootCert
+        X509Certificate[] certChain = new X509Certificate[] { issuedCert, rootCert };
+
+        // return the certificate chain
+        return certChain;
 
     }
 
@@ -256,7 +272,17 @@ public class X509CertificateGenerator {
      * @return
      */
     public KeyPair generateKeyPair() {
-        return keyPairGenerator.generateKeyPair();
+        // Initialize a new KeyPair generator
+        KeyPairGenerator keyPairGenerator;
+        try {
+            keyPairGenerator = KeyPairGenerator.getInstance(getKeyAlgorithm(), BC_PROVIDER);
+            keyPairGenerator.initialize(2048);
+            return keyPairGenerator.generateKeyPair();
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            logger.severe("Failed to generate keypair: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**
@@ -276,22 +302,12 @@ public class X509CertificateGenerator {
      * @throws NoSuchAlgorithmException
      * @throws Exception
      */
-    public void exportKeyPairToKeystore(Certificate certificate, PrivateKey privKey, String password, String alias,
-            String fileName, String storePass)
+    public void exportKeyPairToKeystore(Certificate[] certChain, PrivateKey privKey, String password, String alias,
+            KeyStore keyStore, String fileName, String storePass)
             throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
-
-        // Build a certificate chain. First the issuerCert and then the rootCert
-        Certificate[] certChain = null;
-
-        if (rootCert == null) {
-            certChain = new Certificate[] { certificate };
-        } else {
-            certChain = new Certificate[] { certificate, rootCert };
-        }
-
-        if (password==null) {
+        if (password == null) {
             keyStore.setKeyEntry(alias, privKey, null, certChain);
-        }else {
+        } else {
             keyStore.setKeyEntry(alias, privKey, password.toCharArray(), certChain);
         }
         FileOutputStream keyStoreOs = new FileOutputStream(fileName);

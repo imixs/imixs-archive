@@ -3,6 +3,8 @@ package org.imixs.archive.signature;
 import java.io.File;
 import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
 import org.imixs.archive.signature.ca.X509CertificateGenerator;
@@ -51,22 +53,17 @@ public class X509CertificateGeneratorTest {
     public void testGenerateRootCert() {
         try {
             KeyStore keyStore = keystoreService.openKeyStore();
-            x509CertificateGenerator = new X509CertificateGenerator(keyStore, "root-cert", "123456");
-
+            
+            x509CertificateGenerator = new X509CertificateGenerator();
             KeyPair rootKeyPair = x509CertificateGenerator.generateKeyPair();
-            
-        
-            
-            
+
             X509Certificate rootCert = x509CertificateGenerator.generateRootCertificate(rootKeyPair, "root-cert");
-
-            x509CertificateGenerator.writeCertToFileBase64Encoded(rootCert, "root-cert.cer");
-
             // write to keystore....
             x509CertificateGenerator.writeCertToFileBase64Encoded(rootCert, resourcesPath + "/root-cert.cer");
 
-            x509CertificateGenerator.exportKeyPairToKeystore(rootCert, rootKeyPair.getPrivate(),"pass", "root-cert",
-                    keyStorePath, "123456");
+            X509Certificate[] certChain = new X509Certificate[] {  rootCert };
+            x509CertificateGenerator.exportKeyPairToKeystore(certChain, rootKeyPair.getPrivate(), "rootcert-secret", "root-cert",
+                    keyStore, keyStorePath, "123456");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -82,19 +79,24 @@ public class X509CertificateGeneratorTest {
 
         try {
             KeyStore keyStore = keystoreService.openKeyStore();
-            x509CertificateGenerator = new X509CertificateGenerator(keyStore, "root-cert", "pass");
+            x509CertificateGenerator = new X509CertificateGenerator();
+            
+            Certificate[] rootCertChain = keystoreService.loadCertificate("root-cert");
+            X509Certificate rootCert=(X509Certificate) rootCertChain[0];
+            PrivateKey rootPrivKey=keystoreService.loadPrivateKey("root-cert", "rootcert-secret");
 
             KeyPair issueKeyPair = x509CertificateGenerator.generateKeyPair();
 
-            X509Certificate certificate = x509CertificateGenerator.generateSignedCertificate(issueKeyPair, "Melman", "Dev",
+            Certificate[] certChain = x509CertificateGenerator.generateSignedCertificate(rootCert,rootPrivKey,issueKeyPair, "Melman", "Dev",
                     "Imixs", "Berlin", "BAD", "DE");
 
-            Assert.assertNotNull(certificate);
-
+            Assert.assertNotNull(certChain);
+            Assert.assertEquals(2, certChain.length);
+            
             // export results to the file system
-            x509CertificateGenerator.writeCertToFileBase64Encoded(certificate, resourcesPath + "/melman.cer");
-            x509CertificateGenerator.exportKeyPairToKeystore(certificate, issueKeyPair.getPrivate(),null, "melman",
-                    keyStorePath, "123456");
+            x509CertificateGenerator.writeCertToFileBase64Encoded(certChain[0], resourcesPath + "/melman.cer");
+            x509CertificateGenerator.exportKeyPairToKeystore(certChain, issueKeyPair.getPrivate(), null, "melman",
+                    keyStore,  keyStorePath, "123456");
 
         } catch (Exception e) {
             e.printStackTrace();
