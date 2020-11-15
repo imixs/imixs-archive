@@ -3,10 +3,12 @@
 [![Join the chat at https://gitter.im/imixs/imixs-workflow](https://badges.gitter.im/imixs/imixs-workflow.svg)](https://gitter.im/imixs/imixs-workflow?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![License](https://img.shields.io/badge/license-GPL-blue.svg)](https://github.com/imixs/imixs-archive/blob/master/LICENSE)
 
-_Imixs-Archive_ is an open source project designed to provide a transparent and sustaining solution for long-term audit-proof archiving of business data. In this context, business data means not only documents but also the comprehensible documentation of business processes.
-Imixs-Archive is a sub-project of the Human-Centric Workflow engine [Imixs-Workflow](http://www.imixs.org), which provides a powerful platform to describe and execute business processes. 
+*Imixs-Archive* is an open source project designed to provide a transparent and sustaining solution for document management and long-term audit-proof archiving of business data. In this context, business data means not only documents but also the comprehensible documentation of business processes.
+*Imixs-Archive* includes various modules and services integrated into the [Imixs-Workflow project](https://www.imixs.org). The archive core technology is based on [Apache Cassandra](http://cassandra.apache.org/) which offers a highly available Big Data Platform.
+
 
 <img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-archive-architecture.png"/>
+
 
 
 ## Architecture
@@ -15,51 +17,68 @@ The project pursues the following main objectives:
 
  - Archive business data in a highly available Big Data Platform
  - Optical Character Recognition (OCR) and text extraction
+ - Input and Output management of Documents
+ - Digital Signatures
  - Retrieve archived business data 
  - Big Data Analysis
  - Data recovery after a data loss 
  
- 
-### Apache Cassandra  
-
-Imixs-Archive is based based on [Apache Cassandra](http://cassandra.apache.org/) which offers a highly available Big Data Platform .
-_"Imixs-Archive"_  provides an optimized data model to archive process instances into a Cassandra cluster.
-
-[Apache Cassandra](http://cassandra.apache.org/)
 
  
-### The Core API
+### Imixs-Archive-API
 
-The [sub-module Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api) provides core functionality and interfaces to exchange business data with any kind of archive or big data platform. 
-This API is platform independent and based on the Imixs-Workflow API. The API is bundled with an Imixs-Workflow instance. 
+The sub-module *Imixs-Archive-API* provides the core API to store business data into snapshots to be archived by the Imixs-Archive Service. This Core API is platform independent and based on the Imixs-Workflow API. The API can be bundled with an Imixs-Workflow instance. 
 
 [Imixs-Archive-API](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api)
 
-### The Microservice
+### Imixs-Archive-Service
 
-The _"Imixs-Archive-Service"_ project provides an MicrosService to store the data of Imixs-Workflow into a highly available Big Data Platform based on [Apache Cassandra](http://cassandra.apache.org/). The service runs  typically in a Cassandra Cluster consisting of serveral data nodes. The Imixs-Archive Service is build on Jakarta EE and automatically pulls the data from an Imixs Workflow Instance into the Cassandra Cluster based on a scheduler. The archive process includes all business process data and documents. 
- 
-The Imixs-Archive Service can also be used to retrieve a single archived process instance or to restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery of an Imixs Workflow instance. 
+The *Imixs-Archive-Service* provides an independent microservice archiving all data from a Imixs-Workflow instance into an [Apache Cassandra Cluster](http://cassandra.apache.org/). The *Imixs-Archive Service* provides methods to restore a single process instance or to export or to restore the entire archive. Restoring an entire archive can be used, for example, after a data loss or a Disaster recovery. 
 
 [Imixs-Archive-Service](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-service)
 
 
+### Imixs-Archive-Documents
 
+*Imixs-Archive-Documents* provides Plugins and Adapter classes to extract textual information from attached documents - including Optical character recognition - during the processing life cycle of a workitem. This information can be used for further processing or to search for documents.
 
-## What is audit-proof archiving?
+[Imixs-Archive-Documents](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-documents)
+
+### Imixs-Archive-OCR
+
+*Imixs-Archive-OCR* provides a service component to extract textual information from documents attached to a Workitem. The text extraction is based on [Apache Tika](https://tika.apache.org/). 
+
+[Imixs-Archive-OCR](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ocr)
+
+### Imixs-Archive-Importer
+
+*Imixs-Archive-Importer* provides a generic import service to be used to import documents form various external sources like a FTP server or a IMAP account. 
+
+[Imixs-Archive-OCR](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-importer)
+
+### Imixs Signature
+
+The *Imixs-Archive Signature API* provides a service to sign PDF documents attached to a Imixs-Workflow process instance during the workflow processing life-cycle. 
+The signing process did not only sign a PDF document with a X509 certificate, but also adds a visual element into the PDF document linked to the signature. This gives the user the possibility to visually recognize the signature and control the validity of the document based on the embedded digital signature.
+
+[Imixs-Archive-Signature](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-signature)
+
+# What is audit-proof archiving?
 Audit-proof archiving means that documents or business information can be searched, traced back to their origin, and stored securely against tampering. From an organizational perspective, a procedure for audit-proof archiving must be transparent for 
 all members within an organization. The Imixs-Archive API combines these aspects together with the [Imixs-Workflow engine](http://www.imixs.org)  into a powerful and flexible business process management platform.
  
-### Searching Information
+## Searching Information
 Imixs-Workflow provides the foundation for creating, editing, and searching business data  on intelligible defined process descriptions. Each process instance, controlled by the Imixs-Workflow engine, can be searched through a full-text index. A query can be structured - according to predefined attributes, as well as unstructured - based on search terms in a full-text search.
 
-### Tracing Back Information to its Origin
+## Tracing Back Information to its Origin
 Any information controlled by Imixs-Workflow contains a detailed and consistently log from its creation to its archiving.  This protocol can be read by both, IT systems and humans. Business information is archived in an open XML format which is independent from technical platform and storage solutions.  
  
-### Protecting Information from Tampering
+## Protecting Information from Tampering
 Based on a BPMN 2.0 process model, business data can be protected from changes at any time by well defined business rules within a business process.
 Imixs-Workflow supports a fine grained access control on the level of a single process instance. This concept allows protecting data from tampering. In addition, Imixs-Archive supports a [snapshot concept](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-api) that automatically stores immutable business data protected from any further manipulation.
 
+## Signing Information
+Based on X509 Certificates documents (PDF) can be signed to guarantee their authenticity. [Imixs-Archive-Signature](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-signature) provides method to sign documents. This service includes a certificate authority (CA) integrated into the Imixs-Archive platform.  
 
 
  
