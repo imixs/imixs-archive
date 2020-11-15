@@ -128,10 +128,22 @@ The CAService expects an optional profile document containing the following X509
  - x509.city - City
  - x509.state - State
  - x509.country - Country
- 
+
+
+### X509CertificateAdapter
+
+The *X509CertificateAdapter* SignaAdapter class generates a new certificate based on the x509 attributes stored in the current document.
+
+	org.imixs.archive.signature.workflow.X509CertificateAdapter
+	
+The adapter can be used to explicitly create or update a X509 certificate based on a user profile. In case the SignatureAdapter property 'autocreate' is set to 'true' (default) this adapter is not necessary as the SignalAdapter generates a X509Certificate if necessary .
+
+
 ### The X509ProfileHandler
 
-The X509ProfileHandler is a CDI bean to lookup the X509 profile data for a  given alias name. The default lucene query to lookup the data is:
+The *X509ProfileHandler* is a CDI bean to lookup the X509 profile data for a  given alias name. The *X509ProfileHandler* is called by the *CAService* during the generation of a new X509 certificate. 
+
+The default lucene query to lookup the data is:
 
 	(type:"profile") AND (name:"?" OR txtname:"?")
 
