@@ -20,6 +20,7 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
 import org.imixs.archive.signature.ca.CAService;
+import org.imixs.archive.signature.ca.X509ProfileHandler;
 import org.imixs.archive.signature.pdf.SigningService;
 import org.imixs.archive.signature.pdf.cert.CertificateVerificationException;
 import org.imixs.archive.signature.pdf.cert.SigningException;
@@ -74,6 +75,9 @@ public class SignatureAdapter implements SignalAdapter {
 
     @Inject
     WorkflowService workflowService;
+    
+    @Inject
+    X509ProfileHandler x509ProfileHandler;
 
     private static Logger logger = Logger.getLogger(SignatureAdapter.class.getName());
 
@@ -124,8 +128,10 @@ public class SignatureAdapter implements SignalAdapter {
                         // test if a certificate exits....
                         if (!caService.existsCertificate(certAlias)) {
                             if (autocreate) {
+                                // lookup the x509 data form the x509ProfileHandler
+                                ItemCollection x509Profile= x509ProfileHandler.findX509Profile(certAlias);
                                 // create new certificate....
-                                caService.createCertificate(certAlias, null);
+                                caService.createCertificate(certAlias,x509Profile);
                             } else {
                                 // try to fetch the root certificate
                                 if (rootsignature && rootCertAlias.isPresent()) {

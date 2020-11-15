@@ -6,6 +6,8 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.imixs.archive.signature.ca.X509CertificateGenerator;
 import org.imixs.workflow.exceptions.ModelException;
@@ -87,8 +89,11 @@ public class X509CertificateGeneratorTest {
 
             KeyPair issueKeyPair = x509CertificateGenerator.generateKeyPair();
 
-            Certificate[] certChain = x509CertificateGenerator.generateSignedCertificate(rootCert,rootPrivKey,issueKeyPair, "Melman", "Dev",
-                    "Imixs", "Berlin", "BAD", "DE");
+            List<String>ou=new ArrayList<String>();
+            ou.add("Development");
+            ou.add("Software");
+            Certificate[] certChain = x509CertificateGenerator.generateSignedCertificate(rootCert,rootPrivKey,issueKeyPair, "M. Melman", 
+                    "Imixs",ou, "Munich", "BAY", "DE");
 
             Assert.assertNotNull(certChain);
             Assert.assertEquals(2, certChain.length);

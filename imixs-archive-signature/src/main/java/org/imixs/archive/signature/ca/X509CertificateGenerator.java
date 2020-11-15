@@ -20,6 +20,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.bouncycastle.asn1.x500.X500Name;
@@ -176,7 +177,7 @@ public class X509CertificateGenerator {
      *
      */
     public X509Certificate[] generateSignedCertificate(X509Certificate rootCert, PrivateKey rootPrivateKey,
-            KeyPair issuedCertKeyPair, String cn, String ou, String o, String city, String state, String country)
+            KeyPair issuedCertKeyPair, String cn,String o, List<String> ou,  String city, String state, String country)
             throws NoSuchAlgorithmException, OperatorCreationException, CertIOException, CertificateException,
             InvalidKeyException, NoSuchProviderException, SignatureException {
 
@@ -222,7 +223,10 @@ public class X509CertificateGenerator {
         X500NameBuilder builder = new X500NameBuilder(RFC4519Style.INSTANCE);
         builder.addRDN(RFC4519Style.cn, cn);
         if (ou != null && !ou.isEmpty()) {
-            builder.addRDN(RFC4519Style.ou, ou);
+            // here we add a list of OUs...
+            for (String _ou: ou) {
+                builder.addRDN(RFC4519Style.ou, _ou);
+            }
         }
         if (o != null && !o.isEmpty()) {
             builder.addRDN(RFC4519Style.o, o);
