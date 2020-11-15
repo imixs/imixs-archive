@@ -61,7 +61,7 @@ public class X509ProfileHandler implements Serializable {
     protected DocumentService documentService;
 
     @Inject
-    @ConfigProperty(name = ENV_SIGNATURE_X509_PROFILE_QUERY, defaultValue = "(type:\"workitem\") AND (name:\"?\")")
+    @ConfigProperty(name = ENV_SIGNATURE_X509_PROFILE_QUERY, defaultValue = "(type:\"profile\") AND (name:\"?\" OR txtname:\"?\")")
     Optional<String> profileQuery;
 
     private static final long serialVersionUID = 1L;
@@ -81,7 +81,10 @@ public class X509ProfileHandler implements Serializable {
 
         List<ItemCollection> result;
         try {
-            result = documentService.find(profileQuery.get(), 1, 0);
+            String query=profileQuery.get();
+            // replace ? with alias
+            query=query.replace("?", alias);
+            result = documentService.find(query, 1, 0);
 
             if (result.size() > 0) {
                 return result.get(0);

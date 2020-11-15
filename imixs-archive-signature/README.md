@@ -133,8 +133,12 @@ The CAService expects an optional profile document containing the following X509
 
 The X509ProfileHandler is a CDI bean to lookup the X509 profile data for a  given alias name. The default lucene query to lookup the data is:
 
-	(type:"workitem") AND (name:"?")
+	(type:"profile") AND (name:"?" OR txtname:"?")
 
 The query can be configured by the environment variable SIGNATURE_X509_PROFILE_QUERY.
 
 The CDI bean can be overwritten with an alternative application specific implementation. This can be useful in case the X509 data exist in an external data source like a LDAP directory to be used to  lookup the X509 data.
+
+In Imixs-Office-Workflow a corresponding UI feature within the user management can be activated with the property *profile.x509*
+
+	profile.x509=true
