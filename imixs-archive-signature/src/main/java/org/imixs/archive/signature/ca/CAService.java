@@ -118,6 +118,7 @@ public class CAService {
      * @throws IOException
      * @throws Exception
      */
+    @SuppressWarnings("unchecked")
     public void createCertificate(String alias, ItemCollection profile)
             throws UnrecoverableKeyException, KeyStoreException, NoSuchAlgorithmException, NoSuchProviderException,
             InvalidKeyException, OperatorCreationException, CertificateException, SignatureException, IOException {
@@ -141,7 +142,7 @@ public class CAService {
             }
             // create the certificate...
             certificateChain = x509CertificateGenerator.generateSignedCertificate(rootCert, rootPrivKey, issueKeyPair,
-                    cn, profile.getItemValueString("x509.ou"), profile.getItemValueString("x509.o"),
+                    cn,profile.getItemValueString("x509.o"), profile.getItemValue("x509.ou"), 
                     profile.getItemValueString("x509.city"), profile.getItemValueString("x509.state"),
                     profile.getItemValueString("x509.country"));
         } else {
