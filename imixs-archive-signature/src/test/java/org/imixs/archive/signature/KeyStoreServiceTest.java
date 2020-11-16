@@ -11,6 +11,7 @@ import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -19,6 +20,7 @@ import org.junit.Test;
  * @author rsoika
  * @version 1.0
  */
+@Ignore
 public class KeyStoreServiceTest {
 
     String resourcesPath = null;
