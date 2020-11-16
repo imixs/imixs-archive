@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 
 import org.imixs.workflow.exceptions.ModelException;
@@ -58,20 +57,6 @@ public class KeyStoreServiceTest {
         Assert.assertNotNull(keystore);
     }
 
-    /**
-     * Load cert chain by alias name
-     */
-    @Test
-    public void testLoadCertificate() {
-        keystoreService = new KeystoreService(resourcesPath + "/keystore/imixs.jks", keystorePassword, "PKCS12");
-        try {
-            Certificate[] certChain = keystoreService.loadCertificate("tiger");
-            Assert.assertNotNull(certChain);
-            Assert.assertEquals(2, certChain.length);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
-    }
+  
 
 }

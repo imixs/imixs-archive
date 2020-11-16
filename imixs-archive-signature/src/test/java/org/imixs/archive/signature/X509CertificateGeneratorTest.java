@@ -14,7 +14,9 @@ import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 /**
  * This test class tests X509CertificateGenerator
@@ -22,6 +24,7 @@ import org.junit.Test;
  * @author rsoika
  * @version 1.0
  */
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class X509CertificateGeneratorTest {
 
     String resourcesPath = null;
@@ -43,7 +46,10 @@ public class X509CertificateGeneratorTest {
         keyStorePath = resourcesPath + "/keystore/test.jks";
         keystoreService = new KeystoreService(keyStorePath, "123456", "PKCS12");
 
+        
+        
     }
+    
 
     /**
      * This test method generates a new password protected root certificate.
@@ -52,7 +58,7 @@ public class X509CertificateGeneratorTest {
      * certificates!
      */
     @Test
-    public void testGenerateRootCert() {
+    public void test001GenerateRootCert() {
         try {
             KeyStore keyStore = keystoreService.openKeyStore();
             
@@ -77,7 +83,7 @@ public class X509CertificateGeneratorTest {
      * Test method generates a new certificate signed by a root certificate.
      */
     @Test
-    public void testCreateSignedCertFromRootCert() {
+    public void test002CreateSignedCertFromRootCert() {
 
         try {
             KeyStore keyStore = keystoreService.openKeyStore();
@@ -109,4 +115,19 @@ public class X509CertificateGeneratorTest {
         }
     }
 
+    
+    /**
+     * Load cert chain by alias name
+     */
+    @Test
+    public void test003LoadCertificate() {
+        try {
+            Certificate[] certChain = keystoreService.loadCertificate("melman");
+            Assert.assertNotNull(certChain);
+            Assert.assertEquals(2, certChain.length);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 }
