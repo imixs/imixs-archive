@@ -56,7 +56,7 @@ public class DocumentImportService {
     public final static String SOURCE_ITEM_TASK = "task";
     public final static String SOURCE_ITEM_EVENT = "event";
     public final static String SOURCE_ITEM_WORKFLOWGROUP = "workflowgroup";
-    public final static String SOURCE_ITEM_MODELVERSION = "modelversion";
+    public final static String SOURCE_ITEM_MODELVERSION = "workflowmodel";
     public final static String SOURCE_ITEM_SELECTOR = "selector";
     public final static String SOURCE_ITEM_OPTIONS = "options";
 
