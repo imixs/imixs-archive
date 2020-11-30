@@ -59,16 +59,20 @@ After the successful DNS challenge you will find the chain and key files at:
 
 	/etc/letsencrypt/archive/foo.com/
 	
-**3. Import the Root Certificate**	
+Read the next section to import the root certificate. 	
+	
+### Import a Root Certificate
+	
+If you have obtained a valid certificate you can import the certificate into an existing keystore using the keytool. The following section explains the procedure. 	
 	
 The keytool does not allow to import multiple public and private .pem certificates directly. So first you’ll need to add all .pem files to a PKCS12 archive. This can be done with the OpenSSL tool:
 	
 	$ sudo openssl pkcs12 -export \
-	 -in /etc/letsencrypt/live/foo.com/cert.pem \
-	 -inkey /etc/letsencrypt/live/foo.com/privkey.pem \
+	 -in foo.com/cert.pem \
+	 -inkey foo.com/privkey.pem \
 	 -out foo.com.p12 \
 	 -name foo.com \
-	 -CAfile /etc/letsencrypt/live/foo.com/fullchain.pem \
+	 -CAfile foo.com/fullchain.pem \
 	 -caname "Let's Encrypt Authority X3" \
 	 -password pass:changeit
 	
@@ -87,6 +91,7 @@ Next you can import the certificates into your keystore:
 	  -destkeystore imixs.jks \
 	  -alias foo.com
 	
+Replace the password 'changeit' with password of your keystore!
 		
 To verify the content of the keystore run:
 
@@ -95,7 +100,7 @@ To verify the content of the keystore run:
 
 	
 	
-### Create Certificate with the Root Certificate
+### Createing a Certificate from a Root Certificate
 
 If you have imported a root certificate into your keystore you can create new keypairs  signed by the root CA.
 

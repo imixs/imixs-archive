@@ -27,7 +27,6 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStoreException;
@@ -78,12 +77,11 @@ import org.imixs.archive.signature.KeystoreService;
 import org.imixs.archive.signature.pdf.cert.CertificateVerificationException;
 import org.imixs.archive.signature.pdf.cert.SigningException;
 import org.imixs.archive.signature.pdf.util.SigUtils;
-import org.imixs.workflow.FileData;
 
 /**
  * The SignatureService provides methods to sign a PDF document on a X509
- * certificate. The service adds a digital signature and also a visual signature.
- * The method 'signPDF' expects a Imixs FileData object containing
+ * certificate. The service adds a digital signature and also a visual
+ * signature. The method 'signPDF' expects a Imixs FileData object containing
  * the content of the PDF file to be signed.
  * <p>
  * The service expects the existence of a valid X509 certificate stored in the
@@ -134,13 +132,12 @@ public class SigningService {
       keytool -storepass 123456 -storetype PKCS12 -keystore file.p12 -genkey -alias client -keyalg RSA
       }
      *
-     * @param documentFile   - File to be signed
-     * @param alias          - the alias used to sign the document. The alias should
-     *                       be listed in the keystore.
-     * 
-     * 
-     * @param signatureImage - image of visible signature
-     * @return signed FileData object
+     * @param inputFileData   A byte array containing the source PDF document.
+     * @param certAlias       Certificate alias name to be used for signing
+     * @param certPassword    optional private key password
+     * @param externalSigning optional boolean flag to trigger an external signing
+     *                        process
+     * @return A byte array containing the singed PDF document
      * 
      * @throws SigningException
      * @throws CertificateVerificationException
@@ -148,14 +145,8 @@ public class SigningService {
      * 
      * 
      */
-    public FileData signPDF(FileData inputFileData, String certAlias, String certPassword, File signatureImage)
+    public byte[] signPDF(byte[] inputFileData, String certAlias, String certPassword, boolean externalSigning)
             throws CertificateVerificationException, SigningException {
-
-        logger.info("......signPDF '" + inputFileData.getName() + "' ...");
-
-        String name = inputFileData.getName();
-        String substring = name.substring(0, name.lastIndexOf('.'));
-        String signedFileName = substring + "_signed.pdf";
 
         // Set the signature rectangle
         // Although PDF coordinates start from the bottom, humans start from the top.
@@ -163,10 +154,10 @@ public class SigningService {
         // top left of the displayed page, and the field has a horizontal width and a
         // vertical height
         // regardless of page rotation.
-        Rectangle2D humanRect = new Rectangle2D.Float(50, 660, 170, 50);
+        // Rectangle2D humanRect = new Rectangle2D.Float(50, 660, 170, 50);
 
-        FileData signedFileData = createSignedPDF(inputFileData, signedFileName, certAlias, certPassword, humanRect,
-                "Signature1", signatureImage, false);
+        byte[] signedFileData = signPDF(inputFileData, certAlias, certPassword, externalSigning, null, "Signature1",
+                null);
 
         return signedFileData;
 
@@ -175,27 +166,28 @@ public class SigningService {
     /**
      * Sign pdf file and create new file that ends with "_signed.pdf".
      *
-     * @param inputFile          The source pdf document file.
-     * @param signedFile         The file to be signed.
-     * @param alias              Certificate alias name to be used for signing
+     * @param inputFileData      A byte array containing the source PDF document.
+     * @param certAlias          Certificate alias name to be used for signing
+     * @param certPassword       optional private key password
+     * @param externalSigning    optional boolean flag to trigger an external
+     *                           signing process
      * @param humanRect          rectangle from a human viewpoint (coordinates start
      *                           at top left)
      * @param tsaUrl             optional TSA url
      * @param signatureFieldName optional name of an existing (unsigned) signature
      *                           field
-     * @param externalSigning    optional boolean flag to trigger an external
-     *                           signing process
+     * @return A byte array containing the singed PDF document
      * @throws CertificateVerificationException
      * @throws SigningException
      */
-    private FileData createSignedPDF(FileData inputFileData, String signedFileName, String certAlias,
-            String certPassword, Rectangle2D humanRect, String signatureFieldName, File imageFile,
-            boolean externalSigning) throws CertificateVerificationException, SigningException {
+    public byte[] signPDF(byte[] inputFileData, String certAlias, String certPassword, boolean externalSigning,
+            Rectangle2D humanRect, String signatureFieldName, byte[] imageFile)
+            throws CertificateVerificationException, SigningException {
 
         SignatureOptions signatureOptions = null;
         byte[] signedContent = null;
 
-        if (inputFileData == null || inputFileData.getContent().length == 0) {
+        if (inputFileData == null || inputFileData.length == 0) {
             throw new SigningException("empty file data");
         }
 
@@ -203,8 +195,7 @@ public class SigningService {
         // ByteArrayOutputStream
         // try (FileOutputStream fos = new FileOutputStream(signedFile); PDDocument doc
         // = PDDocument.load(inputFileData.getContent())) {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                PDDocument doc = PDDocument.load(inputFileData.getContent())) {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream(); PDDocument doc = PDDocument.load(inputFileData)) {
             int accessPermissions = SigUtils.getMDPPermission(doc);
             if (accessPermissions == 1) {
                 throw new SigningException(
@@ -220,12 +211,18 @@ public class SigningService {
             PDAcroForm acroForm = doc.getDocumentCatalog().getAcroForm();
             PDRectangle rect = null;
 
-            // sign a PDF with an existing empty signature, as created by the
-            // CreateEmptySignatureForm example.
+            // If the PDF contains an existing empty signature, as created by the
+            // CreateEmptySignatureForm example we can reuse it here
             if (acroForm != null) {
-                pdSignature = findExistingSignature(acroForm, signatureFieldName);
-                if (pdSignature != null) {
-                    rect = acroForm.getField(signatureFieldName).getWidgets().get(0).getRectangle();
+                try {
+                    pdSignature = findExistingSignature(acroForm, signatureFieldName);
+                    if (pdSignature != null) {
+                        rect = acroForm.getField(signatureFieldName).getWidgets().get(0).getRectangle();
+                    }
+                } catch (IllegalStateException ise) {
+                    // we can not use this signature field
+                    logger.warning("signature " + signatureFieldName + " already exists: " + ise.getMessage());
+                    signatureFieldName = signatureFieldName + ".1";
                 }
             }
 
@@ -234,7 +231,7 @@ public class SigningService {
                 pdSignature = new PDSignature();
             }
 
-            if (rect == null) {
+            if (rect == null && humanRect != null) {
                 rect = createSignatureRectangle(doc, humanRect);
             }
 
@@ -310,12 +307,12 @@ public class SigningService {
             // register signature dictionary and sign interface
             signatureOptions = new SignatureOptions();
 
-            // create visual signature if imageFile exists....
-            if (imageFile.exists()) {
+            // create visual signature if a signing rect object exists....
+            if (rect != null) {
                 signatureOptions.setVisualSignature(
                         createVisualSignatureTemplate(doc, 0, rect, pdSignature, imageFile, certificateChain));
             } else {
-                logger.warning("Signature Image '" + imageFile.getPath() + "' does not exist. No Image will be added!");
+                logger.info("...Signature Image not provided, no VisualSignature will be added!");
             }
             signatureOptions.setPage(0);
             doc.addSignature(pdSignature, signature, signatureOptions);
@@ -348,9 +345,8 @@ public class SigningService {
             IOUtils.closeQuietly(signatureOptions);
         }
 
-        // return the new singed FileData object
-        FileData signedFileData = new FileData(signedFileName, signedContent, "application/pdf", null);
-        return signedFileData;
+        // return the new singed content
+        return signedContent;
     }
 
     private PDRectangle createSignatureRectangle(PDDocument doc, Rectangle2D humanRect) {
@@ -395,7 +391,7 @@ public class SigningService {
     // create a template PDF document with empty signature and return it as a
     // stream.
     private InputStream createVisualSignatureTemplate(PDDocument srcDoc, int pageNum, PDRectangle rect,
-            PDSignature signature, File imageFile, Certificate[] certificateChain) throws IOException {
+            PDSignature signature, byte[] imageFile, Certificate[] certificateChain) throws IOException {
         try (PDDocument doc = new PDDocument()) {
             PDPage page = new PDPage(srcDoc.getPage(pageNum).getMediaBox());
             doc.addPage(page);
@@ -468,8 +464,13 @@ public class SigningService {
                     // save and restore graphics if the image is too large and needs to be scaled
                     cs.saveGraphicsState();
                     cs.transform(Matrix.getScaleInstance(0.25f, 0.25f));
-                    PDImageXObject img = PDImageXObject.createFromFileByExtension(imageFile, doc);
+                    // PDImageXObject img = PDImageXObject.createFromFileByExtension(imageFile,
+                    // doc);
+                    // create image form image byte array
+                    // if (imageFile != null) {
+                    PDImageXObject img = PDImageXObject.createFromByteArray(doc, imageFile, null);
                     cs.drawImage(img, 0, 0);
+                    // }
                     cs.restoreGraphicsState();
                 }
 
@@ -511,8 +512,17 @@ public class SigningService {
         }
     }
 
-    // Find an existing signature (assumed to be empty). You will usually not need
-    // this.
+    /**
+     * This method verifies if for a given sigFieldName a signature already exists.
+     * If so, the method throws a IllegalStateException. In that case, the
+     * signatureField can not be used for another signature and a new empty
+     * signatureField have to be created.
+     * 
+     * @see singPDF
+     * @param acroForm
+     * @param sigFieldName
+     * @return a PDSignature if exits
+     */
     private PDSignature findExistingSignature(PDAcroForm acroForm, String sigFieldName) {
         PDSignature signature = null;
         PDSignatureField signatureField;

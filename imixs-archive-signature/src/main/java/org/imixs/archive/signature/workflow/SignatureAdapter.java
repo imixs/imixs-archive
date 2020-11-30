@@ -1,6 +1,6 @@
 package org.imixs.archive.signature.workflow;
 
-import java.io.File;
+import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
@@ -75,7 +75,7 @@ public class SignatureAdapter implements SignalAdapter {
 
     @Inject
     WorkflowService workflowService;
-    
+
     @Inject
     X509ProfileHandler x509ProfileHandler;
 
@@ -118,37 +118,46 @@ public class SignatureAdapter implements SignalAdapter {
                     if (filePatternMatcher.matcher(fileName).find()) {
                         // yes! start signing....
 
-                        // compute alias validate existence of certificate
-                        String certAlias = workflowService.getUserName();
-                        logger.info("......signing " + fileName + " by '" + certAlias + "'...");
-
                         // we assume an empty password for certificate
                         String certPassword = "";
+                        String certAlias = null;
 
-                        // test if a certificate exits....
-                        if (!caService.existsCertificate(certAlias)) {
-                            if (autocreate) {
-                                // lookup the x509 data form the x509ProfileHandler
-                                ItemCollection x509Profile= x509ProfileHandler.findX509Profile(certAlias);
-                                // create new certificate....
-                                caService.createCertificate(certAlias,x509Profile);
-                            } else {
-                                // try to fetch the root certificate
-                                if (rootsignature && rootCertAlias.isPresent()) {
-                                    certAlias = rootCertAlias.get();
-                                    // set SIGNATURE_ROOTCERT_PASSWORD
-                                    if (rootCertPassword.isPresent()) {
-                                        certPassword = rootCertPassword.get();
-                                    }
-                                } else {
-                                    throw new CertificateVerificationException("certificate for alias '" + certAlias
-                                            + "' not found. Missing default certificate alias (SIGNATURE_KEYSTORE_DEFAULT_ALIAS)!");
-                                }
+                        // Test if the a signature with the root certificate is requested
+                        if (rootsignature && rootCertAlias.isPresent()) {
+                            certAlias = rootCertAlias.get();
+                            // set SIGNATURE_ROOTCERT_PASSWORD
+                            if (rootCertPassword.isPresent()) {
+                                certPassword = rootCertPassword.get();
                             }
+
                             // test existence of default certificate
                             if (!caService.existsCertificate(certAlias)) {
                                 throw new ProcessingErrorException(this.getClass().getSimpleName(), "SIGNING_ERROR",
-                                        "No certificate exists for user '" + certAlias + "'");
+                                        "Root certificate '" + certAlias + "' does not exist!");
+                            }
+                            logger.info("......signing " + fileName + " with root certificate '" + certAlias + "'...");
+                        } else {
+                            // signature with user certificate....
+                            // compute alias validate existence of certificate
+                            certAlias = workflowService.getUserName();
+                            logger.info("......signing " + fileName + " by '" + certAlias + "'...");
+
+                            // test if a certificate exits....
+                            if (!caService.existsCertificate(certAlias)) {
+                                if (autocreate) {
+                                    // lookup the x509 data form the x509ProfileHandler
+                                    ItemCollection x509Profile = x509ProfileHandler.findX509Profile(certAlias);
+                                    // create new certificate....
+                                    caService.createCertificate(certAlias, x509Profile);
+                                } else {
+                                    throw new CertificateVerificationException(
+                                            "certificate for alias '" + certAlias + "' not found.");
+                                }
+                                // test existence of default certificate
+                                if (!caService.existsCertificate(certAlias)) {
+                                    throw new ProcessingErrorException(this.getClass().getSimpleName(), "SIGNING_ERROR",
+                                            "No certificate exists for user '" + certAlias + "'");
+                                }
                             }
                         }
 
@@ -162,16 +171,24 @@ public class SignatureAdapter implements SignalAdapter {
                             sourceContent = fileData.getContent();
                         }
 
-                        // Path path = Paths.get(fileName);
-                        // Files.write(path, sourceContent);
-                        // File filePDFSource = new File(fileName);
-                        File fileSignatureImage = new File("/opt/imixs-keystore/" + certAlias + ".jpg");
-                        FileData signedFileData = signatureService.signPDF(fileData, certAlias, certPassword,
-                                fileSignatureImage);
+                        byte[] signedContent=null;
+                        // in case of a rootsignature we do not generate a signature visual!
+                        if (rootsignature) {
+                             signedContent = signatureService.signPDF(sourceContent, certAlias, certPassword,false);
+                        } else {
+                            Rectangle2D humanRect = new Rectangle2D.Float(50, 660, 170, 50);
+
+                            // create signature withvisual
+                            //File fileSignatureImage = new File("/opt/imixs-keystore/" + certAlias + ".jpg");
+                            signedContent = signatureService.signPDF(sourceContent, certAlias, certPassword,false,humanRect,"Signature1",
+                                    null);
+                        }
 
                         // ad the signed pdf file to the workitem
+                        FileData signedFileData = new FileData(fileName, signedContent,"application/pdf", null);
+                                
                         document.addFileData(signedFileData);
-                        logger.info("......signing " + fileName + " completed!");                     
+                        logger.info("......signing " + fileName + " completed!");
                     }
                 }
             }
