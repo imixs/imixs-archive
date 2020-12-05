@@ -158,7 +158,7 @@ public class SigningService {
         // Rectangle2D humanRect = new Rectangle2D.Float(50, 660, 170, 50);
 
         byte[] signedFileData = signPDF(inputFileData, certAlias, certPassword, externalSigning, null, "Signature1",
-                null,null);
+                null, null);
 
         return signedFileData;
 
@@ -442,7 +442,7 @@ public class SigningService {
                 break;
             }
             form.setBBox(bbox);
-            PDFont font = PDType1Font.HELVETICA;//.HELVETICA_BOLD;
+            PDFont font = PDType1Font.HELVETICA;// .HELVETICA_BOLD;
 
             // from PDVisualSigBuilder.createAppearanceDictionary()
             PDAppearanceDictionary appearance = new PDAppearanceDictionary();
@@ -459,64 +459,43 @@ public class SigningService {
                     cs.transform(initialScale);
                 }
 
-                // show background (just for debugging, to see the rect size + position)
-                //cs.setNonStrokingColor(Color.yellow);
-                
                 cs.addRect(-5000, -5000, 10000, 10000);
-                // draw a border...
-                float w=rect.getWidth();
-                float h=rect.getHeight();
+
+                float w = rect.getWidth();
+                float h = rect.getHeight();
                 
+                // draw signature line
                 cs.setStrokingColor(Color.BLACK);
-                cs.moveTo(0,h/2);
-                cs.lineTo(w,h/2);
-
-                cs.setStrokingColor(Color.ORANGE);
-                cs.moveTo(0,0);
-                cs.lineTo(0,h);
-                cs.lineTo(w,h);
-                cs.lineTo(w,0);
-                cs.lineTo(0,0);
+                cs.moveTo(0, h / 2 - 4); // half height - offset
+                cs.lineTo(w, h / 2 - 4);
                 cs.stroke();
-               // cs.fill();
 
+                // draw signature image
                 if (imageFile != null) {
-                    // show background image
                     // save and restore graphics if the image is too large and needs to be scaled
                     cs.saveGraphicsState();
-                    // we asume that the signature image fits into the rect...
-                    
-                    // der Faktor ist : 
-                    // img.height / (float) imageMaxHeight /2
-                    // vermutlich 100/0.24f  = 41,666
-                    cs.transform(Matrix.getScaleInstance(0.2f, 0.2f));
-                 //   cs.transform(Matrix.getScaleInstance(0.25f, 0.25f));
+                    // in the following we scale the content stream so that the
+                    // signing image fits into the upper half of the rectangle.
                     PDImageXObject img = PDImageXObject.createFromByteArray(doc, imageFile, null);
-                    
-                    // we scale the image to a hight of 50f
-                    
-                 
-                    
-                    // Place the image at the uper left corner
-                    cs.drawImage(img, 5, img.getHeight());
+                    float scaleFactor = (rect.getHeight() / 2) / img.getHeight();
+                    cs.transform(Matrix.getScaleInstance(scaleFactor, scaleFactor));
+                    // Place the image at the upper left corner
+                    cs.drawImage(img, 2, img.getHeight());
                     cs.restoreGraphicsState();
                 }
 
-                // show text
-                
-               // cs.moveTo(0,0);
-                
+                // draw signature information
                 float fontSize = 8;
                 float leading = fontSize * 1.5f;
+
+                // move below the signature line
                 cs.beginText();
                 cs.setFont(font, fontSize);
                 cs.setNonStrokingColor(Color.black);
-                cs.newLineAtOffset(fontSize, height - leading);
+                cs.newLineAtOffset(fontSize, height - leading - (rect.getHeight() / 2) - 5);
                 cs.setLeading(leading);
 
                 X509Certificate cert = (X509Certificate) certificateChain[0];
-
-                // https://stackoverflow.com/questions/2914521/
                 X500Name x500Name = new X500Name(cert.getSubjectX500Principal().getName());
                 RDN cn = x500Name.getRDNs(BCStyle.CN)[0];
                 String name = IETFUtils.valueToString(cn.getFirst().getValue());
@@ -525,14 +504,13 @@ public class SigningService {
                 String reason = signature.getReason();
                 cs.showText("Signer: " + name);
                 cs.newLine();
-                cs.showText("Date: " + dateFormat.format( signature.getSignDate().getTime()));
+                cs.showText("Date: " + dateFormat.format(signature.getSignDate().getTime()));
                 cs.newLine();
                 cs.showText("Reason: " + reason);
                 cs.endText();
             }
 
             // no need to set annotations and /P entry
-
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             doc.save(baos);
             return new ByteArrayInputStream(baos.toByteArray());

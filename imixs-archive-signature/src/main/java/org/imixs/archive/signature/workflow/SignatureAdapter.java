@@ -1,12 +1,6 @@
 package org.imixs.archive.signature.workflow;
 
-import java.awt.AlphaComposite;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
@@ -15,15 +9,11 @@ import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
 import javax.inject.Inject;
 
 import org.bouncycastle.operator.OperatorCreationException;
@@ -225,8 +215,6 @@ public class SignatureAdapter implements SignalAdapter {
                                 signatureImage=fileDataSignature.getContent();
                             }
                             
-                          
-
                             // if we have already a signature we move the x position....
                             int signatureCount = document.getItemValueInteger("signature.count");
                             if (signatureCount > 0) {
@@ -281,10 +269,7 @@ public class SignatureAdapter implements SignalAdapter {
 
                 FileData fileData = snapshotService.getWorkItemFile(profile.getUniqueID(), "signature.jpg");
                 if (fileData != null && fileData.getContent() != null && fileData.getContent().length > 0) {
-                    
-                   
-                    
-                    
+                    // we found a signature image!
                     return fileData;
                 }
             }
@@ -297,86 +282,7 @@ public class SignatureAdapter implements SignalAdapter {
     }
 
     
-    /**
-     * Helper method to resize the signature image to a given maximum height
-     * 
-     * @param fileData
-     * @param maxHeight
-     * @return resized image fileData
-     */
-    private FileData resizeSignature(FileData fileData,int maxHeight) {
-        
-        String inFormat = "jpg";
-        try {
-
-            // compute image format...
-            if (fileData.getName().indexOf('.') > -1) {
-                inFormat = fileData.getName().substring(fileData.getName().lastIndexOf('.') + 1);
-                inFormat = inFormat.toLowerCase();
-            }
-
-            Iterator<ImageReader> inReaders = ImageIO.getImageReadersByFormatName(inFormat);
-            ImageReader imageReader = (ImageReader) inReaders.next();
-            ImageInputStream iis;
-            iis = ImageIO.createImageInputStream(new ByteArrayInputStream(fileData.getContent()));
-
-            imageReader.setInput(iis);
-            BufferedImage originalImage = imageReader.read(0);
-            
-            
-            
-         // Now we test if max height is extended?
-            if (originalImage!=null && originalImage.getHeight()> maxHeight) {
-                int type = originalImage.getType() == 0 ? BufferedImage.TYPE_INT_ARGB : originalImage.getType();
-                BufferedImage resizeImageHintJpg = resizeImageWithHint(originalImage, type, maxHeight);
-
-                if (resizeImageHintJpg != null) {
-
-                    // write image back...
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    ImageIO.write(resizeImageHintJpg,inFormat, baos);
-                    baos.flush();
-                    byte[] imageInByte = baos.toByteArray();
-                    baos.close();
-
-                    // return result
-                    FileData resultFileData=new FileData(fileData.getName(), imageInByte, fileData.getContentType(), fileData.getAttributes());
-                    return resultFileData;
-                }
-            }
-
-        } catch (IOException e) {
-         logger.warning("Unable to resize signature image: " + e.getMessage());
-            e.printStackTrace();
-            
-        }
-
-        // no resize....
-        return fileData;
-    }
+  
     
-    /*
-     * resize an image with a height hint...
-     */
-    private BufferedImage resizeImageWithHint(BufferedImage originalImage, int type, int imageMaxHeight) {
-
-        // compute hight...
-        float width = originalImage.getWidth();
-        float height = originalImage.getHeight();
-        float factor = (float) height / (float) imageMaxHeight;
-        int newWidth = (int) (width / factor);
-
-        BufferedImage resizedImage = new BufferedImage(newWidth, imageMaxHeight, type);
-        Graphics2D g = resizedImage.createGraphics();
-        g.drawImage(originalImage, 0, 0, newWidth, imageMaxHeight, null);
-        g.dispose();
-        g.setComposite(AlphaComposite.Src);
-
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        return resizedImage;
-    }
 
 }
