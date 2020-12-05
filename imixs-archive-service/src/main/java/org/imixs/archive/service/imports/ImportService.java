@@ -24,6 +24,7 @@ package org.imixs.archive.service.imports;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
@@ -279,8 +280,9 @@ public class ImportService {
             }
 
         } catch (ArchiveException | RuntimeException | IOException e) {
-
-            e.printStackTrace();
+            if (logger.isLoggable(Level.FINE)) {
+                e.printStackTrace();
+            }
             messageService.logMessage(MESSAGE_TOPIC, "Import failed "
                     + ("0".equals(lastUniqueID) ? " (failed to save metadata)" : "(last uniqueid=" + lastUniqueID + ")")
                     + " : " + e.getMessage());

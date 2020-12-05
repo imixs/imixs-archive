@@ -116,7 +116,7 @@ public class DataService {
         String snapshotID = snapshot.getUniqueID();
 
         if (!isSnapshotID(snapshotID)) {
-            throw new IllegalArgumentException("unexpected '$snapshotid' fromat: " + snapshotID);
+            throw new IllegalArgumentException("unexpected '$snapshotid' format: '" + snapshotID + "'");
         }
         if (debug) {
             logger.finest("......save document" + snapshotID);
