@@ -101,6 +101,21 @@ The synchronization between a Imixs-Archive Service and a Imixs-Workflow Instanc
 The Imixs-Archive Service polls the snapshot EventLog entries on a scheduled basis and pulls the snappshot data.
 
 
+## Overwrite File File Data
+
+The environment variable SNAPSHOT_OVERWRITEFILECONTENT can be used to protect existing file data to be overwritten. If the environment variable is set to 'false', than in case a file with the same name already exits, will be 'archived' with a time-stamp-sufix:
+
+     '<FILE_NAME>.pdf' => '<FILE_NAME>-1514410113556.pdf'
+
+This protects already archived file data and allows the 'versioning' of file content.
+
+If the environment variable SNAPSHOT_OVERWRITEFILECONTENT is not set then it default to 'false' which means existing file data is protected. 
+
+### Temporary overwriting of File Data
+
+During the processing life cycle this mechanism can be overwritten by providing the temporarily item '$snapshot.overwriteFileContent' with a list of filenames to be overwritten even if the environment variable is set to false. The item will automatically be cleared during the processing life cycle. 
+
+
 # How to Calculate the Size of a Imixs-Archive System?
 
 To calculate the size of an Imixs-Archive system, the following factors are crucial: 

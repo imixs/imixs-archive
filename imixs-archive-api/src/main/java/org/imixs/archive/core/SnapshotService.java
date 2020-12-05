@@ -129,6 +129,7 @@ public class SnapshotService {
 
     public final static String ITEM_FILEDATA_FILE_NAMES = "$file.names"; // list of files
     public final static String ITEM_FILEDATA_FILE_COUNT = "$file.count"; // count of files
+    public final static String ITEM_SNAPSHOT_OVERWRITEFILECONTENT = "$snapshot.overwriteFileContent"; // force overwriting file content
 
     public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
     public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
@@ -319,11 +320,11 @@ public class SnapshotService {
         }
 
         // 5.a. update fileData Meta information...
-        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_COUNT,
-                documentEvent.getDocument().getFileNames().size());
-        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_NAMES,
-                documentEvent.getDocument().getFileNames());
         // TODO : $file.count and $file.names is computed by ItemCollection and can be removed from here.
+//        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_COUNT,
+//                documentEvent.getDocument().getFileNames().size());
+//        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_NAMES,
+//                documentEvent.getDocument().getFileNames());
 
         // 6. store the snapshot uniqeId into the origin-workitem ($snapshotID)
         documentEvent.getDocument().replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
@@ -523,6 +524,8 @@ public class SnapshotService {
         boolean debug = logger.isLoggable(Level.FINE);
 
         List<FileData> files = target.getFileData();
+        
+        List<String> overwriteFileList=origin.getItemValueList(ITEM_SNAPSHOT_OVERWRITEFILECONTENT, String.class);
 
         for (FileData fileData : files) {
             String fileName = fileData.getName();
@@ -558,7 +561,10 @@ public class SnapshotService {
                 // in case 'overwriteFileContent' is set to 'false' we protect existing content
                 // of
                 // files with the same name, but extend the name of the old file with a suffix
-                if (!overwriteFileContent) {
+                // This feature can be skiped if $snapshot.overwriteFileContent contans the filename
+                
+                
+                if (!overwriteFileContent && !(overwriteFileList.contains(fileName))) {
                     FileData oldFileData = source.getFileData(fileName);
                     if (oldFileData != null) {
                         // we need to suffix the last file with the same name here to protect the
@@ -610,6 +616,9 @@ public class SnapshotService {
                 }
             }
         }
+        
+        // clean "$snapshot.overwriteFileContent"
+        origin.replaceItemValue(ITEM_SNAPSHOT_OVERWRITEFILECONTENT, "");
 
     }
 
