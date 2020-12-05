@@ -188,6 +188,10 @@ public class SignatureAdapter implements SignalAdapter {
                         FileData signedFileData = new FileData(fileName, signedContent,"application/pdf", null);
                                 
                         document.addFileData(signedFileData);
+                        
+                        // force overwriting content...
+                        document.appendItemValue(SnapshotService.ITEM_SNAPSHOT_OVERWRITEFILECONTENT, fileName);
+                        
                         logger.info("......signing " + fileName + " completed!");
                     }
                 }

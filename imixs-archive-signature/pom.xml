@@ -7,12 +7,7 @@
 	</parent>
 	<artifactId>imixs-archive-signature</artifactId>
 
-	<properties>
-
-		<bouncycastle.version>1.67</bouncycastle.version>
-	</properties>
-
-
+	
 	<dependencies>
 		<dependency>
 			<groupId>org.imixs.workflow</groupId>
@@ -39,7 +34,8 @@
 
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
-			<artifactId>bcmail-jdk15on</artifactId>
+			<!-- bcmail-jdk15on bcprov-jdk15on -->
+			<artifactId>bcpkix-jdk15on </artifactId>
 			<optional>true</optional>
 			<version>${bouncycastle.version}</version>
 		</dependency>
