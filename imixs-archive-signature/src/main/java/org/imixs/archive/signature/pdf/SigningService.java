@@ -37,6 +37,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
@@ -157,7 +158,7 @@ public class SigningService {
         // Rectangle2D humanRect = new Rectangle2D.Float(50, 660, 170, 50);
 
         byte[] signedFileData = signPDF(inputFileData, certAlias, certPassword, externalSigning, null, "Signature1",
-                null);
+                null,null);
 
         return signedFileData;
 
@@ -176,12 +177,14 @@ public class SigningService {
      * @param tsaUrl             optional TSA url
      * @param signatureFieldName optional name of an existing (unsigned) signature
      *                           field
+     * @param imageFile          optional image file
+     * @param reason             workflow status
      * @return A byte array containing the singed PDF document
      * @throws CertificateVerificationException
      * @throws SigningException
      */
     public byte[] signPDF(byte[] inputFileData, String certAlias, String certPassword, boolean externalSigning,
-            Rectangle2D humanRect, String signatureFieldName, byte[] imageFile)
+            Rectangle2D humanRect, String signatureFieldName, byte[] imageFile, String reason)
             throws CertificateVerificationException, SigningException {
 
         SignatureOptions signatureOptions = null;
@@ -267,9 +270,11 @@ public class SigningService {
             // subfilter for basic and PAdES Part 2 signatures
             pdSignature.setSubFilter(PDSignature.SUBFILTER_ADBE_PKCS7_DETACHED);
 
-            pdSignature.setName("Name");
-            pdSignature.setLocation("Location");
-            pdSignature.setReason(" - not defined - ");
+            // pdSignature.setName("Name");
+            // pdSignature.setLocation("Location");
+            if (reason != null && !reason.isEmpty()) {
+                pdSignature.setReason(reason);
+            }
 
             // the signing date, needed for valid signature
             pdSignature.setSignDate(Calendar.getInstance());
@@ -437,7 +442,7 @@ public class SigningService {
                 break;
             }
             form.setBBox(bbox);
-            PDFont font = PDType1Font.HELVETICA_BOLD;
+            PDFont font = PDType1Font.HELVETICA;//.HELVETICA_BOLD;
 
             // from PDVisualSigBuilder.createAppearanceDictionary()
             PDAppearanceDictionary appearance = new PDAppearanceDictionary();
@@ -455,27 +460,53 @@ public class SigningService {
                 }
 
                 // show background (just for debugging, to see the rect size + position)
-                cs.setNonStrokingColor(Color.yellow);
+                //cs.setNonStrokingColor(Color.yellow);
+                
                 cs.addRect(-5000, -5000, 10000, 10000);
-                cs.fill();
+                // draw a border...
+                float w=rect.getWidth();
+                float h=rect.getHeight();
+                
+                cs.setStrokingColor(Color.BLACK);
+                cs.moveTo(0,h/2);
+                cs.lineTo(w,h/2);
+
+                cs.setStrokingColor(Color.ORANGE);
+                cs.moveTo(0,0);
+                cs.lineTo(0,h);
+                cs.lineTo(w,h);
+                cs.lineTo(w,0);
+                cs.lineTo(0,0);
+                cs.stroke();
+               // cs.fill();
 
                 if (imageFile != null) {
                     // show background image
                     // save and restore graphics if the image is too large and needs to be scaled
                     cs.saveGraphicsState();
-                    cs.transform(Matrix.getScaleInstance(0.25f, 0.25f));
-                    // PDImageXObject img = PDImageXObject.createFromFileByExtension(imageFile,
-                    // doc);
-                    // create image form image byte array
-                    // if (imageFile != null) {
+                    // we asume that the signature image fits into the rect...
+                    
+                    // der Faktor ist : 
+                    // img.height / (float) imageMaxHeight /2
+                    // vermutlich 100/0.24f  = 41,666
+                    cs.transform(Matrix.getScaleInstance(0.2f, 0.2f));
+                 //   cs.transform(Matrix.getScaleInstance(0.25f, 0.25f));
                     PDImageXObject img = PDImageXObject.createFromByteArray(doc, imageFile, null);
-                    cs.drawImage(img, 0, 0);
-                    // }
+                    
+                    // we scale the image to a hight of 50f
+                    
+                 
+                    
+                    // Place the image at the uper left corner
+                    cs.drawImage(img, 5, img.getHeight());
                     cs.restoreGraphicsState();
                 }
 
                 // show text
-                float fontSize = 10;
+                
+               // cs.moveTo(0,0);
+                
+                float fontSize = 8;
                 float leading = fontSize * 1.5f;
                 cs.beginText();
                 cs.setFont(font, fontSize);
@@ -490,17 +521,13 @@ public class SigningService {
                 RDN cn = x500Name.getRDNs(BCStyle.CN)[0];
                 String name = IETFUtils.valueToString(cn.getFirst().getValue());
 
-                // See https://stackoverflow.com/questions/12575990
-                // for better date formatting
-                String date = signature.getSignDate().getTime().toString();
+                SimpleDateFormat dateFormat = new SimpleDateFormat("EEE, dd. MMM yyyy HH:mm:ss");
                 String reason = signature.getReason();
-
                 cs.showText("Signer: " + name);
                 cs.newLine();
-                cs.showText(date);
+                cs.showText("Date: " + dateFormat.format( signature.getSignDate().getTime()));
                 cs.newLine();
                 cs.showText("Reason: " + reason);
-
                 cs.endText();
             }
 

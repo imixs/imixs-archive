@@ -116,7 +116,14 @@ If autocreate=true than in case no certificate for the current user exists, the 
 
 	<signature name="autocreate">true</signature>
 
+**Signature Positon**
 
+The visual signature can be positioned by the following optional parameters:
+
+    <signature name="position-x">50</signature>
+    <signature name="position-y">650</signature>
+    <signature name="dimension-w">170</signature>
+    <signature name="dimension-h">50</signature>
 
 	
 ## The CA Service
