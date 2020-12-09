@@ -5,7 +5,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.ejb.Asynchronous;
 import javax.ejb.EJBException;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
@@ -134,10 +133,8 @@ public class SyncService {
      * @param topic
      * @throws RestAPIException
      */
-    @Asynchronous
     @TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
     public void releaseDeadLocks(EventLogClient eventLogClient) throws RestAPIException {
-
         if (eventLogClient == null) {
             // no client object
             logger.fine("...no eventLogClient available!");
@@ -145,8 +142,6 @@ public class SyncService {
         }
         eventLogClient.releaseDeadLocks(deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
                     ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
-
-      
     }
 
     /**
