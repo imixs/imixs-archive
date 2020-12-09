@@ -127,7 +127,7 @@ public class SyncScheduler {
                         timerConfig.setInfo(jsessionID);
                         timerConfig.setPersistent(false);
                         timerService.createIntervalTimer(interval, interval, timerConfig);
-                        logger.info("successful connected: " + workflowServiceEndpoint);
+                        logger.info("successful connected: " + workflowServiceEndpoint.get());
                         return;
                     }
                 } else {
@@ -167,7 +167,8 @@ public class SyncScheduler {
             final TimerConfig timerConfig = new TimerConfig();
             timerConfig.setInfo(""); // empty info string indicates no JSESSIONID!
             timerConfig.setPersistent(false);
-            timerService.createIntervalTimer(interval, interval, timerConfig);
+            logger.warning("restarting sync in " + initialDelay + " ms...");
+            timerService.createIntervalTimer(initialDelay, interval, timerConfig);
         }
 
     }
