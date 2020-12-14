@@ -78,10 +78,14 @@ To set the detachment mode add the DETACH_MODE to the option list of the IMAP so
 	DETACH_MODE=ALL
 
 
+## The Import Folder
+
+With the 'Selector' you can define the IMAP folder from which the Mail Importer imports mails. If no selector is set the default IMAP Folder 'INBOX' is scanned. 
+
 ## The Archive Folder
 
 After the Mail Importer has imported a single message successfully the message will be moved into a IMAP archive folder named 'imixs-archive'. This folder will be automatically created if it does not yet exist on the IMAP server.
-You can change the name of the archive folder by setting the option 'ARVICE_FOLDER'
+You can change the name of the archive folder by setting the option 'ARCHIVE_FOLDER'
 
 	ARCHIVE_FOLDER=Invoice-Archive
 
