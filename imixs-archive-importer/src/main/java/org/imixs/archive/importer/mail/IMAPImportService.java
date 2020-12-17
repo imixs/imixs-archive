@@ -31,8 +31,12 @@ package org.imixs.archive.importer.mail;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -45,6 +49,7 @@ import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.Session;
 import javax.mail.Store;
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 
 import org.imixs.archive.importer.DocumentImportEvent;
@@ -109,6 +114,7 @@ public class IMAPImportService {
      * email.
      * 
      */
+    @SuppressWarnings("unchecked")
     public void onEvent(@Observes DocumentImportEvent event) {
 
         // check if source is already completed
@@ -128,6 +134,26 @@ public class IMAPImportService {
         String imapUser = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_USER);
         String imapPassword = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_PASSWORD);
         String imapFolder = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SELECTOR);
+        List<String> options = event.getSource().getItemValue(DocumentImportService.SOURCE_ITEM_OPTIONS);
+        Pattern subjectPattern = null;
+        String subjectFilter=null;
+
+        // do we have filter options providing a Subject Regex?
+        if (options != null && options.size() > 0) {
+            for (String option : options) {
+                if (option.startsWith("filter.subject=")) {
+                    subjectFilter = option.substring("filter.subject=".length());
+                    try {
+                        subjectPattern = Pattern.compile(subjectFilter);
+                       
+                    } catch (PatternSyntaxException e) {
+                        documentImportService.logMessage("Invalid IMAP regex filter: " + e.getMessage(), event);
+                        return;
+                    }
+                    break;
+                }
+            }
+        }
 
         if (imapPort.isEmpty()) {
             // set default port
@@ -144,7 +170,8 @@ public class IMAPImportService {
             Session session = Session.getDefaultInstance(props, null);
             Store store = session.getStore("imaps");
             documentImportService.logMessage("...connecting to IMAP server: " + imapServer + " : " + imapFolder, event);
-
+            
+        
             store.connect(imapServer, new Integer(imapPort), imapUser, imapPassword);
             IMAPFolder inbox = (IMAPFolder) store.getFolder(imapFolder);
             inbox.open(Folder.READ_WRITE);
@@ -160,11 +187,42 @@ public class IMAPImportService {
             // fetches all messages from the INBOX...
             Message[] messages = inbox.getMessages();
             documentImportService.logMessage("..." + messages.length + " new messages found", event);
+            
+            if(subjectFilter!=null ) {
+                documentImportService.logMessage("...apply RegEx: " + subjectFilter,event);
+            }
 
             for (Message message : messages) {
                 Address[] fromAddress = message.getFrom();
+                String subject = message.getSubject();
+                Date sent = message.getSentDate();
+
                 logger.finest("......receifed mail from: " + fromAddress[0].toString());
+
+                // do we have a subject regular expression provided by the options?
+                if (subjectPattern != null) {
+                    // test if subject matches?
+                    if (!subjectPattern.matcher(subject).find()) {
+                        // skip this mail
+                        continue;
+                    } else {
+                       
+                    }
+                }
+
                 ItemCollection workitem = createWorkitem(event.getSource());
+                // store message attributes   
+                if (fromAddress[0] instanceof InternetAddress) {
+                    InternetAddress internetAddr=(InternetAddress) fromAddress[0];
+                    workitem.setItemValue("mail.from", internetAddr.getAddress());
+                    workitem.setItemValue("mail.from.personal", internetAddr.getPersonal());
+                    
+                } else {
+                    workitem.setItemValue("mail.from", fromAddress[0].toString());
+                }
+                workitem.setItemValue("mail.subject", subject);
+                workitem.setItemValue("mail.sent", sent);
+
                 if (!DETACH_MODE_NONE.equals(detachOption)) {
                     // scan for attachments....
                     Multipart multiPart = (Multipart) message.getContent();
