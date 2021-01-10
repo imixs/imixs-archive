@@ -80,9 +80,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<org.imixs.workflow.version>5.2.6</org.imixs.workflow.version>
 		<org.imixs.melman.version>1.0.20</org.imixs.melman.version>
-		<!-- 2.0.19 3.0.0-SNAPSHOT -->
 		<apache.pdfbox.version>2.0.21</apache.pdfbox.version>
-		<bouncycastle.version>1.67</bouncycastle.version>
 		<microprofile.version>3.0</microprofile.version>
 		<microprofile-metrics.version>2.3</microprofile-metrics.version>
 	</properties>
@@ -241,7 +239,6 @@
 				<scope>provided</scope>
 				<!-- excluded from manifest classpath, and excluded from WEB-INF/lib -->
 			</dependency>
-
 			<dependency>
 				<groupId>org.imixs.workflow</groupId>
 				<artifactId>imixs-workflow-engine</artifactId>
@@ -249,7 +246,6 @@
 				<scope>provided</scope>
 				<!-- excluded from manifest classpath, and excluded from WEB-INF/lib -->
 			</dependency>
-
 			<dependency>
 				<groupId>org.imixs.workflow</groupId>
 				<artifactId>imixs-workflow-jax-rs</artifactId>
@@ -257,31 +253,24 @@
 				<scope>provided</scope>
 				<!-- excluded from manifest classpath, and excluded from WEB-INF/lib -->
 			</dependency>
-
 			<dependency>
 				<groupId>org.imixs.workflow</groupId>
 				<artifactId>imixs-workflow-faces</artifactId>
 				<version>${org.imixs.workflow.version}</version>
 				<scope>provided</scope>
 			</dependency>
-
 			<dependency>
 				<groupId>org.imixs.marty</groupId>
 				<artifactId>imixs-marty-ejb</artifactId>
 				<version>${org.imixs.marty.version}</version>
 				<scope>provided</scope>
 			</dependency>
-
-			<!-- -->
 			<dependency>
 				<groupId>org.imixs.workflow</groupId>
 				<artifactId>imixs-melman</artifactId>
 				<version>${org.imixs.melman.version}</version>
 				<scope>provided</scope>
 			</dependency>
-
-
-
 			<!-- Apache Commons FTP Client -->
 			<dependency>
 				<groupId>commons-net</groupId>
@@ -290,9 +279,6 @@
 				<scope>provided</scope>
 			</dependency>
 		</dependencies>
-
-
-
 	</dependencyManagement>
 
 	<dependencies>
@@ -304,7 +290,6 @@
 			<scope>provided</scope>
 		</dependency>
 
-
 		<!-- Microprofile -->
 		<dependency>
 			<groupId>org.eclipse.microprofile</groupId>
@@ -313,7 +298,6 @@
 			<type>pom</type>
 			<scope>provided</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.eclipse.microprofile.metrics</groupId>
 			<artifactId>microprofile-metrics-api</artifactId>
