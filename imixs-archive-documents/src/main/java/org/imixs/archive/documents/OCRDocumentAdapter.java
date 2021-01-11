@@ -7,7 +7,6 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
-import org.imixs.archive.ocr.OCRService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.SignalAdapter;
 import org.imixs.workflow.engine.WorkflowService;
@@ -43,11 +42,11 @@ public class OCRDocumentAdapter implements SignalAdapter {
     private static Logger logger = Logger.getLogger(OCRDocumentAdapter.class.getName());
 
     @Inject
-    @ConfigProperty(name = OCRService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
+    @ConfigProperty(name = TikaService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
 
     @Inject
-    OCRService ocrService;
+    TikaService ocrService;
 
     @Inject
     WorkflowService workflowService;

@@ -7,7 +7,6 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
-import org.imixs.archive.ocr.OCRService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowContext;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
@@ -31,10 +30,10 @@ public class OCRDocumentPlugin extends AbstractPlugin {
     private static Logger logger = Logger.getLogger(OCRDocumentPlugin.class.getName());
 
     @Inject
-    OCRService ocrService;
+    TikaService ocrService;
 
     @Inject
-    @ConfigProperty(name = OCRService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
+    @ConfigProperty(name = TikaService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
 
     @Inject

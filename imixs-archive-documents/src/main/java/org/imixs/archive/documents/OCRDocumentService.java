@@ -9,7 +9,6 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
-import org.imixs.archive.ocr.OCRService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.ProcessingEvent;
 import org.imixs.workflow.exceptions.PluginException;
@@ -42,11 +41,11 @@ public class OCRDocumentService {
     private static Logger logger = Logger.getLogger(OCRDocumentService.class.getName());
 
     @Inject
-    @ConfigProperty(name = OCRService.ENV_OCR_SERVICE_ENDPOINT)
+    @ConfigProperty(name = TikaService.ENV_OCR_SERVICE_ENDPOINT)
     Optional<String> serviceEndpoint;
 
     @Inject
-    @ConfigProperty(name = OCRService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
+    @ConfigProperty(name = TikaService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
 
 
@@ -56,7 +55,7 @@ public class OCRDocumentService {
     
      
     @Inject
-    OCRService ocrService;
+    TikaService ocrService;
 
     /**
      * React on the ProcessingEvent. This method sends the document content to the

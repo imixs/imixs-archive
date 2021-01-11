@@ -1,4 +1,4 @@
-package org.imixs.archive.ocr;
+package org.imixs.archive.documents;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,18 +26,25 @@ import org.imixs.workflow.exceptions.PluginException;
 
 /**
  * The OCRService extracts the textual information from document attachments of
- * a workitem.
+ * a workitem and stores the data into the $file attribute 'text'.
  * <p>
- * The text information is stored in the $file attribute 'text'.
+ * For the text extraction the services sends the content of a document to an
+ * instance of a Apache Tika server via the Rest API. The environment variable
+ * OCR_STRATEGY defines how PDF files will be scanned. Possible values are:
+ * <ul>
+ * <li>AUTO - The best OCR strategy is chosen by the Tika Server itself. This is
+ * the default setting.</li>
+ * <li>NO_OCR - OCR processing is disabled and text is extracted only from PDF
+ * files including a raw text. If a pdf file does not contain raw text data no
+ * text will be extracted!</li>
+ * <li>OCR_ONLY - PDF files will always be OCR scanned even if the pdf file
+ * contains text data.</li>
+ * <li>OCR_AND_TEXT_EXTRACTION - OCR processing and raw text extraction is
+ * performed. Note: This may result is a duplication of text and the mode is not
+ * recommended.</li>
  * <p>
- * For PDF files with textual content the PDFBox api is used. In other cases,
- * the method sends the content via a Rest API to the tika server for OCR
- * processing. The environment variable OCR_PDF_MODE defines how PDF files will
- * be scanned. Possible values are TEXT_ONLY | OCR_ONLY | TEXT_AND_OCR (default)
- * <p>
- * For OCR processing the service expects a valid Rest API end-point defined by
- * the Environment Parameter 'TIKA_SERVICE_ENDPONT'. If the TIKA_SERVICE_ENDPONT
- * is not set, then the service will be skipped.
+ * The service expects a valid Rest API end-point to an instance of a Tika Server defined by
+ * the Environment Parameter 'TIKA_SERVICE_ENDPONT'. 
  * <p>
  * The environment parameter 'TIKA_SERVICE_MODE' must be set to 'auto' to enable
  * the service.
@@ -48,7 +55,7 @@ import org.imixs.workflow.exceptions.PluginException;
  * @author rsoika
  */
 @Stateless
-public class OCRService {
+public class TikaService {
 
     public static final String FILE_ATTRIBUTE_TEXT = "text";
     public static final String DEFAULT_ENCODING = "UTF-8";
@@ -62,7 +69,7 @@ public class OCRService {
     public static final String OCR_STRATEGY_OCR_ONLY = "OCR_ONLY";
     public static final String OCR_STRATEGY_AUTO = "AUTO"; // default
 
-    private static Logger logger = Logger.getLogger(OCRService.class.getName());
+    private static Logger logger = Logger.getLogger(TikaService.class.getName());
 
     @Inject
     @ConfigProperty(name = ENV_OCR_SERVICE_ENDPOINT)
@@ -122,10 +129,9 @@ public class OCRService {
 
         // validate OCR MODE....
         if ("AUTO, NO_OCR, OCR_ONLY, OCR_AND_TEXT_EXTRACTION".indexOf(ocrStategy) == -1) {
-            throw new PluginException(OCRService.class.getSimpleName(), PLUGIN_ERROR,
+            throw new PluginException(TikaService.class.getSimpleName(), PLUGIN_ERROR,
                     "Invalid TIKA_OCR_MODE - expected one of the following options: NO_OCR | OCR_ONLY | OCR_AND_TEXT_EXTRACTION");
         }
-
 
         // if the options did not already include the X-Tika-PDFOcrStrategy than we add
         // it now...
@@ -142,7 +148,7 @@ public class OCRService {
                 logger.info("......  Tika Option = " + opt);
             }
         }
-        
+
         long l = System.currentTimeMillis();
         // List<ItemCollection> currentDmsList = DMSHandler.getDmsList(workitem);
         List<FileData> files = workitem.getFileData();
@@ -173,7 +179,7 @@ public class OCRService {
                         fileData.setAttribute(FILE_ATTRIBUTE_TEXT, list);
 
                     } catch (IOException e) {
-                        throw new PluginException(OCRService.class.getSimpleName(), PLUGIN_ERROR,
+                        throw new PluginException(TikaService.class.getSimpleName(), PLUGIN_ERROR,
                                 "Unable to scan attached document '" + fileData.getName() + "'", e);
                     }
                 }
@@ -205,7 +211,7 @@ public class OCRService {
         // read the Tika Service Enpoint
         if (!serviceEndpoint.isPresent() || serviceEndpoint.get().isEmpty()) {
             logger.severe(
-                    "No OCR_SERVICE_ENDPOINT is missing - OCRprocessing not supported without a valid tika server endpoint!");
+                    "No OCR_SERVICE_ENDPOINT is missing - OCR processing not supported without a valid tika server endpoint!");
             return null;
         }
 
@@ -437,7 +443,5 @@ public class OCRService {
 
         return contentType;
     }
-
-   
 
 }
