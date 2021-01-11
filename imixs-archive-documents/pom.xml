@@ -24,12 +24,6 @@
 			<artifactId>imixs-archive-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
-		<dependency>
-			<groupId>org.imixs.workflow</groupId>
-			<artifactId>imixs-archive-ocr</artifactId>
-			<version>${project.version}</version>
-		</dependency>
 
 		<!-- Apache PDFBox -->
 		<dependency>
