@@ -35,6 +35,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -42,6 +43,7 @@ import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.mail.Address;
+import javax.mail.BodyPart;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -136,7 +138,7 @@ public class IMAPImportService {
         String imapFolder = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SELECTOR);
         List<String> options = event.getSource().getItemValue(DocumentImportService.SOURCE_ITEM_OPTIONS);
         Pattern subjectPattern = null;
-        String subjectFilter=null;
+        String subjectFilter = null;
 
         // do we have filter options providing a Subject Regex?
         if (options != null && options.size() > 0) {
@@ -145,7 +147,7 @@ public class IMAPImportService {
                     subjectFilter = option.substring("filter.subject=".length());
                     try {
                         subjectPattern = Pattern.compile(subjectFilter);
-                       
+
                     } catch (PatternSyntaxException e) {
                         documentImportService.logMessage("Invalid IMAP regex filter: " + e.getMessage(), event);
                         return;
@@ -170,8 +172,7 @@ public class IMAPImportService {
             Session session = Session.getDefaultInstance(props, null);
             Store store = session.getStore("imaps");
             documentImportService.logMessage("...connecting to IMAP server: " + imapServer + " : " + imapFolder, event);
-            
-        
+
             store.connect(imapServer, new Integer(imapPort), imapUser, imapPassword);
             IMAPFolder inbox = (IMAPFolder) store.getFolder(imapFolder);
             inbox.open(Folder.READ_WRITE);
@@ -187,36 +188,48 @@ public class IMAPImportService {
             // fetches all messages from the INBOX...
             Message[] messages = inbox.getMessages();
             documentImportService.logMessage("..." + messages.length + " new messages found", event);
-            
-            if(subjectFilter!=null ) {
-                documentImportService.logMessage("...apply RegEx: " + subjectFilter,event);
+
+            if (subjectFilter != null) {
+                documentImportService.logMessage("...apply RegEx: " + subjectFilter, event);
             }
 
             for (Message message : messages) {
                 Address[] fromAddress = message.getFrom();
                 String subject = message.getSubject();
+                if (subject==null || subject.trim().isEmpty()) {
+                    subject="no-subject";
+                }
                 Date sent = message.getSentDate();
-
-                logger.finest("......receifed mail from: " + fromAddress[0].toString());
-
+                logger.fine("......received mail from: " + fromAddress[0].toString());
+                logger.fine("......subject = " + subject);
                 // do we have a subject regular expression provided by the options?
                 if (subjectPattern != null) {
-                    // test if subject matches?
-                    if (!subjectPattern.matcher(subject).find()) {
+                    if (subject == null || subject.isEmpty()) {
                         // skip this mail
                         continue;
-                    } else {
-                       
                     }
+                    // test if subject matches?
+                    Matcher subjectMatcher = subjectPattern.matcher(subject);
+                    if (subjectMatcher == null) {
+                        logger.finest("matcher is null!");
+                        // skip this mail
+                        continue;
+                    }
+                    if (!subjectMatcher.find()) {
+                        // skip this mail
+                        continue;
+                    }
+                } else {
+                    logger.finest("...no reges pattern mail will be processed...");
                 }
 
                 ItemCollection workitem = createWorkitem(event.getSource());
-                // store message attributes   
+                // store message attributes
                 if (fromAddress[0] instanceof InternetAddress) {
-                    InternetAddress internetAddr=(InternetAddress) fromAddress[0];
+                    InternetAddress internetAddr = (InternetAddress) fromAddress[0];
                     workitem.setItemValue("mail.from", internetAddr.getAddress());
                     workitem.setItemValue("mail.from.personal", internetAddr.getPersonal());
-                    
+
                 } else {
                     workitem.setItemValue("mail.from", fromAddress[0].toString());
                 }
@@ -225,26 +238,43 @@ public class IMAPImportService {
 
                 if (!DETACH_MODE_NONE.equals(detachOption)) {
                     // scan for attachments....
-                    Multipart multiPart = (Multipart) message.getContent();
-                    for (int i = 0; i < multiPart.getCount(); i++) {
-                        MimeBodyPart part = (MimeBodyPart) multiPart.getBodyPart(i);
-                        if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
-                            String fileName = part.getFileName();
+                    // we need to test if the content is a multipart of if is is plain text mail
+                    Object contentObject = message.getContent();
+                    if (contentObject instanceof Multipart) {
+                        // here we are save to cast the content to Mulipart
+                        Multipart multiPart = (Multipart) message.getContent();
+                        for (int i = 0; i < multiPart.getCount(); i++) {
 
-                            // detach only add PDF files?
-                            if (DETACH_MODE_PDF.equals(detachOption)) {
-                                if (!fileName.toLowerCase().endsWith(".pdf")) {
-                                    continue; // skip this attachment
+                            BodyPart bodyPart = multiPart.getBodyPart(i);
+                            if (bodyPart instanceof MimeBodyPart) {
+                                MimeBodyPart mimeBodyPart = (MimeBodyPart) multiPart.getBodyPart(i);
+                                if (Part.ATTACHMENT.equalsIgnoreCase(mimeBodyPart.getDisposition())) {
+
+                                    String fileName = mimeBodyPart.getFileName();
+                                    if (fileName == null) {
+                                        logger.info("...skip because of missing filename");
+                                        continue; // skip this attachment
+                                    }
+                                    // detach only add PDF files?
+                                    if (DETACH_MODE_PDF.equals(detachOption)) {
+                                        if (!fileName.toLowerCase().endsWith(".pdf")) {
+                                            continue; // skip this attachment
+                                        }
+                                    }
+                                    // add this attachment
+                                    InputStream input = mimeBodyPart.getInputStream();
+                                    byte[] content = readAllBytes(input);
+                                    FileData fileData = new FileData(fileName, content, mimeBodyPart.getContentType(),
+                                            null);
+                                    workitem.addFileData(fileData);
                                 }
                             }
-                            // add this attachment
-                            InputStream input = part.getInputStream();
-                            byte[] content = readAllBytes(input);
-                            FileData fileData = new FileData(fileName, content, part.getContentType(), null);
-                            workitem.addFileData(fileData);
                         }
+                    } else {
+                        // email content if of type plain/text - so we can not extract data...
                     }
                 }
+
                 // in DETACH_MODE_ALL we attache the mail body as a PDF or HTML file
                 if (DETACH_MODE_ALL.equals(detachOption)) {
                     // do we have a gotenberg service?

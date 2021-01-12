@@ -85,6 +85,11 @@ public class MailConverterService {
         String htmlResult = null;
         String rawText = null;
 
+        Object contentObject=message.getContent();
+        if (!(contentObject instanceof Multipart)) {
+            logger.warning("mail is plain text");
+            return contentObject.toString();
+        }
         // analyze all the available body parts of the message.
         Multipart multiPart = (Multipart) message.getContent();
         int countBodyParts = multiPart.getCount();
