@@ -32,7 +32,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
-import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -76,18 +75,24 @@ import com.sun.mail.imap.IMAPFolder;
  * After the message was imported successfully, the message will be moved form
  * the INBOX into an archive folder. If the archive folder does not exist, the
  * method creates the folder. The folder name can be configured by the property
- * ARCHIVE_FOLDER. The default name is 'imixs-archive'
+ * 'archive.folder'. The default name is 'imixs-archive'
  * <p>
- * The email message can be converted into HTML or PDF in case the DETACHE_MODE
- * is set to ALL. To generate the message in PDF format a gotenberg service is
- * expected to convert HTML to PDF. The gotenberg service endpoint can be
- * defined by the option 'GOTENBERG_SERVICE'
+ * The email message can be converted into HTML or PDF in case the option
+ * 'detach.mode' is set to ALL. To generate the message in PDF format a
+ * gotenberg service is expected to convert HTML to PDF. The gotenberg service
+ * endpoint can be defined by the option 'gotenberg.service'
  * 
  * @author rsoika
  * @version 1.0
  */
 @Stateless
 public class IMAPImportService {
+
+    public static final String OPTION_ARCHIVE_FOLDER = "archive.folder";
+    public static final String OPTION_SUBJECT_REGEX = "subject.regex";
+    public static final String OPTION_DETACH_MODE = "detach.mode";
+    public static final String OPTION_PRESERVE_ORIGIN = "preserve.origin";
+    public static final String OPTION_GOTENBERG_SERVICE = "gotenberg.service";
 
     public static final String DETACH_MODE_PDF = "PDF";
     public static final String DETACH_MODE_ALL = "ALL";
@@ -116,7 +121,6 @@ public class IMAPImportService {
      * email.
      * 
      */
-    @SuppressWarnings("unchecked")
     public void onEvent(@Observes DocumentImportEvent event) {
 
         // check if source is already completed
@@ -136,24 +140,21 @@ public class IMAPImportService {
         String imapUser = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_USER);
         String imapPassword = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_PASSWORD);
         String imapFolder = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SELECTOR);
-        List<String> options = event.getSource().getItemValue(DocumentImportService.SOURCE_ITEM_OPTIONS);
+
+        Properties sourceOptions = documentImportService.getOptionsProperties(event.getSource());
+
+        // List<String> options =
+        // event.getSource().getItemValue(DocumentImportService.SOURCE_ITEM_OPTIONS);
         Pattern subjectPattern = null;
-        String subjectFilter = null;
-
+        String subjectRegex = sourceOptions.getProperty(OPTION_SUBJECT_REGEX, "");
         // do we have filter options providing a Subject Regex?
-        if (options != null && options.size() > 0) {
-            for (String option : options) {
-                if (option.startsWith("filter.subject=")) {
-                    subjectFilter = option.substring("filter.subject=".length());
-                    try {
-                        subjectPattern = Pattern.compile(subjectFilter);
-
-                    } catch (PatternSyntaxException e) {
-                        documentImportService.logMessage("Invalid IMAP regex filter: " + e.getMessage(), event);
-                        return;
-                    }
-                    break;
-                }
+        if (subjectRegex != null && !subjectRegex.trim().isEmpty()) {
+            try {
+                subjectPattern = Pattern.compile(subjectRegex);
+                documentImportService.logMessage("...subject.regex = " + subjectRegex, event);
+            } catch (PatternSyntaxException e) {
+                documentImportService.logMessage("Invalid IMAP regex filter: " + e.getMessage(), event);
+                return;
             }
         }
 
@@ -166,7 +167,6 @@ public class IMAPImportService {
             imapFolder = "INBOX";
         }
         try {
-
             Properties props = System.getProperties();
             props.setProperty("mail.store.protocol", "imaps");
             Session session = Session.getDefaultInstance(props, null);
@@ -177,10 +177,10 @@ public class IMAPImportService {
             IMAPFolder inbox = (IMAPFolder) store.getFolder(imapFolder);
             inbox.open(Folder.READ_WRITE);
 
-            // Depending on the DETACH_MODE attachments will be added to the new workitem.
-            Properties sourceOptions = documentImportService.getOptionsProperties(event.getSource());
-            String detachOption = sourceOptions.getProperty("DETACH_MODE", DETACH_MODE_PDF);
-            documentImportService.logMessage("...DETACH_MODE = " + detachOption, event);
+            // Depending on the option 'detach.mode' attachments will be added to the new
+            // workitem.
+            String detachOption = sourceOptions.getProperty(OPTION_DETACH_MODE, DETACH_MODE_PDF);
+            documentImportService.logMessage("...detach.mode = " + detachOption, event);
 
             // open archive folder...
             IMAPFolder archiveFolder = openImapArchive(store, inbox, sourceOptions, event);
@@ -189,15 +189,11 @@ public class IMAPImportService {
             Message[] messages = inbox.getMessages();
             documentImportService.logMessage("..." + messages.length + " new messages found", event);
 
-            if (subjectFilter != null) {
-                documentImportService.logMessage("...apply RegEx: " + subjectFilter, event);
-            }
-
             for (Message message : messages) {
                 Address[] fromAddress = message.getFrom();
                 String subject = message.getSubject();
-                if (subject==null || subject.trim().isEmpty()) {
-                    subject="no-subject";
+                if (subject == null || subject.trim().isEmpty()) {
+                    subject = "no-subject";
                 }
                 Date sent = message.getSentDate();
                 logger.fine("......received mail from: " + fromAddress[0].toString());
@@ -275,10 +271,10 @@ public class IMAPImportService {
                     }
                 }
 
-                // in DETACH_MODE_ALL we attache the mail body as a PDF or HTML file
+                // in DETACH_MODE_ALL we attach the mail body as a PDF or HTML file
                 if (DETACH_MODE_ALL.equals(detachOption)) {
                     // do we have a gotenberg service?
-                    String gotenbergService = sourceOptions.getProperty("GOTENBERG_SERVICE");
+                    String gotenbergService = sourceOptions.getProperty(OPTION_GOTENBERG_SERVICE);
                     if (gotenbergService != null && !gotenbergService.isEmpty()) {
                         try {
                             logger.info("using gotenbergservice: " + gotenbergService);
@@ -297,10 +293,16 @@ public class IMAPImportService {
                         // attach the email as HTML....
                         mailMessageService.attachHTMLMessage(message, workitem);
                     }
+                    
+                    // only if OPTION_PRESERVE_ORIGIN=true than attach the origin message!
+                    String preserveOrigin=sourceOptions.getProperty(OPTION_PRESERVE_ORIGIN,"true");
+                    if (preserveOrigin!=null && "true".equalsIgnoreCase(preserveOrigin)) {
+                        mailMessageService.attachMessage(message, workitem);
+                    }
                 }
 
                 // attach the full e-mail in case of DETACH_MODE_PDF or DETACH_MODE_NONE
-                if (!DETACH_MODE_ALL.equals(detachOption)) {
+                if (!DETACH_MODE_ALL.equalsIgnoreCase(detachOption)) {
                     mailMessageService.attachMessage(message, workitem);
                 }
 
@@ -340,8 +342,8 @@ public class IMAPImportService {
     private IMAPFolder openImapArchive(Store store, IMAPFolder inbox, Properties sourceOptions,
             DocumentImportEvent event) throws MessagingException {
         // open Archive folder
-        String imapArchiveFolder = sourceOptions.getProperty("ARCHIVE_FOLDER", ARCHIVE_DEFAULT_NAME);
-        documentImportService.logMessage("...ARCHIVE_FOLDER = " + imapArchiveFolder, event);
+        String imapArchiveFolder = sourceOptions.getProperty(OPTION_ARCHIVE_FOLDER, ARCHIVE_DEFAULT_NAME);
+        documentImportService.logMessage("...archive.folder = " + imapArchiveFolder, event);
         IMAPFolder archive = (IMAPFolder) inbox.getFolder(imapArchiveFolder);
         // if archive folder did not exist create it...
         if (archive.exists() == false) {

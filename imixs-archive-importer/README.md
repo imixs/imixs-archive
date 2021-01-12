@@ -65,19 +65,6 @@ The FTP Importer Service can be used to import documents form a FTP server.
 
 The Mail Importer Service is used to import documents form a IMAP server. This module provides also services to convert Java Mail Message objects into HTML or PDF.
 
-## Detachment Mode
-
-The Mail Importer Service provides the ability to detach files from an mail message object. The behaviour can be configured by the option property named "DETACH_MODE". The following detach modes are supported:
-
- - PDF - only PDF files attached will be detached together with the origin .eml file to the workitem. This is the default mode.
- - ALL - all files will be detached and the email content will be attached as a HTML file to the workitem.
- - NONE - no files will be detached and the origin email object will be attached as a .eml file to the workitem.
-
-To set the detachment mode add the DETACH_MODE to the option list of the IMAP source:
-
-	DETACH_MODE=ALL
-
-
 ## The Import Folder
 
 With the 'Selector' you can define the IMAP folder from which the Mail Importer imports mails. If no selector is set the default IMAP Folder 'INBOX' is scanned. 
@@ -85,18 +72,53 @@ With the 'Selector' you can define the IMAP folder from which the Mail Importer 
 ## The Archive Folder
 
 After the Mail Importer has imported a single message successfully the message will be moved into a IMAP archive folder named 'imixs-archive'. This folder will be automatically created if it does not yet exist on the IMAP server.
-You can change the name of the archive folder by setting the option 'ARCHIVE_FOLDER'
+You can change the name of the archive folder by setting the option 'archive.folder'
 
-	ARCHIVE_FOLDER=Invoice-Archive
+	archive.folder=Invoice-Archive
 
+
+## Subject Regex
+
+It is possible to filter emails by a subject. There for a regular expression can be added by the option property named "subejct.regex" - e.g.:
+
+	filter.subject=(order|offer|invoice*)
+
+## Detachment Mode
+
+The Mail Importer Service provides the ability to detach files from an mail message object. The behaviour can be configured by the option property named "detach.mode". The following detach modes are supported:
+
+ - PDF - only PDF files attached will be detached together with the origin .eml file to the workitem. This is the default mode.
+ - ALL - all files will be detached and the email content will be attached as a HTML file to the workitem.
+ - NONE - no files will be detached and the origin email object will be attached as a .eml file to the workitem.
+
+To set the detachment mode add the option to the IMAP source:
+
+	detach.mode=ALL
+
+## Preserve Origin Message
+
+In case of detach.mode=ALL, the option 'preserve.origin' defines if the origin email will be attached. 
+
+	preserve.origin=false
+
+If the option is set to false, the .eml file will not be attached. The default value is 'true'. 
+
+**Note:** In case of the detach.mode = 'PDF' or 'NONE' the origin mail file will always be attached.
 	
 	
 ## Gotenberg HTML PDF Converter
 
-[Gotenberg](https://thecodingmachine.github.io/gotenberg/) is a Docker-powered stateless API for converting HTML, Markdown and Office documents to PDF. This service can be used to convert a Mail into PDF. To activate this feature add the following options to the import source:
+[Gotenberg](https://thecodingmachine.github.io/gotenberg/) is a Docker-powered stateless API for converting HTML, Markdown and Office documents to PDF. This service can be used to convert a Mail into a PDF document. This option applies only to the option 'detach.mode=ALL'.
 
-	DETACH_MODE=ALL
-	GOTENBERG_SERVICE=http://gotenberg:3000
+To activate this feature add the following options to the import source:
 
+	detach.mode=ALL
+	gotenberg.service=http://gotenberg:3000
 
+A Gotenberg service can be started as a Docker Container:
+
+	  gotenberg: 
+	    image: thecodingmachine/gotenberg:6
+	    ports:
+	      - "3000:3000" 
 
