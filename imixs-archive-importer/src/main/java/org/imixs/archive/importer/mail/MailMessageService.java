@@ -67,10 +67,12 @@ public class MailMessageService {
         logger.fine("...attach message as html file...");
         // convert email to html...
         String htmlMessage = mailConverterService.convertToHTML(message);
-        // attache file
-        String filename = message.getSubject() + ".html";
-        FileData fileData = new FileData(filename, htmlMessage.getBytes("UTF-8"), "text/html", null);
-        workitem.addFileData(fileData);
+        if (htmlMessage != null) {
+            // attache file
+            String filename = message.getSubject() + ".html";
+            FileData fileData = new FileData(filename, htmlMessage.getBytes("UTF-8"), "text/html", null);
+            workitem.addFileData(fileData);
+        }
     }
 
     /**
@@ -89,13 +91,15 @@ public class MailMessageService {
         logger.fine("...attach message as html file...");
         // convert email to html...
         String htmlMessage = mailConverterService.convertToHTML(message);
-        byte[] pdfContent = GotenbergClient.convertHTML("http://gotenberg:3000/",
-                new ByteArrayInputStream(htmlMessage.getBytes(StandardCharsets.UTF_8)));
-        if (pdfContent != null) {
-            // attache file
-            String filename = message.getSubject() + ".pdf";
-            FileData fileData = new FileData(filename, pdfContent, "application/pdf", null);
-            workitem.addFileData(fileData);
+        if (htmlMessage != null) {
+            byte[] pdfContent = GotenbergClient.convertHTML("http://gotenberg:3000/",
+                    new ByteArrayInputStream(htmlMessage.getBytes(StandardCharsets.UTF_8)));
+            if (pdfContent != null) {
+                // attache file
+                String filename = message.getSubject() + ".pdf";
+                FileData fileData = new FileData(filename, pdfContent, "application/pdf", null);
+                workitem.addFileData(fileData);
+            }
         }
     }
 

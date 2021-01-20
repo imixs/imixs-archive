@@ -85,42 +85,58 @@ public class MailConverterService {
         String htmlResult = null;
         String rawText = null;
 
-        Object contentObject=message.getContent();
-        if (!(contentObject instanceof Multipart)) {
-            logger.warning("mail is plain text");
-            return contentObject.toString();
-        }
-        // analyze all the available body parts of the message.
-        Multipart multiPart = (Multipart) message.getContent();
-        int countBodyParts = multiPart.getCount();
-        for (int i = 0; i < countBodyParts; i++) {
-            logger.fine("-------------------------------------------------------------");
-            BodyPart bodyPart = multiPart.getBodyPart(i);
-            String contentType = bodyPart.getContentType();
-            logger.fine("Mail Bodypart-" + i + " contenttype=" + contentType);
-            rawText = getText(bodyPart);
-            if (rawText != null) {
-                logger.fine("RawText=" + rawText);
-                // is the content html?
-                if (isHtmlContent(rawText)) {
-                    // HTML content found!
-                    // convert embedded images to in-line HTML code.
-                    htmlResult = convertEmbeddedHTMLImages(rawText, bodyPart, message);
-                    break;
+        try {
+            Object contentObject = message.getContent();
+            if (!(contentObject instanceof Multipart)) {
+                logger.warning("mail is plain text");
+                return contentObject.toString();
+            }
+            // analyze all the available body parts of the message.
+            Multipart multiPart = (Multipart) message.getContent();
+            int countBodyParts = multiPart.getCount();
+            for (int i = 0; i < countBodyParts; i++) {
+                logger.fine("-------------------------------------------------------------");
+                // it may happen that some parts are not readable, then we skip the exception
+                // case
+                try {
+                    BodyPart bodyPart = multiPart.getBodyPart(i);
+                    String contentType = bodyPart.getContentType();
+                    logger.fine("Mail Bodypart-" + i + " contenttype=" + contentType);
+                    rawText = getText(bodyPart);
+                    if (rawText != null) {
+                        logger.fine("RawText=" + rawText);
+                        // is the content html?
+                        if (isHtmlContent(rawText)) {
+                            // HTML content found!
+                            // convert embedded images to in-line HTML code.
+                            htmlResult = convertEmbeddedHTMLImages(rawText, bodyPart, message);
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warning("unable to convert message part into html : " + e.getMessage());
+                    // continue....
                 }
             }
-        }
 
-        // if we have not found a HTML content than we build a default html structure
-        if (htmlResult == null) {
-            htmlResult = buildHtmlfromPlainText(rawText);
-        }
+            // if we have not found a HTML content than we build a default html structure
+            if (htmlResult == null) {
+                htmlResult = buildHtmlfromPlainText(rawText);
+                if (htmlResult == null) {
+                    // unable to convert message!
+                    return null;
+                }
+            }
 
-        // insert mail header
-        try {
-            htmlResult = insertEmailHeader((MimeMessage) message, htmlResult);
+            // insert mail header
+            try {
+                htmlResult = insertEmailHeader((MimeMessage) message, htmlResult);
+            } catch (Exception e) {
+                logger.warning("unable to insert html header into message object: " + e.getMessage());
+            }
         } catch (Exception e) {
-            logger.warning("unable to insert html header into message object: " + e.getMessage());
+            logger.warning("unable to convert message object into html : " + e.getMessage());
+            return null;
         }
         return htmlResult;
     }
@@ -177,11 +193,15 @@ public class MailConverterService {
 
     /**
      * Helper method to convert a text message into a html block
+     * 
      * @param rawText
      * @return
      */
     private String buildHtmlfromPlainText(String rawText) {
         String htmlResult = null;
+        if (rawText == null) {
+            return null;
+        }
 
         // if we have no html content than we build a default html structure
         // replace newline with <br>....
