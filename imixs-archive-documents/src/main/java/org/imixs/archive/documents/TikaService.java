@@ -211,7 +211,7 @@ public class TikaService {
         // read the Tika Service Enpoint
         if (!serviceEndpoint.isPresent() || serviceEndpoint.get().isEmpty()) {
             logger.severe(
-                    "No OCR_SERVICE_ENDPOINT is missing - OCR processing not supported without a valid tika server endpoint!");
+                    "OCR_SERVICE_ENDPOINT is missing - OCR processing not supported without a valid tika server endpoint!");
             return null;
         }
 
