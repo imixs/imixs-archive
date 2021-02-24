@@ -52,6 +52,7 @@ import javax.mail.Session;
 import javax.mail.Store;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
+import javax.ws.rs.core.MediaType;
 
 import org.imixs.archive.importer.DocumentImportEvent;
 import org.imixs.archive.importer.DocumentImportService;
@@ -173,7 +174,7 @@ public class IMAPImportService {
             Store store = session.getStore("imaps");
             documentImportService.logMessage("...connecting to IMAP server: " + imapServer + " : " + imapFolder, event);
 
-            store.connect(imapServer, new Integer(imapPort), imapUser, imapPassword);
+            store.connect(imapServer, Integer.parseInt(imapPort), imapUser, imapPassword);
             IMAPFolder inbox = (IMAPFolder) store.getFolder(imapFolder);
             inbox.open(Folder.READ_WRITE);
 
@@ -260,8 +261,14 @@ public class IMAPImportService {
                                     // add this attachment
                                     InputStream input = mimeBodyPart.getInputStream();
                                     byte[] content = readAllBytes(input);
-                                    FileData fileData = new FileData(fileName, content, mimeBodyPart.getContentType(),
-                                            null);
+                                    String mimeType = mimeBodyPart.getContentType();
+                                    // fix mimeType if application/octet-stream and file extension is .pdf
+                                    // (issue #147)
+                                    if (MediaType.APPLICATION_OCTET_STREAM.equals(mimeType)
+                                            && fileName.toLowerCase().endsWith(".pdf")) {
+                                        mimeType = "application/pdf";
+                                    }
+                                    FileData fileData = new FileData(fileName, content, mimeType, null);
                                     workitem.addFileData(fileData);
                                 }
                             }
@@ -293,10 +300,10 @@ public class IMAPImportService {
                         // attach the email as HTML....
                         mailMessageService.attachHTMLMessage(message, workitem);
                     }
-                    
+
                     // only if OPTION_PRESERVE_ORIGIN=true than attach the origin message!
-                    String preserveOrigin=sourceOptions.getProperty(OPTION_PRESERVE_ORIGIN,"true");
-                    if (preserveOrigin!=null && "true".equalsIgnoreCase(preserveOrigin)) {
+                    String preserveOrigin = sourceOptions.getProperty(OPTION_PRESERVE_ORIGIN, "true");
+                    if (preserveOrigin != null && "true".equalsIgnoreCase(preserveOrigin)) {
                         mailMessageService.attachMessage(message, workitem);
                     }
                 }
