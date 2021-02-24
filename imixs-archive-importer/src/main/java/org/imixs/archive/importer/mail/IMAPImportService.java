@@ -246,7 +246,7 @@ public class IMAPImportService {
                             if (bodyPart instanceof MimeBodyPart) {
                                 MimeBodyPart mimeBodyPart = (MimeBodyPart) multiPart.getBodyPart(i);
                                 if (Part.ATTACHMENT.equalsIgnoreCase(mimeBodyPart.getDisposition())) {
-
+                                   
                                     String fileName = mimeBodyPart.getFileName();
                                     if (fileName == null) {
                                         logger.info("...skip because of missing filename");
@@ -261,14 +261,20 @@ public class IMAPImportService {
                                     // add this attachment
                                     InputStream input = mimeBodyPart.getInputStream();
                                     byte[] content = readAllBytes(input);
-                                    String mimeType = mimeBodyPart.getContentType();
+                                    String contentType = mimeBodyPart.getContentType();
                                     // fix mimeType if application/octet-stream and file extension is .pdf
                                     // (issue #147)
-                                    if (MediaType.APPLICATION_OCTET_STREAM.equals(mimeType)
+                                    logger.info("mimetype=" + contentType);
+                                    if (contentType.contains(MediaType.APPLICATION_OCTET_STREAM)
                                             && fileName.toLowerCase().endsWith(".pdf")) {
-                                        mimeType = "application/pdf";
+                                        logger.info("converting mimetype to application/pdf");
+                                        contentType ="application/pdf";
                                     }
-                                    FileData fileData = new FileData(fileName, content, mimeType, null);
+                                    // strip ; prafixes
+                                    if (contentType.contains(";")) {
+                                        contentType=contentType.substring(0,contentType.indexOf(";"));
+                                    }
+                                    FileData fileData = new FileData(fileName, content, contentType, null);
                                     workitem.addFileData(fileData);
                                 }
                             }
