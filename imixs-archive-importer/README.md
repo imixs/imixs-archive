@@ -113,7 +113,7 @@ If the option is set to false, the .eml file will not be attached. The default v
 
 ## Custom Mail Options
 
-The *IMAPIImporterService* connects to an IMAP server via IMAPS per default. You can overwrite the property "mail.store.protocol" and also set additional custom mail properties in the document source options. See the following example setting some extra java mail options:
+The *IMAPIImporterService* connects to an mail server via IMAPS per default. IMAPS (IMAP over SSL/TLS) is assigned the port number 993. You can overwrite the default protocol by the property "mail.store.protocol" via custom mail options in the document source options. In this way it is also possible to set additional custom mail options concerning various aspects of your mail/imap server.  See the following example, setting some extra java mail options:
 
 	mail.store.protocol=imap
 	mail.imap.ssl.enable=true
