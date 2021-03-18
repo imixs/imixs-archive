@@ -140,51 +140,58 @@ public class FTPImportService {
             ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
             ftpClient.setControlEncoding("UTF-8");
 
-            logger.finest("......scan files from: " + ftpPath);
-            /*
-             * create a new workitem for each document
-             */
-            FTPFile[] allFiles = ftpClient.listFiles(ftpPath);
-            int count = 0;
-            if (allFiles.length > 0) {
-                documentImportService.logMessage("..."+allFiles.length + " files found ", event);
+            // try to enter the working directory....
+            boolean bWorkingDir = ftpClient.changeWorkingDirectory(ftpPath);
+            if (bWorkingDir == true) {
 
-                for (FTPFile file : allFiles) {
-                    // if this is a directory or symlink then we do ignore this entry
-                    if (!file.isFile()) {
-                        documentImportService.logMessage(
-                                "...'" + file.getName() + "' os not a valid file, object will be ignored!", event);
-                        continue;
-                    }
-                    logger.info("import file " + file.getName() + "...");
-                    String fullFileName = ftpPath + "/" + file.getName();
-                    try (ByteArrayOutputStream is = new ByteArrayOutputStream();) {
-                        ftpClient.retrieveFile(fullFileName, is);
-                        byte[] rawData = is.toByteArray();
-                        if (rawData != null && rawData.length > 0) {
-                            logger.finest("......file '" + file.getName() + "' successfull read - bytes size = "
-                                    + rawData.length);
-                            // create new workitem
-                            createWorkitem(event.getSource(), file.getName(), rawData);
-                            documentImportService.logMessage("....imported '" + file.getName() + "'", event);
-                            count++;
-                        } else {
+                documentImportService.logMessage("...working directory: " + ftpClient.printWorkingDirectory(), event);
+                /*
+                 * create a new workitem for each document
+                 */
+                FTPFile[] allFiles = ftpClient.listFiles();
+                int count = 0;
+                if (allFiles.length > 0) {
+                    documentImportService.logMessage("..." + allFiles.length + " files found ", event);
+
+                    for (FTPFile file : allFiles) {
+                        // if this is a directory or symlink then we do ignore this entry
+                        if (!file.isFile()) {
                             documentImportService.logMessage(
-                                    "...Warning - invalid file content '" + file.getName() + "' - file will be deleted!",
-                                    event);
+                                    "...'" + file.getName() + "' is not a valid file, object will be ignored!", event);
+                            continue;
                         }
-                        // finally delete the file....
-                        ftpClient.deleteFile(fullFileName);
-                    } catch (AccessDeniedException | ProcessingErrorException | PluginException | ModelException e) {
+                        logger.info("import file " + file.getName() + "...");
+                        //String fullFileName = ftpPath + "/" + file.getName();
+                        try (ByteArrayOutputStream is = new ByteArrayOutputStream();) {
+                            ftpClient.retrieveFile(file.getName(), is);
+                            byte[] rawData = is.toByteArray();
+                            if (rawData != null && rawData.length > 0) {
+                                logger.finest("......file '" + file.getName() + "' successfull read - bytes size = "
+                                        + rawData.length);
+                                // create new workitem
+                                createWorkitem(event.getSource(), file.getName(), rawData);
+                                documentImportService.logMessage("....imported '" + file.getName() + "'", event);
+                                count++;
+                            } else {
+                                documentImportService.logMessage("...Warning - invalid file content '" + file.getName()
+                                        + "' - file will be deleted!", event);
+                            }
+                            // finally delete the file....
+                            ftpClient.deleteFile(file.getName());
+                        } catch (AccessDeniedException | ProcessingErrorException | PluginException
+                                | ModelException e) {
 
-                        documentImportService.logMessage("...FTP import failed: " + e.getMessage(), event);
-                        event.setResult(DocumentImportEvent.PROCESSING_ERROR);
-                        return;
+                            documentImportService.logMessage("...FTP import failed: " + e.getMessage(), event);
+                            event.setResult(DocumentImportEvent.PROCESSING_ERROR);
+                            return;
+                        }
                     }
+                    documentImportService.logMessage("..." + count + " new files imported.", event);
+                } else {
+                    documentImportService.logMessage("...no files found, directory '" + ftpPath + "' is empty", event);
                 }
-                documentImportService.logMessage("..."+count + " new files imported.", event);
             } else {
-                documentImportService.logMessage("...no files found, directory '" + ftpPath + "' is empty", event);
+                documentImportService.logMessage("...failed to change into working directory: " + ftpPath, event);
             }
 
         } catch (IOException e) {
