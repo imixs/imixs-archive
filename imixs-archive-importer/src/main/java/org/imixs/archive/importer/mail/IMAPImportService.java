@@ -32,6 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -168,11 +169,32 @@ public class IMAPImportService {
             imapFolder = "INBOX";
         }
         try {
-            Properties props = System.getProperties();
-            props.setProperty("mail.store.protocol", "imaps");
-            Session session = Session.getDefaultInstance(props, null);
-            Store store = session.getStore("imaps");
-            documentImportService.logMessage("...connecting to IMAP server: " + imapServer + " : " + imapFolder, event);
+            // create an empty properties object...
+            // Properties props = System.getProperties();
+            Properties imapProperties = new Properties();
+            // add default protocol..
+            imapProperties.setProperty("mail.store.protocol", "imaps");
+            // now we parse the mail properties provided by the options....
+            @SuppressWarnings("unchecked")
+            Enumeration<String> enums = (Enumeration<String>) sourceOptions.propertyNames();
+            while (enums.hasMoreElements()) {
+                String key = enums.nextElement();
+                if (key.startsWith("mail.")) {
+                    // add key...
+                    imapProperties.setProperty(key, sourceOptions.getProperty(key));
+                    logger.info("......setting property from source options: " + key);
+                }
+            }
+            // custom port?
+            if (imapProperties.containsKey("mail.imap.port")) {
+                imapPort=imapProperties.getProperty("mail.imap.port");
+            }
+
+            // connect....
+            Session session = Session.getDefaultInstance(imapProperties, null);
+            Store store = session.getStore(); // "imaps"
+            documentImportService.logMessage(
+                    "...connecting to IMAP server: " + imapServer + ":" + imapPort + " /" + imapFolder, event);
 
             store.connect(imapServer, Integer.parseInt(imapPort), imapUser, imapPassword);
             IMAPFolder inbox = (IMAPFolder) store.getFolder(imapFolder);
@@ -246,7 +268,7 @@ public class IMAPImportService {
                             if (bodyPart instanceof MimeBodyPart) {
                                 MimeBodyPart mimeBodyPart = (MimeBodyPart) multiPart.getBodyPart(i);
                                 if (Part.ATTACHMENT.equalsIgnoreCase(mimeBodyPart.getDisposition())) {
-                                   
+
                                     String fileName = mimeBodyPart.getFileName();
                                     if (fileName == null) {
                                         logger.info("...skip because of missing filename");
@@ -268,11 +290,11 @@ public class IMAPImportService {
                                     if (contentType.contains(MediaType.APPLICATION_OCTET_STREAM)
                                             && fileName.toLowerCase().endsWith(".pdf")) {
                                         logger.info("converting mimetype to application/pdf");
-                                        contentType ="application/pdf";
+                                        contentType = "application/pdf";
                                     }
                                     // strip ; prafixes
                                     if (contentType.contains(";")) {
-                                        contentType=contentType.substring(0,contentType.indexOf(";"));
+                                        contentType = contentType.substring(0, contentType.indexOf(";"));
                                     }
                                     FileData fileData = new FileData(fileName, content, contentType, null);
                                     workitem.addFileData(fileData);

@@ -105,7 +105,19 @@ If the option is set to false, the .eml file will not be attached. The default v
 
 **Note:** In case of the detach.mode = 'PDF' or 'NONE' the origin mail file will always be attached.
 	
+
+## Custom Mail Options
+
+The IMAPImportService set the mail property "mail.store.protocol" to "imaps" per default. You can overwrite this property and also set additional custom properties in the datasource options. See the following example setting some extra java mail options:
+
+
+	mail.store.protocol=imap
+	mail.imap.ssl.enable=true
+	mail.imap.port=587
+	mail.imap.ssl.trust=*
 	
+Find all imap settings [here](https://www.tutorialspoint.com/javamail_api/javamail_api_imap_servers.htm)
+
 ## Gotenberg HTML PDF Converter
 
 [Gotenberg](https://thecodingmachine.github.io/gotenberg/) is a Docker-powered stateless API for converting HTML, Markdown and Office documents to PDF. This service can be used to convert a Mail into a PDF document. This option applies only to the option 'detach.mode=ALL'.
