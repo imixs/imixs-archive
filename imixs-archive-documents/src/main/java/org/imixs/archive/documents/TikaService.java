@@ -62,7 +62,7 @@ public class TikaService {
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
     public static final String ENV_OCR_SERVICE_ENDPOINT = "ocr.service.endpoint";
     public static final String ENV_OCR_SERVICE_MODE = "ocr.service.mode";
-    public static final String ENV_OCR_STRATEGY = "ocr.strategy"; // NO_OCR, OCR_ONLY, OCR_AND_TEXT_EXTRACTION (default)
+    public static final String ENV_OCR_STRATEGY = "ocr.strategy"; // NO_OCR, OCR_ONLY, OCR_AND_TEXT_EXTRACTION, AUTO (default)
 
     public static final String OCR_STRATEGY_NO_OCR = "NO_OCR";
     public static final String OCR_STRATEGY_OCR_AND_TEXT_EXTRACTION = "OCR_AND_TEXT_EXTRACTION";
