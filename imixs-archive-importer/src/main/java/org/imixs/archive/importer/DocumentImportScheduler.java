@@ -22,7 +22,9 @@
  *******************************************************************************/
 package org.imixs.archive.importer;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.ejb.EJB;
@@ -67,6 +69,7 @@ public class DocumentImportScheduler implements Scheduler {
      * @throws SchedulerException
      * @throws QueryException
      */
+    @SuppressWarnings("rawtypes")
     public ItemCollection run(ItemCollection configuration) throws SchedulerException {
 
         if (importEvents != null) {
@@ -85,6 +88,17 @@ public class DocumentImportScheduler implements Scheduler {
                         logger.severe("...Document Import Error");
                     }
                 }
+                
+                // update sources (a CDI bean may have added new data....)
+                // convert the option ItemCollection elements into a List of Map
+                List<Map> mapItemList = new ArrayList<Map>();
+                logger.fine("Convert option items into Map...");
+                for (ItemCollection orderItem : sources) {
+                    mapItemList.add(orderItem.getAllItems());
+                }
+                configuration.replaceItemValue(DocumentImportService.ITEM_SOURCES, mapItemList);
+            
+                
                 documentImportService.logMessage("Document import completed.", configuration);
             } else {
                 documentImportService.logMessage("No sources defined.", configuration);

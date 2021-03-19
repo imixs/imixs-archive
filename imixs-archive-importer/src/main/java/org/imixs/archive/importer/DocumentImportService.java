@@ -74,10 +74,14 @@ public class DocumentImportService {
     public List<ItemCollection> loadSourcesFromConfiguration(ItemCollection configuration) {
         // load sources from configuration
         ArrayList<ItemCollection> sources = new ArrayList<ItemCollection>();
+        int i=0;
         List<Object> mapItems = configuration.getItemValue(ITEM_SOURCES);
         for (Object mapOderItem : mapItems) {
             if (mapOderItem instanceof Map) {
                 ItemCollection itemCol = new ItemCollection((Map) mapOderItem);
+                // update index....
+                itemCol.setItemValue("index", i);
+                i++;
                 sources.add(itemCol);
             }
         }

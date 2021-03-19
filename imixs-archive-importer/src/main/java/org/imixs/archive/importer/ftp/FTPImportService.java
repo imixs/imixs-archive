@@ -101,7 +101,7 @@ public class FTPImportService {
         String ftpPassword = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_PASSWORD);
         String ftpPath = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SELECTOR);
 
-        if (!ftpPath.startsWith("/")) {
+        if (!ftpPath.startsWith("/") && !ftpPath.startsWith("./")) {
             ftpPath = "/" + ftpPath;
         }
         if (!ftpPath.endsWith("/")) {
