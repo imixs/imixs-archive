@@ -183,6 +183,7 @@
 															<h:selectOneRadio value="#{documentImportController.source.item['type']}">
 																<f:selectItem itemLabel="IMAP" itemValue="IMAP"/>
 																<f:selectItem itemLabel="FTP" itemValue="FTP"/>
+																<f:selectItem itemLabel="CSV" itemValue="CSV"/>
 															</h:selectOneRadio>
 															
 															
@@ -194,6 +195,7 @@
 														<dd>
 															<h:selectOneMenu 
 																value="#{documentImportController.source.item['workflowgroup']}">
+																<f:selectItem itemLabel=" - " itemValue=""/>
 																<c:forEach items="#{modelController.workflowGroups}" var="group">
 																	<f:selectItem itemLabel="#{group}" itemValue="#{group}" />
 																</c:forEach>
@@ -277,7 +279,6 @@
 														<dd>
 															<h:inputTextarea required="false"
 																style="height: 5em; width: 100%;"
-																converter="org.imixs.VectorConverter"
 																value="#{documentImportController.source.item['options']}">
 															</h:inputTextarea>
 															<p class="small">You can apply custom properties here.
