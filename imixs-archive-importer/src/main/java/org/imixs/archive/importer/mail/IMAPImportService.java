@@ -239,7 +239,7 @@ public class IMAPImportService {
                         continue;
                     }
                 } else {
-                    logger.finest("...no reges pattern mail will be processed...");
+                    logger.finest("...no regex pattern mail will be processed...");
                 }
 
                 ItemCollection workitem = createWorkitem(event.getSource());
@@ -349,7 +349,7 @@ public class IMAPImportService {
                 inbox.moveMessages(messageList, archiveFolder);
             }
 
-            documentImportService.logMessage("finished", event);
+            logger.finest("...completed");
         } catch (AccessDeniedException | ProcessingErrorException | PluginException | ModelException e) {
             documentImportService.logMessage("IMAP import failed: " + e.getMessage(), event);
             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
