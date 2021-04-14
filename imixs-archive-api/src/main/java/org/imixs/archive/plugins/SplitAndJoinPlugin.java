@@ -28,7 +28,6 @@
 package org.imixs.archive.plugins;
 
 import java.util.List;
-import java.util.StringTokenizer;
 import java.util.logging.Logger;
 
 import org.imixs.archive.core.SnapshotService;
@@ -62,26 +61,29 @@ public class SplitAndJoinPlugin extends org.imixs.workflow.engine.plugins.SplitA
 
 		// call default behavior
 		super.copyItemList(items, source, target);
-		StringTokenizer st = new StringTokenizer(items, ",");
-		while (st.hasMoreTokens()) {
-			if (st.nextToken().toLowerCase().trim().equals("$file")) {
-
-				logger.finest("......copy $file content fromsnapshot...");
-				// load source snapshot
-				String snapshotID = source.getItemValueString(SnapshotService.SNAPSHOTID);
-				ItemCollection sourceSnapshot = this.getWorkflowService().getWorkItem(snapshotID);
-				if (sourceSnapshot != null) {
-					
-					List<FileData> files = sourceSnapshot.getFileData();
-					for (FileData snapshotFiledata : files) {
-						target.addFileData(snapshotFiledata);
-					}
-					
-				} else {
-					logger.warning("unable to load snapshot workitem '" + snapshotID + "'. Can't copy $file content!");
-				}
-			}
+		
+		// test if $file was part of the items list
+		if (items.toLowerCase().contains("$file")) {
+		    logger.finest("......copy $file content fromsnapshot...");
+            // load source snapshot
+            String snapshotID = source.getItemValueString(SnapshotService.SNAPSHOTID);
+            ItemCollection sourceSnapshot = this.getWorkflowService().getWorkItem(snapshotID);
+            if (sourceSnapshot != null) {
+                // iterate over all file data objects and add the file content from the snapshot....
+                List<FileData> snapShotFileDataList = sourceSnapshot.getFileData();
+                for (FileData snapshotFiledata : snapShotFileDataList) {
+                    
+                    // update the corresponding target fileData object
+                    FileData targetFileData = target.getFileData(snapshotFiledata.getName());
+                    targetFileData.setContent(snapshotFiledata.getContent());
+                    target.addFileData(targetFileData);
+                }
+                
+            } else {
+                logger.warning("unable to load snapshot workitem '" + snapshotID + "'. Can't copy $file content!");
+            }		    
 		}
+
 
 	}
 
