@@ -45,6 +45,7 @@ Both, the *OCRDocumentPlugin* as also the *OCRDocumentAdapter* can be configured
 	<tika name="options">X-Tika-PDFOcrImageType=RGB</tika>
 	<tika name="options">X-Tika-PDFOcrDPI=72</tika>
 	<tika name="options">X-Tika-OCRLanguage=eng+deu</tika>
+	<tika name="filepattern">(PDF|pdf)$</tika>
 
 In this example configuration the OCR processing will be started with 4 additional tika options. 
 
@@ -66,6 +67,14 @@ Or for multiple languages:
 
 For more details about the OCR configuration see the section 'OCR' below.
 
+
+#### FilePattern Regex
+
+You can provide an optional filepattern as a regular expression to filter attachments to be parsed
+
+Example - parse PDF files only:
+
+	<tika name="filepattern">(PDF|pdf)$</tika>
 
 ### The OCRDocumentService
 

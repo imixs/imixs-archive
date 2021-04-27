@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
@@ -43,8 +44,8 @@ import org.imixs.workflow.exceptions.PluginException;
  * performed. Note: This may result is a duplication of text and the mode is not
  * recommended.</li>
  * <p>
- * The service expects a valid Rest API end-point to an instance of a Tika Server defined by
- * the Environment Parameter 'TIKA_SERVICE_ENDPONT'. 
+ * The service expects a valid Rest API end-point to an instance of a Tika
+ * Server defined by the Environment Parameter 'TIKA_SERVICE_ENDPONT'.
  * <p>
  * The environment parameter 'TIKA_SERVICE_MODE' must be set to 'auto' to enable
  * the service.
@@ -62,7 +63,8 @@ public class TikaService {
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
     public static final String ENV_OCR_SERVICE_ENDPOINT = "ocr.service.endpoint";
     public static final String ENV_OCR_SERVICE_MODE = "ocr.service.mode";
-    public static final String ENV_OCR_STRATEGY = "ocr.strategy"; // NO_OCR, OCR_ONLY, OCR_AND_TEXT_EXTRACTION, AUTO (default)
+    public static final String ENV_OCR_STRATEGY = "ocr.strategy"; // NO_OCR, OCR_ONLY, OCR_AND_TEXT_EXTRACTION, AUTO
+                                                                  // (default)
 
     public static final String OCR_STRATEGY_NO_OCR = "NO_OCR";
     public static final String OCR_STRATEGY_OCR_AND_TEXT_EXTRACTION = "OCR_AND_TEXT_EXTRACTION";
@@ -93,7 +95,7 @@ public class TikaService {
      * @throws PluginException
      */
     public void extractText(ItemCollection workitem, ItemCollection snapshot) throws PluginException {
-        extractText(workitem, snapshot, ocrStategy, null);
+        extractText(workitem, snapshot, ocrStategy, null,null);
     }
 
     /**
@@ -108,15 +110,20 @@ public class TikaService {
      * <p>
      * The method also extracts files already stored in a snapshot workitem. In this
      * case the method tests if the $file attribute 'text' already exists.
+     * <p>
+     * An optional param 'filePattern' can be provided to extract text only from
+     * Attachments mating the given file pattern (regex).
      * 
-     * @param workitem - workitem with file attachments
-     * @param pdf_mode - TEXT_ONLY, OCR_ONLY, TEXT_AND_OCR
-     * @param options  - optional tika header params
+     * @param workitem         - workitem with file attachments
+     * @param pdf_mode         - TEXT_ONLY, OCR_ONLY, TEXT_AND_OCR
+     * @param options          - optional tika header params
+     * @param filePatternRegex - optional regular expression to match files
      * @throws PluginException
      */
-    public void extractText(ItemCollection workitem, ItemCollection snapshot, String _ocrStategy, List<String> options)
-            throws PluginException {
+    public void extractText(ItemCollection workitem, ItemCollection snapshot, String _ocrStategy, List<String> options,
+            String filePatternRegex) throws PluginException {
         boolean debug = logger.isLoggable(Level.FINE);
+        Pattern filePattern = null;
 
         if (options == null) {
             options = new ArrayList<String>();
@@ -149,11 +156,22 @@ public class TikaService {
             }
         }
 
+        // do we have a file pattern?
+        if (filePatternRegex != null && !filePatternRegex.isEmpty()) {
+            filePattern = Pattern.compile(filePatternRegex);
+        }
+
         long l = System.currentTimeMillis();
         // List<ItemCollection> currentDmsList = DMSHandler.getDmsList(workitem);
         List<FileData> files = workitem.getFileData();
 
         for (FileData fileData : files) {
+
+            // do we have an optional file pattern?
+            if (filePattern != null && !filePattern.matcher(fileData.getName()).find()) {
+                // the file did not match the given pattern!
+                continue;
+            }
 
             // do we need to parse the content?
             if (!hasOCRContent(fileData)) {

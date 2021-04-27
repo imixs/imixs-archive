@@ -40,7 +40,7 @@ import org.imixs.workflow.exceptions.PluginException;
 public class OCRDocumentAdapter implements SignalAdapter {
 
     public static final String OCR_ERROR = "OCR_ERROR";
-    
+
     private static Logger logger = Logger.getLogger(OCRDocumentAdapter.class.getName());
 
     @Inject
@@ -69,19 +69,24 @@ public class OCRDocumentAdapter implements SignalAdapter {
             logger.finest("...running api adapter...");
 
             try {
+                List<String> tikaOptions = null;
+                String filePattern = null;
                 // read opitonal tika options
                 ItemCollection evalItemCollection = workflowService.evalWorkflowResult(event, "tika", document, false);
-                List<String> tikaOptions = evalItemCollection.getItemValue("options");
-
+                if (evalItemCollection != null) {
+                    tikaOptions = evalItemCollection.getItemValue("options");
+                    filePattern = evalItemCollection.getItemValueString("filepattern");
+                }
                 // extract text data....
-                ocrService.extractText(document, snapshotService.findSnapshot(document), null, tikaOptions);
+                ocrService.extractText(document, snapshotService.findSnapshot(document), null, tikaOptions,
+                        filePattern);
             } catch (PluginException e) {
-                String message="Tika OCRService - unable to extract text: " + e.getMessage();
+                String message = "Tika OCRService - unable to extract text: " + e.getMessage();
                 throw new AdapterException(e.getErrorContext(), e.getErrorCode(), message, e);
             } catch (RuntimeException e) {
-                // we catch a runtimeException to avoid dead locks in the eventLog processing 
+                // we catch a runtimeException to avoid dead locks in the eventLog processing
                 // issue #153
-                String message="Tika OCRService - unable to extract text: " + e.getMessage();
+                String message = "Tika OCRService - unable to extract text: " + e.getMessage();
                 throw new AdapterException(OCRDocumentAdapter.class.getSimpleName(), OCR_ERROR, message, e);
             }
         } else {
