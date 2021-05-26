@@ -4,7 +4,7 @@
 	<artifactId>imixs-archive</artifactId>
 	<packaging>pom</packaging>
 	<name>Imixs-Archive</name>
-	<version>1.2.5</version>
+	<version>1.2.6-SNAPSHOT</version>
 
 	<modules>
 		<module>imixs-archive-api</module>
