@@ -39,6 +39,7 @@ import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
 import javax.annotation.security.RunAs;
 import javax.ejb.EJB;
+import javax.ejb.EJBException;
 import javax.ejb.LocalBean;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
@@ -268,7 +269,12 @@ public class SnapshotService {
 		documentService.save(snapshot);
 
 		// 8. remove deprecated snapshots
-		cleanSnaphostHistory(snapshot.getUniqueID());
+		// ignore adminP - see issue #155
+		if (!snapshot.getType().contains("adminp")) {
+		    cleanSnaphostHistory(snapshot.getUniqueID());
+		} else {
+		    logger.info("cleanSnaphostHistory - skipp cleanSnaphostHistory for adminP!");
+		}
 
 	}
 
@@ -399,6 +405,9 @@ public class SnapshotService {
 				documentService.remove(oldSnapshot);
 			} catch (AccessDeniedException e) {
 				logger.warning("remove deprecated snapshot '" + snapshotID + "' failed: " + e.getMessage());
+			} catch (EJBException e1) {
+			    // added exception - see issue #155
+			    logger.warning(" ... EJBException: " + e1.getMessage());
 			}
 			result.remove(0);
 		}
