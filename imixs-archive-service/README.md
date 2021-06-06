@@ -7,23 +7,24 @@ The *Imixs-Archive Service* runs on Jakarta EE and fits perfectly into a microse
 All the data is stored in a platform and technology neutral XML format. This guaranties the  cross-technology data exchange independent from a specific software version over a long period of time.   
 
 
-## Rest API
-The Rest API which is part the *Imixs-Archive-Service* provides methods to update and access snapshot data:
-
- * PUT /archive/snapshot/ - stores a snapshot into the archive
- * GET /archive/snapshot/{id} - loads a snapshot from the archive
- * GET /archive/snapshot/{id}/file/{file} - loads the file content from a snapshot by its filename 
- * GET /archive/md5/{md5} - loads the file content by its MD5 checksum (recommended)
-
-
 ## The SyncService
 
-The SyncService pulls a Snapshot data from a remote workflow instance into the cassandra archive. The service uses an asynchronous mechanism based on the Imixs EventLog.
+The SyncService pulls Snapshot data from a remote workflow instance into the Imixs-Archive and stores the data into a Cassandra Cluster. The service runns asynchronous and is based on the [Imixs EventLog](https://www.imixs.org/doc/engine/eventlogservice.html).
 
-The service connects to an Imixs-Workflow instance by the Rest Client to read new snapshot data.
+The SyncService automatically connects to an Imixs-Workflow instance and reads new snapshot data.
 The service is triggered by the SyncScheduler implementing a ManagedScheduledExecutorService.
  
 **Note:** A EventLog entry in the remote workflow instance is only created in case the ARCHIVE_SERVICE_ENDPOINT is defined by the remote system. See also the *SnapshotService* EJB in the [imixs-archive-api](../imixs-archive-api/README.md). 
+
+## Rest API
+The Rest API which is part the *Imixs-Archive-Service* provides methods to access snapshot data:
+
+ * GET /archive/snapshot/{id} - loads a snapshot from the archive
+ * GET /archive/snapshot/{id}/file/{file} - loads the file content from a snapshot by its filename 
+ * GET /archive/md5/{md5} - loads the file content by its MD5 checksum (recommended)
+ * GET /archive/metadata - loads the metadata from the archive
+
+
  
  
 ## The ResyncService

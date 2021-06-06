@@ -100,12 +100,12 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
  * documents from the type 'workitemlob' will be saved, the SnapshotService
  * throws a SnapshotException.
  * <p>
- * <strong>ArchivePushService</strong><br />
+ * <strong>SyncService</strong><br />
  * Since version 2.0 the SnapshotService can be connected to the
  * ImixsArchiveService. If the environment variable 'ARCHIVE_SERVICE_ENDPONT' is
  * set, than the snapshot service creates a EventLog entry each time a snapshot
- * was generated. The ArchivePushService sanns for the EventLog entires in an
- * asynchronious way and push the snaphots directyl into the Archive
+ * was generated. The Archive SyncService scans for the EventLog entries in an
+ * asynchronous way and pulls the snaphots directly into the Archive
  * (Cassandra).
  * 
  * 

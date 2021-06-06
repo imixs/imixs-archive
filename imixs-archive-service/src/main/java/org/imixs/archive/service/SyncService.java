@@ -21,8 +21,8 @@ import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.InvalidAccessException;
 
 /**
- * The SyncService pulls a Snapshot into the cassandra archive. The service uses
- * an asynchronous mechanism based on the Imixs EventLog.
+ * The SyncService pulls a Snapshot into an Apache Cassandra archive. The
+ * service uses an asynchronous mechanism based on the Imixs EventLog.
  * <p>
  * The service connects to an Imixs-Workflow instance by the Rest Client to read
  * new snapshot data.
@@ -77,13 +77,12 @@ public class SyncService {
         String id = null;
         String ref = null;
 
-
-        if ( documentClient == null || eventLogClient == null) {
+        if (documentClient == null || eventLogClient == null) {
             // no client object
             logger.fine("...no eventLogClient available!");
             return;
         }
-        
+
         // max 100 entries per iteration
         eventLogClient.setPageSize(100);
         List<ItemCollection> events = eventLogClient.searchEventLog(ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
@@ -141,7 +140,7 @@ public class SyncService {
             return;
         }
         eventLogClient.releaseDeadLocks(deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
-                    ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
+                ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
     }
 
     /**

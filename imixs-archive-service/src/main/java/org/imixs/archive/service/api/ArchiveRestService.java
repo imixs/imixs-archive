@@ -284,66 +284,7 @@ public class ArchiveRestService {
 
     }
 
-    /**
-     * The method writes the data of a snapshot into the cassandra cluster
-     * <p>
-     * The method returns the snapshot data. In case of an failure the method return
-     * a HTTP Response 500. In this case a client can inspect the items
-     * '$error_code' and '$error_message' to evaulate the error.
-     * <p>
-     * In case the data was successfully written into the Cassandra cluster the
-     * method returns a HTTP Response 200.
-     * 
-     * @param xmlworkitem - snapshot data to be stored into cassandra in XML format
-     * @return - snapshot data with an error code in case of a failure
-     */
-//	@POST
-//	@Produces(MediaType.APPLICATION_XML)
-//	@Consumes({ MediaType.APPLICATION_XML, MediaType.TEXT_XML })
-//	public Response postSnapshot(XMLDocument xmlDocument) {
-//
-//		Session session = null;
-//		Cluster cluster = null;
-//		ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
-//
-//		try {
-//			logger.finest("...write snapshot...");
-//			dataService.saveSnapshot(snapshot);
-//			snapshot.removeItem("$error_code");
-//			snapshot.removeItem("$error_message");
-//
-//		} catch (ArchiveException e) {
-//			logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
-//			snapshot = this.addErrorMessage(e, snapshot);
-//
-//			return null;
-//
-//		} finally {
-//			// close session and cluster object
-//			if (session != null) {
-//				session.close();
-//			}
-//			if (cluster != null) {
-//				cluster.close();
-//			}
-//		}
-//
-//		// return workitem
-//		try {
-//			if (snapshot.hasItem("$error_code")) {
-//				return Response.ok(XMLDataCollectionAdapter.getDataCollection(snapshot), MediaType.APPLICATION_XML)
-//						.status(Response.Status.NOT_ACCEPTABLE).build();
-//			}
-//			else {
-//			    // we do not return a data item
-//				return Response.ok().build();
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//			return Response.status(Response.Status.NOT_ACCEPTABLE).build();
-//		}
-//
-//	}
+
 
     /**
      * This method converts a single ItemCollection into a Jax-rs response object.
@@ -383,28 +324,4 @@ public class ArchiveRestService {
         }
     }
 
-    /**
-     * This helper method adds a error message to the given entity, based on the
-     * data in a Exception. This kind of error message can be displayed in a page
-     * evaluating the properties '$error_code' and '$error_message'. These
-     * attributes will not be stored.
-     * 
-     * @param pe
-     */
-//	private ItemCollection addErrorMessage(Exception pe, ItemCollection aworkitem) {
-//
-//		if (pe instanceof RuntimeException && pe.getCause() != null) {
-//			pe = (RuntimeException) pe.getCause();
-//		}
-//
-//		if (pe instanceof InvalidAccessException) {
-//			aworkitem.replaceItemValue("$error_code", ((InvalidAccessException) pe).getErrorCode());
-//			aworkitem.replaceItemValue("$error_message", pe.getMessage());
-//		} else {
-//			aworkitem.replaceItemValue("$error_code", "INTERNAL ERROR");
-//			aworkitem.replaceItemValue("$error_message", pe.getMessage());
-//		}
-//
-//		return aworkitem;
-//	}
 }
