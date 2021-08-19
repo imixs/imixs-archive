@@ -100,6 +100,8 @@ public class IMAPImportService {
     public static final String DETACH_MODE_ALL = "ALL";
     public static final String DETACH_MODE_NONE = "NONE";
     public static final String ARCHIVE_DEFAULT_NAME = "imixs-archive";
+    
+    public static final String DEFAULT_NO_SUBJECT = "no subject";
 
     private static Logger logger = Logger.getLogger(IMAPImportService.class.getName());
 
@@ -216,14 +218,14 @@ public class IMAPImportService {
                 Address[] fromAddress = message.getFrom();
                 String subject = message.getSubject();
                 if (subject == null || subject.trim().isEmpty()) {
-                    subject = "no-subject";
+                    subject = DEFAULT_NO_SUBJECT;
                 }
                 Date sent = message.getSentDate();
                 logger.fine("......received mail from: " + fromAddress[0].toString());
                 logger.fine("......subject = " + subject);
                 // do we have a subject regular expression provided by the options?
                 if (subjectPattern != null) {
-                    if (subject == null || subject.isEmpty()) {
+                    if (subject == null || DEFAULT_NO_SUBJECT.equals(subject)) {
                         // skip this mail
                         continue;
                     }
