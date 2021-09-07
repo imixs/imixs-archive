@@ -63,6 +63,8 @@ public class TikaService {
     public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
     public static final String ENV_OCR_SERVICE_ENDPOINT = "ocr.service.endpoint";
     public static final String ENV_OCR_SERVICE_MODE = "ocr.service.mode";
+    public static final String ENV_OCR_SERVICE_MAXFILESIZE = "ocr.service.maxfilesize";
+
     public static final String ENV_OCR_STRATEGY = "ocr.strategy"; // NO_OCR, OCR_ONLY, OCR_AND_TEXT_EXTRACTION, AUTO
                                                                   // (default)
 
@@ -81,6 +83,11 @@ public class TikaService {
     @ConfigProperty(name = ENV_OCR_STRATEGY, defaultValue = OCR_STRATEGY_AUTO)
     String ocrStategy;
 
+    // Maximum size of bytes to be scanned (default is 5MB)
+    @Inject
+    @ConfigProperty(name = ENV_OCR_SERVICE_MAXFILESIZE, defaultValue = "5242880")
+    int ocrMaxFileSize;
+
     /**
      * Extracts the textual information from document attachments.
      * <p>
@@ -95,7 +102,7 @@ public class TikaService {
      * @throws PluginException
      */
     public void extractText(ItemCollection workitem, ItemCollection snapshot) throws PluginException {
-        extractText(workitem, snapshot, ocrStategy, null,null);
+        extractText(workitem, snapshot, ocrStategy, null, null);
     }
 
     /**
@@ -184,6 +191,16 @@ public class TikaService {
                         if (debug) {
                             logger.fine("...text extraction '" + originFileData.getName() + "'...");
                         }
+
+                        // if the size of the file is greater then ENV_OCR_SERVICE_MAXFILESIZE,
+                        // we ignore the file!
+                        if (originFileData.getContent() != null
+                                && originFileData.getContent().length > ocrMaxFileSize) {
+                            logger.warning("The file size '" + fileData.getName() + "' excided the allowed max size of "
+                                    + ocrMaxFileSize + " bytes (file size=" + originFileData.getContent().length + ")");
+                            continue;
+                        }
+
                         textContent = doORCProcessing(originFileData, options);
 
                         if (textContent == null) {

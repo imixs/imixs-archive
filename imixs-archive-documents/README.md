@@ -101,7 +101,12 @@ The *TikaService* EJB provides methods to extract textual information from docum
 The *TikaService* extracts the textual information from file attachments calling the Tika Rest API Service endpoint. The following environment variables are supported:
  
   * OCR\_SERVICE\_ENDPOINT - defines the Rest API end-point of the Tika server (mandetory).
+  * OCR\_SERVICE\_MAXFILESIZE - defines the maximum allowed file size in bytes (default is set to 5242880 = 5MB)
   * OCR\_STRATEGY - Which strategy to use for OCR (AUTO|NO_OCR|OCR_AND_TEXT_EXTRACTION|OCR_ONLY) 
+
+The environment variable OCR\_SERVICE\_ENDPOINT  must point to a valid tika service.
+
+With the OCR\_SERVICE\_MAXFILESIZE  you can define the maximum allowed file size to scan. If a file is very large, this can take a lot of memory an processing time. The default max size of 5MB is a good recommendation. 
 
 With the optional environment variable OCR\_STRATEGY the behavior how text is extracted from a PDF file can be controlled:
 
