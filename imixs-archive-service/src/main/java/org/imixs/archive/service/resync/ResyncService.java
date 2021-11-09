@@ -254,11 +254,17 @@ public class ResyncService {
                         // the origin data
                         if (!dataService.existSnapshot(snapshot.getUniqueID())) {
                             // store data into archive
-                            lastUniqueID = snapshot.getUniqueID();
-                            dataService.saveSnapshot(snapshot);
-                            syncupdate++;
-                            totalCount++;
-                            totalSize = totalSize + dataService.calculateSize(xmlDocument);
+                            try {
+                                  lastUniqueID = snapshot.getUniqueID();
+                                dataService.saveSnapshot(snapshot);
+                                syncupdate++;
+                                totalCount++;
+                                totalSize = totalSize + dataService.calculateSize(xmlDocument);
+                            } catch (java.lang.IllegalArgumentException e) {
+                                logger.warning("Failed to resync snapshot id '"+snapshot.getUniqueID()+"' - error: "+e.getMessage());
+                                // we continue....
+                            }
+                            
                         } else {
                             // This is because in case of a restore, the same snapshot takes a new $modified
                             // item. And we do not want to re-import the snapshot in the next sync cycle.

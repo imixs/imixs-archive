@@ -145,7 +145,7 @@ public class ImportService {
     }
 
     /**
-     * This is the method which imports the data from teh FTP storrage.
+     * This is the method which imports the data from the FTP storage.
      * 
      * @throws Exception
      * @throws QueryException
@@ -240,16 +240,22 @@ public class ImportService {
                                         verified++;
                                         if (!dataService.existSnapshot(snapshot.getUniqueID())) {
                                             // import!
-                                            dataService.saveSnapshot(snapshot);
-                                            logger.info("...." + snapshot.getUniqueID() + " successfull imported");
-                                            count++;
-                                            totalCount++;
-                                            long _tmpSize = dataService
-                                                    .calculateSize(XMLDocumentAdapter.getDocument(snapshot));
-                                            logger.finest("......size=: " + _tmpSize);
-                                            importSize = importSize + _tmpSize;
-
-                                            lastImportPoint = dataService.getSnapshotTime(snapshot.getUniqueID());
+                                            try {
+                                                dataService.saveSnapshot(snapshot);
+                                                logger.info("...." + snapshot.getUniqueID() + " successfull imported");
+                                                count++;
+                                                totalCount++;
+                                                long _tmpSize = dataService
+                                                        .calculateSize(XMLDocumentAdapter.getDocument(snapshot));
+                                                logger.finest("......size=: " + _tmpSize);
+                                                importSize = importSize + _tmpSize;
+    
+                                                lastImportPoint = dataService.getSnapshotTime(snapshot.getUniqueID());
+                                            
+                                            } catch (java.lang.IllegalArgumentException e) {
+                                                logger.warning("Failed to import snapshot id '"+snapshot.getUniqueID()+"' - error: "+e.getMessage());
+                                                // we continue....
+                                            }
                                         }
                                     }
                                 }
