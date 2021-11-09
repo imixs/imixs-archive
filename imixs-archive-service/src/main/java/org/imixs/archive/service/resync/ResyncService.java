@@ -255,12 +255,12 @@ public class ResyncService {
                         if (!dataService.existSnapshot(snapshot.getUniqueID())) {
                             // store data into archive
                             try {
-                                  lastUniqueID = snapshot.getUniqueID();
+                                lastUniqueID = snapshot.getUniqueID();
                                 dataService.saveSnapshot(snapshot);
                                 syncupdate++;
                                 totalCount++;
                                 totalSize = totalSize + dataService.calculateSize(xmlDocument);
-                            } catch (java.lang.IllegalArgumentException e) {
+                            } catch ( RuntimeException  e) {
                                 logger.warning("Failed to resync snapshot id '"+snapshot.getUniqueID()+"' - error: "+e.getMessage());
                                 // we continue....
                             }
