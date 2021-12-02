@@ -1,6 +1,7 @@
 package org.imixs.archive.documents;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -20,6 +21,7 @@ import java.util.regex.Pattern;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
+import org.apache.pdfbox.pdmodel.PDDocument;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
@@ -102,7 +104,7 @@ public class TikaService {
      * @throws PluginException
      */
     public void extractText(ItemCollection workitem, ItemCollection snapshot) throws PluginException {
-        extractText(workitem, snapshot, ocrStategy, null, null);
+        extractText(workitem, snapshot, ocrStategy, null, null, 0);
     }
 
     /**
@@ -120,6 +122,11 @@ public class TikaService {
      * <p>
      * An optional param 'filePattern' can be provided to extract text only from
      * Attachments mating the given file pattern (regex).
+     * <p>
+     * The optioanl param 'maxPages' can be provided to reduce the size of PDF
+     * documents to a maximum of pages. This avoids blocking the tika service by
+     * processing to large documetns. For example only the first 5 pages can be
+     * scanned.
      * 
      * @param workitem         - workitem with file attachments
      * @param pdf_mode         - TEXT_ONLY, OCR_ONLY, TEXT_AND_OCR
@@ -128,7 +135,7 @@ public class TikaService {
      * @throws PluginException
      */
     public void extractText(ItemCollection workitem, ItemCollection snapshot, String _ocrStategy, List<String> options,
-            String filePatternRegex) throws PluginException {
+            String filePatternRegex, int maxPdfPages) throws PluginException {
         boolean debug = logger.isLoggable(Level.FINE);
         Pattern filePattern = null;
 
@@ -201,7 +208,7 @@ public class TikaService {
                             continue;
                         }
 
-                        textContent = doORCProcessing(originFileData, options);
+                        textContent = doORCProcessing(originFileData, options, maxPdfPages);
 
                         if (textContent == null) {
                             logger.warning("Unable to extract text-content for '" + fileData.getName() + "'");
@@ -240,7 +247,7 @@ public class TikaService {
      * @return text content
      * @throws IOException
      */
-    public String doORCProcessing(FileData fileData, List<String> options) throws IOException {
+    public String doORCProcessing(FileData fileData, List<String> options, int maxPdfPages) throws IOException {
         boolean debug = logger.isLoggable(Level.FINE);
 
         // read the Tika Service Enpoint
@@ -262,6 +269,24 @@ public class TikaService {
                 logger.fine("contentType '" + contentType + " is not supported by Tika Server");
             }
             return null;
+        }
+
+        // remove pages if page size of a pdf document exceeds the max_pagesize
+        if (maxPdfPages > 0 && "application/pdf".equals(contentType)) {
+            PDDocument pdfdoc = PDDocument.load(fileData.getContent());
+            if (pdfdoc.getNumberOfPages() > maxPdfPages) {
+                logger.info("......pdf document '" + fileData.getName() + "' has to many pages (max allowed="
+                        + maxPdfPages + ")");
+                while (pdfdoc.getNumberOfPages() > maxPdfPages) {
+                    logger.info("......removing page " + pdfdoc.getNumberOfPages());
+                    pdfdoc.removePage(pdfdoc.getNumberOfPages() - 1);
+                }
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                pdfdoc.save(byteArrayOutputStream);
+                pdfdoc.close();
+                // update fileData content....
+                fileData.setContent(byteArrayOutputStream.toByteArray());
+            }
         }
 
         PrintWriter printWriter = null;

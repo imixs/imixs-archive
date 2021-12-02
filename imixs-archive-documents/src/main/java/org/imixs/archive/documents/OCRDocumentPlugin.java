@@ -58,16 +58,18 @@ public class OCRDocumentPlugin extends AbstractPlugin {
         if ("model".equalsIgnoreCase(serviceMode)) {
             List<String> tikaOptions = null;
             String filePattern = null;
+            int maxPdfPages=0;
             // read optional tika options
             ItemCollection evalItemCollection = this.getWorkflowService().evalWorkflowResult(event, "tika", document,
                     false);
             if (evalItemCollection != null) {
                 tikaOptions = evalItemCollection.getItemValue("options");
                 filePattern = evalItemCollection.getItemValueString("filepattern");
+                maxPdfPages = evalItemCollection.getItemValueInteger("maxpdfpages"); // only for pdf documents
             }
 
             // update the dms meta data
-            ocrService.extractText(document, snapshotService.findSnapshot(document), null, tikaOptions,filePattern);
+            ocrService.extractText(document, snapshotService.findSnapshot(document), null, tikaOptions,filePattern,maxPdfPages);
         } else {
             logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode
                     + " - running the OCRDocumentAdapter the env TIKA_SERVICE_MODE should be set to 'model'. Plugin will be ignored!");

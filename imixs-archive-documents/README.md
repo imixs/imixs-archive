@@ -46,6 +46,8 @@ Both, the *OCRDocumentPlugin* as also the *OCRDocumentAdapter* can be configured
 	<tika name="options">X-Tika-PDFOcrDPI=72</tika>
 	<tika name="options">X-Tika-OCRLanguage=eng+deu</tika>
 	<tika name="filepattern">(PDF|pdf)$</tika>
+	<tika name="maxpdfpages">1</tika>
+	
 
 In this example configuration the OCR processing will be started with 4 additional tika options. 
 
@@ -75,6 +77,12 @@ You can provide an optional filepattern as a regular expression to filter attach
 Example - parse PDF files only:
 
 	<tika name="filepattern">(PDF|pdf)$</tika>
+
+#### Max Pages of PDF Documents
+
+With the optional parameter `maxpdfpages` you can controll how many pages of a PDF document will be scanned. This optional parameter can be used to reduce the size of very time and CPU intensive scan processing of the Tika service. For example you can set the param to 1 to onyl scann the first page of a PDF document
+
+	<tika name="maxpdfpages">1</tika>
 
 ### The OCRDocumentService
 
