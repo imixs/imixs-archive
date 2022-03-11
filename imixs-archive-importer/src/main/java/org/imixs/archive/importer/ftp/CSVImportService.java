@@ -43,13 +43,9 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.logging.Logger;
 
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import javax.ws.rs.core.MediaType;
+import javax.inject.Named;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -58,13 +54,9 @@ import org.imixs.archive.importer.DocumentImportEvent;
 import org.imixs.archive.importer.DocumentImportService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
-
 import org.imixs.workflow.engine.DocumentService;
-import org.imixs.workflow.engine.ModelService;
-import org.imixs.workflow.engine.WorkflowService;
 import org.imixs.workflow.engine.index.UpdateService;
 import org.imixs.workflow.exceptions.AccessDeniedException;
-import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
 import org.imixs.workflow.exceptions.QueryException;
@@ -80,7 +72,7 @@ import org.imixs.workflow.exceptions.QueryException;
  * @author rsoika
  *
  */
-@Stateless
+@Named
 public class CSVImportService {
 
     public static final String DATA_ERROR = "DATA_ERROR";
@@ -88,19 +80,13 @@ public class CSVImportService {
 
     private static Logger logger = Logger.getLogger(CSVImportService.class.getName());
 
-    @EJB
-    WorkflowService workflowService;
-    
     @Inject
     UpdateService indexUpdateService;
 
-    @EJB
+    @Inject
     DocumentService documentService;
 
-    @EJB
-    ModelService modelService;
-
-    @EJB
+    @Inject
     DocumentImportService documentImportService;
 
     /**
@@ -226,10 +212,10 @@ public class CSVImportService {
                         FileData fileData = new FileData(file.getName(), rawData, null, null);
                         String newChecksum = fileData.generateMD5();
                         documentImportService.logMessage("...checksum=" + newChecksum, event);
-                        if (lastChecksum.isEmpty() || !lastChecksum.equals(newChecksum) ) {
+                        if (lastChecksum.isEmpty() || !lastChecksum.equals(newChecksum)) {
                             // read data....
                             InputStream imputStream = new ByteArrayInputStream(rawData);
-                            String log = importData(imputStream, encoding, type, keyField,event);
+                            String log = importData(imputStream, encoding, type, keyField, event);
                             // update checksum
                             event.getSource().setItemValue("csv.checksum", newChecksum);
                             documentImportService.logMessage(log, event);
@@ -292,35 +278,6 @@ public class CSVImportService {
     }
 
     /**
-     * Creates and processes a new workitem with a given filedata
-     * 
-     * @return
-     * @throws ModelException
-     * @throws PluginException
-     * @throws ProcessingErrorException
-     * @throws AccessDeniedException
-     */
-    public ItemCollection createWorkitem(ItemCollection source, String fileName, byte[] rawData)
-            throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
-        ItemCollection workitem = new ItemCollection();
-        workitem.model(source.getItemValueString(DocumentImportService.SOURCE_ITEM_MODELVERSION));
-        workitem.task(source.getItemValueInteger(DocumentImportService.SOURCE_ITEM_TASK));
-        workitem.event(source.getItemValueInteger(DocumentImportService.SOURCE_ITEM_EVENT));
-        workitem.setWorkflowGroup(source.getItemValueString("workflowgroup"));
-
-        String contentType = MediaType.WILDCARD;
-        if (fileName.toLowerCase().endsWith(".pdf")) {
-            contentType = "Application/PDF";
-        }
-        // set file data
-        FileData fileData = new FileData(fileName, rawData, contentType, null);
-        workitem.addFileData(fileData);
-        workitem = workflowService.processWorkItemByNewTransaction(workitem);
-
-        return workitem;
-    }
-
-    /**
      * This method imports all entities from a csv file. The file must have one
      * header line.
      * <p>
@@ -337,9 +294,8 @@ public class CSVImportService {
      * @return ErrorMessage or empty String
      * @throws PluginException
      */
-    @TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
-    public String importData(InputStream imputStream, String encoding, String type, String keyField, DocumentImportEvent event)
-            throws PluginException {
+    public String importData(InputStream imputStream, String encoding, String type, String keyField,
+            DocumentImportEvent event) throws PluginException {
 
         logger.fine("...starting csv data import...");
         String log = "";
@@ -387,16 +343,16 @@ public class CSVImportService {
                 line++;
                 workitemsTotal++;
                 ItemCollection entity = readEntity(dataLine, fields, type);
-               
-                String keyItemValue=entity.getItemValueString(keyField);
+
+                String keyItemValue = entity.getItemValueString(keyField);
                 // replace txtName by the key field
                 entity.replaceItemValue("name", keyItemValue);
 
                 // store id into cache
                 if (idCache.contains(keyItemValue)) {
-                    logger.warning("...WARNING dupplicate entry found: "+keyField + "="+keyItemValue);
-                    documentImportService.logMessage("...WARNING dupplicate entry found: "+keyField + "="+keyItemValue ,
-                            event);
+                    logger.warning("...WARNING dupplicate entry found: " + keyField + "=" + keyItemValue);
+                    documentImportService
+                            .logMessage("...WARNING dupplicate entry found: " + keyField + "=" + keyItemValue, event);
                 } else {
                     idCache.add(keyItemValue);
                 }
@@ -420,7 +376,7 @@ public class CSVImportService {
 
                 if (blockSize >= 100) {
                     blockSize = 0;
-                    logger.info("..."+workitemsTotal + " entries read (" + workitemsUpdated + " updates)");
+                    logger.info("..." + workitemsTotal + " entries read (" + workitemsUpdated + " updates)");
                     // flush lucene index!
                     indexUpdateService.updateIndex();
                 }
@@ -449,7 +405,7 @@ public class CSVImportService {
 
         // now we remove all existing entries not listed in the file
         workitemsDeleted = removeDeprecatedDocuments(idCache, type);
-        log += "..."+workitemsTotal + " entries read -> " + workitemsImported + " new entries - " + workitemsUpdated
+        log += "..." + workitemsTotal + " entries read -> " + workitemsImported + " new entries - " + workitemsUpdated
                 + " updates - " + workitemsDeleted + " deletions - " + workitemsFailed + " errors";
 
         logger.info(log);
