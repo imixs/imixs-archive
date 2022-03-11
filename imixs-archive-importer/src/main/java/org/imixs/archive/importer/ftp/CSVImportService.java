@@ -386,8 +386,8 @@ public class CSVImportService {
                 blockSize++;
                 line++;
                 workitemsTotal++;
-                ItemCollection entity = readEntity(dataLine, fields);
-
+                ItemCollection entity = readEntity(dataLine, fields, type);
+               
                 String keyItemValue=entity.getItemValueString(keyField);
                 // replace txtName by the key field
                 entity.replaceItemValue("name", keyItemValue);
@@ -404,23 +404,25 @@ public class CSVImportService {
                 ItemCollection oldEntity = findEntityByName(entity.getItemValueString("Name"), type);
                 if (oldEntity == null) {
                     // create new workitem
-                    saveEntry(entity, type);
+                    documentService.saveByNewTransaction(entity);
                     workitemsImported++;
                 } else {
                     // test if modified....
                     if (!isEqualEntity(oldEntity, entity, fields)) {
                         logger.fine("update exsting entity: " + oldEntity.getUniqueID());
-                        // copy all datev entries from the import into the
+                        // copy all entries from the import into the
                         // existing entity
                         oldEntity.replaceAllItems(entity.getAllItems());
-                        saveEntry(oldEntity, type);
+                        documentService.saveByNewTransaction(oldEntity);
                         workitemsUpdated++;
                     }
                 }
 
                 if (blockSize >= 100) {
                     blockSize = 0;
-                    logger.info(workitemsTotal + " entries read....");
+                    logger.info("..."+workitemsTotal + " entries read (" + workitemsUpdated + " updates)");
+                    // flush lucene index!
+                    indexUpdateService.updateIndex();
                 }
             }
 
@@ -502,8 +504,11 @@ public class CSVImportService {
      * @param fieldnames
      * @return
      */
-    private ItemCollection readEntity(String data, List<String> fieldnames) {
+    private ItemCollection readEntity(String data, List<String> fieldnames, String type) {
         ItemCollection result = new ItemCollection();
+        // add type...
+        result.replaceItemValue("type", type);
+
         int iCol = 0;
         // @see
         // http://stackoverflow.com/questions/2241758/regarding-java-split-command-parsing-csv-file
@@ -578,26 +583,6 @@ public class CSVImportService {
 
         }
         return result;
-    }
-
-    /**
-     * This method process a single workIten in a new transaction. The method adds
-     * the type 'kreditor' to the entity.
-     * 
-     * @param aWorkitem
-     * @throws PluginException
-     * @throws ProcessingErrorException
-     * @throws AccessDeniedException
-     * @throws ModelException
-     */
-    @TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
-    public void saveEntry(ItemCollection aWorkitem, String type)
-            throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
-
-        // add type...
-        aWorkitem.replaceItemValue("type", type);
-
-        documentService.save(aWorkitem);
     }
 
     /**
