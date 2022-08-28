@@ -116,13 +116,15 @@ public class DataService {
         String snapshotID = snapshot.getUniqueID();
 
         if (!isSnapshotID(snapshotID)) {
-            throw new IllegalArgumentException("unexpected '$snapshotid' format: '" + snapshotID + "'");
+            throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT,
+                    "unexpected '$snapshotid' format: '" + snapshotID + "'");
         }
         if (debug) {
             logger.finest("......save document" + snapshotID);
         }
         if (!snapshot.hasItem("$modified")) {
-            throw new IllegalArgumentException("missing item '$modified' for snapshot " + snapshotID);
+            throw new ArchiveException(ArchiveException.INVALID_DOCUMENT_OBJECT,
+                    "missing item '$modified' for snapshot " + snapshotID);
         }
 
         // verify if this snapshot is already stored - if so, we do not overwrite
