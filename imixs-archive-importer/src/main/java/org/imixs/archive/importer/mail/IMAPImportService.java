@@ -32,7 +32,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -42,6 +41,9 @@ import java.util.regex.PatternSyntaxException;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
 import javax.mail.Address;
 import javax.mail.BodyPart;
 import javax.mail.Folder;
@@ -49,7 +51,6 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
-import javax.mail.Session;
 import javax.mail.Store;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
@@ -83,6 +84,12 @@ import com.sun.mail.imap.IMAPFolder;
  * 'detach.mode' is set to ALL. To generate the message in PDF format a
  * gotenberg service is expected to convert HTML to PDF. The gotenberg service
  * endpoint can be defined by the option 'gotenberg.service'
+ * <p>
+ * To access a mail store the IMAPImportService injects IMAPAuthenticator's.
+ * These authenticator classes can be used to authenticate against a Mail Store.
+ * The authenticator to be used can be defined in the optional property
+ * imap.authenticator. If not defined, the service defaults to the
+ * IMAPBaasicAuthenticator implementation.
  * 
  * @author rsoika
  * @version 1.0
@@ -92,6 +99,8 @@ public class IMAPImportService {
 
     public static final String OPTION_ARCHIVE_FOLDER = "archive.folder";
     public static final String OPTION_SUBJECT_REGEX = "subject.regex";
+    public static final String OPTION_IMAP_AUTHENTICATOR = "imap.authenticator";
+
     public static final String OPTION_DETACH_MODE = "detach.mode";
     public static final String OPTION_PRESERVE_ORIGIN = "preserve.origin";
     public static final String OPTION_GOTENBERG_SERVICE = "gotenberg.service";
@@ -100,7 +109,7 @@ public class IMAPImportService {
     public static final String DETACH_MODE_ALL = "ALL";
     public static final String DETACH_MODE_NONE = "NONE";
     public static final String ARCHIVE_DEFAULT_NAME = "imixs-archive";
-    
+
     public static final String DEFAULT_NO_SUBJECT = "no subject";
 
     private static Logger logger = Logger.getLogger(IMAPImportService.class.getName());
@@ -116,6 +125,10 @@ public class IMAPImportService {
 
     @EJB
     MailMessageService mailMessageService;
+
+    @Inject
+    @Any
+    protected Instance<IMAPAuthenticator> imapAuthenticators;
 
     /**
      * This method reacts on a CDI ImportEvent and reads documents form a IMAP
@@ -140,15 +153,10 @@ public class IMAPImportService {
         }
 
         String imapServer = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SERVER);
-        String imapPort = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_PORT);
-        String imapUser = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_USER);
-        String imapPassword = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_PASSWORD);
         String imapFolder = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SELECTOR);
 
         Properties sourceOptions = documentImportService.getOptionsProperties(event.getSource());
 
-        // List<String> options =
-        // event.getSource().getItemValue(DocumentImportService.SOURCE_ITEM_OPTIONS);
         Pattern subjectPattern = null;
         String subjectRegex = sourceOptions.getProperty(OPTION_SUBJECT_REGEX, "");
         // do we have filter options providing a Subject Regex?
@@ -162,43 +170,26 @@ public class IMAPImportService {
             }
         }
 
-        if (imapPort.isEmpty()) {
-            // set default port
-            imapPort = "993";
-        }
-
         if (imapFolder.isEmpty()) {
             imapFolder = "INBOX";
         }
         try {
-            // create an empty properties object...
-            // Properties props = System.getProperties();
-            Properties imapProperties = new Properties();
-            // add default protocol..
-            imapProperties.setProperty("mail.store.protocol", "imaps");
-            // now we parse the mail properties provided by the options....
-            @SuppressWarnings("unchecked")
-            Enumeration<String> enums = (Enumeration<String>) sourceOptions.propertyNames();
-            while (enums.hasMoreElements()) {
-                String key = enums.nextElement();
-                if (key.startsWith("mail.")) {
-                    // add key...
-                    imapProperties.setProperty(key, sourceOptions.getProperty(key));
-                    logger.info("......setting property from source options: " + key);
+            Store store = null;
+            // depending on the option "imap.authenticator" we use the corresponding IMAPAuthenticator
+            // to open the mail store
+            IMAPAuthenticator imapAuthenticator=null;
+            String authenticatorClass = sourceOptions.getProperty(OPTION_IMAP_AUTHENTICATOR, "org.imixs.archive.importer.mail.IMAPBasicAuthenticator");
+            for (IMAPAuthenticator _imapAuthenticator : this.imapAuthenticators) {
+                // find the matching authenticator....
+                if (authenticatorClass.equals(_imapAuthenticator.getClass().getName() )) {
+                    documentImportService.logMessage("...IMAPAuthenticator = authenticatorClass", event);
+                    imapAuthenticator=_imapAuthenticator;
                 }
             }
-            // custom port?
-            if (imapProperties.containsKey("mail.imap.port")) {
-                imapPort=imapProperties.getProperty("mail.imap.port");
-            }
+            store = imapAuthenticator.openMessageStore(event.getSource(), sourceOptions);
 
-            // connect....
-            Session session = Session.getDefaultInstance(imapProperties, null);
-            Store store = session.getStore(); // "imaps"
-            documentImportService.logMessage(
-                    "...connecting to IMAP server: " + imapServer + ":" + imapPort + " /" + imapFolder, event);
+            documentImportService.logMessage("...connected to IMAP server: " + imapServer + " /" + imapFolder, event);
 
-            store.connect(imapServer, Integer.parseInt(imapPort), imapUser, imapPassword);
             IMAPFolder inbox = (IMAPFolder) store.getFolder(imapFolder);
             inbox.open(Folder.READ_WRITE);
 
@@ -422,7 +413,7 @@ public class IMAPImportService {
      * @return
      * @throws IOException
      */
-    private static byte[] readAllBytes(InputStream inputStream) throws IOException {
+    public static byte[] readAllBytes(InputStream inputStream) throws IOException {
         final int bufLen = 4 * 0x400; // 4KB
         byte[] buf = new byte[bufLen];
         int readLen;
