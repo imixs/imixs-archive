@@ -109,7 +109,9 @@ In case of detach.mode=ALL, the option 'preserve.origin' defines if the origin e
 If the option is set to false, the .eml file will not be attached. The default value is 'true'. 
 
 **Note:** In case of the detach.mode = 'PDF' or 'NONE' the origin mail file will always be attached.
-	
+
+
+
 
 ## Custom Mail Options
 
@@ -121,6 +123,22 @@ The *IMAPIImporterService* connects to an mail server via IMAPS per default. IMA
 	mail.imap.ssl.trust=*
 	
 You can find a list of all IMAP settings [here](https://www.tutorialspoint.com/javamail_api/javamail_api_imap_servers.htm)
+
+## Authenticators
+
+Connecting to a IMAP Message Store the IMAP Importer uses IMAPAuthentictor classes to access a mailbox using a specific authentication method.
+The IMAPAuhtenticator can be defined by the optional Option 	`imap.authenticator`. If no authenticator is defined, the Service will default o the `org.imixs.archive.importer.mail.IMAPBasicAuthenticator` implementation which uses a BASIC authentication method. 
+
+### IMAP Outlook Authenticator
+
+For Outlook365 the IMAP Authenticator `org.imixs.archive.importer.mail.IMAPOutlookAuthenticator` can be used to authenticate with the OAuth2 method. The Authenticator expects the following additional Mail Options:
+
+ * microsoft.tenantid - specifies the Microsoft Azure Tenant ID
+ * microsoft.clientid - specifies the Microsoft Client ID (the Client Principal accessing the Mail box)
+
+**Note:** In case of using the  IMAPOutlookAuthenticator the server name is ignored. The Server names to generate a OAuth Token and to open the Message Store are resolved internally by the Authenticator implementation. 
+
+
 
 ## Gotenberg HTML PDF Converter
 
