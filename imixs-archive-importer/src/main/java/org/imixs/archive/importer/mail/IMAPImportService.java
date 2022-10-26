@@ -184,6 +184,7 @@ public class IMAPImportService {
                 if (authenticatorClass.equals(_imapAuthenticator.getClass().getName() )) {
                     documentImportService.logMessage("...IMAPAuthenticator = authenticatorClass", event);
                     imapAuthenticator=_imapAuthenticator;
+                    break;
                 }
             }
             store = imapAuthenticator.openMessageStore(event.getSource(), sourceOptions);

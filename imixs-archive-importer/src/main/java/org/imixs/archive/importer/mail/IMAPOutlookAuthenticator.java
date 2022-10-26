@@ -28,10 +28,8 @@
 
 package org.imixs.archive.importer.mail;
 
-import java.io.ByteArrayInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.net.URL;
@@ -43,7 +41,6 @@ import javax.inject.Named;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
-import javax.json.stream.JsonParser;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.Store;
@@ -55,6 +52,9 @@ import org.imixs.workflow.ItemCollection;
 /**
  * The IMAPOutlookAuthenticator authenticates against Microsoft Outlook using
  * OAUTH2.
+ * <p>
+ * This authenticator ignores the Source Server setting.
+ * 
  * 
  * @see IMAPImportService
  * @author rsoika
@@ -74,6 +74,7 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
      * @throws NumberFormatException
      * @throws MessagingException
      */
+    @SuppressWarnings("unused")
     public Store openMessageStore(ItemCollection sourceConfig, Properties sourceOptions) throws MessagingException {
         String imapServer = sourceConfig.getItemValueString(DocumentImportService.SOURCE_ITEM_SERVER);
         String imapPort = sourceConfig.getItemValueString(DocumentImportService.SOURCE_ITEM_PORT);
@@ -118,10 +119,8 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
         String tenantId = sourceOptions.getProperty("microsoft.tenantid");
         String clientId = sourceOptions.getProperty("microsoft.clientid");
 
-      
-
         String token = null;
-        Store store=null;
+        Store store = null;
         try {
             token = getAuthToken(tenantId, clientId, imapPassword);
             Session session = Session.getInstance(imapProperties);
@@ -145,11 +144,9 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
      */
     public String getAuthToken(String tenantId, String clientId, String client_secret) throws IOException {
         String sURL = "https://login.microsoftonline.com/" + tenantId + "/oauth2/v2.0/token";
-
-        URL url = new URL(sURL);
         HttpsURLConnection httpClient = (HttpsURLConnection) new URL(sURL).openConnection();
 
-        // add reuqest header
+        // add request header
         httpClient.setRequestMethod("POST");
         httpClient.setRequestProperty("User-Agent", "Mozilla/5.0");
         httpClient.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
@@ -166,33 +163,18 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
         }
 
         int responseCode = httpClient.getResponseCode();
-        System.out.println("\nSending 'POST' request to URL : " + url);
-        System.out.println("Post parameters : " + urlParameters);
-        System.out.println("Response Code : " + responseCode);
-
-         byte[] response =  IMAPImportService.readAllBytes(httpClient.getInputStream());
-         
-         String s=new String(response);
-         
-         logger.info(s);
-         
-         
-          JsonReader jsonReader = Json.createReader(new StringReader(s));
-          JsonObject jsonObject = jsonReader.readObject();
-         
-         
-//         JsonObject jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
-//         
-//         
-//         InputStream targetStream = new ByteArrayInputStream(response);
-//         
-//        JsonReader reader = Json.createReader(targetStream);
-//        JsonObject jsonObject = reader.readObject();
-
-        String token = jsonObject.getString("access_token");
-
-        System.out.println("....access token = " + token);
-        return token;
+        if (responseCode >= 200 && responseCode <= 299) {
+            // Extract token form content
+            byte[] response = IMAPImportService.readAllBytes(httpClient.getInputStream());
+            JsonReader jsonReader = Json.createReader(new StringReader(new String(response)));
+            JsonObject jsonObject = jsonReader.readObject();
+            String token = jsonObject.getString("access_token");
+            logger.fine("....access token = " + token);
+            return token;
+        } else {
+            logger.severe("Failed to receive a valid token!");
+            return null;
+        }
     }
 
 }
