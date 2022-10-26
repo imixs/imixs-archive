@@ -54,7 +54,7 @@ The *Imixs-Archive-Service* provides an independent microservice archiving all d
 
 *Imixs-Archive-Importer* provides a generic import service to be used to import documents form various external sources like a FTP server or a IMAP account. 
 
-[Imixs-Archive-OCR](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-importer)
+[Imixs-Archive-Importer](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-importer)
 
 ### Imixs Signature
 
