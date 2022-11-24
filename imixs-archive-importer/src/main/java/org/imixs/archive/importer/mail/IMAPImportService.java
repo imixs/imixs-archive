@@ -182,7 +182,7 @@ public class IMAPImportService {
             for (IMAPAuthenticator _imapAuthenticator : this.imapAuthenticators) {
                 // find the matching authenticator....
                 if (authenticatorClass.equals(_imapAuthenticator.getClass().getName() )) {
-                    documentImportService.logMessage("...IMAPAuthenticator = authenticatorClass", event);
+                    documentImportService.logMessage("...IMAPAuthenticator = "+authenticatorClass, event);
                     imapAuthenticator=_imapAuthenticator;
                     break;
                 }

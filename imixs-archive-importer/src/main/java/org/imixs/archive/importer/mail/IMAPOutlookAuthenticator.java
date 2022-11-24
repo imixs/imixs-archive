@@ -35,6 +35,7 @@ import java.io.StringReader;
 import java.net.URL;
 import java.util.Enumeration;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.inject.Named;
@@ -124,7 +125,10 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
         try {
             token = getAuthToken(tenantId, clientId, imapPassword);
             Session session = Session.getInstance(imapProperties);
-            session.setDebug(true);
+            // debug mode?
+            if (logger.isLoggable(Level.FINEST)) {
+                session.setDebug(true);
+            }
             store = session.getStore("imap");
             store.connect("outlook.office365.com", imapUser, token);
         } catch (Exception e) {
@@ -144,6 +148,7 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
      */
     public String getAuthToken(String tenantId, String clientId, String client_secret) throws IOException {
         String sURL = "https://login.microsoftonline.com/" + tenantId + "/oauth2/v2.0/token";
+        logger.info("...oauth login url="+sURL);
         HttpsURLConnection httpClient = (HttpsURLConnection) new URL(sURL).openConnection();
 
         // add request header
