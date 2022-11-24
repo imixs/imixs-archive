@@ -165,11 +165,12 @@ public class TikaService {
 
         // print tika options...
         if (debug) {
+            logger.info("......  filepattern = "+filePatternRegex); 
             for (String opt : options) {
                 logger.info("......  Tika Option = " + opt);
             }
         }
-
+       
         // do we have a file pattern?
         if (filePatternRegex != null && !filePatternRegex.isEmpty()) {
             filePattern = Pattern.compile(filePatternRegex);
@@ -178,27 +179,31 @@ public class TikaService {
         long l = System.currentTimeMillis();
         // List<ItemCollection> currentDmsList = DMSHandler.getDmsList(workitem);
         List<FileData> files = workitem.getFileData();
+        
+        if (debug) {
+            logger.info("... found " + files.size() +" files");
+        }
 
         for (FileData fileData : files) {
-
+            logger.fine("... processing file: "+fileData.getName()); 
             // do we have an optional file pattern?
             if (filePattern != null && !filePattern.matcher(fileData.getName()).find()) {
                 // the file did not match the given pattern!
+                logger.info("... filename does not match given pattern!"); 
                 continue;
             }
 
             // do we need to parse the content?
             if (!hasOCRContent(fileData)) {
+                if (debug) {
+                    logger.info("... workitem has not OCRContent - fetching origin file data...");
+                }
                 // yes - fetch the origin fileData object....
                 FileData originFileData = fetchOriginFileData(fileData, snapshot);
                 if (originFileData != null) {
                     String textContent = null;
                     // extract the text content...
                     try {
-                        if (debug) {
-                            logger.fine("...text extraction '" + originFileData.getName() + "'...");
-                        }
-
                         // if the size of the file is greater then ENV_OCR_SERVICE_MAXFILESIZE,
                         // we ignore the file!
                         if (originFileData.getContent() != null
@@ -207,14 +212,16 @@ public class TikaService {
                                     + ocrMaxFileSize + " bytes (file size=" + originFileData.getContent().length + ")");
                             continue;
                         }
+                        if (debug) {
+                            logger.info("...text extraction '" + originFileData.getName() + "' content size=" +originFileData.getContent().length +" ...");
+                        }
 
                         textContent = doORCProcessing(originFileData, options, maxPdfPages);
 
                         if (textContent == null) {
                             logger.warning("Unable to extract text-content for '" + fileData.getName() + "'");
                             textContent = "";
-                        }
-
+                        }                      
                         // store the ocrContent....
                         List<Object> list = new ArrayList<Object>();
                         list.add(textContent);
@@ -258,7 +265,7 @@ public class TikaService {
         }
 
         if (debug) {
-            logger.fine("...ocr scanning....");
+            logger.info("...ocr scanning of document " + fileData.getName() +" ....");
         }
         // adapt ContentType
         String contentType = adaptContentType(fileData);
@@ -266,7 +273,7 @@ public class TikaService {
         // validate content type
         if (!acceptContentType(contentType)) {
             if (debug) {
-                logger.fine("contentType '" + contentType + " is not supported by Tika Server");
+                logger.info("contentType '" + contentType + " is not supported by Tika Server");
             }
             return null;
         }
@@ -275,10 +282,10 @@ public class TikaService {
         if (maxPdfPages > 0 && "application/pdf".equals(contentType)) {
             PDDocument pdfdoc = PDDocument.load(fileData.getContent());
             if (pdfdoc.getNumberOfPages() > maxPdfPages) {
-                logger.info("......pdf document '" + fileData.getName() + "' has to many pages (max allowed="
+                logger.warning("......pdf document '" + fileData.getName() + "' has to many pages (max allowed="
                         + maxPdfPages + ")");
                 while (pdfdoc.getNumberOfPages() > maxPdfPages) {
-                    logger.info("......removing page " + pdfdoc.getNumberOfPages());
+                    logger.warning("......removing page " + pdfdoc.getNumberOfPages());
                     pdfdoc.removePage(pdfdoc.getNumberOfPages() - 1);
                 }
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -293,6 +300,9 @@ public class TikaService {
         HttpURLConnection urlConnection = null;
         PrintWriter writer = null;
         try {
+            if (debug) {
+                logger.info("... sending OCR Request: " + serviceEndpoint.get());
+            }
             urlConnection = (HttpURLConnection) new URL(serviceEndpoint.get()).openConnection();
             urlConnection.setRequestMethod("PUT");
             urlConnection.setDoOutput(true);
@@ -324,6 +334,7 @@ public class TikaService {
             }
 
             // compute length
+            
             urlConnection.setRequestProperty("Content-Length", "" + Integer.valueOf(fileData.getContent().length));
             OutputStream output = urlConnection.getOutputStream();
             writer = new PrintWriter(new OutputStreamWriter(output, DEFAULT_ENCODING), true);
@@ -331,11 +342,15 @@ public class TikaService {
             writer.flush();
 
             int resposeCode = urlConnection.getResponseCode();
-
-            if (resposeCode >= 200 && resposeCode <= 299) {
-                return readResponse(urlConnection, DEFAULT_ENCODING);
+            if (debug) {
+                logger.info("... response code=" + resposeCode);
             }
+            if (resposeCode >= 200 && resposeCode <= 299) {
+                logger.info("...call readResponse....");
+                return readResponse(urlConnection, DEFAULT_ENCODING,debug);
+            } 
 
+            logger.warning("... no data!");
             // no data!
             return null;
 
@@ -349,6 +364,8 @@ public class TikaService {
     /**
      * This method returns true if a given FileData object has already a ocr content
      * object stored. This can be verified by the existence of the 'text' attribute.
+     * <p>
+     * The text attribute must not be empty.
      * 
      * @param fileData - fileData object to be verified
      * @return
@@ -357,9 +374,21 @@ public class TikaService {
     private boolean hasOCRContent(FileData fileData) {
         if (fileData != null) {
             List<String> ocrContentList = (List<String>) fileData.getAttribute(FILE_ATTRIBUTE_TEXT);
-            if (ocrContentList != null && ocrContentList.size() > 0 && ocrContentList.get(0) != null) {
-                return true;
+            // do we have a value list at all?
+            // Issue #166
+            if (ocrContentList==null || ocrContentList.size()==0) {
+                // no attribute found
+                return false;
             }
+            
+            // test the text value ....
+            String textValue=ocrContentList.get(0) ;
+            if (textValue==null || textValue.isEmpty()) {
+                return false;
+            }
+            
+            // else we do have a content!
+            return true;
         }
         return false;
     }
@@ -412,12 +441,11 @@ public class TikaService {
      * @param urlConnection
      * @throws IOException
      */
-    private String readResponse(URLConnection urlConnection, String encoding) throws IOException {
-        boolean debug = logger.isLoggable(Level.FINE);
-
+    private String readResponse(URLConnection urlConnection, String encoding, boolean debug) throws IOException {
+      
         // get content of result
         if (debug) {
-            logger.finest("......readResponse....");
+            logger.info("......readResponse....");
         }
         StringWriter writer = new StringWriter();
         BufferedReader in = null;
@@ -430,6 +458,10 @@ public class TikaService {
                     sContentEncoding = encoding;
             }
 
+            if (debug) {
+                logger.info("......ContentEncoding=" + sContentEncoding);
+            }
+            
             // if an encoding is provided read stream with encoding.....
             if (sContentEncoding != null && !sContentEncoding.isEmpty())
                 in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), sContentEncoding));
@@ -438,7 +470,7 @@ public class TikaService {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 if (debug) {
-                    logger.finest("......" + inputLine);
+                    logger.info("......" + inputLine);
                 }
                 // append text plus new line!
                 writer.write(inputLine + "\n");
