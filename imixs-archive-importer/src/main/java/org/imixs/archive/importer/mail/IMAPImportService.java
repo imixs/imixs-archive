@@ -97,6 +97,7 @@ import com.sun.mail.imap.IMAPFolder;
 @Stateless
 public class IMAPImportService {
 
+    public static final String OPTION_DEBUG = "debug";
     public static final String OPTION_ARCHIVE_FOLDER = "archive.folder";
     public static final String OPTION_SUBJECT_REGEX = "subject.regex";
     public static final String OPTION_IMAP_AUTHENTICATOR = "imap.authenticator";
@@ -159,6 +160,7 @@ public class IMAPImportService {
 
         Pattern subjectPattern = null;
         String subjectRegex = sourceOptions.getProperty(OPTION_SUBJECT_REGEX, "");
+        boolean debug = Boolean.getBoolean(sourceOptions.getProperty(OPTION_DEBUG, "false"));
         // do we have filter options providing a Subject Regex?
         if (subjectRegex != null && !subjectRegex.trim().isEmpty()) {
             try {
@@ -265,7 +267,7 @@ public class IMAPImportService {
 
                                     String fileName = mimeBodyPart.getFileName();
                                     if (fileName == null) {
-                                        logger.info("...skip because of missing filename");
+                                        logger.warning("...skip detaching file, because of missing filename");
                                         continue; // skip this attachment
                                     }
                                     // detach only add PDF files?
@@ -280,10 +282,12 @@ public class IMAPImportService {
                                     String contentType = mimeBodyPart.getContentType();
                                     // fix mimeType if application/octet-stream and file extension is .pdf
                                     // (issue #147)
-                                    logger.info("mimetype=" + contentType);
-                                    if (contentType.contains(MediaType.APPLICATION_OCTET_STREAM)
-                                            && fileName.toLowerCase().endsWith(".pdf")) {
-                                        logger.info("converting mimetype to application/pdf");
+                                    if (debug) {
+                                        logger.info("mimetype=" + contentType);
+                                    }
+                                    if (isMediaTypeOctet(contentType, fileName)
+                                        && fileName.toLowerCase().endsWith(".pdf")) {
+                                        logger.info("...converting mimetype '" + contentType + "' to application/pdf");
                                         contentType = "application/pdf";
                                     }
                                     // strip ; prafixes
@@ -357,6 +361,36 @@ public class IMAPImportService {
 
     }
 
+    
+    
+    /**
+     * This method returns true if the mediaType of a file attachment is 
+     * <p>
+     * "application/octet-stream"
+     * <p>
+     * In some cases we have a situation where the contentType is "application/octet" which is not a valid content type.
+     * Also in this case we return true!
+     * 
+     * @param contentType
+     * @return
+     */
+    private boolean isMediaTypeOctet(String contentType, String filename) {
+        
+        if (contentType.contains(MediaType.APPLICATION_OCTET_STREAM)) {
+            return true;
+        }
+        
+        if (contentType.toLowerCase().startsWith("application/octet")) {
+            // print a warning for later analysis
+            logger.warning("Unknow ContentType: " + contentType + " - in " + filename);
+            // Issue #167
+            return true;
+        }
+        
+        // no octet type
+        return false;
+    }
+    
     /**
      * This method opens the IMAP archive folder. If the folder does not exist, the
      * method creates the folder. The folder name can be configured by the property

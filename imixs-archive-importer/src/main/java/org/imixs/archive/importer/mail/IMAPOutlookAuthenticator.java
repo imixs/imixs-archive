@@ -82,6 +82,8 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
         String imapUser = sourceConfig.getItemValueString(DocumentImportService.SOURCE_ITEM_USER);
         String imapPassword = sourceConfig.getItemValueString(DocumentImportService.SOURCE_ITEM_PASSWORD);
 
+        boolean debug = Boolean.getBoolean(sourceOptions.getProperty(IMAPImportService.OPTION_DEBUG, "false"));
+        
         // create an empty properties object...
         // Properties props = System.getProperties();
         Properties imapProperties = new Properties();
@@ -94,7 +96,9 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
             if (key.startsWith("mail.")) {
                 // add key...
                 imapProperties.setProperty(key, sourceOptions.getProperty(key));
-                logger.info("......setting property from source options: " + key);
+                if (debug) {
+                    logger.info("......setting property from source options: " + key);
+                }
             }
         }
         // custom port?
@@ -126,7 +130,7 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
             token = getAuthToken(tenantId, clientId, imapPassword);
             Session session = Session.getInstance(imapProperties);
             // debug mode?
-            if (logger.isLoggable(Level.FINEST)) {
+            if (debug) {
                 session.setDebug(true);
             }
             store = session.getStore("imap");
@@ -148,7 +152,7 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
      */
     public String getAuthToken(String tenantId, String clientId, String client_secret) throws IOException {
         String sURL = "https://login.microsoftonline.com/" + tenantId + "/oauth2/v2.0/token";
-        logger.info("...oauth login url="+sURL);
+        logger.finest("...oauth login url="+sURL);
         HttpsURLConnection httpClient = (HttpsURLConnection) new URL(sURL).openConnection();
 
         // add request header
