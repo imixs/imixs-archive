@@ -35,7 +35,6 @@ import java.io.StringReader;
 import java.net.URL;
 import java.util.Enumeration;
 import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.inject.Named;
@@ -174,7 +173,7 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
         int responseCode = httpClient.getResponseCode();
         if (responseCode >= 200 && responseCode <= 299) {
             // Extract token form content
-            byte[] response = IMAPImportService.readAllBytes(httpClient.getInputStream());
+            byte[] response = IMAPImportHelper.readAllBytes(httpClient.getInputStream());
             JsonReader jsonReader = Json.createReader(new StringReader(new String(response)));
             JsonObject jsonObject = jsonReader.readObject();
             String token = jsonObject.getString("access_token");

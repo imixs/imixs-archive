@@ -28,7 +28,6 @@
 
 package org.imixs.archive.importer.mail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
@@ -54,7 +53,6 @@ import javax.mail.Part;
 import javax.mail.Store;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
-import javax.ws.rs.core.MediaType;
 
 import org.imixs.archive.importer.DocumentImportEvent;
 import org.imixs.archive.importer.DocumentImportService;
@@ -278,14 +276,14 @@ public class IMAPImportService {
                                     }
                                     // add this attachment
                                     InputStream input = mimeBodyPart.getInputStream();
-                                    byte[] content = readAllBytes(input);
+                                    byte[] content = IMAPImportHelper.readAllBytes(input);
                                     String contentType = mimeBodyPart.getContentType();
                                     // fix mimeType if application/octet-stream and file extension is .pdf
                                     // (issue #147)
                                     if (debug) {
                                         logger.info("mimetype=" + contentType);
                                     }
-                                    if (isMediaTypeOctet(contentType, fileName)
+                                    if (IMAPImportHelper.isMediaTypeOctet(contentType, fileName)
                                         && fileName.toLowerCase().endsWith(".pdf")) {
                                         logger.info("...converting mimetype '" + contentType + "' to application/pdf");
                                         contentType = "application/pdf";
@@ -360,36 +358,7 @@ public class IMAPImportService {
         }
 
     }
-
-    
-    
-    /**
-     * This method returns true if the mediaType of a file attachment is 
-     * <p>
-     * "application/octet-stream"
-     * <p>
-     * In some cases we have a situation where the contentType is "application/octet" which is not a valid content type.
-     * Also in this case we return true!
-     * 
-     * @param contentType
-     * @return
-     */
-    private boolean isMediaTypeOctet(String contentType, String filename) {
-        
-        if (contentType.contains(MediaType.APPLICATION_OCTET_STREAM)) {
-            return true;
-        }
-        
-        if (contentType.toLowerCase().startsWith("application/octet")) {
-            // print a warning for later analysis
-            logger.warning("Unknow ContentType: " + contentType + " - in " + filename);
-            // Issue #167
-            return true;
-        }
-        
-        // no octet type
-        return false;
-    }
+ 
     
     /**
      * This method opens the IMAP archive folder. If the folder does not exist, the
@@ -441,39 +410,5 @@ public class IMAPImportService {
         return workitem;
     }
 
-    /**
-     * Read inputstream into a byte array.
-     * 
-     * @param inputStream
-     * @return
-     * @throws IOException
-     */
-    public static byte[] readAllBytes(InputStream inputStream) throws IOException {
-        final int bufLen = 4 * 0x400; // 4KB
-        byte[] buf = new byte[bufLen];
-        int readLen;
-        IOException exception = null;
-
-        try {
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                while ((readLen = inputStream.read(buf, 0, bufLen)) != -1)
-                    outputStream.write(buf, 0, readLen);
-
-                return outputStream.toByteArray();
-            }
-        } catch (IOException e) {
-            exception = e;
-            throw e;
-        } finally {
-            if (exception == null)
-                inputStream.close();
-            else
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    exception.addSuppressed(e);
-                }
-        }
-    }
 
 }
