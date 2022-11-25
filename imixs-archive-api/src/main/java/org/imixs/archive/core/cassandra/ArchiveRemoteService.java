@@ -92,16 +92,22 @@ public class ArchiveRemoteService {
                     } else {
                         Client rsClient = documentClient.newClient();
                         String url = archiveServiceEndpoint.get() + "/archive/md5/" + md5;
-                        Response reponse = rsClient.target(url).request(MediaType.APPLICATION_OCTET_STREAM).get();
-
-                        // InputStream is = reponse.readEntity(InputStream.class);
-                        byte[] fileContent = reponse.readEntity(byte[].class);
-                        if (fileContent != null && fileContent.length > 0) {
-                            if (debug) {
-                                logger.finest("......md5 data object found");
+                        Response response = rsClient.target(url).request(MediaType.APPLICATION_OCTET_STREAM).get();
+                        byte[] fileContent=null;
+                        try {
+                            // InputStream is = reponse.readEntity(InputStream.class);
+                            fileContent = response.readEntity(byte[].class);
+                            if (fileContent != null && fileContent.length > 0) {
+                                if (debug) {
+                                    logger.finest("......md5 data object found");
+                                }
                             }
-                            return fileContent;
+                        } finally {
+                            // explicit close client!
+                            response.close();
+                            rsClient.close();
                         }
+                        return fileContent;
                     }
                 } catch (ProcessingException e) {
                     String message = null;
