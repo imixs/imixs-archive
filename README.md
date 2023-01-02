@@ -44,9 +44,7 @@ The *Imixs-Archive-Service* provides an independent microservice archiving all d
 
 [Imixs-Archive-Documents](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-documents)
 
-### Imixs-Archive-OCR
-
-*Imixs-Archive-OCR* provides a service component to extract textual information from documents attached to a Workitem. The text extraction is based on [Apache Tika](https://tika.apache.org/). 
+The `OCRDocumentService` provides a service component to extract textual information from documents attached to a Workitem. The text extraction is based on [Apache Tika](https://tika.apache.org/). 
 
 [Imixs-Archive-OCR](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-ocr)
 
@@ -56,12 +54,7 @@ The *Imixs-Archive-Service* provides an independent microservice archiving all d
 
 [Imixs-Archive-Importer](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-importer)
 
-### Imixs Signature
-
-The *Imixs-Archive Signature API* provides a service to sign PDF documents attached to a Imixs-Workflow process instance during the workflow processing life-cycle. 
-The signing process did not only sign a PDF document with a X509 certificate, but also adds a visual element into the PDF document linked to the signature. This gives the user the possibility to visually recognize the signature and control the validity of the document based on the embedded digital signature.
-
-[Imixs-Archive-Signature](https://github.com/imixs/imixs-archive/tree/master/imixs-archive-signature)
+The `CSVImportService` also provides a generic function to import datasets from CSV files located on a FTP server. 
 
 # What is audit-proof archiving?
 Audit-proof archiving means that documents or business information can be searched, traced back to their origin, and stored securely against tampering. From an organizational perspective, a procedure for audit-proof archiving must be transparent for 
