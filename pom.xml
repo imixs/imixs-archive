@@ -11,6 +11,7 @@
 		<module>imixs-archive-service</module>
 		<module>imixs-archive-documents</module>
 		<module>imixs-archive-importer</module>
+		<module>imixs-archive-backup</module>
 	</modules>
 
 	<description>Imixs Workflow Archive </description>
@@ -288,6 +289,19 @@
 			<artifactId>javaee-api</artifactId>
 			<version>8.0</version>
 			<scope>provided</scope>
+		</dependency>
+		<!-- JDK 8 support -->
+		<dependency>
+		    <groupId>jakarta.xml.bind</groupId>
+		    <artifactId>jakarta.xml.bind-api</artifactId>
+		    <version>2.3.2</version>
+		    <scope>provided</scope>
+		</dependency>		
+		<dependency>
+		    <groupId>org.glassfish.jaxb</groupId>
+		    <artifactId>jaxb-runtime</artifactId>
+		     <version>2.3.2</version>
+		     <scope>provided</scope>
 		</dependency>
 
 		<!-- Microprofile -->

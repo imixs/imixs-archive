@@ -1,0 +1,80 @@
+<ui:composition template="/WEB-INF/templates/layout.xhtml"
+	xmlns:faces="jakarta.faces" xmlns:f="jakarta.faces.core"
+	xmlns:h="jakarta.faces.html" xmlns:ui="jakarta.faces.facelets">
+
+	<ui:define name="content">
+
+
+		<f:view>
+
+			<div class="header">
+				<h2>
+					<span class="typcn typcn-link-outline"></span> Imixs Backup
+				</h2>
+			</div>
+			<h:form id="connect_form_id">
+
+				<div class="card">
+
+					<p class="help">
+						<span class="typcn typcn-lightbulb"></span>
+						Imixs-Workflow API Endpoint Configuration.
+					</p>
+
+					<div class="imixs-form-section">
+						<dl style="grid-column-start: span 3;">
+							<dt>Imixs-Workflow Instance:</dt>
+							
+						</dl>
+						<dl style="grid-column-start: span 6;">
+							
+							<dd>
+								<h:inputText disabled="true" value="#{connectionController.getInstanceEndpoint()}"/>
+							</dd>
+						</dl>
+						<dl style="grid-column-start: span 3;">
+							
+							<dd>
+								connected
+							</dd>
+						</dl>
+					</div>
+					
+					<div class="imixs-form-section">
+						<dl style="grid-column-start: span 3;">
+							<dt>Imixs-Archive Instance:</dt>
+							
+						</dl>
+						<dl style="grid-column-start: span 6;">
+							
+							<dd>
+								<h:inputText disabled="true" value="#{connectionController.getArchiveEndpoint()}"/>
+							</dd>
+						</dl>
+						<dl style="grid-column-start: span 3;">
+							
+							<dd>
+								connected
+							</dd>
+						</dl>
+					</div>
+
+					<div class="imixs-form-section">
+						<!-- Error Message -->
+						<h4 style="grid-column-start: span 12; color: red;">
+							<h:outputText value="#{connectionController.errorMessage}" />
+						</h4>
+
+						<span style="grid-column-start: span 8;"> <h:commandButton
+								value="Connect"
+								actionListener="#{connectionController.connect()}"
+								rendered="#{!connectionController.connected}" /> <h:commandButton
+								value="Disconnect" rendered="#{connectionController.connected}"
+								actionListener="#{connectionController.disconnect()}" />
+						</span>
+					</div>
+				</div>
+			</h:form>
+		</f:view>
+	</ui:define>
+</ui:composition>

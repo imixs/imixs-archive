@@ -1,0 +1,359 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.imixs.workflow</groupId>
+    <artifactId>imixs-archive</artifactId>
+    <version>2.4.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>imixs-archive-backup</artifactId>
+  <packaging>war</packaging>
+  
+
+	<repositories>
+		<!-- Sonatype Snapshot repository -->
+		<repository>
+			<id>sonatype-snaptshots</id>
+			<name>Sonatype Snapshot repository</name>
+			<url>http://oss.sonatype.org/content/repositories/snapshots</url>
+		</repository>
+	</repositories>
+	
+
+	
+	
+	<properties>
+
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<maven.compiler.source>11</maven.compiler.source>
+		<maven.compiler.target>11</maven.compiler.target>
+		<failOnMissingWebXml>false</failOnMissingWebXml>
+
+		<org.imixs.workflow.version>6.0.1-SNAPSHOT</org.imixs.workflow.version>
+		<org.imixs.melman.version>2.0.0-SNAPSHOT</org.imixs.melman.version>
+		<org.imixs.jwt.version>1.0.3</org.imixs.jwt.version>
+
+	
+	</properties>
+
+
+	<profiles>
+
+
+		<profile>
+			<id>docker</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.8</version>
+						<executions>
+							<execution>
+								<phase>install</phase>
+								<configuration>
+									<target>
+										<exec executable="docker">
+											<arg value="build" />
+											<arg value="-t" />
+											<arg value="imixs/imixs-archive-backup" />
+											<arg value="." />
+										</exec>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+
+		<profile>
+			<id>debug</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.8</version>
+						<executions>
+							<execution>
+								<phase>install</phase>
+								<configuration>
+
+									<target>
+										<exec executable="docker">
+											<arg value="build" />
+											<arg value="-f" />
+											<arg value="Dockerfile-wildfly-debug" />
+											<arg value="-t" />
+											<arg value="imixs/imixs-process-manager" />
+											<arg value="./" />
+										</exec>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>docker-hub</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.8</version>
+						<executions>
+							<execution>
+								<phase>install</phase>
+								<configuration>
+									<target>
+										<exec executable="docker">
+											<arg value="build" />
+											<arg value="-t" />
+											<arg value="imixs/imixs-archive-backup:${project.version}" />
+											<arg value="." />
+										</exec>
+										<exec executable="docker">
+											<arg value="push" />
+											<arg value="imixs/imixs-archive-backup:${project.version}" />
+										</exec>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>docker-hub-latest</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.8</version>
+						<executions>
+							<execution>
+								<phase>install</phase>
+								<configuration>
+									<target>
+										<exec executable="docker">
+											<arg value="build" />
+											<arg value="-t" />
+											<arg value="imixs/imixs-archive-backup:latest" />
+											<arg value="." />
+										</exec>
+										<exec executable="docker">
+											<arg value="push" />
+											<arg value="imixs/imixs-archive-backup:latest" />
+										</exec>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<!-- wildfly profile (development - unpacking war) -->
+		<profile>
+			<id>wildfly</id>
+			<properties>
+				<custom.unpackTypes>war</custom.unpackTypes>
+			</properties>
+
+			<build>
+		<resources>
+
+		</resources>			
+				<plugins>
+					
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.8</version>
+						<executions>
+							<execution>
+								<phase>install</phase>
+								<configuration>
+
+									<target>
+										<exec executable="docker">
+											<arg value="build" />
+											<arg value="-f" />
+											<arg value="Dockerfile-wildfly" />
+											<arg value="-t" />
+											<arg value="imixs/imixs-archive-backup" />
+											<arg value="./" />
+										</exec>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+				</plugins>
+			</build>
+		</profile>
+
+	</profiles>
+
+	<build>
+		<resources>
+			<!-- enable resource filtering for multi language version -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+		<plugins>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>3.3.2</version>
+			</plugin>		
+						
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>2.6</version>
+				<configuration>
+					<encoding>${project.build.sourceEncoding}</encoding>
+				</configuration>
+			</plugin>
+
+			<!-- code style -->
+			<plugin>
+				<groupId>net.revelc.code.formatter</groupId>
+				<artifactId>formatter-maven-plugin</artifactId>
+				<version>2.19.0</version>
+				<configuration>
+					<configFile>${project.basedir}/imixs-code-style.xml</configFile>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>clean</phase>
+						<goals>
+							<goal>format</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Manik plugin -->
+			<plugin>
+				<groupId>org.imixs.maven</groupId>
+				<artifactId>manik-hotdeploy-maven-plugin</artifactId>
+				<version>2.0.0</version>
+				<executions>
+                	<execution>
+						<phase>install</phase>
+						<goals>
+							<goal>deploy</goal>
+						</goals>
+                	</execution>
+            	</executions>
+				<configuration>
+					<!-- List Source and Target folders for Autodeploy and Hotdeploy -->
+					<autodeployments>
+						<deployment>
+							<!-- wildcard deployment -->
+							<source>target/*.{war,ear,jar}</source>
+							<target>docker/deployments/</target>
+							<unpack>true</unpack>						
+						</deployment>
+					</autodeployments>
+					<hotdeployments>
+						<deployment>
+							<source>src/main/webapp</source>
+							<target>docker/deployments/imixs-archive-backup.war</target>
+						</deployment>						
+					</hotdeployments>
+
+				</configuration>
+
+			</plugin>
+
+		</plugins>
+
+		<!-- test directory for junit -->
+		<testResources>
+			<testResource>
+				<directory>${project.parent.basedir}/src/model</directory>
+			</testResource>
+		</testResources>
+
+
+		<finalName>imixs-archive-backup</finalName>
+	</build>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-workflow-core</artifactId>
+			<version>${org.imixs.workflow.version}</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-melman</artifactId>
+			<version>${org.imixs.melman.version}</version>
+			<scope>compile</scope>
+		</dependency>
+
+
+		<!-- Java EE dependencies -->
+		<dependency>
+			<groupId>jakarta.platform</groupId>
+			<artifactId>jakarta.jakartaee-api</artifactId>
+			<version>10.0.0</version>
+			<scope>provided</scope>
+		</dependency>
+
+
+	</dependencies>
+
+
+	<!-- Distributen Management oss.sonatype.org -->
+	<distributionManagement>
+		<snapshotRepository>
+			<id>sonatype-nexus-snapshots</id>
+			<name>Sonatype Nexus Snapshots</name>
+			<url>http://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+		<repository>
+			<id>sonatype-nexus-staging</id>
+			<name>Nexus Release Repository</name>
+			<url>http://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+	</distributionManagement>
+
+  
+</project>

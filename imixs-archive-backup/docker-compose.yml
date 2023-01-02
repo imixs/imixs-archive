@@ -1,0 +1,20 @@
+version: "3"
+services:
+
+  imixsbackup-app:
+    #image: imixs/imixs-archive-backup:2.4.0
+    image: imixs/imixs-archive-backup:latest
+    environment:
+      WILDFLY_PASS: adminadmin
+      DEBUG: "true"
+    ports:
+      - "8080:8080"
+      - "8787:8787"
+      #- "9990:9990"
+      #- "8443:8443"    
+    volumes:
+      - ./docker/deployments:/opt/jboss/wildfly/standalone/deployments/
+ 
+
+    
+ 
