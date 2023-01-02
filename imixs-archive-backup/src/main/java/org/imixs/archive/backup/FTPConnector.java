@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Optional;
@@ -37,14 +38,10 @@ import org.apache.commons.net.ftp.FTPSClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
-import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
 
 /**
  * The FTPConnector service provides methods to push a snapshot document into an
@@ -91,9 +88,9 @@ public class FTPConnector {
      */
     public void put(ItemCollection snapshot) throws BackupException {
 
-        if (ftpServer.isEmpty()) {
+        if (!ftpServer.isPresent() || !ftpPath.isPresent()) {
             throw new BackupException(FTP_ERROR,
-                    "FTP file transfer failed: no ftp host name provided (" + BackupApi.ENV_BACKUP_FTP_HOST + ")!");
+                    "FTP file transfer failed: no ftp host provided (" + BackupApi.ENV_BACKUP_FTP_HOST + ")!");
         }
 
         String snapshotID = snapshot.getUniqueID();
@@ -117,12 +114,7 @@ public class FTPConnector {
         FTPClient ftpClient = null;
         try {
             logger.finest("......put " + fileName + " to FTP server: " + ftpServer + "...");
-            ftpClient = new FTPSClient("TLS", false);
-            ftpClient.setControlEncoding("UTF-8");
-            ftpClient.connect(ftpServer.orElse(""), ftpPort.orElse(21));
-            if (ftpClient.login(ftpUser.get(), ftpPassword.get()) == false) {
-                throw new BackupException(FTP_ERROR, "FTP file transfer failed: login failed!");
-            }
+            ftpClient = getFTPClient();
 
             ftpClient.enterLocalPassiveMode();
             // ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
@@ -156,8 +148,10 @@ public class FTPConnector {
                 if (writer != null) {
                     writer.close();
                 }
-                ftpClient.logout();
-                ftpClient.disconnect();
+                if (ftpClient != null) {
+                    ftpClient.logout();
+                    ftpClient.disconnect();
+                }
             } catch (IOException e) {
                 throw new BackupException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
             }
@@ -171,14 +165,15 @@ public class FTPConnector {
      * @throws BackupException
      * @return snapshot
      */
-    public ItemCollection get(FTPClient ftpClient, String fileName) throws BackupException {
-        if (ftpClient == null) {
-            throw new BackupException(FTP_ERROR, "FTP file transfer failed: no ftpClient provided!");
-        }
+    public ItemCollection get(String fileName) throws BackupException {
 
         long l = System.currentTimeMillis();
         ByteArrayOutputStream bos = null;
+        FTPClient ftpClient = null;
+
         try {
+            logger.finest("......get " + fileName + "...");
+            ftpClient = getFTPClient();
             bos = new ByteArrayOutputStream();
             ftpClient.retrieveFile(fileName, bos);
             byte[] result = bos.toByteArray();
@@ -194,10 +189,38 @@ public class FTPConnector {
                 if (bos != null) {
                     bos.close();
                 }
+                // do logout....
+                if (ftpClient != null) {
+                    ftpClient.logout();
+                    ftpClient.disconnect();
+                }
+
             } catch (IOException e) {
                 throw new BackupException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
             }
         }
+    }
+
+    /**
+     * Creates a new FTPClient.
+     * <p>
+     * The client should be closed after usage!
+     *
+     * @return
+     * @throws BackupException
+     * @throws IOException
+     * @throws SocketException
+     */
+    private FTPSClient getFTPClient() throws BackupException, SocketException, IOException {
+
+        FTPSClient ftpClient = new FTPSClient("TLS", false);
+        ftpClient.setControlEncoding("UTF-8");
+        ftpClient.connect(ftpServer.orElse(""), ftpPort.orElse(21));
+        if (ftpClient.login(ftpUser.orElse(""), ftpPassword.orElse("")) == false) {
+            throw new BackupException(FTP_ERROR, "FTP file transfer failed: login failed!");
+        }
+
+        return ftpClient;
     }
 
     /**

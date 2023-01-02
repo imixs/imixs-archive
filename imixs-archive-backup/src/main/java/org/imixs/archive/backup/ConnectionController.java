@@ -102,7 +102,7 @@ public class ConnectionController implements Serializable {
         try {
             backupService.startScheduler();
         } catch (BackupException e) {
-            logController.warning("failed to start scheduler: " + e.getMessage());
+            logController.warning(e.getMessage());
         }
     }
 
@@ -113,7 +113,7 @@ public class ConnectionController implements Serializable {
         try {
             backupService.stopScheduler();
         } catch (BackupException e) {
-            logController.warning("failed to stop scheduler: " + e.getMessage());
+            logController.warning(e.getMessage());
         }
     }
 

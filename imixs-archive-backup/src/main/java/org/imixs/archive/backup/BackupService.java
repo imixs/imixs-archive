@@ -142,30 +142,22 @@ public class BackupService {
     @Inject
     FTPConnector ftpConnector;
 
-    DocumentClient documentClient = null;
-    EventLogClient eventLogClient = null;
-
     private String status = "stopped";
-
-    private WorkflowClient workflowClient = null;
 
     @PostConstruct
     public void init() {
         // init timer....
         if (workflowServiceEndpoint.isPresent()) {
-
             // Registering a non-persistent Timer Service.
             try {
                 startScheduler();
             } catch (BackupException e) {
-                logController.warning("Failed to start scheduler: " + e.getMessage());
+                logController.warning("Failed to init scheduler: " + e.getMessage());
             }
+        } else {
+            logController
+                    .warning("Missing environment param 'WORKFLOW_SERVICE_ENDPOINT' - please verify configuration!");
         }
-
-        // init rest clients....
-        documentClient = getWorkflowClient();
-        eventLogClient = getEventLogClient();
-
     }
 
     /**
@@ -179,22 +171,30 @@ public class BackupService {
      **/
     @SuppressWarnings("unused")
     @Timeout
-    public void onTimeout(jakarta.ejb.Timer timer) {
+    public void onTimeout(jakarta.ejb.Timer _timer) {
         String topic = null;
         String id = null;
         String ref = null;
 
+        timer = _timer;
+
+        // init rest clients....
+        DocumentClient documentClient = getDocumentClient();
+        EventLogClient eventLogClient = getEventLogClient(documentClient);
         if (documentClient == null || eventLogClient == null) {
-            // no client object
-            logController.warning("...no REST Client available!");
+            logController.warning("Unable to connect to workflow instance endpoint - please verify configuration!");
             try {
                 stopScheduler();
             } catch (BackupException e) {
             }
             return;
         }
+
         status = "running";
         try {
+            // release dead locks...
+            releaseDeadLocks(eventLogClient);
+
             // max 100 entries per iteration
             eventLogClient.setPageSize(100);
             List<ItemCollection> events = eventLogClient.searchEventLog(BackupApi.EVENTLOG_TOPIC_BACKUP);
@@ -264,14 +264,12 @@ public class BackupService {
     }
 
     /**
-     * This method lookups the event log entries and pushes new snapshots into the
-     * archive service.
+     * This method loads a snapshot from the workflow instance.
      * <p>
-     * The method returns a AsyncResult to indicate the completion of the push. A
-     * client can use this information for further control.
+     * The method returns null if the snapshot no longer exists. In this case the
+     * method automatically deletes the outdated event log entry.
      *
      * @throws BackupException
-     * @throws RestAPIException
      */
     public ItemCollection pullSnapshot(ItemCollection eventLogEntry, DocumentClient documentClient,
             EventLogClient eventLogClient) throws BackupException {
@@ -315,27 +313,24 @@ public class BackupService {
      *
      * @throws BackupException
      */
-    public boolean startScheduler() throws BackupException {
+    public void startScheduler() throws BackupException {
         try {
+
             logController.reset();
-            logController.info("...starting backup scheduler - initalDelay=" + initialDelay + "ms  inverval=" + interval
-                    + "ms ....");
+            logController.info(
+                    "Starting backup scheduler - initalDelay=" + initialDelay + "ms  inverval=" + interval + "ms ....");
             // start archive schedulers....
             // Registering a non-persistent Timer Service.
             final TimerConfig timerConfig = new TimerConfig();
             timerConfig.setInfo(""); // empty info string indicates no JSESSIONID!
             timerConfig.setPersistent(false);
             timer = timerService.createIntervalTimer(initialDelay, interval, timerConfig);
-
-            status = "scheduled";
-            return true;
-
-        } catch (Exception e) {
-            logController.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
-            status = "failed: " + e.getMessage();
-            return false;
+        } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
+            throw new BackupException("TIMER_EXCEPTION", "Failed to init scheduler ", e);
 
         }
+        status = "scheduled";
+
     }
 
     /**
@@ -347,10 +342,10 @@ public class BackupService {
     public boolean stopScheduler() throws BackupException {
         if (timer != null) {
             try {
-                logController.info("...stopping the backup scheduler...");
+                logController.info("Stopping the backup scheduler...");
                 timer.cancel();
-            } catch (Exception e) {
-                logController.warning("Failed to stop timer - " + e.getMessage());
+            } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
+                throw new BackupException("TIMER_EXCEPTION", "Failed to stop scheduler ", e);
             }
             // update status message
             logController.info("Timer stopped. ");
@@ -379,61 +374,66 @@ public class BackupService {
     }
 
     /**
-     * This method creates a WorkflowRest Client and caches the instance
+     * This method creates a new WorkflowClient instance.
      *
      * @return
      */
-    public WorkflowClient getWorkflowClient() {
-        if (workflowClient == null && instanceEndpoint != null) {
-            // Init the workflowClient with a basis URL
-            workflowClient = new WorkflowClient(instanceEndpoint.orElse(""));
-            String auttype = instanceAuthmethod.orElse("BASIC");
+    public DocumentClient getDocumentClient() {
+
+        DocumentClient documentClient = null;
+        if (instanceEndpoint.isPresent()) {
+
+            documentClient = new WorkflowClient(instanceEndpoint.get());
+            String auttype = instanceAuthmethod.orElse("BASIC").toUpperCase();
             if ("BASIC".equals(auttype)) {
                 // Create a authenticator
                 BasicAuthenticator basicAuth = new BasicAuthenticator(instanceUser.orElse(""),
                         instancePassword.orElse(""));
                 // register the authenticator
-                workflowClient.registerClientRequestFilter(basicAuth);
+                documentClient.registerClientRequestFilter(basicAuth);
             }
             if ("FORM".equals(auttype)) {
                 // Create a authenticator
                 FormAuthenticator formAuth = new FormAuthenticator(instanceEndpoint.orElse(""), instanceUser.orElse(""),
                         instancePassword.orElse(""));
                 // register the authenticator
-                workflowClient.registerClientRequestFilter(formAuth);
+                documentClient.registerClientRequestFilter(formAuth);
 
             }
             if ("COOKIE".equals(auttype)) {
-                logger.info("..set authentication cookie: name=" + instanceUser.orElse("") + " value=....");
                 Cookie cookie = new Cookie(instanceUser.orElse(""), instancePassword.orElse(""));
                 CookieAuthenticator cookieAuth = new CookieAuthenticator(cookie);
-                workflowClient.registerClientRequestFilter(cookieAuth);
+                documentClient.registerClientRequestFilter(cookieAuth);
             }
             if ("JWT".equalsIgnoreCase(instancePassword.orElse(""))) {
                 JWTAuthenticator jwtAuht = new JWTAuthenticator(instancePassword.orElse(""));
-                workflowClient.registerClientRequestFilter(jwtAuht);
+                documentClient.registerClientRequestFilter(jwtAuht);
             }
         }
 
-        return workflowClient;
+        return documentClient;
 
     }
 
     /**
-     * Creates a EventLogClient form the worklfowClients authorization filter
+     * Creates a EventLogClient form a given DocumentClient instance
      *
-     * @return
+     * @param workflowClient - a existing worklfowClient
+     * @return - a eventLogClient instance
      */
-    public EventLogClient getEventLogClient() {
-
-        EventLogClient client = new EventLogClient(getWorkflowClient().getBaseURI());
-        // register all filters from workfow client
-        List<ClientRequestFilter> filterList = getWorkflowClient().getRequestFilterList();
-        for (ClientRequestFilter filter : filterList) {
-            client.registerClientRequestFilter(filter);
+    public EventLogClient getEventLogClient(DocumentClient documentClient) {
+        if (documentClient != null) {
+            EventLogClient client = new EventLogClient(documentClient.getBaseURI());
+            // register all filters from workfow client
+            List<ClientRequestFilter> filterList = documentClient.getRequestFilterList();
+            for (ClientRequestFilter filter : filterList) {
+                client.registerClientRequestFilter(filter);
+            }
+            return client;
+        } else {
+            // no existing workflow client define!
+            return null;
         }
-        return client;
-
     }
 
 }

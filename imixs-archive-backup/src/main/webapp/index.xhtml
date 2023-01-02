@@ -3,8 +3,6 @@
 	xmlns:h="jakarta.faces.html" xmlns:ui="jakarta.faces.facelets">
 
 	<ui:define name="content">
-
-
 		<f:view>
 
 			<div class="header">
@@ -29,8 +27,7 @@
 									<td style="width: 25%;">Imixs-Workflow Instance:</td>
 									<td>#{connectionController.getInstanceEndpoint()}</td>
 								</tr>
-								
-								
+
 								<tr>
 									<td>Backup Status:</td>
 									<td>#{connectionController.getStatus()}
@@ -64,22 +61,15 @@
 									<td>#{clusterDataController.ftpServer}:#{clusterDataController.ftpPort}</td>
 								</tr>
 
-
 								<tr>
 									<td>Backup Space:</td>
 									<td>#{clusterDataController.ftpPath}</td>
 								</tr>
-							
 
 							</table>
-
-					
-					
-					
 					</div>
 				
-					<div class="imixs-form-section">
-						
+					<div class="imixs-form-section">						
 
 						<span style="grid-column-start: span 8;"> 
 						 
