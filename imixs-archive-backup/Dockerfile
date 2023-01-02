@@ -3,9 +3,6 @@ FROM quay.io/wildfly/wildfly:27.0.1.Final-jdk11
 LABEL description="Imixs-Archive-Backup"
 LABEL maintainer="ralph.soika@imixs.com"
 
-# Copy EclipseLink and Postgres Driver
-COPY ./docker/configuration/wildfly/modules/ /opt/jboss/wildfly/modules/
-
 # Setup configuration
 COPY ./docker/configuration/wildfly/standalone.xml /opt/jboss/wildfly/standalone/configuration/
 

@@ -328,7 +328,14 @@
 			<scope>compile</scope>
 		</dependency>
 
-
+		
+		<!-- Apache Commons FTP Client -->
+		<dependency>
+			<groupId>commons-net</groupId>
+			<artifactId>commons-net</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		
 		<!-- Java EE dependencies -->
 		<dependency>
 			<groupId>jakarta.platform</groupId>
