@@ -100,15 +100,20 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
  * documents from the type 'workitemlob' will be saved, the SnapshotService
  * throws a SnapshotException.
  * <p>
- * <strong>SyncService</strong><br />
- * Since version 2.0 the SnapshotService can be connected to the
- * ImixsArchiveService. If the environment variable 'ARCHIVE_SERVICE_ENDPONT' is
+ * <strong>SnapshotService</strong><br />
+ * Since version 2.0 a Imixs Archive Service can be connected to a
+ * Imixs-Workflow instance. If the environment variable 'ARCHIVE_SERVICE_ENDPONT' is
  * set, than the snapshot service creates a EventLog entry each time a snapshot
  * was generated. The Archive SyncService scans for the EventLog entries in an
  * asynchronous way and pulls the snaphots directly into the Archive
  * (Cassandra).
- * 
- * 
+ * <p>
+ * <strong>BackupService</strong><br />
+ * Since version 2.4 an optional BackupService can be connected to a
+ * Imixs-Workflow instance. If the environment variable 'BACKUP_SERVICE_ENDPONT' is
+ * set, than the snapshot service creates a EventLog entry each time a snapshot
+ * was generated. The BackupService scans for these EventLog entries in an
+ * asynchronous way and stores the snaphots into a backup space
  * 
  * @version 2.0
  * @author rsoika
@@ -142,10 +147,12 @@ public class SnapshotService {
     public static final String ARCHIVE_SERVICE_USER = "archive.service.user";
     public static final String ARCHIVE_SERVICE_PASSWORD = "archive.service.password";
     public static final String ARCHIVE_SERVICE_AUTHMETHOD = "archive.service.authmethod";
-
+    public static final String BACKUP_SERVICE_ENDPOINT = "backup.service.endpoint";
+    
     public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
     public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
-
+    public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
+    
     public final static String ITEM_MD5_CHECKSUM = "md5checksum";
 
     @Resource
@@ -172,6 +179,11 @@ public class SnapshotService {
     @Inject
     @ConfigProperty(name = ARCHIVE_SERVICE_ENDPOINT)
     Optional<String> archiveServiceEndpoint;
+    
+
+    @Inject
+    @ConfigProperty(name = BACKUP_SERVICE_ENDPOINT)
+    Optional<String> backupServiceEndpoint;
 
     private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
 
@@ -319,13 +331,6 @@ public class SnapshotService {
             }
         }
 
-        // 5.a. update fileData Meta information...
-        // TODO : $file.count and $file.names is computed by ItemCollection and can be removed from here.
-//        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_COUNT,
-//                documentEvent.getDocument().getFileNames().size());
-//        documentEvent.getDocument().replaceItemValue(ITEM_FILEDATA_FILE_NAMES,
-//                documentEvent.getDocument().getFileNames());
-
         // 6. store the snapshot uniqeId into the origin-workitem ($snapshotID)
         documentEvent.getDocument().replaceItemValue(SNAPSHOTID, snapshot.getUniqueID());
 
@@ -338,13 +343,21 @@ public class SnapshotService {
         // 8. remove deprecated snapshots
         cleanSnaphostHistory(snapshot.getUniqueID());
 
-        // 9. write event log entry...
+        // 9. write archive event log entry...
         if (archiveServiceEndpoint.isPresent() && !archiveServiceEndpoint.get().isEmpty()) {
             if (debug) {
                 logger.finest("......create event log entry " + EVENTLOG_TOPIC_ADD);
             }
-            eventLogService.createEvent(EVENTLOG_TOPIC_ADD, snapshot.getUniqueID());
+            eventLogService.createEvent(EVENTLOG_TOPIC_ADD, snapshot.getUniqueID());        
         }
+        
+        // 10. write backup event log entry...
+        if (backupServiceEndpoint.isPresent() && !backupServiceEndpoint.get().isEmpty()) {
+            if (debug) {
+                logger.finest("......create event log entry " + EVENTLOG_TOPIC_BACKUP);
+            }
+            eventLogService.createEvent(EVENTLOG_TOPIC_BACKUP, snapshot.getUniqueID());        
+        }        
     }
 
     /**
