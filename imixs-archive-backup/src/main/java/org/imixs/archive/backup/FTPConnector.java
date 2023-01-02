@@ -97,10 +97,10 @@ public class FTPConnector {
         }
 
         String snapshotID = snapshot.getUniqueID();
-        String originUnqiueID = getUniqueIDFromSnapshotID(snapshotID);
+        String originUnqiueID = BackupApi.getUniqueIDFromSnapshotID(snapshotID);
         byte[] rawData;
 
-        rawData = getRawData(snapshot);
+        rawData = BackupApi.getRawData(snapshot);
         String fileName = originUnqiueID + ".xml";
 
         // Compute file path
@@ -162,45 +162,6 @@ public class FTPConnector {
                 throw new BackupException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
             }
         }
-    }
-
-    /**
-     * Returns the $uniqueID from a $SnapshotID
-     *
-     * @param snapshotID
-     * @return $uniqueid
-     */
-    public String getUniqueIDFromSnapshotID(String snapshotID) {
-        if (snapshotID != null && snapshotID.contains("-")) {
-            return snapshotID.substring(0, snapshotID.lastIndexOf("-"));
-        }
-        return null;
-
-    }
-
-    /**
-     * Converts a ItemCollection into a XMLDocument and returns the byte data.
-     *
-     * @param itemCol
-     * @return
-     * @throws BackupException
-     */
-    public byte[] getRawData(ItemCollection itemCol) throws BackupException {
-        byte[] data = null;
-        // create byte array from XMLDocument...
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try {
-            JAXBContext context;
-            context = JAXBContext.newInstance(XMLDocument.class);
-            Marshaller m = context.createMarshaller();
-            XMLDocument xmlDocument = XMLDocumentAdapter.getDocument(itemCol);
-            m.marshal(xmlDocument, outputStream);
-            data = outputStream.toByteArray();
-        } catch (JAXBException e) {
-            throw new BackupException(BackupException.INVALID_DOCUMENT_OBJECT, e.getMessage(), e);
-        }
-
-        return data;
     }
 
     /**

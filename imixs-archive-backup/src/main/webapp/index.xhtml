@@ -79,17 +79,19 @@
 					</div>
 				
 					<div class="imixs-form-section">
-						<!-- Error Message -->
-						<h4 style="grid-column-start: span 12; color: red;">
-							<h:outputText value="#{connectionController.errorMessage}" />
-						</h4>
+						
 
-						<span style="grid-column-start: span 8;"> <h:commandButton
-								value="Start"
+						<span style="grid-column-start: span 8;"> 
+						 
+						<h:commandButton
+								value="Refresh" 	action="/" /> 
+								
+						<h:commandButton
+								value="Start" style="background:#4dc24f;"
 								actionListener="#{connectionController.start()}"
 								rendered="#{!connectionController.connected}" /> <h:commandButton
-								value="Disconnect" rendered="#{connectionController.connected}"
-								actionListener="#{connectionController.stopt()}" />
+								value="Stop" style="background: #e84848;" rendered="#{connectionController.connected}"
+								actionListener="#{connectionController.stop()}" />
 						</span>
 					</div>
 				</div>

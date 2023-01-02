@@ -29,9 +29,13 @@ import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.melman.BasicAuthenticator;
+import org.imixs.melman.CookieAuthenticator;
 import org.imixs.melman.DocumentClient;
 import org.imixs.melman.EventLogClient;
+import org.imixs.melman.FormAuthenticator;
+import org.imixs.melman.JWTAuthenticator;
 import org.imixs.melman.RestAPIException;
+import org.imixs.melman.WorkflowClient;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.InvalidAccessException;
 
@@ -48,6 +52,7 @@ import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.client.ClientRequestFilter;
+import jakarta.ws.rs.core.Cookie;
 
 /**
  * The BackupService exports the workflow data from a Imixs-Workflow instance
@@ -79,7 +84,7 @@ public class BackupService {
 
     // timeout interval in ms
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
+    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "60000")
     long interval;
 
     @Inject
@@ -101,6 +106,22 @@ public class BackupService {
     @Inject
     @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_PASSWORD)
     Optional<String> workflowServicePassword;
+
+    @Inject
+    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
+    Optional<String> instanceEndpoint;
+
+    @Inject
+    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_USER)
+    Optional<String> instanceUser;
+
+    @Inject
+    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_PASSWORD)
+    Optional<String> instancePassword;
+
+    @Inject
+    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_AUTHMETHOD)
+    Optional<String> instanceAuthmethod;
 
     @Inject
     @ConfigProperty(name = BackupApi.ENV_BACKUP_SCHEDULER_DEFINITION)
@@ -126,34 +147,24 @@ public class BackupService {
 
     private String status = "stopped";
 
+    private WorkflowClient workflowClient = null;
+
     @PostConstruct
     public void init() {
         // init timer....
         if (workflowServiceEndpoint.isPresent()) {
-            logController.info("Starting Archive SyncScheduler - initalDelay=" + initialDelay + "ms  inverval="
-                    + interval + "ms ....");
+
             // Registering a non-persistent Timer Service.
             try {
-                start();
+                startScheduler();
             } catch (BackupException e) {
                 logController.warning("Failed to start scheduler: " + e.getMessage());
             }
         }
 
         // init rest clients....
-
-        // Default behaviro - use a BasicAuthenticator
-        BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser.orElse(""),
-                workflowServicePassword.orElse(""));
-        ClientRequestFilter authenticator = basicAuth;
-
-        // do we have a valid authentication?
-
-        // yes - create the client objects
-        documentClient = new DocumentClient(workflowServiceEndpoint.orElse(""));
-        documentClient.registerClientRequestFilter(authenticator);
-        eventLogClient = new EventLogClient(workflowServiceEndpoint.orElse(""));
-        eventLogClient.registerClientRequestFilter(authenticator);
+        documentClient = getWorkflowClient();
+        eventLogClient = getEventLogClient();
 
     }
 
@@ -168,49 +179,65 @@ public class BackupService {
      **/
     @SuppressWarnings("unused")
     @Timeout
-    public void processEventLog(jakarta.ejb.Timer timer) throws RestAPIException {
+    public void onTimeout(jakarta.ejb.Timer timer) {
         String topic = null;
         String id = null;
         String ref = null;
 
         if (documentClient == null || eventLogClient == null) {
             // no client object
-            logger.fine("...no eventLogClient available!");
+            logController.warning("...no REST Client available!");
+            try {
+                stopScheduler();
+            } catch (BackupException e) {
+            }
             return;
         }
         status = "running";
-        // max 100 entries per iteration
-        eventLogClient.setPageSize(100);
-        List<ItemCollection> events = eventLogClient.searchEventLog(BackupApi.EVENTLOG_TOPIC_BACKUP);
+        try {
+            // max 100 entries per iteration
+            eventLogClient.setPageSize(100);
+            List<ItemCollection> events = eventLogClient.searchEventLog(BackupApi.EVENTLOG_TOPIC_BACKUP);
 
-        for (ItemCollection eventLogEntry : events) {
-            topic = eventLogEntry.getItemValueString("topic");
-            id = eventLogEntry.getItemValueString("id");
-            ref = eventLogEntry.getItemValueString("ref");
+            for (ItemCollection eventLogEntry : events) {
+                topic = eventLogEntry.getItemValueString("topic");
+                id = eventLogEntry.getItemValueString("id");
+                ref = eventLogEntry.getItemValueString("ref");
+
+                try {
+                    // first try to lock the eventLog entry....
+                    eventLogClient.lockEventLogEntry(id);
+                    // eventLogService.lock(eventLogEntry);
+
+                    // pull the snapshotEvent ...
+
+                    logger.finest("......pull snapshot " + ref + "....");
+                    // eventCache.add(eventLogEntry);
+                    ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
+
+                    ftpConnector.put(snapshot);
+
+                    // finally remove the event log entry...
+                    eventLogClient.deleteEventLogEntry(id);
+                } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
+                    // we also catch EJBExceptions here because we do not want to cancel the
+                    // ManagedScheduledExecutorService
+                    logController.warning("SnapshotEvent " + id + " backup failed: " + e.getMessage());
+
+                }
+
+            }
+            status = "scheduled";
+        } catch (InvalidAccessException | EJBException | RestAPIException e) {
+            // we also catch EJBExceptions here because we do not want to cancel the
+            // ManagedScheduledExecutorService
+            logController.warning("processsing EventLog failed: " + e.getMessage());
             try {
-                // first try to lock the eventLog entry....
-                eventLogClient.lockEventLogEntry(id);
-                // eventLogService.lock(eventLogEntry);
-
-                // pull the snapshotEvent ...
-
-                logger.finest("......pull snapshot " + ref + "....");
-                // eventCache.add(eventLogEntry);
-                ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
-
-                ftpConnector.put(snapshot);
-
-                // finally remove the event log entry...
-                eventLogClient.deleteEventLogEntry(id);
-                // eventLogService.removeEvent(eventLogEntry);
-            } catch (InvalidAccessException | EJBException | BackupException e) {
-                // we also catch EJBExceptions here because we do not want to cancel the
-                // ManagedScheduledExecutorService
-                logController.warning("SnapshotEvent " + id + " backup failed: " + e.getMessage());
+                stopScheduler();
+            } catch (BackupException e1) {
 
             }
         }
-        status = "scheduled";
 
     }
 
@@ -290,9 +317,16 @@ public class BackupService {
      */
     public boolean startScheduler() throws BackupException {
         try {
-            logController.info("...starting the export scheduler...");
+            logController.reset();
+            logController.info("...starting backup scheduler - initalDelay=" + initialDelay + "ms  inverval=" + interval
+                    + "ms ....");
             // start archive schedulers....
-            start();
+            // Registering a non-persistent Timer Service.
+            final TimerConfig timerConfig = new TimerConfig();
+            timerConfig.setInfo(""); // empty info string indicates no JSESSIONID!
+            timerConfig.setPersistent(false);
+            timer = timerService.createIntervalTimer(initialDelay, interval, timerConfig);
+
             status = "scheduled";
             return true;
 
@@ -311,7 +345,16 @@ public class BackupService {
      * @throws BackupException
      */
     public boolean stopScheduler() throws BackupException {
-        stop();
+        if (timer != null) {
+            try {
+                logController.info("...stopping the backup scheduler...");
+                timer.cancel();
+            } catch (Exception e) {
+                logController.warning("Failed to stop timer - " + e.getMessage());
+            }
+            // update status message
+            logController.info("Timer stopped. ");
+        }
         status = "stopped";
         return true;
     }
@@ -324,52 +367,73 @@ public class BackupService {
      * @param configuration - the current scheduler configuration to be updated.
      */
     public Date getNextTimeout() {
-
         try {
-
             if (timer != null) {
                 // load current timer details
                 return timer.getNextTimeout();
             }
         } catch (Exception e) {
-            logController.warning("unable to updateTimerDetails: " + e.getMessage());
+            logger.warning("unable to updateTimerDetails: " + e.getMessage());
         }
         return null;
     }
 
     /**
-     * Starts a new Timer for the scheduler defined by the Configuration.
+     * This method creates a WorkflowRest Client and caches the instance
      *
-     * @param configuration - scheduler configuration
-     * @return updated configuration
-     * @throws BackupException
+     * @return
      */
-    private void start() throws BackupException {
+    public WorkflowClient getWorkflowClient() {
+        if (workflowClient == null && instanceEndpoint != null) {
+            // Init the workflowClient with a basis URL
+            workflowClient = new WorkflowClient(instanceEndpoint.orElse(""));
+            String auttype = instanceAuthmethod.orElse("BASIC");
+            if ("BASIC".equals(auttype)) {
+                // Create a authenticator
+                BasicAuthenticator basicAuth = new BasicAuthenticator(instanceUser.orElse(""),
+                        instancePassword.orElse(""));
+                // register the authenticator
+                workflowClient.registerClientRequestFilter(basicAuth);
+            }
+            if ("FORM".equals(auttype)) {
+                // Create a authenticator
+                FormAuthenticator formAuth = new FormAuthenticator(instanceEndpoint.orElse(""), instanceUser.orElse(""),
+                        instancePassword.orElse(""));
+                // register the authenticator
+                workflowClient.registerClientRequestFilter(formAuth);
 
-        // Registering a non-persistent Timer Service.
-        final TimerConfig timerConfig = new TimerConfig();
-        timerConfig.setInfo(""); // empty info string indicates no JSESSIONID!
-        timerConfig.setPersistent(false);
-        timer = timerService.createIntervalTimer(initialDelay, interval, timerConfig);
+            }
+            if ("COOKIE".equals(auttype)) {
+                logger.info("..set authentication cookie: name=" + instanceUser.orElse("") + " value=....");
+                Cookie cookie = new Cookie(instanceUser.orElse(""), instancePassword.orElse(""));
+                CookieAuthenticator cookieAuth = new CookieAuthenticator(cookie);
+                workflowClient.registerClientRequestFilter(cookieAuth);
+            }
+            if ("JWT".equalsIgnoreCase(instancePassword.orElse(""))) {
+                JWTAuthenticator jwtAuht = new JWTAuthenticator(instancePassword.orElse(""));
+                workflowClient.registerClientRequestFilter(jwtAuht);
+            }
+        }
+
+        return workflowClient;
 
     }
 
     /**
-     * Cancels the running timer instance.
+     * Creates a EventLogClient form the worklfowClients authorization filter
      *
-     * @throws BackupException
+     * @return
      */
-    private void stop() throws BackupException {
-        if (timer != null) {
-            try {
+    public EventLogClient getEventLogClient() {
 
-                timer.cancel();
-            } catch (Exception e) {
-                logController.warning("Failed to stop timer - " + e.getMessage());
-            }
-            // update status message
-            logController.info("Timer stopped. ");
+        EventLogClient client = new EventLogClient(getWorkflowClient().getBaseURI());
+        // register all filters from workfow client
+        List<ClientRequestFilter> filterList = getWorkflowClient().getRequestFilterList();
+        for (ClientRequestFilter filter : filterList) {
+            client.registerClientRequestFilter(filter);
         }
+        return client;
+
     }
 
 }
