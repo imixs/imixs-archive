@@ -283,13 +283,7 @@
 	</dependencyManagement>
 
 	<dependencies>
-		<!-- JEE Dependencies -->
-		<dependency>
-			<groupId>javax</groupId>
-			<artifactId>javaee-api</artifactId>
-			<version>8.0</version>
-			<scope>provided</scope>
-		</dependency>
+
 		<!-- JDK 8 support -->
 		<dependency>
 		    <groupId>jakarta.xml.bind</groupId>

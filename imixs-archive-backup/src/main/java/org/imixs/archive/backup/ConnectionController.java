@@ -1,7 +1,9 @@
 package org.imixs.archive.backup;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -15,6 +17,7 @@ import org.imixs.melman.RestAPIException;
 import org.imixs.melman.WorkflowClient;
 import org.imixs.workflow.ItemCollection;
 
+import jakarta.ejb.EJB;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
@@ -43,12 +46,29 @@ public class ConnectionController implements Serializable {
     private static final long serialVersionUID = 7027147503119012594L;
 
     @Inject
-    @ConfigProperty(name = "imixs.instance.endpoint", defaultValue = "http://localhost:8080")
-    private String instanceEndpoint;
+    @ConfigProperty(name = "imixs.instance.endpoint")
+    Optional<String> instanceEndpoint;
 
     @Inject
-    @ConfigProperty(name = "imixs.archive.endpoint", defaultValue = "http://localhost:8081")
-    private String archiveEndpoint;
+    @ConfigProperty(name = "imixs.archive.endpoint")
+    Optional<String> archiveEndpoint;
+
+    @Inject
+    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_HOST)
+    Optional<String> ftpServer;
+
+    @Inject
+    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PATH)
+    Optional<String> ftpPath;
+
+    @Inject
+    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PORT, defaultValue = "21")
+    int ftpPort;
+
+    // timeout interval in ms
+    @Inject
+    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
+    long interval;
 
     private static Logger logger = Logger.getLogger(ConnectionController.class.getName());
 
@@ -57,42 +77,51 @@ public class ConnectionController implements Serializable {
     private String token;
     private String type = "FORM";
     private String errorMessage = "";
-    private boolean connected;
+
     private ItemCollection indexSchema = null;
     private WorkflowClient workflowClient = null;
 
-    public ConnectionController() {
-        super();
-        logger.info("hallo");
-        // TODO Auto-generated constructor stub
-    }
+    @Inject
+    BackupService backupService;
+
+    @Inject
+    LogController logController;
 
     public boolean isConnected() {
-        return connected;
+        String status = backupService.getStatus();
+        return "scheduled".equals(status) || "running".equals(status);
     }
 
-    public String getHallo() {
-        return "hallo";
+    public String getStatus() {
+        return backupService.getStatus();
     }
 
-    public void setConnected(boolean connected) {
-        this.connected = connected;
+    public Date getNextTimeout() {
+        return backupService.getNextTimeout();
+    }
+
+    public String getFtpServer() {
+        return ftpServer.orElse("");
+    }
+
+    public String getFtpPath() {
+        return ftpPath.orElse("");
+    }
+
+    public int getFtpPort() {
+        return ftpPort;
     }
 
     public String getInstanceEndpoint() {
-        return instanceEndpoint;
-    }
-
-    public void setInstanceEndpoint(String instanceEndpoint) {
-        this.instanceEndpoint = instanceEndpoint;
+        return instanceEndpoint.orElse("");
     }
 
     public String getArchiveEndpoint() {
-        return archiveEndpoint;
+        return archiveEndpoint.orElse("");
     }
 
-    public void setArchiveEndpoint(String archiveEndpoint) {
-        this.archiveEndpoint = archiveEndpoint;
+    public long getInterval() {
+        return interval;
     }
 
     /**
@@ -100,9 +129,11 @@ public class ConnectionController implements Serializable {
      * and loads the index schema to test if a connection the the Rest API endpoint
      * can be established.
      */
-    public void connect() {
-        if (endpoint == null) {
-            return;
+    public void start() {
+        try {
+            backupService.startScheduler();
+        } catch (BackupException e) {
+            logController.warning("failed to start scheduler: " + e.getMessage());
         }
 
         logger.info("...conecting: " + endpoint);
@@ -211,16 +242,15 @@ public class ConnectionController implements Serializable {
      * @return
      */
     public EventLogClient getEventLogClient() {
-        if (connected) {
-            EventLogClient client = new EventLogClient(getWorkflowClient().getBaseURI());
-            // register all filters from workfow client
-            List<ClientRequestFilter> filterList = getWorkflowClient().getRequestFilterList();
-            for (ClientRequestFilter filter : filterList) {
-                client.registerClientRequestFilter(filter);
-            }
-            return client;
+
+        EventLogClient client = new EventLogClient(getWorkflowClient().getBaseURI());
+        // register all filters from workfow client
+        List<ClientRequestFilter> filterList = getWorkflowClient().getRequestFilterList();
+        for (ClientRequestFilter filter : filterList) {
+            client.registerClientRequestFilter(filter);
         }
-        return null;
+        return client;
+
     }
 
     /**
@@ -229,16 +259,15 @@ public class ConnectionController implements Serializable {
      * @return
      */
     public ModelClient getModelClient() {
-        if (connected) {
-            ModelClient client = new ModelClient(getWorkflowClient().getBaseURI());
-            // register all filters from workfow client
-            List<ClientRequestFilter> filterList = getWorkflowClient().getRequestFilterList();
-            for (ClientRequestFilter filter : filterList) {
-                client.registerClientRequestFilter(filter);
-            }
-            return client;
+
+        ModelClient client = new ModelClient(getWorkflowClient().getBaseURI());
+        // register all filters from workfow client
+        List<ClientRequestFilter> filterList = getWorkflowClient().getRequestFilterList();
+        for (ClientRequestFilter filter : filterList) {
+            client.registerClientRequestFilter(filter);
         }
-        return null;
+        return client;
+
     }
 
     /**

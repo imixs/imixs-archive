@@ -345,6 +345,14 @@ input[type="text"]:focus, input[type="password"]:focus, textarea:focus,
 .imixsdatatable {
 	width: 100%;
 }
+.imixsdatatable, .imixsdatatable td, .imixsdatatable th {
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid #ddd;
+  padding: 4px;
+}
+
 .imixsdatatable a {
 	color: #428bca !important;
 }

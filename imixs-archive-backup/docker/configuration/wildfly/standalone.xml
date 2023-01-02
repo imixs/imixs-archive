@@ -42,7 +42,6 @@
         <extension module="org.wildfly.extension.security.manager"/>
         <extension module="org.wildfly.extension.undertow"/>
     </extensions>
-
     <management>
         <audit-log>
             <formatters>
@@ -138,7 +137,6 @@
                         <password>sa</password>
                     </security>
                 </datasource>
-                      
                 <drivers>
                     <driver name="h2" module="com.h2database.h2">
                         <xa-datasource-class>org.h2.jdbcx.JdbcDataSource</xa-datasource-class>
@@ -257,7 +255,6 @@
                     <users-properties path="mgmt-users.properties" relative-to="jboss.server.config.dir" digest-realm-name="ManagementRealm"/>
                     <groups-properties path="mgmt-groups.properties" relative-to="jboss.server.config.dir"/>
                 </properties-realm>
-                   
             </security-realms>
             <mappers>
                 <simple-permission-mapper name="default-permission-mapper" mapping-mode="first">
