@@ -1,17 +1,20 @@
-package org.imixs.archive.backup;
+package org.imixs.archive.util;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Named;
 
 /**
- * The LogController stores a message log
+ * The LogController stores a message log under a specific topic. In this way
+ * the logController can be use in different context.
  *
  * @author rsoika
  *
@@ -28,19 +31,30 @@ public class LogController implements Serializable {
     private static Logger logger = Logger.getLogger(LogController.class.getName());
     String pattern = " HH:mm:ss.SSSZ";
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-    private List<String> logEntries;
+
+    private Map<String, List<String>> logTopics;
+
     private int maxSize = 30;
 
-    public void reset() {
-        logEntries = new ArrayList<String>();
+    /**
+     * Init LogTopics
+     */
+    public LogController() {
+        super();
+        logTopics = new HashMap<String, List<String>>();
     }
 
-    public void info(String message) {
-        add(LOG_INFO, message);
+    public List<String> reset(String context) {
+        logTopics.put(context, new ArrayList<String>());
+        return logTopics.get(context);
     }
 
-    public void warning(String message) {
-        add(LOG_WARNING, message);
+    public void info(String context, String message) {
+        add(context, LOG_INFO, message);
+    }
+
+    public void warning(String context, String message) {
+        add(context, LOG_WARNING, message);
     }
 
     /**
@@ -48,11 +62,13 @@ public class LogController implements Serializable {
      *
      * @param message
      */
-    private void add(int type, String message) {
+    private void add(String topic, int type, String message) {
+        // get the logger
+        List<String> logEntries = logTopics.get(topic);
         if (logEntries == null) {
-            reset();
+            logEntries = reset(topic);
         }
-        
+
         // check maxsize...
         while (logEntries.size() > maxSize) {
             logEntries.remove(0);
@@ -71,12 +87,12 @@ public class LogController implements Serializable {
         logEntries.add(entry);
     }
 
-    public List<String> getLogEntries() {
-        return logEntries;
+    public List<String> getLogEntries(String context) {
+        return logTopics.get(context);
     }
 
-    public void setLogEntries(List<String> logEntries) {
-        this.logEntries = logEntries;
-    }
+//    public void setLogEntries(List<String> logEntries) {
+//        this.logEntries = logEntries;
+//    }
 
 }

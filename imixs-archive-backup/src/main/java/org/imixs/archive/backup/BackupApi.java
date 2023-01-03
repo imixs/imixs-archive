@@ -36,6 +36,11 @@ public class BackupApi extends Application {
     public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
     public static final String BACKUP_SYNC_DEADLOCK = "backup.sync.deadlock";
 
+    public static final String TOPIC_BACKUP = "BACKUP";
+    public static final String TOPIC_RESTORE = "RESTORE";
+
+    public final static String SNAPSHOT_RESOURCE = "snapshot/";
+
     /**
      * Returns the $uniqueID from a $SnapshotID
      *

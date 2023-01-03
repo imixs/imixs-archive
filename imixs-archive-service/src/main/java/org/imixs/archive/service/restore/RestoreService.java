@@ -61,7 +61,7 @@ import com.datastax.driver.core.Session;
  * The scheduler configuration is stored in the Metadata object of the cassandra
  * keyspace. The following attributes are defining the restore procedure:
  * <p>
- * <strong>restore.from</strong>: the eariest snapshot syncpoint to be restored
+ * <strong>restore.from</strong>: the earliest snapshot syncpoint to be restored
  * (can be 0)
  * <p>
  * <strong>restore.to</strong>: the latest snapshot syncpoint to be restored
@@ -73,7 +73,7 @@ import com.datastax.driver.core.Session;
  * <p>
  * <strong>restore.size</strong>: bytes of restored snapshot data
  * <p>
- * The timer is stoped after all snapshots in the restore timerange
+ * The timer is stopped after all snapshots in the restore time range
  * (restore.from - restore.to) are restored.
  * 
  * 

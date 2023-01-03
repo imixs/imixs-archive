@@ -21,8 +21,8 @@
 				<ul>
 					<li class="nav-item"><h:link
 							outcome="/index.xhtml?cid=#{jakarta.enterprise.context.conversation.id}">
-							<span class="typcn typcn-link"></span>
-							<label>Endpoint</label>
+							<span class="typcn typcn-cloud-storage-outline"></span>
+							<label>Backup</label>
 						</h:link> <span class="typcn typcn-media-record-outline"
 						style="#{connectionController.connected?'color:#4dc24f':'color:#dc2929'}"></span>
 					</li>
@@ -31,9 +31,8 @@
 				<hr />
 				<ul>
 					<li class="nav-item"><h:link
-							outcome="/dataexport.xhtml?cid=#{jakarta.enterprise.context.conversation.id}"
-							disabled="#{!connectionController.connected}">
-							<span class="typcn typcn-upload"></span>
+							outcome="/restore.xhtml">
+							<span class="typcn typcn-download-outline"></span>
 							<label>Restore</label>
 						</h:link></li>
 				</ul>

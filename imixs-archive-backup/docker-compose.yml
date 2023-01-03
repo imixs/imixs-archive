@@ -7,12 +7,21 @@ services:
     environment:
       WILDFLY_PASS: adminadmin
       DEBUG: "true"
-      EXPORT_SCHEDULER_DEFINITION: "hour=*;minute=*"
+
+      # EXAMPLE SETUP
+      WORKFLOW_SERVICE_ENDPOINT: "http://app:8080/api"      
+      WORKFLOW_SERVICE_USER: test
+      WORKFLOW_SERVICE_PASSWORD: ""
+      WORKFLOW_SERVICE_AUTHMETHOD: "form"
+      
+      BACKUP_FTP_HOST: "ftp.storage.foo"
+      BACKUP_FTP_PATH: "/test/"
+      BACKUP_FTP_PORT: "21"
+      BACKUP_FTP_USER: ""
+      BACKUP_FTP_PASSWORD: ""      
     ports:
       - "8080:8080"
-      - "8787:8787"
-      #- "9990:9990"
-      #- "8443:8443"    
+      - "8787:8787"   
     volumes:
       - ./docker/deployments:/opt/jboss/wildfly/standalone/deployments/
  

@@ -363,4 +363,14 @@
 	</distributionManagement>
 
   
+	<name>Imixs-Archive Backup</name>
+	<url>https://github.com/imixs/imixs-workflow</url>
+	<description>Imixs Workflow provides a platform for an open and standardized workflow technology. 
+		This is the meta project for the Imixs Workflow artefacts 
+		imixs-workflow-core, imixs-workflow-engine, imixs-workflow-faces and imixs-workflow-jax-rs</description>
+	<inceptionYear>2023</inceptionYear>
+	<organization>
+		<name>Imixs Software Solutions GmbH</name>
+		<url>http://www.imixs.com</url>
+	</organization>
 </project>

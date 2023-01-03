@@ -7,7 +7,7 @@
 
 			<div class="header">
 				<h2>
-					<span class="typcn typcn-link-outline"></span> Imixs Backup
+					<span class="typcn typcn-download-outline"></span> Imixs Restore
 				</h2>
 			</div>
 			<h:form id="connect_form_id">
@@ -26,42 +26,28 @@
 							style="grid-column-start: span 12; margin: 10px 0;">
 							<tr>
 								<td style="width: 25%;">Imixs-Workflow Instance:</td>
-								<td>#{backupController.getInstanceEndpoint()}</td>
+								<td>#{restoreController.getInstanceEndpoint()}</td>
 							</tr>
 
 							<tr>
-								<td>Backup Status:</td>
-								<td>#{backupController.getStatus()} <ui:fragment
-										rendered="#{backupController.isConnected()}">
-										<span class="typcn typcn-media-record"
-											style="font-size: 1.3em; color: #5c9e5c;"></span>
-									</ui:fragment> <ui:fragment rendered="#{!backupController.isConnected()}">
-										<span class="typcn typcn-media-record"
-											style="font-size: 1.3em; color: #e84848;"></span>
-									</ui:fragment>
-
-								</td>
-							</tr>
-
-							<tr>
-								<td>Interval:</td>
-								<td>#{backupController.getInterval()} ms</td>
+								<td>Restore Status:</td>
+								<td>#{restoreController.getStatus()}</td>
 							</tr>
 
 							<tr>
 								<td>Next Timeout:</td>
-								<td>#{backupController.getNextTimeout()}</td>
+								<td>#{restoreController.getNextTimeout()}</td>
 							</tr>
 
 
 							<tr>
 								<td>FTP Host:</td>
-								<td>#{backupController.ftpServer}:#{backupController.ftpPort}</td>
+								<td>#{restoreController.ftpServer}:#{restoreController.ftpPort}</td>
 							</tr>
 
 							<tr>
 								<td>Backup Space:</td>
-								<td>#{backupController.ftpPath}</td>
+								<td>#{restoreController.ftpPath}</td>
 							</tr>
 
 						</table>
@@ -72,11 +58,11 @@
 						<span style="grid-column-start: span 8;"> <h:commandButton
 								value="Refresh" action="/" /> <h:commandButton value="Start"
 								style="background:#4dc24f;"
-								actionListener="#{backupController.start()}"
-								rendered="#{!backupController.connected}" /> <h:commandButton
+								actionListener="#{restoreController.start()}"
+								rendered="#{!restoreController.connected}" /> <h:commandButton
 								value="Stop" style="background: #e84848;"
-								rendered="#{backupController.connected}"
-								actionListener="#{backupController.stop()}" />
+								rendered="#{restoreController.connected}"
+								actionListener="#{restoreController.stop()}" />
 						</span>
 					</div>
 				</div>
@@ -87,9 +73,9 @@
 						<span class="typcn typcn-input-checked"></span> Log
 					</h3>
 					<pre>
-						<ui:repeat var="log" value="#{logController.getLogEntries('BACKUP')}">
+						<ui:repeat var="log" value="#{logController.getLogEntries('RESTORE')}">
 							<h:outputText value="#{log}" /><br />
-						</ui:repeat>		
+						</ui:repeat>
 					</pre>
 				</div>
 			</h:form>
