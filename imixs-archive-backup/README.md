@@ -9,10 +9,15 @@ The Backup Service can be configured in a Imixs-Workflow instance by adding the 
 
 ## Backup Workflow
 
-The backup workflow depends on the archive infrastructure. In case of a simple setup without a Cassandra Archive Service installed, the backup request is generated directly after a new Snapshot Workitem was stored. The snapshot will be backuped and remains in the database.
+The backup workflow depends on the archive infrastructure. 
+
+In case of a simple setup without a Cassandra Archive Service installed, the backup request is generated directly after a new Snapshot Workitem was stored. The snapshot will be backuped and remains in the database.
+
+<img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-backup.png"/>
 
 In case of using the [Cassandra Archive Service](../imixs-archive-service/README.md) the backup request is generated after the snapshot was successful transferred into the Cassandra cluster. After the snapshot was be backuped successful, the snapshot will be removed form the database. This concept reduces the size of the database as file data is no longer stored in the database but in the Cassandra cluster.
 
+<img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-archive-backup.png"/>
 
 # Development
 
