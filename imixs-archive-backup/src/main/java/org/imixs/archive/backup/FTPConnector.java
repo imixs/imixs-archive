@@ -87,14 +87,17 @@ public class FTPConnector {
      * @throws BackupException
      */
     public void put(ItemCollection snapshot) throws BackupException {
-
         if (!ftpServer.isPresent() || !ftpPath.isPresent()) {
             throw new BackupException(FTP_ERROR,
                     "FTP file transfer failed: no ftp host provided (" + BackupApi.ENV_BACKUP_FTP_HOST + ")!");
         }
 
         String snapshotID = snapshot.getUniqueID();
+
+        logger.finest("......snapshotid=" + snapshotID);
         String originUnqiueID = BackupApi.getUniqueIDFromSnapshotID(snapshotID);
+
+        logger.finest("......originUnqiueID=" + originUnqiueID);
         byte[] rawData;
 
         rawData = BackupApi.getRawData(snapshot);

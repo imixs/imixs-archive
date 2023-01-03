@@ -46,8 +46,10 @@ import org.imixs.archive.service.util.MessageService;
 @ApplicationPath("api")
 public class ImixsArchiveApp extends Application {
 
+    // event log topics
     public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
     public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
+    public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
 
     // rest service endpoint
     public static final String WORKFLOW_SERVICE_ENDPOINT = "workflow.service.endpoint";
@@ -57,6 +59,7 @@ public class ImixsArchiveApp extends Application {
     public static final String WORKFLOW_SYNC_INTERVAL = "workflow.sync.interval";
     public static final String WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
     public static final String WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
+    public static final String BACKUP_SERVICE_ENDPOINT = "backup.service.endpoint";
 
     @Inject
     ResyncService syncService;

@@ -175,7 +175,9 @@ public class BackupService {
         String topic = null;
         String id = null;
         String ref = null;
-
+        int total = 0;
+        int success = 0;
+        int errors = 0;
         timer = _timer;
 
         // init rest clients....
@@ -192,6 +194,7 @@ public class BackupService {
 
         status = "running";
         try {
+            logger.finest("......release dead locks....");
             // release dead locks...
             releaseDeadLocks(eventLogClient);
 
@@ -200,6 +203,7 @@ public class BackupService {
             List<ItemCollection> events = eventLogClient.searchEventLog(BackupApi.EVENTLOG_TOPIC_BACKUP);
 
             for (ItemCollection eventLogEntry : events) {
+                total++;
                 topic = eventLogEntry.getItemValueString("topic");
                 id = eventLogEntry.getItemValueString("id");
                 ref = eventLogEntry.getItemValueString("ref");
@@ -207,10 +211,8 @@ public class BackupService {
                 try {
                     // first try to lock the eventLog entry....
                     eventLogClient.lockEventLogEntry(id);
-                    // eventLogService.lock(eventLogEntry);
 
                     // pull the snapshotEvent ...
-
                     logger.finest("......pull snapshot " + ref + "....");
                     // eventCache.add(eventLogEntry);
                     ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
@@ -219,14 +221,20 @@ public class BackupService {
 
                     // finally remove the event log entry...
                     eventLogClient.deleteEventLogEntry(id);
+                    success++;
                 } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
                     // we also catch EJBExceptions here because we do not want to cancel the
                     // ManagedScheduledExecutorService
                     logController.warning("SnapshotEvent " + id + " backup failed: " + e.getMessage());
-
+                    errors++;
                 }
-
             }
+
+            // print log
+            if (total > 0) {
+                logController.info(success + " snapshots backed up, " + errors + " errors...");
+            }
+
             status = "scheduled";
         } catch (InvalidAccessException | EJBException | RestAPIException e) {
             // we also catch EJBExceptions here because we do not want to cancel the
@@ -282,7 +290,7 @@ public class BackupService {
 
         String ref = eventLogEntry.getItemValueString("ref");
         String id = eventLogEntry.getItemValueString("id");
-        logger.finest("...push " + ref + "...");
+        logger.finest("......pullSnapshot ref " + ref + "...");
         // lookup the snapshot...
         ItemCollection snapshot;
         try {

@@ -57,6 +57,11 @@ public class SyncService {
     @Inject
     @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_DEADLOCK, defaultValue = "60000")
     long deadLockInterval;
+    
+    @Inject
+    @ConfigProperty(name = ImixsArchiveApp.BACKUP_SERVICE_ENDPOINT)
+    Optional<String> backupServiceEndpoint;
+
 
     @Inject
     DataService dataService;
@@ -95,14 +100,12 @@ public class SyncService {
             try {
                 // first try to lock the eventLog entry....
                 eventLogClient.lockEventLogEntry(id);
-                // eventLogService.lock(eventLogEntry);
-
+               
                 // pull the snapshotEvent only if not just qeued...
                 if (topic.startsWith(ImixsArchiveApp.EVENTLOG_TOPIC_ADD)) {
                     logger.finest("......pull snapshot " + ref + "....");
                     // eventCache.add(eventLogEntry);
                     pullSnapshot(eventLogEntry, documentClient, eventLogClient);
-
                 }
 
                 if (topic.startsWith(ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE)) {
@@ -110,7 +113,12 @@ public class SyncService {
                 }
                 // finally remove the event log entry...
                 eventLogClient.deleteEventLogEntry(id);
-                // eventLogService.removeEvent(eventLogEntry);
+                
+                // finally write a backup event log entry if a BackupService is available...
+                if (backupServiceEndpoint.isPresent() && !backupServiceEndpoint.get().isEmpty()) {
+                    logger.finest("......create event log entry " + ImixsArchiveApp.EVENTLOG_TOPIC_BACKUP);
+                    eventLogClient.createEventLogEntry(ImixsArchiveApp.EVENTLOG_TOPIC_BACKUP, ref, null);
+                }
             } catch (InvalidAccessException | EJBException | ArchiveException e) {
                 // we also catch EJBExceptions here because we do not want to cancel the
                 // ManagedScheduledExecutorService

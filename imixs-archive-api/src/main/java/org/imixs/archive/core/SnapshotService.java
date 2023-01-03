@@ -102,18 +102,18 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
  * <p>
  * <strong>SnapshotService</strong><br />
  * Since version 2.0 a Imixs Archive Service can be connected to a
- * Imixs-Workflow instance. If the environment variable 'ARCHIVE_SERVICE_ENDPONT' is
- * set, than the snapshot service creates a EventLog entry each time a snapshot
- * was generated. The Archive SyncService scans for the EventLog entries in an
- * asynchronous way and pulls the snaphots directly into the Archive
- * (Cassandra).
+ * Imixs-Workflow instance. If the environment variable
+ * 'ARCHIVE_SERVICE_ENDPONT' is set, than the snapshot service creates a
+ * EventLog entry each time a snapshot was generated. The Archive SyncService
+ * scans for the EventLog entries in an asynchronous way and pulls the snaphots
+ * directly into the Archive (Cassandra).
  * <p>
  * <strong>BackupService</strong><br />
  * Since version 2.4 an optional BackupService can be connected to a
- * Imixs-Workflow instance. If the environment variable 'BACKUP_SERVICE_ENDPONT' is
- * set, than the snapshot service creates a EventLog entry each time a snapshot
- * was generated. The BackupService scans for these EventLog entries in an
- * asynchronous way and stores the snaphots into a backup space
+ * Imixs-Workflow instance. If the environment variable 'BACKUP_SERVICE_ENDPONT'
+ * is set, than the snapshot service creates a EventLog entry each time a
+ * snapshot was generated. The BackupService scans for these EventLog entries in
+ * an asynchronous way and stores the snaphots into a backup space
  * 
  * @version 2.0
  * @author rsoika
@@ -134,7 +134,9 @@ public class SnapshotService {
 
     public final static String ITEM_FILEDATA_FILE_NAMES = "$file.names"; // list of files
     public final static String ITEM_FILEDATA_FILE_COUNT = "$file.count"; // count of files
-    public final static String ITEM_SNAPSHOT_OVERWRITEFILECONTENT = "$snapshot.overwriteFileContent"; // force overwriting file content
+    public final static String ITEM_SNAPSHOT_OVERWRITEFILECONTENT = "$snapshot.overwriteFileContent"; // force
+                                                                                                      // overwriting
+                                                                                                      // file content
 
     public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
     public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
@@ -148,11 +150,11 @@ public class SnapshotService {
     public static final String ARCHIVE_SERVICE_PASSWORD = "archive.service.password";
     public static final String ARCHIVE_SERVICE_AUTHMETHOD = "archive.service.authmethod";
     public static final String BACKUP_SERVICE_ENDPOINT = "backup.service.endpoint";
-    
+
     public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
     public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
     public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
-    
+
     public final static String ITEM_MD5_CHECKSUM = "md5checksum";
 
     @Resource
@@ -179,7 +181,6 @@ public class SnapshotService {
     @Inject
     @ConfigProperty(name = ARCHIVE_SERVICE_ENDPOINT)
     Optional<String> archiveServiceEndpoint;
-    
 
     @Inject
     @ConfigProperty(name = BACKUP_SERVICE_ENDPOINT)
@@ -343,21 +344,22 @@ public class SnapshotService {
         // 8. remove deprecated snapshots
         cleanSnaphostHistory(snapshot.getUniqueID());
 
-        // 9. write archive event log entry...
+        // 9. write archive event log entry only if we have a ArchiveService...
         if (archiveServiceEndpoint.isPresent() && !archiveServiceEndpoint.get().isEmpty()) {
             if (debug) {
                 logger.finest("......create event log entry " + EVENTLOG_TOPIC_ADD);
             }
-            eventLogService.createEvent(EVENTLOG_TOPIC_ADD, snapshot.getUniqueID());        
-        }
-        
-        // 10. write backup event log entry...
-        if (backupServiceEndpoint.isPresent() && !backupServiceEndpoint.get().isEmpty()) {
-            if (debug) {
-                logger.finest("......create event log entry " + EVENTLOG_TOPIC_BACKUP);
+            eventLogService.createEvent(EVENTLOG_TOPIC_ADD, snapshot.getUniqueID());
+        } else {
+            // 10. write backup event log entry...
+            // If no ArchiveService is connected, but a BackupService, than we create immediately a Backup Event
+            if (backupServiceEndpoint.isPresent() && !backupServiceEndpoint.get().isEmpty()) {
+                if (debug) {
+                    logger.finest("......create event log entry " + EVENTLOG_TOPIC_BACKUP);
+                }
+                eventLogService.createEvent(EVENTLOG_TOPIC_BACKUP, snapshot.getUniqueID());
             }
-            eventLogService.createEvent(EVENTLOG_TOPIC_BACKUP, snapshot.getUniqueID());        
-        }        
+        }
     }
 
     /**
@@ -537,8 +539,8 @@ public class SnapshotService {
         boolean debug = logger.isLoggable(Level.FINE);
 
         List<FileData> files = target.getFileData();
-        
-        List<String> overwriteFileList=origin.getItemValueList(ITEM_SNAPSHOT_OVERWRITEFILECONTENT, String.class);
+
+        List<String> overwriteFileList = origin.getItemValueList(ITEM_SNAPSHOT_OVERWRITEFILECONTENT, String.class);
 
         for (FileData fileData : files) {
             String fileName = fileData.getName();
@@ -574,9 +576,9 @@ public class SnapshotService {
                 // in case 'overwriteFileContent' is set to 'false' we protect existing content
                 // of
                 // files with the same name, but extend the name of the old file with a suffix
-                // This feature can be skiped if $snapshot.overwriteFileContent contans the filename
-                
-                
+                // This feature can be skiped if $snapshot.overwriteFileContent contans the
+                // filename
+
                 if (!overwriteFileContent && !(overwriteFileList.contains(fileName))) {
                     FileData oldFileData = source.getFileData(fileName);
                     if (oldFileData != null) {
@@ -629,7 +631,7 @@ public class SnapshotService {
                 }
             }
         }
-        
+
         // clean "$snapshot.overwriteFileContent"
         origin.replaceItemValue(ITEM_SNAPSHOT_OVERWRITEFILECONTENT, "");
 
