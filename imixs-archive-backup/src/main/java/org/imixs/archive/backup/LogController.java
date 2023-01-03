@@ -29,6 +29,7 @@ public class LogController implements Serializable {
     String pattern = " HH:mm:ss.SSSZ";
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
     private List<String> logEntries;
+    private int maxSize = 30;
 
     public void reset() {
         logEntries = new ArrayList<String>();
@@ -50,6 +51,11 @@ public class LogController implements Serializable {
     private void add(int type, String message) {
         if (logEntries == null) {
             reset();
+        }
+        
+        // check maxsize...
+        while (logEntries.size() > maxSize) {
+            logEntries.remove(0);
         }
 
         String entry = simpleDateFormat.format(new Date()) + " ";
