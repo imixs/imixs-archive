@@ -137,7 +137,8 @@ public class SnapshotService {
     public final static String ITEM_SNAPSHOT_OVERWRITEFILECONTENT = "$snapshot.overwriteFileContent"; // force
                                                                                                       // overwriting
                                                                                                       // file content
-
+    public static final String ITEM_BACKUPRESTORE = "$backuprestore";
+    
     public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
     public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
     public static final String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";

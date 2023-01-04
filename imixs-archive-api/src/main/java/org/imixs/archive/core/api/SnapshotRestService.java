@@ -302,6 +302,7 @@ public class SnapshotRestService implements Serializable {
             document.removeItem(DocumentService.NOINDEX);
             document.removeItem(DocumentService.IMMUTABLE);
             document.removeItem(DocumentService.VERSION);
+
             // remove file content...
             List<FileData> files = document.getFileData();
             // empty data...
@@ -324,6 +325,8 @@ public class SnapshotRestService implements Serializable {
             document.setItemValue(SnapshotService.SKIPSNAPSHOT, true);
             // update snapshotid...
             document.setItemValue(SnapshotService.SNAPSHOTID, snapshotID);
+            // remove restore flag if exits...
+            document.removeItem(SnapshotService.ITEM_BACKUPRESTORE);
             // save origin document...
             document = documentService.save(document);
 

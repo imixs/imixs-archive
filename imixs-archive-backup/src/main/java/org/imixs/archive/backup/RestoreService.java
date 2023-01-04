@@ -23,6 +23,7 @@
 package org.imixs.archive.backup;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -305,7 +306,10 @@ public class RestoreService {
 
     /**
      * Helper Method to restore a snapshot by calling the Rest API from the workflow
-     * instance
+     * instance.
+     * <p>
+     * The method marks the snapshot with the item $backuprestore to indicate that
+     * this snapshot need no backup.
      *
      * @param documentClient
      * @param snapshot
@@ -316,6 +320,8 @@ public class RestoreService {
         String url = BackupApi.SNAPSHOT_RESOURCE;
         logger.finest("...... post data: " + url + "....");
         try {
+            // mark snapshot to indicate that a new backup should be skipped.
+            snapshot.setItemValue(BackupApi.ITEM_BACKUPRESTORE, new Date());
             documentClient.postXMLDocument(url, XMLDocumentAdapter.getDocument(snapshot));
         } catch (RestAPIException e) {
             String errorMessage = "...failed to restoreSnapshot: " + e.getMessage();

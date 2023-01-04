@@ -77,7 +77,7 @@ public class BackupService {
 
     // timeout interval in ms
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "60000")
+    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "10000")
     long interval;
 
     @Inject

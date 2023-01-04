@@ -49,6 +49,8 @@ public class ImixsArchiveApp extends Application {
     public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
     public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
     public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
+    
+    public static final String ITEM_BACKUPRESTORE = "$backuprestore";
 
     // rest service endpoint
     public static final String WORKFLOW_SERVICE_ENDPOINT = "workflow.service.endpoint";

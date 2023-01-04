@@ -57,11 +57,10 @@ public class SyncService {
     @Inject
     @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_DEADLOCK, defaultValue = "60000")
     long deadLockInterval;
-    
+
     @Inject
     @ConfigProperty(name = ImixsArchiveApp.BACKUP_SERVICE_ENDPOINT)
     Optional<String> backupServiceEndpoint;
-
 
     @Inject
     DataService dataService;
@@ -81,6 +80,7 @@ public class SyncService {
         String topic = null;
         String id = null;
         String ref = null;
+        ItemCollection snapshot = null;
 
         if (documentClient == null || eventLogClient == null) {
             // no client object
@@ -100,12 +100,11 @@ public class SyncService {
             try {
                 // first try to lock the eventLog entry....
                 eventLogClient.lockEventLogEntry(id);
-               
+
                 // pull the snapshotEvent only if not just qeued...
                 if (topic.startsWith(ImixsArchiveApp.EVENTLOG_TOPIC_ADD)) {
                     logger.finest("......pull snapshot " + ref + "....");
-                    // eventCache.add(eventLogEntry);
-                    pullSnapshot(eventLogEntry, documentClient, eventLogClient);
+                    snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
                 }
 
                 if (topic.startsWith(ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE)) {
@@ -113,11 +112,14 @@ public class SyncService {
                 }
                 // finally remove the event log entry...
                 eventLogClient.deleteEventLogEntry(id);
-                
+
                 // finally write a backup event log entry if a BackupService is available...
                 if (backupServiceEndpoint.isPresent() && !backupServiceEndpoint.get().isEmpty()) {
-                    logger.finest("......create event log entry " + ImixsArchiveApp.EVENTLOG_TOPIC_BACKUP);
-                    eventLogClient.createEventLogEntry(ImixsArchiveApp.EVENTLOG_TOPIC_BACKUP, ref, null);
+                    // we skip this event if the snapshot is from a restore....
+                    if (snapshot != null && !snapshot.hasItem(ImixsArchiveApp.ITEM_BACKUPRESTORE)) {
+                        logger.finest("......create event log entry " + ImixsArchiveApp.EVENTLOG_TOPIC_BACKUP);
+                        eventLogClient.createEventLogEntry(ImixsArchiveApp.EVENTLOG_TOPIC_BACKUP, ref, null);
+                    }
                 }
             } catch (InvalidAccessException | EJBException | ArchiveException e) {
                 // we also catch EJBExceptions here because we do not want to cancel the
@@ -157,17 +159,19 @@ public class SyncService {
      * <p>
      * The method returns a AsyncResult to indicate the completion of the push. A
      * client can use this information for further control.
+     * <p>
+     * The method returns the snapshot ItemCollection
      * 
      * @throws ArchiveException
      * @throws RestAPIException
      */
-    public void pullSnapshot(ItemCollection eventLogEntry, DocumentClient documentClient, EventLogClient eventLogClient)
-            throws ArchiveException {
+    public ItemCollection pullSnapshot(ItemCollection eventLogEntry, DocumentClient documentClient,
+            EventLogClient eventLogClient) throws ArchiveException {
 
         if (eventLogEntry == null || documentClient == null || eventLogClient == null) {
             // no client object
             logger.fine("...no eventLogClient available!");
-            return;
+            return null;
         }
 
         boolean debug = logger.isLoggable(Level.FINE);
@@ -189,7 +193,9 @@ public class SyncService {
                 if (debug) {
                     logger.fine("...pulled " + ref + " in " + (System.currentTimeMillis() - l) + "ms");
                 }
+                return snapshot;
             }
+
         } catch (RestAPIException e) {
             logger.severe("Snapshot " + ref + " pull failed: " + e.getMessage());
             // now we need to remove the batch event
@@ -200,6 +206,7 @@ public class SyncService {
                 throw new ArchiveException("REMOTE_EXCEPTION", "Unable to delte eventLogEntry: " + id, e1);
             }
         }
+        return null;
     }
 
 }
