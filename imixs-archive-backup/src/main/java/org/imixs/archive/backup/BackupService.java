@@ -22,7 +22,6 @@
  *******************************************************************************/
 package org.imixs.archive.backup;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -31,14 +30,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.util.FTPConnector;
 import org.imixs.archive.util.LogController;
 import org.imixs.archive.util.RestClientHelper;
-import org.imixs.melman.BasicAuthenticator;
-import org.imixs.melman.CookieAuthenticator;
 import org.imixs.melman.DocumentClient;
 import org.imixs.melman.EventLogClient;
-import org.imixs.melman.FormAuthenticator;
-import org.imixs.melman.JWTAuthenticator;
 import org.imixs.melman.RestAPIException;
-import org.imixs.melman.WorkflowClient;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.InvalidAccessException;
 
@@ -54,8 +48,6 @@ import jakarta.ejb.TimerService;
 import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.client.ClientRequestFilter;
-import jakarta.ws.rs.core.Cookie;
 
 /**
  * The BackupService exports the workflow data from a Imixs-Workflow instance
@@ -83,8 +75,6 @@ public class BackupService {
     @Inject
     LogController logController;
 
-    private Timer timer = null;
-
     // timeout interval in ms
     @Inject
     @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "60000")
@@ -111,26 +101,6 @@ public class BackupService {
     Optional<String> workflowServicePassword;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
-    Optional<String> instanceEndpoint;
-
-    @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_USER)
-    Optional<String> instanceUser;
-
-    @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_PASSWORD)
-    Optional<String> instancePassword;
-
-    @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_AUTHMETHOD)
-    Optional<String> instanceAuthmethod;
-
-    @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_SCHEDULER_DEFINITION)
-    Optional<String> schedulerDefinition;
-
-    @Inject
     @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_HOST)
     Optional<String> ftpServer;
 
@@ -148,7 +118,8 @@ public class BackupService {
     @Inject
     RestClientHelper restClientHelper;
 
-    private String status = "stopped";
+    @Inject
+    BackupStatusHandler backupStatusHandler;
 
     @PostConstruct
     public void init() {
@@ -184,7 +155,7 @@ public class BackupService {
         int total = 0;
         int success = 0;
         int errors = 0;
-        timer = _timer;
+        backupStatusHandler.setTimer(_timer);
 
         // init rest clients....
         DocumentClient documentClient = restClientHelper.getDocumentClient();
@@ -199,7 +170,8 @@ public class BackupService {
             return;
         }
 
-        status = "running";
+        backupStatusHandler.setStatus(BackupStatusHandler.STATUS_RUNNING);
+
         try {
             logger.finest("......release dead locks....");
             // release dead locks...
@@ -243,7 +215,8 @@ public class BackupService {
                 logController.info(BackupApi.TOPIC_BACKUP, success + " snapshots backed up, " + errors + " errors...");
             }
 
-            status = "scheduled";
+            backupStatusHandler.setStatus(BackupStatusHandler.STATUS_SCHEDULED);
+
         } catch (InvalidAccessException | EJBException | RestAPIException e) {
             // we also catch EJBExceptions here because we do not want to cancel the
             // ManagedScheduledExecutorService
@@ -254,11 +227,6 @@ public class BackupService {
 
             }
         }
-
-    }
-
-    public String getStatus() {
-        return status;
     }
 
     /**
@@ -317,7 +285,6 @@ public class BackupService {
                 throw new BackupException("REMOTE_EXCEPTION", "Unable to delte eventLogEntry: " + id, e1);
             }
         }
-
         return null;
     }
 
@@ -340,13 +307,12 @@ public class BackupService {
             final TimerConfig timerConfig = new TimerConfig();
             timerConfig.setInfo(""); // empty info string indicates no JSESSIONID!
             timerConfig.setPersistent(false);
-            timer = timerService.createIntervalTimer(initialDelay, interval, timerConfig);
+            Timer timer = timerService.createIntervalTimer(initialDelay, interval, timerConfig);
+            backupStatusHandler.setTimer(timer);
         } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
             throw new BackupException("TIMER_EXCEPTION", "Failed to init scheduler ", e);
-
         }
-        status = "scheduled";
-
+        backupStatusHandler.setStatus(BackupStatusHandler.STATUS_SCHEDULED);
     }
 
     /**
@@ -356,6 +322,7 @@ public class BackupService {
      * @throws BackupException
      */
     public boolean stopScheduler() throws BackupException {
+        Timer timer = backupStatusHandler.getTimer();
         if (timer != null) {
             try {
                 logController.info(BackupApi.TOPIC_BACKUP, "Stopping the backup scheduler...");
@@ -366,27 +333,8 @@ public class BackupService {
             // update status message
             logController.info(BackupApi.TOPIC_BACKUP, "Timer stopped. ");
         }
-        status = "stopped";
+        backupStatusHandler.setStatus(BackupStatusHandler.STATUS_STOPPED);
         return true;
-    }
-
-    /**
-     * Updates the timer details of a running timer service. The method updates the
-     * properties netxtTimeout and store them into the timer configuration.
-     *
-     *
-     * @param configuration - the current scheduler configuration to be updated.
-     */
-    public Date getNextTimeout() {
-        try {
-            if (timer != null) {
-                // load current timer details
-                return timer.getNextTimeout();
-            }
-        } catch (Exception e) {
-            logger.warning("unable to updateTimerDetails: " + e.getMessage());
-        }
-        return null;
     }
 
 }

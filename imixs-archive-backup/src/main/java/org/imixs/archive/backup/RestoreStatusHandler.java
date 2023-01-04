@@ -22,29 +22,57 @@
  *******************************************************************************/
 package org.imixs.archive.backup;
 
+import java.util.Date;
+
 import jakarta.ejb.Singleton;
+import jakarta.ejb.Timer;
 
 /**
- * The ImportStatusHandler provides a status flag for the ImportService
+ * The RestoreStatusHandler provides a non blocking way to control the status
+ * flag for the RestoreService.
  *
  * @version 1.0
  * @author rsoika
  */
 @Singleton
-public class ImportStatusHandler {
+public class RestoreStatusHandler {
 
-    public static final byte STAUS_RUNNING = 1;
-    public static final byte STAUS_STOPPED = 0;
-    public static final byte STAUS_CANCELED = 2;
+    public static final String STATUS_RUNNING = "RUNNING";
+    public static final String STATUS_STOPPED = "STOPPED";
+    public static final String STATUS_CANCELED = "CANCELED";
 
-    private byte status = 0;
+    private String status = "";
+    private Timer timer = null;
 
-    public byte getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(byte status) {
+    public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Timer getTimer() {
+        return timer;
+    }
+
+    public void setTimer(Timer timer) {
+        this.timer = timer;
+    }
+
+    /**
+     * Returns the next timeout date for the current timer
+     */
+    public Date getNextTimeout() {
+        if (timer != null) {
+            try {
+                // load current timer details
+                return timer.getNextTimeout();
+            } catch (Exception e) {
+                // timer canceled
+            }
+        }
+        return null;
     }
 
 }

@@ -39,7 +39,7 @@ public class RestoreController implements Serializable {
     LogController logController;
 
     @Inject
-    ImportStatusHandler importStatusHandler;
+    RestoreStatusHandler restoreStatusHandler;
 
     @Inject
     RestoreService restoreService;
@@ -61,16 +61,16 @@ public class RestoreController implements Serializable {
     int ftpPort;
 
     public boolean isConnected() {
-        String status = restoreService.getStatus();
-        return "scheduled".equals(status) || "running".equals(status);
+        String status = restoreStatusHandler.getStatus();
+        return RestoreStatusHandler.STATUS_RUNNING.equals(status);
     }
 
     public String getStatus() {
-        return restoreService.getStatus();
+        return restoreStatusHandler.getStatus();
     }
 
     public Date getNextTimeout() {
-        return restoreService.getNextTimeout();
+        return restoreStatusHandler.getNextTimeout();
     }
 
     public String getFtpServer() {
@@ -101,11 +101,11 @@ public class RestoreController implements Serializable {
     }
 
     /**
-     * Stop the timer service
+     * Initialize a cancel request for the running timer service
      */
     public void stop() {
 
-        importStatusHandler.setStatus(ImportStatusHandler.STAUS_CANCELED);
+        restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_CANCELED);
 
     }
 

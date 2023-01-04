@@ -56,17 +56,21 @@ public class BackupController implements Serializable {
     @Inject
     LogController logController;
 
+    @Inject
+    BackupStatusHandler backupStatusHandler;
+
     public boolean isConnected() {
-        String status = backupService.getStatus();
-        return "scheduled".equals(status) || "running".equals(status);
+        String status = backupStatusHandler.getStatus();
+        return (BackupStatusHandler.STATUS_RUNNING.equals(status)
+                || BackupStatusHandler.STATUS_SCHEDULED.equals(status));
     }
 
     public String getStatus() {
-        return backupService.getStatus();
+        return backupStatusHandler.getStatus();
     }
 
     public Date getNextTimeout() {
-        return backupService.getNextTimeout();
+        return backupStatusHandler.getNextTimeout();
     }
 
     public String getFtpServer() {

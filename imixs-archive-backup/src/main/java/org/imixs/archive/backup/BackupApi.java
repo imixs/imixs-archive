@@ -23,10 +23,6 @@ public class BackupApi extends Application {
     public static final String WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
     public static final String WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
 
-    public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
-
-    public static final String ENV_BACKUP_SCHEDULER_DEFINITION = "BACKUP_SCHEDULER_DEFINITION";
-
     public static final String ENV_BACKUP_FTP_HOST = "BACKUP_FTP_HOST";
     public static final String ENV_BACKUP_FTP_PATH = "BACKUP_FTP_PATH";
     public static final String ENV_BACKUP_FTP_PORT = "BACKUP_FTP_PORT";

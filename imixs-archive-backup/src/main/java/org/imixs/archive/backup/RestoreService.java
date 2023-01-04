@@ -23,7 +23,6 @@
 package org.imixs.archive.backup;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -49,6 +48,7 @@ import jakarta.ejb.Timer;
 import jakarta.ejb.TimerConfig;
 import jakarta.ejb.TimerService;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotFoundException;
 
 /**
  * The RestoreService imports the workflow data from a FTP storage into a
@@ -75,8 +75,6 @@ public class RestoreService {
 
     @Inject
     LogController logController;
-
-    private Timer timer = null;
 
     // timeout interval in ms
     @Inject
@@ -109,9 +107,7 @@ public class RestoreService {
     RestClientHelper restClientHelper;
 
     @Inject
-    ImportStatusHandler importStatusHandler;
-
-    private String status = "stopped";
+    RestoreStatusHandler restoreStatusHandler;
 
     @PostConstruct
     public void init() {
@@ -141,7 +137,7 @@ public class RestoreService {
         int total = 0;
         int success = 0;
         int errors = 0;
-        timer = _timer;
+        restoreStatusHandler.setTimer(_timer);
         FTPSClient ftpClient = null;
 
         // init rest clients....
@@ -157,10 +153,10 @@ public class RestoreService {
             return;
         }
 
-        status = "running";
+        restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_RUNNING);
         try {
 
-            logController.info(BackupApi.TOPIC_RESTORE, "...starting import from " + ftpServer + "...");
+            logController.info(BackupApi.TOPIC_RESTORE, "Starting import from " + ftpServer.get() + "...");
 
             ftpClient = ftpConnector.getFTPClient();
 
@@ -181,6 +177,7 @@ public class RestoreService {
             // check subdirectories.....
             String ftpWorkingPath = "";
             FTPFile[] directoryListYears = ftpClient.listDirectories();
+
             for (FTPFile ftpFileYear : directoryListYears) {
                 if (ftpFileYear.isDirectory()) {
                     ftpWorkingPath = ftpFileYear.getName();
@@ -201,7 +198,7 @@ public class RestoreService {
                             }
 
                             logController.info(BackupApi.TOPIC_RESTORE,
-                                    "......import: " + ftpFileYear.getName() + "/" + ftpWorkingPath + " ...");
+                                    " ⇨ import: " + ftpFileYear.getName() + "/" + ftpWorkingPath + " ...");
                             // read all files....
                             int count = 0;
                             int verified = 0;
@@ -213,12 +210,8 @@ public class RestoreService {
                                     if (snapshot != null) {
                                         verified++;
                                         // verify if this snapshot exists?
-                                        String query = "$uniqueid:" + snapshot.getUniqueID();
-                                        long snapshotCount = documentClient.countDocuments(query);
-
-                                        if (snapshotCount == 0) {
-                                            // import!
-
+                                        if (!existSnapshot(documentClient, snapshot)) {
+                                            // restore data
                                             restoreSnapshot(documentClient, snapshot);
                                             count++;
                                         } else {
@@ -227,36 +220,37 @@ public class RestoreService {
                                         }
                                     }
                                 }
-                                if (importStatusHandler.getStatus() == ImportStatusHandler.STAUS_CANCELED) {
+                                if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
                                     break;
                                 }
                             }
 
                             logController.info(BackupApi.TOPIC_RESTORE,
-                                    "......" + ftpFileYear.getName() + "/" + ftpWorkingPath + ": " + verified
+                                    " ⇨ " + ftpFileYear.getName() + "/" + ftpWorkingPath + ": " + verified
                                             + " snapshots verified, " + count + " snapshots imported, " + skipped
                                             + " snapshots allready existed");
 
                             ftpClient.changeToParentDirectory();
-                            if (importStatusHandler.getStatus() == ImportStatusHandler.STAUS_CANCELED) {
+                            if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
                                 break;
                             }
                         }
                     }
 
                 }
-                if (importStatusHandler.getStatus() == ImportStatusHandler.STAUS_CANCELED) {
+                if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
                     break;
                 }
                 ftpClient.changeToParentDirectory();
             }
 
-            logController.info(BackupApi.TOPIC_RESTORE, "... import completed!");
+            logController.info(BackupApi.TOPIC_RESTORE, "Restore completed!");
 
             stopScheduler();
 
-            status = "stopped";
-        } catch (InvalidAccessException | EJBException | IOException | RestAPIException e) {
+            restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_STOPPED);
+
+        } catch (InvalidAccessException | EJBException | IOException e) {
             // we also catch EJBExceptions here because we do not want to cancel the
             // ManagedScheduledExecutorService
             logController.warning(BackupApi.TOPIC_RESTORE, "restore failed: " + e.getMessage());
@@ -281,8 +275,32 @@ public class RestoreService {
 
     }
 
-    public String getStatus() {
-        return status;
+    /**
+     * This methods test if a snapshot exists in the current workflow instance. The
+     * method returns false if the snapshot was not found.
+     * <p>
+     * To query the snapshot the method uses the load() method because snapshots are
+     * not indexed and can be be queried by a search query.
+     *
+     * @param documentClient
+     * @param snapshot
+     * @return
+     */
+    private boolean existSnapshot(DocumentClient documentClient, ItemCollection snapshot) {
+        documentClient.setItems("$uniqueid");
+        ItemCollection result = null;
+        try {
+            result = documentClient.getDocument(snapshot.getUniqueID());
+        } catch (NotFoundException e) {
+            // document not found
+            result = null;
+        } catch (RestAPIException e) {
+            // should not happen
+            logger.warning("Feails do get document via rest api: " + e.getMessage());
+        }
+        // reset items
+        documentClient.setItems(null);
+        return (result != null);
     }
 
     /**
@@ -326,12 +344,12 @@ public class RestoreService {
             final TimerConfig timerConfig = new TimerConfig();
             timerConfig.setInfo(""); // empty info string indicates no JSESSIONID!
             timerConfig.setPersistent(false);
-            timer = timerService.createIntervalTimer(0, interval, timerConfig);
+            Timer timer = timerService.createIntervalTimer(0, interval, timerConfig);
+            restoreStatusHandler.setTimer(timer);
         } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
             throw new BackupException("TIMER_EXCEPTION", "Failed to init scheduler ", e);
 
         }
-        status = "scheduled";
 
     }
 
@@ -342,6 +360,7 @@ public class RestoreService {
      * @throws BackupException
      */
     public boolean stopScheduler() throws BackupException {
+        Timer timer = restoreStatusHandler.getTimer();
         if (timer != null) {
             try {
                 logController.info(BackupApi.TOPIC_RESTORE, "Stopping the restore scheduler...");
@@ -352,27 +371,7 @@ public class RestoreService {
             // update status message
             logController.info(BackupApi.TOPIC_RESTORE, "Timer stopped. ");
         }
-        status = "stopped";
         return true;
-    }
-
-    /**
-     * Updates the timer details of a running timer service. The method updates the
-     * properties netxtTimeout and store them into the timer configuration.
-     *
-     *
-     * @param configuration - the current scheduler configuration to be updated.
-     */
-    public Date getNextTimeout() {
-        try {
-            if (timer != null) {
-                // load current timer details
-                return timer.getNextTimeout();
-            }
-        } catch (Exception e) {
-            logger.warning("unable to updateTimerDetails: " + e.getMessage());
-        }
-        return null;
     }
 
 }

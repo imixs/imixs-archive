@@ -121,11 +121,6 @@ public class FTPConnector {
             logger.finest("......put " + fileName + " to FTP server: " + ftpServer + "...");
             ftpClient = getFTPClient();
 
-            ftpClient.enterLocalPassiveMode();
-            // ftpClient.setFileType(FTP.ASCII_FILE_TYPE);
-            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
-            ftpClient.setControlEncoding("UTF-8");
-
             // verify directories
             if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
                 throw new BackupException(FTP_ERROR, "FTP file transfer failed: missing working directory '"
@@ -207,6 +202,9 @@ public class FTPConnector {
         if (ftpClient.login(ftpUser.orElse(""), ftpPassword.orElse("")) == false) {
             throw new BackupException(FTP_ERROR, "FTP file transfer failed: login failed!");
         }
+
+        ftpClient.enterLocalPassiveMode();
+        ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 
         return ftpClient;
     }
