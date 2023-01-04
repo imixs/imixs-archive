@@ -65,6 +65,7 @@ import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.engine.DocumentService;
+import org.imixs.workflow.engine.EventLogService;
 import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.InvalidAccessException;
 import org.imixs.workflow.jaxrs.WorkflowRestService;
@@ -112,6 +113,9 @@ public class SnapshotRestService implements Serializable {
 
     @EJB
     ArchiveRemoteService archiveClientService;
+
+    @EJB
+    EventLogService eventLogService;
 
     private static Logger logger = Logger.getLogger(SnapshotRestService.class.getName());
 
@@ -283,7 +287,6 @@ public class SnapshotRestService implements Serializable {
         }
 
         try {
-
             // first we restore the snapshot entity if not exists....
             if (documentService.load(snapshot.getUniqueID()) == null) {
                 snapshot = documentService.save(snapshot);
@@ -323,6 +326,12 @@ public class SnapshotRestService implements Serializable {
             document.setItemValue(SnapshotService.SNAPSHOTID, snapshotID);
             // save origin document...
             document = documentService.save(document);
+
+            // Explicit write archive event log entry to update ArchiveService...
+            if (archiveServiceEndpoint.isPresent() && !archiveServiceEndpoint.get().isEmpty()) {
+                eventLogService.createEvent(SnapshotService.EVENTLOG_TOPIC_ADD, snapshotID);
+            }             
+            
             logger.info("......document '" + originUnqiueID + "' restored.");
             return Response.ok(XMLDataCollectionAdapter.getDataCollection(document), MediaType.APPLICATION_XML).build();
 

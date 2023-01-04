@@ -316,7 +316,6 @@ public class RestoreService {
         String url = BackupApi.SNAPSHOT_RESOURCE;
         logger.finest("...... post data: " + url + "....");
         try {
-            // documentClient.postDocument(url, snapshot);
             documentClient.postXMLDocument(url, XMLDocumentAdapter.getDocument(snapshot));
         } catch (RestAPIException e) {
             String errorMessage = "...failed to restoreSnapshot: " + e.getMessage();
