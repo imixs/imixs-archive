@@ -160,7 +160,7 @@ public class SnapshotRestService implements Serializable {
                 long l = System.currentTimeMillis();
                 byte[] fileContent;
                 fileContent = archiveClientService.loadFileFromArchive(fileData);
-                if (fileContent != null) {
+                if (fileContent != null && fileContent.length>0) {
                     Response.ResponseBuilder builder = Response.ok(fileContent, fileData.getContentType());
                     // found -> return directy.
                     if (debug) {
@@ -168,6 +168,11 @@ public class SnapshotRestService implements Serializable {
                                 + (System.currentTimeMillis() - l) + "ms");
                     }
                     return builder.build();
+                } else {
+                    // Critical situation!
+                    // The file data is not available in the cassandra storage
+                    // We print a error message and try to load the file from the local snapshot
+                    logger.severe("Failed to load '" + file+"' form imixs-archive - fallback to local snapshot...");
                 }
 
             } catch (RestAPIException e) {
