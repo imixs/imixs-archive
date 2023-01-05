@@ -220,8 +220,8 @@ public class BackupService {
             backupStatusHandler.setStatus(BackupStatusHandler.STATUS_SCHEDULED);
 
         } catch (InvalidAccessException | EJBException | RestAPIException e) {
-            // In case of a exception during processing the event log 
-            // the timer service will automatically restarted. This is important 
+            // In case of a exception during processing the event log
+            // the timer service will automatically restarted. This is important
             // to resolve restarts of the workflow engine.
             logController.warning(BackupApi.TOPIC_BACKUP, "processsing EventLog failed: " + e.getMessage());
             try {
@@ -293,12 +293,14 @@ public class BackupService {
 
     /**
      * Stops and restarts the timer. The log will be prevented.
+     *
      * @throws BackupException
      */
     public void restartScheduler() throws BackupException {
         stopScheduler();
         startScheduler(false);
     }
+
     /**
      * This method initializes the scheduler.
      * <p>
@@ -310,7 +312,7 @@ public class BackupService {
      */
     public void startScheduler(boolean clearLog) throws BackupException {
         try {
-            if (!clearLog) {
+            if (clearLog) {
                 // clear log in case of a normal start
                 logController.reset(BackupApi.TOPIC_BACKUP);
             }
