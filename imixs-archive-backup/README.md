@@ -45,12 +45,12 @@ The Backup Service can be run in a container environment. To connect the backup 
 
 To connect a Imixs-Workflow instance with the Backup Service you need to add the Imixs-Archive API  as a dependency.
 
-			<dependency>
-				<groupId>org.imixs.workflow</groupId>
-				<artifactId>imixs-archive-api</artifactId>
-				<version>${org.imixs.archive.version}</version>
-				<scope>provided</scope>
-			</dependency>
+		<dependency>
+			<groupId>org.imixs.workflow</groupId>
+			<artifactId>imixs-archive-api</artifactId>
+			<version>${org.imixs.archive.version}</version>
+			<scope>provided</scope>
+		</dependency>
 
 Next set the environment parameter `backup.service.endpoint` to activate the backup. 
 
