@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import javax.ws.rs.NotFoundException;
+
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.util.FTPConnector;
 import org.imixs.archive.util.LogController;
@@ -127,7 +129,7 @@ public class BackupService {
         if (workflowServiceEndpoint.isPresent()) {
             // Registering a non-persistent Timer Service.
             try {
-                startScheduler();
+                startScheduler(true);
             } catch (BackupException e) {
                 logController.warning(BackupApi.TOPIC_BACKUP, "Failed to init scheduler: " + e.getMessage());
             }
@@ -218,13 +220,14 @@ public class BackupService {
             backupStatusHandler.setStatus(BackupStatusHandler.STATUS_SCHEDULED);
 
         } catch (InvalidAccessException | EJBException | RestAPIException e) {
-            // we also catch EJBExceptions here because we do not want to cancel the
-            // ManagedScheduledExecutorService
+            // In case of a exception during processing the event log 
+            // the timer service will automatically restarted. This is important 
+            // to resolve restarts of the workflow engine.
             logController.warning(BackupApi.TOPIC_BACKUP, "processsing EventLog failed: " + e.getMessage());
             try {
-                stopScheduler();
+                restartScheduler();
             } catch (BackupException e1) {
-
+                logController.warning(BackupApi.TOPIC_BACKUP, "Failed to restart backup scheduler: " + e.getMessage());
             }
         }
     }
@@ -289,17 +292,28 @@ public class BackupService {
     }
 
     /**
+     * Stops and restarts the timer. The log will be prevented.
+     * @throws BackupException
+     */
+    public void restartScheduler() throws BackupException {
+        stopScheduler();
+        startScheduler(false);
+    }
+    /**
      * This method initializes the scheduler.
      * <p>
      * The method also verifies the existence of the archive keyspace by loading the
      * archive session object.
      *
+     * @param clearLog - if true, the current log will be reset
      * @throws BackupException
      */
-    public void startScheduler() throws BackupException {
+    public void startScheduler(boolean clearLog) throws BackupException {
         try {
-
-            logController.reset(BackupApi.TOPIC_BACKUP);
+            if (!clearLog) {
+                // clear log in case of a normal start
+                logController.reset(BackupApi.TOPIC_BACKUP);
+            }
             logController.info(BackupApi.TOPIC_BACKUP,
                     "Starting backup scheduler - initalDelay=" + initialDelay + "ms  inverval=" + interval + "ms ....");
             // start archive schedulers....

@@ -98,7 +98,7 @@ public class BackupController implements Serializable {
      */
     public void start() {
         try {
-            backupService.startScheduler();
+            backupService.startScheduler(true);
         } catch (BackupException e) {
             logController.warning(BackupApi.TOPIC_BACKUP, e.getMessage());
         }
