@@ -1,15 +1,16 @@
 # Imixs-Archive-Backup
 
-The Imixs-Archive-Backup service is an independent microservice used to backup Imixs-Archive data into a external FTP server. This microservice can be run independent from a Imixs-Workflow Instance on separate hardware.
+The *Imixs-Archive-Backup Service* is a microservice to backup the Imixs-Workflow data into an external storage. This backup service is decoupled from the a Imixs-Workflow Instance and can be run in a independent server environment. In this way the *Imixs-Archive-Backup Service* provides an additional level of protection for your workflow data. 
 
+You can run this microservice on different hardware or in a external cluster. If your primary system fails or becomes unavailable, you can still access the backup system to restore your data. 
+This backup architecture provides an additional level of security for your data, as it can be configured to store backups in a secure and isolated location. This can be especially important for sensitive or confidential data that you want to protect from unauthorized access.
+The *Imixs-Archive-Backup Service* provides a recovery mechanism to set up a workflow instance even after a natural disaster or other catastrophic event that has corrupted your primary data.
 
-# Configuration
+<img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-backup-screen.png"/>
 
-The Backup Service can be configured in a Imixs-Workflow instance by adding the Imixs-Archive API and setting the environment parameter `backup.service.endpoint`. If this parameter points to a Imixs-Backup service instance, than on each save event a new event log entry `snapshot.backup` will be created. The backup Service periodically check this event log entries and stores the corresponding snaptshot into the backup space.
+## Integration
 
-## Backup Workflow
-
-The backup workflow depends on the archive infrastructure. 
+The *Imixs-Archive-Backup Service* can be integrated into the Imixs-Archive solution in different ways. 
 
 **Backup without Archive**
 
@@ -22,6 +23,42 @@ In case of a simple setup without a Cassandra Archive Service installed, the bac
 In case of using the [Cassandra Archive Service](../imixs-archive-service/README.md) the backup request is generated after the snapshot was successful transferred into the Cassandra cluster. After the snapshot was be backuped successful, the snapshot will be removed form the database. This concept reduces the size of the database as file data is no longer stored in the database but in the Cassandra cluster.
 
 <img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-archive-backup.png"/>
+
+
+
+# Configuration
+
+The Backup Service can be run in a container environment. To connect the backup service with your workflow instance the following environment parameters are mandatory:
+
+      WORKFLOW_SERVICE_ENDPOINT: [REST-API-ENDPOINT-OF-WORKFLOW-INSTANCE]   
+      WORKFLOW_SERVICE_USER: [BACKUP-USER]
+      WORKFLOW_SERVICE_PASSWORD: [PASSWORD]
+      WORKFLOW_SERVICE_AUTHMETHOD: [AUTHMETHOD]
+      
+      BACKUP_FTP_HOST: [FTP-SERVER-ADDRESS]
+      BACKUP_FTP_PATH: [DIRECTORY]
+      BACKUP_FTP_PORT: "21"
+      BACKUP_FTP_USER: [USER]
+      BACKUP_FTP_PASSWORD: [PASSWORD]
+
+**Note:** The BACKUP-USER must have manager access.
+
+To connect a Imixs-Workflow instance with the Backup Service you need to add the Imixs-Archive API  as a dependency.
+
+			<dependency>
+				<groupId>org.imixs.workflow</groupId>
+				<artifactId>imixs-archive-api</artifactId>
+				<version>${org.imixs.archive.version}</version>
+				<scope>provided</scope>
+			</dependency>
+
+Next set the environment parameter `backup.service.endpoint` to activate the backup. 
+
+      BACKUP_SERVICE_ENDPOINT: [REST-API-ENDPOINT-OF-BACKUPSERVICE]  
+
+On each save event a new event log entry `snapshot.backup` will be created. The backup Service periodically check this event log entries and stores the corresponding snaptshot into the backup space.
+
+
 
 # Development
 
