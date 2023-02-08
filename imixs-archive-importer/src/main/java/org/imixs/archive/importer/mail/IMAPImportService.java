@@ -207,8 +207,19 @@ public class IMAPImportService {
             documentImportService.logMessage("..." + messages.length + " new messages found", event);
 
             for (Message message : messages) {
-                Address[] fromAddress = message.getFrom();
-                String subject = message.getSubject();
+                Address[] fromAddress = null;
+                String subject = null;
+                // if we can not open the mail (messaging Exception) than we simply skipp this
+                // mail
+                // see Issue #175
+                try {
+                    fromAddress = message.getFrom();
+                    subject = message.getSubject();
+                } catch (MessagingException me) {
+                    documentImportService.logMessage("...Failed to read message from inbox: " + me.getMessage(), event);
+                    continue;
+                }
+
                 if (subject == null || subject.trim().isEmpty()) {
                     subject = DEFAULT_NO_SUBJECT;
                 }
