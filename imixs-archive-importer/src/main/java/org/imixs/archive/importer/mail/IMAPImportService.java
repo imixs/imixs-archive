@@ -175,15 +175,17 @@ public class IMAPImportService {
         }
         try {
             Store store = null;
-            // depending on the option "imap.authenticator" we use the corresponding IMAPAuthenticator
+            // depending on the option "imap.authenticator" we use the corresponding
+            // IMAPAuthenticator
             // to open the mail store
-            IMAPAuthenticator imapAuthenticator=null;
-            String authenticatorClass = sourceOptions.getProperty(OPTION_IMAP_AUTHENTICATOR, "org.imixs.archive.importer.mail.IMAPBasicAuthenticator");
+            IMAPAuthenticator imapAuthenticator = null;
+            String authenticatorClass = sourceOptions.getProperty(OPTION_IMAP_AUTHENTICATOR,
+                    "org.imixs.archive.importer.mail.IMAPBasicAuthenticator");
             for (IMAPAuthenticator _imapAuthenticator : this.imapAuthenticators) {
                 // find the matching authenticator....
-                if (authenticatorClass.equals(_imapAuthenticator.getClass().getName() )) {
-                    documentImportService.logMessage("...IMAPAuthenticator = "+authenticatorClass, event);
-                    imapAuthenticator=_imapAuthenticator;
+                if (authenticatorClass.equals(_imapAuthenticator.getClass().getName())) {
+                    documentImportService.logMessage("...IMAPAuthenticator = " + authenticatorClass, event);
+                    imapAuthenticator = _imapAuthenticator;
                     break;
                 }
             }
@@ -207,8 +209,19 @@ public class IMAPImportService {
             documentImportService.logMessage("..." + messages.length + " new messages found", event);
 
             for (Message message : messages) {
-                Address[] fromAddress = message.getFrom();
-                String subject = message.getSubject();
+                Address[] fromAddress = null;
+                String subject = null;
+                // if we can not open the mail (messaging Exception) than we simply skipp this
+                // mail
+                // see Issue #175
+                try {
+                    fromAddress = message.getFrom();
+                    subject = message.getSubject();
+                } catch (MessagingException me) {
+                    documentImportService.logMessage("...Failed to read message from inbox: " + me.getMessage(), event);
+                    continue;
+                }
+
                 if (subject == null || subject.trim().isEmpty()) {
                     subject = DEFAULT_NO_SUBJECT;
                 }
@@ -284,7 +297,7 @@ public class IMAPImportService {
                                         logger.info("mimetype=" + contentType);
                                     }
                                     if (IMAPImportHelper.isMediaTypeOctet(contentType, fileName)
-                                        && fileName.toLowerCase().endsWith(".pdf")) {
+                                            && fileName.toLowerCase().endsWith(".pdf")) {
                                         logger.info("...converting mimetype '" + contentType + "' to application/pdf");
                                         contentType = "application/pdf";
                                     }
@@ -358,8 +371,7 @@ public class IMAPImportService {
         }
 
     }
- 
-    
+
     /**
      * This method opens the IMAP archive folder. If the folder does not exist, the
      * method creates the folder. The folder name can be configured by the property
@@ -409,6 +421,5 @@ public class IMAPImportService {
         workitem.setWorkflowGroup(source.getItemValueString("workflowgroup"));
         return workitem;
     }
-
 
 }
