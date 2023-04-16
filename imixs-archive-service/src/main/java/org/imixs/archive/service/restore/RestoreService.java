@@ -32,11 +32,11 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import javax.annotation.Resource;
-import javax.ejb.Stateless;
-import javax.ejb.Timeout;
-import javax.ejb.Timer;
-import javax.inject.Inject;
+import jakarta.annotation.Resource;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.Timer;
+import jakarta.inject.Inject;
 
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.RemoteAPIService;
@@ -112,7 +112,7 @@ public class RestoreService {
 	RemoteAPIService remoteAPIService;
 
 	@Resource
-	javax.ejb.TimerService timerService;
+	jakarta.ejb.TimerService timerService;
 
 	/**
 	 * Starts a new restore process with a EJB TimerService
@@ -232,7 +232,7 @@ public class RestoreService {
 	 * @throws QueryException
 	 */
 	@Timeout
-	void onTimeout(javax.ejb.Timer timer) throws Exception {
+	void onTimeout(jakarta.ejb.Timer timer) throws Exception {
 		Session session = null;
 		Cluster cluster = null;
 		ItemCollection metadata = null;
@@ -452,7 +452,7 @@ public class RestoreService {
 	 */
 	public Timer findTimer() {
 		for (Object obj : timerService.getTimers()) {
-			Timer timer = (javax.ejb.Timer) obj;
+			Timer timer = (jakarta.ejb.Timer) obj;
 			if (TIMER_ID_RESTORESERVICE.equals(timer.getInfo())) {
 				return timer;
 			}

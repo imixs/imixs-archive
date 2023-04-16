@@ -31,8 +31,8 @@ package org.imixs.archive.documents;
 import java.util.List;
 import java.util.logging.Logger;
 
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.event.Observes;
 
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;

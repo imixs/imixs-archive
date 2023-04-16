@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import javax.ejb.EJB;
-import javax.xml.bind.JAXBException;
+import jakarta.ejb.EJB;
+import jakarta.xml.bind.JAXBException;
 import javax.xml.transform.TransformerException;
 
 import org.apache.pdfbox.cos.COSInputStream;

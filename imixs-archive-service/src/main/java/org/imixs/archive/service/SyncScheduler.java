@@ -3,19 +3,19 @@ package org.imixs.archive.service;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.annotation.security.DeclareRoles;
-import javax.annotation.security.RunAs;
-import javax.ejb.LocalBean;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
-import javax.ejb.Timeout;
-import javax.ejb.Timer;
-import javax.ejb.TimerConfig;
-import javax.inject.Inject;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.client.ClientRequestFilter;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
+import jakarta.annotation.security.DeclareRoles;
+import jakarta.annotation.security.RunAs;
+import jakarta.ejb.LocalBean;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.Timer;
+import jakarta.ejb.TimerConfig;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.client.ClientRequestFilter;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.melman.BasicAuthenticator;
@@ -69,7 +69,7 @@ public class SyncScheduler {
     SyncService archiveSyncService;
 
     @Resource
-    javax.ejb.TimerService timerService;
+    jakarta.ejb.TimerService timerService;
 
     private static Logger logger = Logger.getLogger(SyncScheduler.class.getName());
 

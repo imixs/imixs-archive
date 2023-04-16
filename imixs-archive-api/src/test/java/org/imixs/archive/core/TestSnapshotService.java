@@ -7,7 +7,7 @@ import java.security.Principal;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import javax.ejb.SessionContext;
+import jakarta.ejb.SessionContext;
 
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;

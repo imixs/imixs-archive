@@ -28,11 +28,11 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
-import javax.ejb.Stateless;
-import javax.ejb.Timeout;
-import javax.ejb.Timer;
-import javax.ejb.TimerConfig;
-import javax.inject.Inject;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.Timer;
+import jakarta.ejb.TimerConfig;
+import jakarta.inject.Inject;
 
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.RemoteAPIService;
@@ -74,7 +74,7 @@ public class ResyncService {
     private final static int MAX_COUNT = 100;
 
     @Resource
-    javax.ejb.TimerService timerService;
+    jakarta.ejb.TimerService timerService;
 
     @Inject
     DataService dataService;
@@ -182,7 +182,7 @@ public class ResyncService {
      */
     private Timer findTimer() {
         for (Object obj : timerService.getTimers()) {
-            Timer timer = (javax.ejb.Timer) obj;
+            Timer timer = (jakarta.ejb.Timer) obj;
             if (TIMER_ID_SYNCSERVICE.equals(timer.getInfo())) {
                 return timer;
             }
@@ -202,7 +202,7 @@ public class ResyncService {
      * @throws QueryException
      */
     @Timeout
-    void onTimeout(javax.ejb.Timer timer) throws Exception {
+    void onTimeout(jakarta.ejb.Timer timer) throws Exception {
         long syncPoint = 0;
         int syncupdate = 0;
         int syncread = 0;

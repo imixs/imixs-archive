@@ -22,7 +22,7 @@
  *******************************************************************************/
 package org.imixs.archive.service.resync;
 
-import javax.ejb.Singleton;
+import jakarta.ejb.Singleton;
 
 /**
  * The ImportStatusHandler provides a status flag for the ImportService
