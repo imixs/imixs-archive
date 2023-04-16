@@ -1,6 +1,6 @@
 # Imixs-Archive
-[![Build Status](https://travis-ci.org/imixs/imixs-archive.svg?branch=master)](https://travis-ci.org/imixs/imixs-archive)
-[![Join the chat at https://gitter.im/imixs/imixs-workflow](https://badges.gitter.im/imixs/imixs-workflow.svg)](https://gitter.im/imixs/imixs-workflow?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Java CI with Maven](https://github.com/imixs/imixs-archive/actions/workflows/maven.yml/badge.svg)](https://github.com/imixs/imixs-archive/actions/workflows/maven.yml)
+[![Join a discussion](https://img.shields.io/badge/discuss-on%20github-4CB697)](https://github.com/imixs/imixs-workflow/discussions)
 [![License](https://img.shields.io/badge/license-GPL-blue.svg)](https://github.com/imixs/imixs-archive/blob/master/LICENSE)
 
 *Imixs-Archive* is an open source project designed to provide a transparent and sustaining solution for document management and long-term audit-proof archiving of business data. In this context, business data means not only documents but also the comprehensible documentation of business processes.
