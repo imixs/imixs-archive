@@ -1,0 +1,98 @@
+<ui:composition template="/WEB-INF/templates/layout.xhtml"
+	xmlns:faces="jakarta.faces" xmlns:f="jakarta.faces.core"
+	xmlns:h="jakarta.faces.html" xmlns:ui="jakarta.faces.facelets">
+
+	<ui:define name="content">
+		<f:view>
+
+			<div class="header">
+				<h2>
+					<span class="typcn typcn-link-outline"></span> Imixs Export
+				</h2>
+			</div>
+			<h:form id="connect_form_id">
+
+				<div class="card">
+
+					<p class="help">
+						<span class="typcn typcn-lightbulb"></span> Imixs-Workflow API
+						Endpoint Configuration.
+					</p>
+
+					<div class="imixs-form-section" style="grid-column-start: span 12;">
+
+
+						<table class="imixsdatatable"
+							style="grid-column-start: span 12; margin: 10px 0;">
+							<tr>
+								<td style="width: 25%;">Imixs-Workflow Instance:</td>
+								<td>#{exportController.getInstanceEndpoint()}</td>
+							</tr>
+
+							<tr>
+								<td>Export Status:</td>
+								<td>#{exportController.getStatus()} <ui:fragment
+										rendered="#{exportController.isConnected()}">
+										<span class="typcn typcn-media-record"
+											style="font-size: 1.3em; color: #5c9e5c;"></span>
+									</ui:fragment> <ui:fragment rendered="#{!exportController.isConnected()}">
+										<span class="typcn typcn-media-record"
+											style="font-size: 1.3em; color: #e84848;"></span>
+									</ui:fragment>
+
+								</td>
+							</tr>
+
+							<tr>
+								<td>Interval:</td>
+								<td>#{exportController.getInterval()} ms</td>
+							</tr>
+
+							<tr>
+								<td>Next Timeout:</td>
+								<td>#{exportController.getNextTimeout()}</td>
+							</tr>
+
+
+							<tr>
+								<td>FTP Host:</td>
+								<td>#{exportController.ftpServer}:#{exportController.ftpPort}</td>
+							</tr>
+
+							<tr>
+								<td>Export Space:</td>
+								<td>#{exportController.ftpPath}</td>
+							</tr>
+
+						</table>
+					</div>
+
+					<div class="imixs-form-section">
+
+						<span style="grid-column-start: span 8;"> <h:commandButton
+								value="Refresh" action="/" /> <h:commandButton value="Start"
+								style="background:#4dc24f;"
+								actionListener="#{exportController.start()}"
+								rendered="#{!exportController.connected}" /> <h:commandButton
+								value="Stop" style="background: #e84848;"
+								rendered="#{exportController.connected}"
+								actionListener="#{exportController.stop()}" />
+						</span>
+					</div>
+				</div>
+
+				<!-- Message Log -->
+				<div class="card">
+					<h3>
+						<span class="typcn typcn-input-checked"></span> Log
+					</h3>
+					<pre>
+						<ui:repeat var="log" value="#{logController.getLogEntries('EXPORT')}">
+							<h:outputText value="#{log}" /><br />
+						</ui:repeat>		
+					</pre>
+				</div>
+			</h:form>
+		</f:view>
+	</ui:define>
+</ui:composition>

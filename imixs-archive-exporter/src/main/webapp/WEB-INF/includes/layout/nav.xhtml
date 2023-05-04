@@ -1,0 +1,46 @@
+<ui:composition xmlns:f="jakarta.faces.core"
+	xmlns:h="jakarta.faces.html" xmlns:ui="jakarta.faces.facelets">
+
+	<nav>
+		<h:form>
+			<!-- Sidebar -->
+			<div class="nav-sidebar">
+
+				<div class="nav-title">
+					<h4>
+						<a href="#{facesContext.externalContext.requestContextPath}/">
+							<label>#{message['application_title']}</label>
+						</a> <span class="pull-right typcn typcn-th-menu-outline"
+							title="#{message['application_title']}"
+							style="margin-right: 10px; cursor: pointer; margin-bottom: 20px;"
+							onclick="togglemenu();"></span>
+					</h4>
+					<small><label>v#{message['application_build']}</label></small>
+				</div>
+				<hr />
+				<ul>
+					<li class="nav-item"><h:link
+							outcome="/index.xhtml?cid=#{jakarta.enterprise.context.conversation.id}">
+							<span class="typcn typcn-cloud-storage-outline"></span>
+							<label>Export</label>
+						</h:link> <span class="typcn typcn-media-record-outline"
+						style="#{exportController.connected?'color:#4dc24f':'color:#dc2929'}"></span>
+					</li>
+				</ul>
+
+				<hr />
+				<ul>
+					<li class="nav-item"><h:link
+							outcome="/restore.xhtml">
+							<span class="typcn typcn-download-outline"></span>
+							<label>Restore</label>
+						</h:link></li>
+				</ul>
+
+			</div>
+		</h:form>
+	</nav>
+
+</ui:composition>
+
+

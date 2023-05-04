@@ -11,6 +11,7 @@
 		<module>imixs-archive-service</module>
 		<module>imixs-archive-documents</module>
 		<module>imixs-archive-importer</module>
+		<module>imixs-archive-exporter</module>
 		<module>imixs-archive-backup</module>
 	</modules>
 
