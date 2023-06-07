@@ -12,29 +12,30 @@
 							<label>#{message['application_title']}</label>
 						</a> <span class="pull-right typcn typcn-th-menu-outline"
 							title="#{message['application_title']}"
-							style="margin-right: 10px; cursor: pointer; margin-bottom: 20px;"
-							onclick="togglemenu();"></span>
+							style="margin-right: 12px; cursor: pointer;"
+							onclick="togglemenu();"></span>							
 					</h4>
-					<small><label>v#{message['application_build']}</label></small>
 				</div>
-				<hr />
+				
 				<ul>
-					<li class="nav-item"><h:link
-							outcome="/index.xhtml?cid=#{jakarta.enterprise.context.conversation.id}">
-							<span class="typcn typcn-cloud-storage-outline"></span>
-							<label>Export</label>
-						</h:link> <span class="typcn typcn-media-record-outline"
-						style="#{exportController.connected?'color:#4dc24f':'color:#dc2929'}"></span>
+					<li class="nav-item">
+							<small><label>v#{message['application_build']}</label></small>
+							<span class="typcn typcn-media-record-outline"
+								style="#{exportController.connected?'color:#4dc24f':'color:#dc2929'}"></span>
 					</li>
 				</ul>
-
-				<hr />
+				<hr /> 
 				<ul>
-					<li class="nav-item"><h:link
-							outcome="/restore.xhtml">
-							<span class="typcn typcn-download-outline"></span>
-							<label>Restore</label>
-						</h:link></li>
+					<li class="nav-item"><a href="#{exportController.healthEndpoint}" target="health">
+							<span class="typcn typcn-wi-fi"></span>
+							<label>Status</label>
+						</a> 
+					</li>
+					<li class="nav-item"><a href="#{exportController.metricsEndpoint}" target="metrics">
+						<span class="typcn typcn-chart-pie"></span>
+						<label>Metrics</label>
+						</a>
+					</li>
 				</ul>
 
 			</div>

@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.imixs.archive.util.FTPConnector;
 import org.imixs.archive.util.LogController;
 import org.imixs.archive.util.RestClientHelper;
@@ -146,6 +147,8 @@ public class ExportService {
      *
      * @throws RestAPIException
      **/
+
+    @Counted(name = "exportServiceInvocations", description = "Counting the invocations of export service", displayName = "exportServiceInvocations")
     @SuppressWarnings("unused")
     @Timeout
     public void onTimeout(jakarta.ejb.Timer _timer) {
@@ -155,6 +158,9 @@ public class ExportService {
         int total = 0;
         int success = 0;
         int errors = 0;
+
+        logger.info("onTimeout...");
+
         exportStatusHandler.setTimer(_timer);
 
         // init rest clients....

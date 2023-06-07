@@ -21,14 +21,21 @@ The Expoter Service can be run in a container environment. To connect the export
 
 **Note:** The EXPORT-USER must have manager access.
 
+The following envrionent variables are optional and depend on the Jakarta EE Runtime:
+
+- METRICS_ENDPOINT = endpoint for metrics API (default = http://localhost:9990/metrics)
+- HEALTH_ENDPOINT = endpoint for health API (default = http://localhost:9990/health)
+
 To connect a Imixs-Workflow instance with the Exporter Service you need to add the Imixs-Archive API as a dependency.
 
+```xml
   <dependency>
    <groupId>org.imixs.workflow</groupId>
    <artifactId>imixs-archive-api</artifactId>
    <version>${org.imixs.archive.version}</version>
    <scope>provided</scope>
   </dependency>
+```
 
 Next set the environment parameter `backup.service.endpoint` to activate the backup.
 
@@ -59,3 +66,7 @@ docker-compose up
 ### Debug
 
 The docker-compose file automaticaly enables the wildfly debug port 8787
+
+To activate hotdeploy during development run:
+
+      $ mvn manik-hotdeploy:hotdeploy

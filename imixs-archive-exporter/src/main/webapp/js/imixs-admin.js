@@ -1,16 +1,17 @@
 // Imixs-Admin Core API
 // V 1.1
 
+	var toggleState = true;
 	// on Load Document we check the toggle status
 	document.addEventListener('DOMContentLoaded', function() {
-	    toggleCookie=getCookie('imixs-admin.toggleStatus');
-	    if (toggleCookie=='hidden') {
-			togglemenu();
-		}
+		// toggle by default
+	    // toggleCookie=getCookie('imixs-admin.toggleStatus');
+	    // if (toggleCookie!='hidden') {
+		// 	togglemenu();
+		// }
 	}, false);
 
 	
-	var toggleState = false;
 	togglemenu = function() {
 		if (!toggleState) {
 			document.querySelectorAll(".nav-sidebar label").forEach(el => el.style.display = "none");

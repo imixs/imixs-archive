@@ -1,6 +1,5 @@
 version: "3"
 services:
-
   imixsexporter-app:
     image: imixs/imixs-archive-exporter:latest
     environment:
@@ -8,22 +7,19 @@ services:
       DEBUG: "true"
 
       # EXAMPLE SETUP
-      WORKFLOW_SERVICE_ENDPOINT: "http://app:8080/api"      
+      WORKFLOW_SERVICE_ENDPOINT: "http://app:8080/api"
       WORKFLOW_SERVICE_USER: test
       WORKFLOW_SERVICE_PASSWORD: ""
       WORKFLOW_SERVICE_AUTHMETHOD: "form"
-      
+
       EXPORT_FTP_HOST: "ftp.storage.foo"
       EXPORT_FTP_PATH: "/test/"
       EXPORT_FTP_PORT: "21"
       EXPORT_FTP_USER: ""
-      EXPORT_FTP_PASSWORD: ""      
+      EXPORT_FTP_PASSWORD: ""
     ports:
       - "8080:8080"
-      - "8787:8787"   
+      - "8787:8787"
+      - "9990:9990"
     volumes:
       - ./docker/deployments:/opt/jboss/wildfly/standalone/deployments/
- 
-
-    
- 

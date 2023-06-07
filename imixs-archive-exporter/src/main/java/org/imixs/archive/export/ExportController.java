@@ -27,6 +27,14 @@ public class ExportController implements Serializable {
     private static final long serialVersionUID = 7027147503119012594L;
 
     @Inject
+    @ConfigProperty(name = "health.endpoint", defaultValue = "http://localhost:9990/health")
+    String healthEndpoint;
+
+    @Inject
+    @ConfigProperty(name = "metrics.endpoint", defaultValue = "http://localhost:9990/metrics")
+    String metricsEndpoint;
+
+    @Inject
     @ConfigProperty(name = ExportApi.WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> instanceEndpoint;
 
@@ -58,6 +66,14 @@ public class ExportController implements Serializable {
 
     @Inject
     ExportStatusHandler exportStatusHandler;
+
+    public String getHealthEndpoint() {
+        return healthEndpoint;
+    }
+
+    public String getMetricsEndpoint() {
+        return metricsEndpoint;
+    }
 
     public boolean isConnected() {
         String status = exportStatusHandler.getStatus();
