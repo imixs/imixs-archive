@@ -6,7 +6,7 @@ The _Imixs-Archive-Exporter Service_ is a microservice to export documents form 
 
 # Configuration
 
-The Expoter Service can be run in a container environment. To connect the exporter service with your workflow instance the following environment parameters are mandatory:
+The Exporter Service can be run in a container environment. To connect the exporter service with your workflow instance the following environment parameters are mandatory:
 
       WORKFLOW_SERVICE_ENDPOINT: [REST-API-ENDPOINT-OF-WORKFLOW-INSTANCE]
       WORKFLOW_SERVICE_USER: [BACKUP-USER]
@@ -61,11 +61,13 @@ To build the imixs-admin Docker image manually run:
 
 To start it from your local docker environment:
 
-docker-compose up
+      $ docker-compose up
+
+**Note:** The docker image is based on the official Wildfly Image but with a extended configuration regarding the Eclipse Microprofile configuration. You can change the configuration by editing the file `configuration/wildfly/standalone.xml`.
 
 ### Debug
 
-The docker-compose file automaticaly enables the wildfly debug port 8787
+The docker-compose file automatically enables the wildfly debug port 8787
 
 To activate hotdeploy during development run:
 
