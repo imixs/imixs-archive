@@ -36,8 +36,6 @@
 		<failOnMissingWebXml>false</failOnMissingWebXml>
 
 		<org.imixs.workflow.version>6.0.2</org.imixs.workflow.version>
-		<org.imixs.melman.version>2.0.0</org.imixs.melman.version>
-		<org.imixs.jwt.version>1.0.3</org.imixs.jwt.version>
 		<jakarta.version>10.0.0</jakarta.version>
 		<microprofile.version>5.0</microprofile.version>
 		<microprofile-metrics.version>4.0</microprofile-metrics.version>

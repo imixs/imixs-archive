@@ -4,14 +4,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jakarta.ejb.LocalBean;
-import jakarta.ejb.Stateless;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.ProcessingException;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
 import org.imixs.melman.BasicAuthenticator;
@@ -20,6 +12,14 @@ import org.imixs.melman.FormAuthenticator;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
+
+import jakarta.ejb.LocalBean;
+import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 /**
  * The ArchiveRemoteService provides a method to load a file form a remote
@@ -137,8 +137,10 @@ public class ArchiveRemoteService {
     /**
      * Helper method to initalize a Melman Workflow Client based on the current
      * archive configuration.
+     * 
+     * @throws RestAPIException
      */
-    private DocumentClient initDocumentClient() {
+    private DocumentClient initDocumentClient() throws RestAPIException {
         boolean debug = logger.isLoggable(Level.FINE);
         DocumentClient documentClient = new DocumentClient(archiveServiceEndpoint.get());
         // test if authentication is needed?

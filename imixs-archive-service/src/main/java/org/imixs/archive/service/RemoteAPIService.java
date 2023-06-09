@@ -25,9 +25,6 @@ package org.imixs.archive.service;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import jakarta.ejb.Stateless;
-import jakarta.inject.Inject;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.melman.BasicAuthenticator;
@@ -35,9 +32,11 @@ import org.imixs.melman.DocumentClient;
 import org.imixs.melman.FormAuthenticator;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.ItemCollection;
-
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
+
+import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
 
 /**
  * The RemoteService is used to access the remote API from the worklfow
@@ -87,12 +86,12 @@ public class RemoteAPIService {
     public XMLDataCollection readSyncData(long syncPoint) throws ArchiveException {
         XMLDataCollection result = null;
         // load next document
-
-        DocumentClient documentClient = initWorkflowClient();
-        String url = SNAPSHOT_SYNCPOINT_RESOURCE + syncPoint;
-        logger.finest("...... read data: " + url + "....");
-
+        String url = "";
         try {
+            DocumentClient documentClient = initWorkflowClient();
+            url = SNAPSHOT_SYNCPOINT_RESOURCE + syncPoint;
+            logger.finest("...... read data: " + url + "....");
+
             result = documentClient.getCustomResourceXML(url);
         } catch (RestAPIException e) {
             String errorMessage = "...failed readSyncData at : " + url + "  Error Message: " + e.getMessage();
@@ -116,12 +115,12 @@ public class RemoteAPIService {
      */
     public String readSnapshotIDByUniqueID(String uniqueid) throws ArchiveException {
         String result = null;
-        // load single document
-        DocumentClient documentClient = initWorkflowClient();
-        String url = DOCUMENTS_RESOURCE + uniqueid + "?items=$snapshotid";
-        logger.finest("...... read snapshotid: " + url + "....");
-
         try {
+            // load single document
+            DocumentClient documentClient = initWorkflowClient();
+            String url = DOCUMENTS_RESOURCE + uniqueid + "?items=$snapshotid";
+            logger.finest("...... read snapshotid: " + url + "....");
+
             XMLDataCollection xmlDocument = documentClient.getCustomResourceXML(url);
             if (xmlDocument != null && xmlDocument.getDocument().length > 0) {
                 ItemCollection document = XMLDocumentAdapter.putDocument(xmlDocument.getDocument()[0]);
@@ -137,10 +136,10 @@ public class RemoteAPIService {
     }
 
     public void restoreSnapshot(ItemCollection snapshot) throws ArchiveException {
-        DocumentClient documentClient = initWorkflowClient();
-        String url = SNAPSHOT_RESOURCE;
-        logger.finest("...... post data: " + url + "....");
         try {
+            DocumentClient documentClient = initWorkflowClient();
+            String url = SNAPSHOT_RESOURCE;
+            logger.finest("...... post data: " + url + "....");
             // documentClient.postDocument(url, snapshot);
             documentClient.postXMLDocument(url, XMLDocumentAdapter.getDocument(snapshot));
         } catch (RestAPIException e) {
@@ -151,10 +150,10 @@ public class RemoteAPIService {
     }
 
     public void deleteSnapshot(String id) throws ArchiveException {
-        DocumentClient documentClient = initWorkflowClient();
-        String url = SNAPSHOT_RESOURCE;
-        logger.finest("...... delete data: " + url + "....");
         try {
+            DocumentClient documentClient = initWorkflowClient();
+            String url = SNAPSHOT_RESOURCE;
+            logger.finest("...... delete data: " + url + "....");
             documentClient.deleteDocument(id);
         } catch (RestAPIException e) {
             String errorMessage = "...failed to deleteSnapshot: " + e.getMessage();
@@ -166,8 +165,10 @@ public class RemoteAPIService {
     /**
      * Helper method to initalize a Melman Workflow Client based on the current
      * archive configuration.
+     * 
+     * @throws RestAPIException
      */
-    DocumentClient initWorkflowClient() {
+    DocumentClient initWorkflowClient() throws RestAPIException {
 
         logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
 
@@ -183,7 +184,8 @@ public class RemoteAPIService {
 
         } else {
             // default basic authenticator
-            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser.get(), workflowServicePassword.get());
+            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser.get(),
+                    workflowServicePassword.get());
             // register the authenticator
             documentClient.registerClientRequestFilter(basicAuth);
         }

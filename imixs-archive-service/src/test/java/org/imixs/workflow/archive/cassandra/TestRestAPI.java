@@ -26,22 +26,20 @@ public class TestRestAPI {
 	public void simpleApiTest() {
 
 		String apiURL = "http://localhost:8081/api";
-
-		DocumentClient documentClient = new DocumentClient(apiURL);
-		FormAuthenticator formAuth = new FormAuthenticator(apiURL, "admin", "adminadmin");
-		// register the authenticator
-		documentClient.registerClientRequestFilter(formAuth);
-		
-		
-
 		try {
-			List<ItemCollection> result = documentClient.getCustomResource(apiURL+"/snapshot/syncpoint/0");
-			
+
+			DocumentClient documentClient = new DocumentClient(apiURL);
+			FormAuthenticator formAuth = new FormAuthenticator(apiURL, "admin", "adminadmin");
+			// register the authenticator
+			documentClient.registerClientRequestFilter(formAuth);
+
+			List<ItemCollection> result = documentClient.getCustomResource(apiURL + "/snapshot/syncpoint/0");
+
 			Assert.assertNotNull(result);
 			Assert.assertEquals(1, result.size());
-			
+
 		} catch (Exception e) {
-			
+
 			e.printStackTrace();
 			Assert.fail();
 		}
