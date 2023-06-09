@@ -15,9 +15,7 @@
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 		<failOnMissingWebXml>false</failOnMissingWebXml>
-
 		<org.imixs.workflow.version>6.0.1</org.imixs.workflow.version>
-		<org.imixs.melman.version>2.0.0</org.imixs.melman.version>
 		<org.imixs.jwt.version>1.0.3</org.imixs.jwt.version>
 	</properties>
 

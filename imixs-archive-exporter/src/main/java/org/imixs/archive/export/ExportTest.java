@@ -1,6 +1,10 @@
 package org.imixs.archive.export;
 
+import java.util.Map;
+import java.util.SortedMap;
+
 import org.eclipse.microprofile.metrics.Counter;
+import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
@@ -41,8 +45,21 @@ public class ExportTest {
     public String count() {
         System.out.println("Test P1");
 
-        Counter http200Count = metricRegistry.counter("http200Count");
-        System.out.println("Test P2");
+        SortedMap<MetricID, Counter> allCounters = metricRegistry.getCounters();
+
+        for (Map.Entry<MetricID, Counter> entry : allCounters.entrySet()) {
+            System.out.println(entry.getKey() + ":" + entry.getValue());
+
+            MetricID meti = entry.getKey();
+
+            Counter ding = entry.getValue();
+            System.out.println(" coutner wert=" + ding.getCount() + " metric name  " + meti.getName());
+
+        }
+
+        // pingCount = metricRegistry.getCounter("exportPing");
+
+        System.out.println("Test Ping count=");
 
         // SortedMap<MetricID, Counter> counters = metricRegistry.getCounters();
         // Counter counter =

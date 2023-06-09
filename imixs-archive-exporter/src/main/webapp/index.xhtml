@@ -10,7 +10,7 @@
 			<section class="" style="">
 				<div class="card" style="grid-column-start: span 12;min-height: 0px;">
 					<h1 style="line-height: 0;">
-						<span class="typcn typcn-cloud-storage-outline"></span> Imixs Export
+						<span class="typcn typcn-cloud-storage-outline"></span> Imixs Export Service
 					</h1>
 				</div>
 			</section>
@@ -96,22 +96,20 @@
 					<div class="card" style="grid-column-start: span 7;">
 			
 						<h1 class="lead">
-							14 Events
+							#{exportController.getCounterByName('eventProcessed')} Events
 						</h1>
 						<p class="lead">
-							Imixs-Office-Workflow is a production ready Business Process
-							Management Suite. It's easy to use.</p>
+							Number of processed export events since last start.</p>
 			
 						
 			
 					</div>
 					<div class="card" style="grid-column-start: span 5;">
 						<h1 class="lead">
-							0 Errors
+							<span style="#{(exportController.getCounterByName('errors')>0)?'color: #e84848;':''}">#{exportController.getCounterByName('errors')} Errors</span>
 						</h1>
 						<p class="lead">
-							Imixs-Office-Workflow is a production ready Business Process
-							Management Suite. It's easy to use.</p>
+							Number of processed export errors since last start.</p>
 			
 					</div>
 				</section>

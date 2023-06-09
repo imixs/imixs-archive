@@ -27,7 +27,9 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.imixs.archive.util.FTPConnector;
 import org.imixs.archive.util.LogController;
 import org.imixs.archive.util.RestClientHelper;
@@ -52,8 +54,8 @@ import jakarta.inject.Inject;
 
 /**
  * The ExportService exports the workflow data from a Imixs-Workflow instance
- * into a FTP storage. The service class runs a TimerService based on the given
- * scheduler configuration.
+ * into a FTP storage. The service class runs a non-persistent TimerService
+ * based on the given scheduler configuration.
  * <p>
  * The service automatically starts during deployment.
  * <p>
@@ -122,6 +124,10 @@ public class ExportService {
     @Inject
     ExportStatusHandler exportStatusHandler;
 
+    @Inject
+    @RegistryType(type = MetricRegistry.Type.APPLICATION)
+    MetricRegistry metricRegistry;
+
     @PostConstruct
     public void init() {
         // init timer....
@@ -158,27 +164,24 @@ public class ExportService {
         int total = 0;
         int success = 0;
         int errors = 0;
-
-        logger.info("onTimeout...");
-
         exportStatusHandler.setTimer(_timer);
-
-        // init rest clients....
-        DocumentClient documentClient = restClientHelper.getDocumentClient();
-        EventLogClient eventLogClient = restClientHelper.getEventLogClient(documentClient);
-        if (documentClient == null || eventLogClient == null) {
-            logController.warning(ExportApi.TOPIC_EXPORT,
-                    "Unable to connect to workflow instance endpoint - please verify configuration!");
-            try {
-                stopScheduler();
-            } catch (ExportException e) {
-            }
-            return;
-        }
-
-        exportStatusHandler.setStatus(ExportStatusHandler.STATUS_RUNNING);
-
         try {
+            // init rest clients....
+            DocumentClient documentClient = restClientHelper.getDocumentClient();
+            EventLogClient eventLogClient = restClientHelper.getEventLogClient(documentClient);
+            if (documentClient == null || eventLogClient == null) {
+                logController.warning(ExportApi.TOPIC_EXPORT,
+                        "Unable to connect to workflow instance endpoint - please verify configuration!");
+                try {
+                    stopScheduler();
+                } catch (ExportException e) {
+                }
+                metricRegistry.counter("errors").inc();
+                return;
+            }
+
+            exportStatusHandler.setStatus(ExportStatusHandler.STATUS_RUNNING);
+
             logger.finest("......release dead locks....");
             // release dead locks...
             releaseDeadLocks(eventLogClient);
@@ -224,15 +227,8 @@ public class ExportService {
             exportStatusHandler.setStatus(ExportStatusHandler.STATUS_SCHEDULED);
 
         } catch (InvalidAccessException | EJBException | RestAPIException e) {
-            // In case of a exception during processing the event log
-            // the timer service will automatically restarted. This is important
-            // to resolve restarts of the workflow engine.
-            logController.warning(ExportApi.TOPIC_EXPORT, "processsing EventLog failed: " + e.getMessage());
-            try {
-                restartScheduler();
-            } catch (ExportException e1) {
-                logController.warning(ExportApi.TOPIC_EXPORT, "Failed to restart export scheduler: " + e.getMessage());
-            }
+            logController.severe(ExportApi.TOPIC_EXPORT, "processing EventLog failed: " + e.getMessage());
+            metricRegistry.counter("org_imixs_archive_export_errors").inc();
         }
     }
 

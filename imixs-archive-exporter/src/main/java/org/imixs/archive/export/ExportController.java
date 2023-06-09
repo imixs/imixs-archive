@@ -2,10 +2,16 @@ package org.imixs.archive.export;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.metrics.Counter;
+import org.eclipse.microprofile.metrics.MetricID;
+import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.imixs.archive.util.LogController;
 
 import jakarta.enterprise.context.RequestScoped;
@@ -54,6 +60,10 @@ public class ExportController implements Serializable {
     @Inject
     @ConfigProperty(name = ExportApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
     long interval;
+
+    @Inject
+    @RegistryType(type = MetricRegistry.Type.APPLICATION)
+    MetricRegistry metricRegistry;
 
     @SuppressWarnings("unused")
     private static Logger logger = Logger.getLogger(ExportController.class.getName());
@@ -129,6 +139,27 @@ public class ExportController implements Serializable {
         } catch (ExportException e) {
             logController.warning(ExportApi.TOPIC_EXPORT, e.getMessage());
         }
+    }
+
+    /**
+     * This method returns the current event processing counter
+     *
+     * @return
+     */
+    public long getCounterByName(String name) {
+
+        // find counter by name
+        SortedMap<MetricID, Counter> allCounters = metricRegistry.getCounters();
+
+        for (Map.Entry<MetricID, Counter> entry : allCounters.entrySet()) {
+
+            MetricID metricID = entry.getKey();
+            if (metricID.getName().endsWith(name)) {
+                return entry.getValue().getCount();
+            }
+        }
+        logger.warning("Metric Counter : " + name + " not found!");
+        return 0;
     }
 
 }

@@ -27,6 +27,7 @@ public class LogController implements Serializable {
 
     public static final int LOG_INFO = 1;
     public static final int LOG_WARNING = 2;
+    public static final int LOG_ERROR = 3;
 
     private static Logger logger = Logger.getLogger(LogController.class.getName());
     String pattern = " HH:mm:ss.SSSZ";
@@ -57,6 +58,10 @@ public class LogController implements Serializable {
         add(context, LOG_WARNING, message);
     }
 
+    public void severe(String context, String message) {
+        add(context, LOG_ERROR, message);
+    }
+
     /**
      * Logs a new message to the message log
      *
@@ -75,7 +80,10 @@ public class LogController implements Serializable {
         }
 
         String entry = simpleDateFormat.format(new Date()) + " ";
-        if (type == LOG_WARNING) {
+        if (type == LOG_ERROR) {
+            entry = entry + "[ERROR] ";
+            logger.severe(message);
+        } else if (type == LOG_WARNING) {
             entry = entry + "[WARNING] ";
             logger.warning(message);
         } else {
@@ -90,9 +98,5 @@ public class LogController implements Serializable {
     public List<String> getLogEntries(String context) {
         return logTopics.get(context);
     }
-
-//    public void setLogEntries(List<String> logEntries) {
-//        this.logEntries = logEntries;
-//    }
 
 }

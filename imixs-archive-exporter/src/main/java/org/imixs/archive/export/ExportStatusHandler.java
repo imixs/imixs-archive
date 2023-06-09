@@ -23,6 +23,7 @@
 package org.imixs.archive.export;
 
 import java.util.Date;
+import java.util.logging.Logger;
 
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Timer;
@@ -41,6 +42,8 @@ public class ExportStatusHandler {
     public static final String STATUS_STOPPED = "STOPPED";
     public static final String STATUS_SCHEDULED = "SCHEDULED";
     public static final String STATUS_CANCELED = "CANCELED";
+
+    private static Logger logger = Logger.getLogger(ExportStatusHandler.class.getName());
 
     private String status = "";
     private Timer timer = null;
