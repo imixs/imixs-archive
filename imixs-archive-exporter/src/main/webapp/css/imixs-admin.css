@@ -125,16 +125,9 @@
 
 
 .nav-sidebar .nav-item:hover a label {
-	xbackground-color: #1d2531 !important;
 	color: #fff;
 	font-weight: bold;
 }
-
-
-
-
-
-
 
 
 
@@ -236,8 +229,7 @@ input[type="file"] {
 }
 
 #imixs-footer {
-	width: 100%;
-	padding: 10px 30px 10px 210px;
+	width: 100%; 
 	text-align: right;
 }
 #imixs-footer ul li {

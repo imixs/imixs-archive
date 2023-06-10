@@ -1,7 +1,8 @@
-package org.imixs.archive.export;
+package org.imixs.archive.export.controller;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
@@ -12,7 +13,10 @@ import org.eclipse.microprofile.metrics.Counter;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
-import org.imixs.archive.util.LogController;
+import org.imixs.archive.export.ExportApi;
+import org.imixs.archive.export.ExportException;
+import org.imixs.archive.export.services.ExportService;
+import org.imixs.archive.export.services.ExportStatusHandler;
 
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
@@ -70,10 +74,6 @@ public class ExportController implements Serializable {
 
     @Inject
     ExportService exportService;
-
-    @Inject
-    LogController logController;
-
     @Inject
     ExportStatusHandler exportStatusHandler;
 
@@ -126,7 +126,7 @@ public class ExportController implements Serializable {
         try {
             exportService.startScheduler(true);
         } catch (ExportException e) {
-            logController.warning(ExportApi.TOPIC_EXPORT, e.getMessage());
+            exportService.warning(ExportApi.EVENTLOG_TOPIC_EXPORT, e.getMessage());
         }
     }
 
@@ -137,7 +137,7 @@ public class ExportController implements Serializable {
         try {
             exportService.stopScheduler();
         } catch (ExportException e) {
-            logController.warning(ExportApi.TOPIC_EXPORT, e.getMessage());
+            exportService.warning(ExportApi.EVENTLOG_TOPIC_EXPORT, e.getMessage());
         }
     }
 
@@ -162,4 +162,7 @@ public class ExportController implements Serializable {
         return 0;
     }
 
+    public List<String> getLogEntries(String context) {
+        return exportService.getLogEntries();// logTopics.get(context);
+    }
 }

@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.archive.export;
+package org.imixs.archive.export.services;
 
 import java.util.Date;
 import java.util.logging.Logger;

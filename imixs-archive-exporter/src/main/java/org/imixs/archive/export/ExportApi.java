@@ -28,11 +28,10 @@ public class ExportApi extends Application {
     public static final String ENV_EXPORT_FTP_PORT = "EXPORT_FTP_PORT";
     public static final String ENV_EXPORT_FTP_USER = "EXPORT_FTP_USER";
     public static final String ENV_EXPORT_FTP_PASSWORD = "EXPORT_FTP_PASSWORD";
+    public static final String ENV_EXPORT_FILE_PATH = "EXPORT_FILE_PATH";
 
-    public static final String EVENTLOG_TOPIC_EXPORT = "snapshot.export";
+    public static final String EVENTLOG_TOPIC_EXPORT = "file.export";
     public static final String EXPORT_SYNC_DEADLOCK = "export.sync.deadlock";
-
-    public static final String TOPIC_EXPORT = "EXPORT";
 
     public final static String SNAPSHOT_RESOURCE = "snapshot/";
 

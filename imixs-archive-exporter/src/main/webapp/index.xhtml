@@ -122,7 +122,7 @@
 						<span class="typcn typcn-input-checked"></span> Log
 					</h3>
 					<pre>
-						<ui:repeat var="log" value="#{logController.getLogEntries('EXPORT')}">
+						<ui:repeat var="log" value="#{exportController.getLogEntries()}">
 							<h:outputText value="#{log}" /><br />
 						</ui:repeat>		
 					</pre>
