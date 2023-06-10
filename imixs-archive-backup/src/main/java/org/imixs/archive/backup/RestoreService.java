@@ -138,24 +138,25 @@ public class RestoreService {
         int total = 0;
         int success = 0;
         int errors = 0;
-        restoreStatusHandler.setTimer(_timer);
         FTPSClient ftpClient = null;
 
-        // init rest clients....
-        DocumentClient documentClient = restClientHelper.getDocumentClient();
-
-        if (documentClient == null) {
-            logController.warning(BackupApi.TOPIC_RESTORE,
-                    "Unable to connect to workflow instance endpoint - please verify configuration!");
-            try {
-                stopScheduler();
-            } catch (BackupException e) {
-            }
-            return;
-        }
-
-        restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_RUNNING);
         try {
+            restoreStatusHandler.setTimer(_timer);
+
+            // init rest clients....
+            DocumentClient documentClient = restClientHelper.getDocumentClient();
+
+            if (documentClient == null) {
+                logController.warning(BackupApi.TOPIC_RESTORE,
+                        "Unable to connect to workflow instance endpoint - please verify configuration!");
+                try {
+                    stopScheduler();
+                } catch (BackupException e) {
+                }
+                return;
+            }
+
+            restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_RUNNING);
 
             logController.info(BackupApi.TOPIC_RESTORE, "Starting import from " + ftpServer.get() + "...");
 
@@ -251,7 +252,7 @@ public class RestoreService {
 
             restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_STOPPED);
 
-        } catch (InvalidAccessException | EJBException | IOException e) {
+        } catch (InvalidAccessException | EJBException | IOException | RestAPIException e) {
             // we also catch EJBExceptions here because we do not want to cancel the
             // ManagedScheduledExecutorService
             logController.warning(BackupApi.TOPIC_RESTORE, "restore failed: " + e.getMessage());

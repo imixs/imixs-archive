@@ -26,8 +26,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import javax.ws.rs.NotFoundException;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.util.FTPConnector;
 import org.imixs.archive.util.LogController;
@@ -157,24 +155,24 @@ public class BackupService {
         int total = 0;
         int success = 0;
         int errors = 0;
-        backupStatusHandler.setTimer(_timer);
-
-        // init rest clients....
-        DocumentClient documentClient = restClientHelper.getDocumentClient();
-        EventLogClient eventLogClient = restClientHelper.getEventLogClient(documentClient);
-        if (documentClient == null || eventLogClient == null) {
-            logController.warning(BackupApi.TOPIC_BACKUP,
-                    "Unable to connect to workflow instance endpoint - please verify configuration!");
-            try {
-                stopScheduler();
-            } catch (BackupException e) {
-            }
-            return;
-        }
-
-        backupStatusHandler.setStatus(BackupStatusHandler.STATUS_RUNNING);
-
         try {
+            backupStatusHandler.setTimer(_timer);
+
+            // init rest clients....
+            DocumentClient documentClient = restClientHelper.getDocumentClient();
+            EventLogClient eventLogClient = restClientHelper.getEventLogClient(documentClient);
+            if (documentClient == null || eventLogClient == null) {
+                logController.warning(BackupApi.TOPIC_BACKUP,
+                        "Unable to connect to workflow instance endpoint - please verify configuration!");
+                try {
+                    stopScheduler();
+                } catch (BackupException e) {
+                }
+                return;
+            }
+
+            backupStatusHandler.setStatus(BackupStatusHandler.STATUS_RUNNING);
+
             logger.finest("......release dead locks....");
             // release dead locks...
             releaseDeadLocks(eventLogClient);

@@ -12,6 +12,7 @@ import org.imixs.melman.DocumentClient;
 import org.imixs.melman.EventLogClient;
 import org.imixs.melman.FormAuthenticator;
 import org.imixs.melman.JWTAuthenticator;
+import org.imixs.melman.RestAPIException;
 import org.imixs.melman.WorkflowClient;
 
 import jakarta.enterprise.context.RequestScoped;
@@ -53,8 +54,9 @@ public class RestClientHelper implements Serializable {
      * This method creates a new WorkflowClient instance.
      *
      * @return
+     * @throws RestAPIException
      */
-    public DocumentClient getDocumentClient() {
+    public DocumentClient getDocumentClient() throws RestAPIException {
 
         DocumentClient documentClient = null;
         if (instanceEndpoint.isPresent()) {

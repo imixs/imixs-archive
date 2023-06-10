@@ -1,18 +1,3 @@
-/* W3.CSS 4.10 February 2018 by Jan Egil and Borge Refsnes */
-html {
-	box-sizing: border-box;
-	-ms-text-size-adjust: 100%;
-	-webkit-text-size-adjust: 100%;
-}
-
-body, html {
-	font-family: 'Open Sans', sans-serif;
-	text-rendering: optimizeLegibility !important;
-	-webkit-font-smoothing: antialiased !important;
-	color: #5a5a5a;
-}
-
-
 #imixs-content.loading {
 	overflow: hidden;
 }
@@ -47,7 +32,7 @@ body, html {
 
 .nav-sidebar {
 	height: 100%;
-	width: 200px;
+	width: 60px;
 	background-color: #263544;
 	color: #f1f7ff;
 	position: fixed !important;
@@ -64,8 +49,6 @@ body, html {
 }
 
 .nav-sidebar .nav-title {
-	min-height: 80px;
-	height: 80px;
 	padding: 16px 10px;
 	white-space: nowrap;
 }
@@ -127,6 +110,10 @@ body, html {
 	outline: 0;
 }
 
+.nav-sidebar label {
+	display: none;
+}
+
 .nav-sidebar .nav-item  label {
 	color: #999;
 }
@@ -158,7 +145,7 @@ body, html {
 }
 
 .content {
-	margin-left: 200px;
+	margin-left: 60px;
 	background-color: #F4F7FA;
 }
 
@@ -250,7 +237,6 @@ input[type="file"] {
 
 #imixs-footer {
 	width: 100%;
-	padding: 10px 30px 10px 210px;
 	text-align: right;
 }
 #imixs-footer ul li {

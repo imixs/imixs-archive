@@ -2,10 +2,16 @@ package org.imixs.archive.backup;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.metrics.Counter;
+import org.eclipse.microprofile.metrics.MetricID;
+import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.imixs.archive.util.LogController;
 
 import jakarta.enterprise.context.RequestScoped;
@@ -29,6 +35,18 @@ public class BackupController implements Serializable {
     @Inject
     @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> instanceEndpoint;
+
+    @Inject
+    @ConfigProperty(name = "health.endpoint", defaultValue = "http://localhost:9990/health")
+    String healthEndpoint;
+
+    @Inject
+    @ConfigProperty(name = "metrics.endpoint", defaultValue = "http://localhost:9990/metrics")
+    String metricsEndpoint;
+
+    @Inject
+    @RegistryType(type = MetricRegistry.Type.APPLICATION)
+    MetricRegistry metricRegistry;
 
     @Inject
     @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_HOST)
@@ -58,6 +76,14 @@ public class BackupController implements Serializable {
 
     @Inject
     BackupStatusHandler backupStatusHandler;
+
+    public String getHealthEndpoint() {
+        return healthEndpoint;
+    }
+
+    public String getMetricsEndpoint() {
+        return metricsEndpoint;
+    }
 
     public boolean isConnected() {
         String status = backupStatusHandler.getStatus();
@@ -115,4 +141,24 @@ public class BackupController implements Serializable {
         }
     }
 
+    /**
+     * This method returns the current event processing counter
+     *
+     * @return
+     */
+    public long getCounterByName(String name) {
+
+        // find counter by name
+        SortedMap<MetricID, Counter> allCounters = metricRegistry.getCounters();
+
+        for (Map.Entry<MetricID, Counter> entry : allCounters.entrySet()) {
+
+            MetricID metricID = entry.getKey();
+            if (metricID.getName().endsWith(name)) {
+                return entry.getValue().getCount();
+            }
+        }
+        logger.warning("Metric Counter : " + name + " not found!");
+        return 0;
+    }
 }
