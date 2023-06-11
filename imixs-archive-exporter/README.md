@@ -13,15 +13,18 @@ The Exporter Service can be run in a container environment. To connect the expor
       WORKFLOW_SERVICE_PASSWORD: [PASSWORD]
       WORKFLOW_SERVICE_AUTHMETHOD: [AUTHMETHOD]
 
+      EXPORT_PATH: [DIRECTORY]
       EXPORT_FTP_HOST: [FTP-SERVER-ADDRESS]
-      EXPORT_FTP_PATH: [DIRECTORY]
       EXPORT_FTP_PORT: "21"
       EXPORT_FTP_USER: [USER]
       EXPORT_FTP_PASSWORD: [PASSWORD]
 
+      EVENTLOG_TOPIC : "file.export" (default topic)
+      EVENTLOG_DEADLOCK: 10000 (default timeout)
+
 **Note:** The EXPORT-USER must have manager access.
 
-The following envrionent variables are optional and depend on the Jakarta EE Runtime:
+The following environment variables are optional and depend on the Jakarta EE Runtime:
 
 - METRICS_ENDPOINT = endpoint for metrics API (default = http://localhost:9990/metrics)
 - HEALTH_ENDPOINT = endpoint for health API (default = http://localhost:9990/health)

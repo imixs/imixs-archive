@@ -17,8 +17,8 @@ public class ExportApi extends Application {
     public static final String WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
     public static final String WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
 
-    public static final String EVENTLOG_TOPIC = "file.export";
-    public static final String EVENTLOG_DEADLOCK = "export.sync.deadlock";
+    public static final String EVENTLOG_TOPIC = "eventlog.topic";
+    public static final String EVENTLOG_DEADLOCK = "eventlog.deadlock";
 
     public static final String EXPORT_PATH = "export.path";
 

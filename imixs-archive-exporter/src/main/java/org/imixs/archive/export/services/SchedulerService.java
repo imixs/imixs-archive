@@ -23,6 +23,7 @@
 package org.imixs.archive.export.services;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -75,6 +76,7 @@ import jakarta.inject.Inject;
 public class SchedulerService {
 
     private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
+    public static String SNAPSHOTID = "$snapshotid";
 
     // timeout interval in ms
     @Inject
@@ -108,6 +110,11 @@ public class SchedulerService {
     @Inject
     @ConfigProperty(name = ExportApi.EXPORT_PATH)
     Optional<String> filePath;
+
+    // default topic 'file.export'
+    @Inject
+    @ConfigProperty(name = ExportApi.EVENTLOG_TOPIC, defaultValue = "file.export")
+    String topic;
 
     // deadlock timeout interval in ms
     @Inject
@@ -179,18 +186,17 @@ public class SchedulerService {
      * The metric generated :
      *
      * executions count: count of method executions processing Time:
-     * application_org_imixs_archive_export_ExportService_executions_total event
+     * application_org_imixs_archive_export_SchedulerService_executions_total event
      * count: error count:
-     * application_org_imixs_archive_export_ExportService_errors_total
+     * application_org_imixs_archive_export_SchedulerService_errors_total
      *
      *
      * @throws RestAPIException
      **/
     @Counted(name = "executions", description = "Counting the invocations of export service", displayName = "executions")
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unchecked")
     @Timeout
     public void onTimeout(jakarta.ejb.Timer _timer) {
-        String topic = null;
         String id = null;
         String ref = null;
         int total = 0;
@@ -219,23 +225,27 @@ public class SchedulerService {
 
             // max 100 entries per iteration
             eventLogClient.setPageSize(100);
-            List<ItemCollection> events = eventLogClient.searchEventLog(ExportApi.EVENTLOG_TOPIC);
+            List<ItemCollection> events = eventLogClient.searchEventLog(topic);
 
             for (ItemCollection eventLogEntry : events) {
                 total++;
-                topic = eventLogEntry.getItemValueString("topic");
                 id = eventLogEntry.getItemValueString("id");
                 ref = eventLogEntry.getItemValueString("ref");
-                String path = eventLogEntry.getItemValueString("path");
+                String path = "";
+                // test if we have a data structure with a path information
+                List<Map> dataList = eventLogEntry.getItemValue("data");
+                if (dataList != null && dataList.size() > 0) {
+                    ItemCollection dataItemCol = new ItemCollection(dataList.get(0));
+                    path = dataItemCol.getItemValueString("path");
+                }
 
                 try {
                     // first try to lock the eventLog entry....
                     eventLogClient.lockEventLogEntry(id);
                     // pull the snapshotEvent ...
-                    ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
+                    List<FileData> fileDataList = pullFileDataList(eventLogEntry, documentClient, eventLogClient);
 
                     // iterate over all Files and export it
-                    List<FileData> fileDataList = snapshot.getFileData();
                     for (FileData fileData : fileDataList) {
                         fileService.writeFileData(fileData, path);
                         success++;
@@ -243,14 +253,16 @@ public class SchedulerService {
 
                     // finally remove the event log entry...
                     eventLogClient.deleteEventLogEntry(id);
-
-                    metricRegistry.counter("application_org_imixs_archive_export_ExportService_events").inc();
+                    metricRegistry.counter("application_org_imixs_archive_export_services_SchedulerService_events")
+                            .inc();
                 } catch (InvalidAccessException | EJBException | ExportException | RestAPIException e) {
                     // we also catch EJBExceptions here because we do not want to cancel the
                     // ManagedScheduledExecutorService
                     logService.warning("ExportEvent " + id + " failed: " + e.getMessage());
-                    metricRegistry.counter("application_org_imixs_archive_export_ExportService_errors").inc();
+                    metricRegistry.counter("application_org_imixs_archive_export_SchedulerService_errors").inc();
                     errors++;
+                    // release lock
+                    eventLogClient.unlockEventLogEntry(id);
                 }
             }
 
@@ -263,7 +275,7 @@ public class SchedulerService {
 
         } catch (InvalidAccessException | EJBException | RestAPIException e) {
             logService.severe("processing EventLog failed: " + e.getMessage());
-            metricRegistry.counter("application_org_imixs_archive_export_ExportService_errors").inc();
+            metricRegistry.counter("application_org_imixs_archive_export_SchedulerService_errors").inc();
         }
     }
 
@@ -282,18 +294,20 @@ public class SchedulerService {
             logger.fine("...no eventLogClient available!");
             return;
         }
-        eventLogClient.releaseDeadLocks(deadLockInterval, ExportApi.EVENTLOG_TOPIC);
+        eventLogClient.releaseDeadLocks(deadLockInterval, topic);
     }
 
     /**
-     * This method loads a snapshot from the workflow instance.
+     * This method loads a snapshot from the workflow instance based on a eventLog
+     * entry. In case the workflow instance does not have a $snapshotid, the
+     * worklfow instance itself is returned. .
      * <p>
      * The method returns null if the snapshot no longer exists. In this case the
      * method automatically deletes the outdated event log entry.
      *
      * @throws ExportException
      */
-    public ItemCollection pullSnapshot(ItemCollection eventLogEntry, DocumentClient documentClient,
+    public List<FileData> pullFileDataList(ItemCollection eventLogEntry, DocumentClient documentClient,
             EventLogClient eventLogClient) throws ExportException {
 
         if (eventLogEntry == null || documentClient == null || eventLogClient == null) {
@@ -301,27 +315,29 @@ public class SchedulerService {
             logger.fine("...no eventLogClient available!");
             return null;
         }
-
         String ref = eventLogEntry.getItemValueString("ref");
-        String id = eventLogEntry.getItemValueString("id");
-        logger.finest("......pullSnapshot ref " + ref + "...");
-        // lookup the snapshot...
-        ItemCollection snapshot;
+
         try {
-            snapshot = documentClient.getDocument(ref);
+
+            String id = eventLogEntry.getItemValueString("id");
+            logger.finest("......fileData ref=" + ref + "...");
+
+            // first load the document...
+            ItemCollection workitem = documentClient.getDocument(ref);
+            // now test if we have a $snapshotid?
+            if (workitem.getItemValueString(SNAPSHOTID).isEmpty()) {
+                // no snapshot exists, return file list
+                return workitem.getFileData();
+            }
+
+            // load the snapshot
+
+            ItemCollection snapshot = documentClient.getDocument(workitem.getItemValueString(SNAPSHOTID));
             if (snapshot != null) {
-                logger.finest("...write snapshot into export store...");
-                return snapshot;
+                return snapshot.getFileData();
             }
         } catch (RestAPIException e) {
-            logService.warning("Snapshot " + ref + " pull failed: " + e.getMessage());
-            // now we need to remove the batch event
-            logService.warning("EventLogEntry " + id + " will be removed!");
-            try {
-                eventLogClient.deleteEventLogEntry(id);
-            } catch (RestAPIException e1) {
-                throw new ExportException("REMOTE_EXCEPTION", "Unable to delete eventLogEntry: " + id, e1);
-            }
+            throw new ExportException("TIMER_EXCEPTION", "Snapshot " + ref + " pull failed", e);
         }
         return null;
     }

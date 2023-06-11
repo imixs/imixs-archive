@@ -96,16 +96,27 @@ public class FileService {
      *
      * @param fileData - the File Data object
      * @param path     - optional sub directory
+     * @throws ExportException
      */
-    public void writeFileData(FileData fileData, String path) {
+    public void writeFileData(FileData fileData, String path) throws ExportException {
 
+        String workingPath = "";
+        if (fileData == null) {
+            throw new ExportException("EXPORT_EXCEPTION", "FileData object is null!");
+        }
+        if (path == null) {
+            path = "";
+        }
+        workingPath = fileData.getName();
         // verify checksum if file exists
         try {
+
             String newChecksum = fileData.generateMD5();
             FileData oldFile = readFileData(fileData.getName(), path);
             if (oldFile != null && oldFile.generateMD5().equals(newChecksum)) {
                 // content hast not changed.
                 // no operation needed.
+                logger.info("file content unchanged: " + workingPath);
                 return;
             }
 
@@ -116,15 +127,16 @@ public class FileService {
 
             } else {
                 // write file to local file storage
-                String ftpWorkingPath = computeWorkingDirectory(path);
-                ftpWorkingPath = ftpWorkingPath + fileData.getName();
-                logger.info("---> write file to: " + ftpWorkingPath);
-                Path nioPath = Paths.get(ftpWorkingPath);
-                Files.write(nioPath, fileData.getContent());
+                workingPath = computeWorkingDirectory(path);
+                // create sub directories if not exits
+                Files.createDirectories(Paths.get(workingPath));
+                workingPath = workingPath + fileData.getName();
+                logger.info("write file content: " + workingPath);
+                Files.write(Paths.get(workingPath), fileData.getContent());
             }
 
-        } catch (NoSuchAlgorithmException | ExportException | IOException e) {
-            e.printStackTrace();
+        } catch (NoSuchAlgorithmException | IOException e) {
+            throw new ExportException("EXPORT_EXCEPTION", "Unable to write file: " + workingPath, e);
         }
 
     }
@@ -133,12 +145,35 @@ public class FileService {
      * Reads a fileData from a given export path (optional on a FTP Server)..
      *
      * @param path
+     * @throws ExportException
      */
-    public FileData readFileData(String fileName, String path) {
+    public FileData readFileData(String fileName, String path) throws ExportException {
 
-        return null;
-
+        FileData fileData = null;
         // do we have a ftp server?
+        if (ftpServer.isPresent()) {
+            // FTPSClient ftpClient = getFTPClient();
+            fileData = ftpGet(fileName, path);
+
+        } else {
+            // write file to local file storage
+            String workingPath = computeWorkingDirectory(path);
+            workingPath = workingPath + fileName;
+            logger.fine("...read file from: " + workingPath);
+            Path nioPath = Paths.get(workingPath);
+
+            try {
+                if (Files.exists(nioPath)) {
+                    byte[] data = Files.readAllBytes(nioPath);
+                    fileData = new FileData(fileName, data, null, null);
+                }
+
+            } catch (IOException e) {
+                throw new ExportException("EXPORT_EXCEPTION", "Unable to read file: " + workingPath, e);
+            }
+        }
+
+        return fileData;
 
     }
 
@@ -178,14 +213,41 @@ public class FileService {
         try {
             if (!ftpClient.changeWorkingDirectory(subDirectory)) {
                 // try to create it....
-                if (!ftpClient.makeDirectory(subDirectory)) {
-                    throw new ExportException(FTP_ERROR, "FTP Error: unable to create sub-directory '" + subDirectory
-                            + "' : " + ftpClient.getReplyString());
-                }
+                makeDirectoryPath(ftpClient, subDirectory);
                 ftpClient.changeWorkingDirectory(subDirectory);
             }
         } catch (IOException e) {
             throw new ExportException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Helper method to create a sub directory path
+     *
+     * @param ftpClient
+     * @param dirPath
+     * @return
+     * @throws IOException
+     * @throws ExportException
+     */
+    private static void makeDirectoryPath(FTPClient ftpClient, String dirPath) throws IOException, ExportException {
+        String[] pathElements = dirPath.split("/");
+        if (pathElements != null && pathElements.length > 0) {
+            for (String singleDir : pathElements) {
+                if (singleDir.isEmpty()) {
+                    continue;
+                }
+                boolean existed = ftpClient.changeWorkingDirectory(singleDir);
+                if (!existed) {
+                    boolean created = ftpClient.makeDirectory(singleDir);
+                    if (created) {
+                        ftpClient.changeWorkingDirectory(singleDir);
+                    } else {
+                        throw new ExportException(FTP_ERROR,
+                                "FTP file transfer failed - COULD NOT create directory: " + singleDir);
+                    }
+                }
+            }
         }
     }
 
@@ -205,19 +267,16 @@ public class FileService {
         InputStream writer = null;
         FTPClient ftpClient = null;
         try {
-            logger.finest("......put " + fileData.getName() + " to FTP server: " + ftpServer + "...");
+            logger.info("put file content: " + fileData.getName() + " on FTP server...");
             ftpClient = getFTPClient();
-
             // verify directories
             changeWorkingDirectory(ftpClient, ftpWorkingPath);
             // upload file to FTP server.
             writer = new ByteArrayInputStream(fileData.getContent());
-
             if (!ftpClient.storeFile(fileData.getName(), writer)) {
                 throw new ExportException(FTP_ERROR, "FTP file transfer failed: unable to write '" + ftpWorkingPath
                         + fileData.getName() + "' : " + ftpClient.getReplyString());
             }
-
             logger.finest("...." + ftpWorkingPath + fileData.getName() + " transferred successful to " + ftpServer);
 
         } catch (IOException e) {
@@ -239,39 +298,29 @@ public class FileService {
     }
 
     /**
-     * Helper method computes the full target file path
-     */
-    private String computeWorkingDirectory(String path) {
-        // Compute file path
-        String ftpWorkingPath = filePath.orElse("");
-        if (!ftpWorkingPath.startsWith("/")) {
-            ftpWorkingPath = "/" + ftpWorkingPath;
-        }
-        if (path != null && !path.isEmpty()) {
-            if (path.startsWith("/")) {
-                path = path.substring(1);
-            }
-            ftpWorkingPath = ftpWorkingPath + path;
-        }
-        if (!ftpWorkingPath.endsWith("/")) {
-            ftpWorkingPath = ftpWorkingPath + "/";
-        }
-        return ftpWorkingPath;
-    }
-
-    /**
      * This method reads a snapshot form the current working directory
      *
      * @param snapshot
      * @throws ExportException
      * @return snapshot
      */
-    private FileData ftpGet(FTPClient ftpClient, String fileName) throws ExportException {
+    private FileData ftpGet(String fileName, String path) throws ExportException {
 
         long l = System.currentTimeMillis();
-        ByteArrayOutputStream bos = null;
 
+        if (!ftpServer.isPresent() || !filePath.isPresent()) {
+            throw new ExportException(FTP_ERROR,
+                    "FTP file transfer failed: no ftp host provided (" + ExportApi.EXPORT_FTP_HOST + ")!");
+        }
+
+        String ftpWorkingPath = computeWorkingDirectory(path);
+
+        ByteArrayOutputStream bos = null;
+        FTPClient ftpClient = null;
         try {
+            ftpClient = getFTPClient();
+            changeWorkingDirectory(ftpClient, ftpWorkingPath);
+
             logger.finest("......get " + fileName + "...");
             bos = new ByteArrayOutputStream();
             ftpClient.retrieveFile(fileName, bos);
@@ -287,4 +336,24 @@ public class FileService {
         }
     }
 
+    /**
+     * Helper method computes the full target file path
+     */
+    private String computeWorkingDirectory(String path) {
+        // Compute file path
+        String ftpWorkingPath = filePath.orElse("");
+        if (!ftpWorkingPath.startsWith("/")) {
+            ftpWorkingPath = "/" + ftpWorkingPath;
+        }
+        if (path != null && !path.isEmpty()) {
+            if (!path.startsWith("/")) {
+                path = "/" + path;
+            }
+            ftpWorkingPath = ftpWorkingPath + path;
+        }
+        if (!ftpWorkingPath.endsWith("/")) {
+            ftpWorkingPath = ftpWorkingPath + "/";
+        }
+        return ftpWorkingPath;
+    }
 }

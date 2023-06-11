@@ -162,7 +162,7 @@ public class ExportController implements Serializable {
                 return entry.getValue().getCount();
             }
         }
-        logger.warning("Metric Counter : " + name + " not found!");
+        logger.fine("Metric Counter : " + name + " not found!");
         return 0;
     }
 

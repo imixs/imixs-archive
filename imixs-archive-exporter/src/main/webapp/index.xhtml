@@ -60,14 +60,24 @@
 
 
 							<tr>
-								<td>FTP Host:</td>
-								<td>#{exportController.ftpServer}:#{exportController.ftpPort}</td>
-							</tr>
-
-							<tr>
-								<td>Export Space:</td>
+								<td>Export Path:</td>
 								<td>#{exportController.filePath}</td> 
 							</tr>
+
+
+							<tr>
+								<td>FTP Host:</td>
+								<td>
+									<ui:fragment rendered="#{empty exportController.ftpServer}">
+										- none -
+									</ui:fragment>
+									<ui:fragment rendered="#{!empty exportController.ftpServer}">
+										#{exportController.ftpServer}:#{exportController.ftpPort}
+									</ui:fragment>
+									
+								</td>
+							</tr>
+
 
 						</table>
 					</div>
@@ -96,7 +106,7 @@
 					<div class="card" style="grid-column-start: span 7;">
 			
 						<h1 class="lead">
-							#{exportController.getCounterByName('eventProcessed')} Events
+							#{exportController.getCounterByName('events')} Events
 						</h1>
 						<p class="lead">
 							Number of processed export events since last start.</p>
