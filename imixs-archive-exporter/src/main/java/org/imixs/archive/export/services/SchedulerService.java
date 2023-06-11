@@ -22,9 +22,6 @@
  *******************************************************************************/
 package org.imixs.archive.export.services;
 
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -35,11 +32,11 @@ import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.imixs.archive.export.ExportApi;
 import org.imixs.archive.export.ExportException;
-import org.imixs.archive.export.util.FTPConnector;
 import org.imixs.archive.export.util.RestClientHelper;
 import org.imixs.melman.DocumentClient;
 import org.imixs.melman.EventLogClient;
 import org.imixs.melman.RestAPIException;
+import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.InvalidAccessException;
 
@@ -57,9 +54,9 @@ import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Inject;
 
 /**
- * The ExportService exports the workflow data from a Imixs-Workflow instance
- * into a FTP storage. The service class runs a non-persistent TimerService
- * based on the given scheduler configuration.
+ * The SchedulerService is responsible to run a EJB Timer service and pull
+ * Export EventLog entries periodically. The service class runs a non-persistent
+ * TimerService based on the given scheduler configuration.
  * <p>
  * The service automatically starts during deployment.
  * <p>
@@ -75,9 +72,9 @@ import jakarta.inject.Inject;
 
 @Singleton
 @Startup
-public class ExportService {
+public class SchedulerService {
 
-    private static Logger logger = Logger.getLogger(ExportService.class.getName());
+    private static Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
     // timeout interval in ms
     @Inject
@@ -105,23 +102,23 @@ public class ExportService {
     Optional<String> workflowServicePassword;
 
     @Inject
-    @ConfigProperty(name = ExportApi.ENV_EXPORT_FTP_HOST)
+    @ConfigProperty(name = ExportApi.EXPORT_FTP_HOST)
     Optional<String> ftpServer;
 
     @Inject
-    @ConfigProperty(name = ExportApi.ENV_EXPORT_FILE_PATH)
+    @ConfigProperty(name = ExportApi.EXPORT_PATH)
     Optional<String> filePath;
 
     // deadlock timeout interval in ms
     @Inject
-    @ConfigProperty(name = ExportApi.EXPORT_SYNC_DEADLOCK, defaultValue = "60000")
+    @ConfigProperty(name = ExportApi.EVENTLOG_DEADLOCK, defaultValue = "60000")
     long deadLockInterval;
 
     @Resource
     TimerService timerService;
 
     @Inject
-    FTPConnector ftpConnector;
+    FileService fileService;
 
     @Inject
     RestClientHelper restClientHelper;
@@ -133,24 +130,20 @@ public class ExportService {
     @RegistryType(type = MetricRegistry.Type.APPLICATION)
     MetricRegistry metricRegistry;
 
-    private int maxSize = 30;
-
-    private List<String> logTopics;
-    public static final int LOG_INFO = 1;
-    public static final int LOG_WARNING = 2;
-    public static final int LOG_ERROR = 3;
+    @Inject
+    LogService logService;
 
     @PostConstruct
     public void init() {
 
-        info(ExportApi.EVENTLOG_TOPIC_EXPORT, "Setup...");
+        logService.info("Setup...");
         // init timer....
-        if (verifiyConfiguration()) {
+        if (verifyConfiguration()) {
             try {
                 // Registering a non-persistent Timer Service.
                 startScheduler(true);
             } catch (ExportException e) {
-                warning(ExportApi.EVENTLOG_TOPIC_EXPORT, "Failed to init scheduler: " + e.getMessage());
+                logService.warning("Failed to init scheduler: " + e.getMessage());
             }
         }
     }
@@ -160,16 +153,15 @@ public class ExportService {
      *
      * @return
      */
-    private boolean verifiyConfiguration() {
+    private boolean verifyConfiguration() {
         if (!workflowServiceEndpoint.isPresent()) {
-            severe(ExportApi.EVENTLOG_TOPIC_EXPORT,
-                    "Missing environment param 'WORKFLOW_SERVICE_ENDPOINT' - please verify configuration!");
+            logService.severe("Missing environment param 'WORKFLOW_SERVICE_ENDPOINT' - please verify configuration!");
             return false;
 
         }
         if (!ftpServer.isPresent() && !filePath.isPresent()) {
-            severe(ExportApi.EVENTLOG_TOPIC_EXPORT,
-                    "Missing environment param 'EXPORT_FTP_HOST or EXPORT_FILE_PATH' - please verify configuration!");
+            logService.severe(
+                    "Missing environment param 'EXPORT_FTP_HOST or EXPORT_PATH' - please verify configuration!");
             return false;
 
         }
@@ -210,8 +202,7 @@ public class ExportService {
             DocumentClient documentClient = restClientHelper.getDocumentClient();
             EventLogClient eventLogClient = restClientHelper.getEventLogClient(documentClient);
             if (documentClient == null || eventLogClient == null) {
-                warning(ExportApi.EVENTLOG_TOPIC_EXPORT,
-                        "Unable to connect to workflow instance endpoint - please verify configuration!");
+                logService.warning("Unable to connect to workflow instance endpoint - please verify configuration!");
                 try {
                     stopScheduler();
                 } catch (ExportException e) {
@@ -228,34 +219,36 @@ public class ExportService {
 
             // max 100 entries per iteration
             eventLogClient.setPageSize(100);
-            List<ItemCollection> events = eventLogClient.searchEventLog(ExportApi.EVENTLOG_TOPIC_EXPORT);
+            List<ItemCollection> events = eventLogClient.searchEventLog(ExportApi.EVENTLOG_TOPIC);
 
             for (ItemCollection eventLogEntry : events) {
                 total++;
                 topic = eventLogEntry.getItemValueString("topic");
                 id = eventLogEntry.getItemValueString("id");
                 ref = eventLogEntry.getItemValueString("ref");
+                String path = eventLogEntry.getItemValueString("path");
 
                 try {
                     // first try to lock the eventLog entry....
                     eventLogClient.lockEventLogEntry(id);
-
                     // pull the snapshotEvent ...
-                    logger.finest("......pull snapshot " + ref + "....");
-                    // eventCache.add(eventLogEntry);
                     ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
 
-                    ftpConnector.put(snapshot);
+                    // iterate over all Files and export it
+                    List<FileData> fileDataList = snapshot.getFileData();
+                    for (FileData fileData : fileDataList) {
+                        fileService.writeFileData(fileData, path);
+                        success++;
+                    }
 
                     // finally remove the event log entry...
                     eventLogClient.deleteEventLogEntry(id);
-                    success++;
+
                     metricRegistry.counter("application_org_imixs_archive_export_ExportService_events").inc();
                 } catch (InvalidAccessException | EJBException | ExportException | RestAPIException e) {
                     // we also catch EJBExceptions here because we do not want to cancel the
                     // ManagedScheduledExecutorService
-                    warning(ExportApi.EVENTLOG_TOPIC_EXPORT,
-                            "SnapshotEvent " + id + " export failed: " + e.getMessage());
+                    logService.warning("ExportEvent " + id + " failed: " + e.getMessage());
                     metricRegistry.counter("application_org_imixs_archive_export_ExportService_errors").inc();
                     errors++;
                 }
@@ -263,13 +256,13 @@ public class ExportService {
 
             // print log
             if (total > 0) {
-                info(ExportApi.EVENTLOG_TOPIC_EXPORT, success + " snapshots export up, " + errors + " errors...");
+                logService.info(success + " files exported, " + errors + " errors.");
             }
 
             exportStatusHandler.setStatus(ExportStatusHandler.STATUS_SCHEDULED);
 
         } catch (InvalidAccessException | EJBException | RestAPIException e) {
-            severe(ExportApi.EVENTLOG_TOPIC_EXPORT, "processing EventLog failed: " + e.getMessage());
+            logService.severe("processing EventLog failed: " + e.getMessage());
             metricRegistry.counter("application_org_imixs_archive_export_ExportService_errors").inc();
         }
     }
@@ -289,7 +282,7 @@ public class ExportService {
             logger.fine("...no eventLogClient available!");
             return;
         }
-        eventLogClient.releaseDeadLocks(deadLockInterval, ExportApi.EVENTLOG_TOPIC_EXPORT);
+        eventLogClient.releaseDeadLocks(deadLockInterval, ExportApi.EVENTLOG_TOPIC);
     }
 
     /**
@@ -321,13 +314,13 @@ public class ExportService {
                 return snapshot;
             }
         } catch (RestAPIException e) {
-            warning(ExportApi.EVENTLOG_TOPIC_EXPORT, "Snapshot " + ref + " pull failed: " + e.getMessage());
+            logService.warning("Snapshot " + ref + " pull failed: " + e.getMessage());
             // now we need to remove the batch event
-            warning(ExportApi.EVENTLOG_TOPIC_EXPORT, "EventLogEntry " + id + " will be removed!");
+            logService.warning("EventLogEntry " + id + " will be removed!");
             try {
                 eventLogClient.deleteEventLogEntry(id);
             } catch (RestAPIException e1) {
-                throw new ExportException("REMOTE_EXCEPTION", "Unable to delte eventLogEntry: " + id, e1);
+                throw new ExportException("REMOTE_EXCEPTION", "Unable to delete eventLogEntry: " + id, e1);
             }
         }
         return null;
@@ -358,7 +351,7 @@ public class ExportService {
                 // clear log in case of a normal start
                 // reset(ExportApi.EVENTLOG_TOPIC_EXPORT);
             }
-            info(ExportApi.EVENTLOG_TOPIC_EXPORT,
+            logService.info(
                     "Starting export scheduler - initalDelay=" + initialDelay + "ms  inverval=" + interval + "ms ....");
             // start archive schedulers....
             // Registering a non-persistent Timer Service.
@@ -383,67 +376,16 @@ public class ExportService {
         Timer timer = exportStatusHandler.getTimer();
         if (timer != null) {
             try {
-                info(ExportApi.EVENTLOG_TOPIC_EXPORT, "Stopping the export scheduler...");
+                logService.info("Stopping the export scheduler...");
                 timer.cancel();
             } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
                 throw new ExportException("TIMER_EXCEPTION", "Failed to stop scheduler ", e);
             }
             // update status message
-            info(ExportApi.EVENTLOG_TOPIC_EXPORT, "Timer stopped. ");
+            logService.info("Timer stopped. ");
         }
         exportStatusHandler.setStatus(ExportStatusHandler.STATUS_STOPPED);
         return true;
     }
 
-    /**
-     * Logs a new message to the message log
-     *
-     * @param message
-     */
-    private void add(String topic, int type, String message) {
-        String pattern = " HH:mm:ss.SSSZ";
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-
-        // get the logger
-
-        if (logTopics == null) {
-            logTopics = new ArrayList<String>();
-        }
-
-        // check maxsize...
-        while (logTopics.size() > maxSize) {
-            logTopics.remove(0);
-        }
-
-        String entry = simpleDateFormat.format(new Date()) + " ";
-        if (type == LOG_ERROR) {
-            entry = entry + "[ERROR] ";
-            logger.severe(message);
-        } else if (type == LOG_WARNING) {
-            entry = entry + "[WARNING] ";
-            logger.warning(message);
-        } else {
-            entry = entry + "[INFO]    ";
-            logger.info(message);
-
-        }
-        entry = entry + message;
-        logTopics.add(entry);
-    }
-
-    public List<String> getLogEntries() {
-        return logTopics;
-    }
-
-    public void info(String context, String message) {
-        add(context, LOG_INFO, message);
-    }
-
-    public void warning(String context, String message) {
-        add(context, LOG_WARNING, message);
-    }
-
-    public void severe(String context, String message) {
-        add(context, LOG_ERROR, message);
-    }
 }

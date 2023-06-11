@@ -15,8 +15,9 @@ import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.imixs.archive.export.ExportApi;
 import org.imixs.archive.export.ExportException;
-import org.imixs.archive.export.services.ExportService;
 import org.imixs.archive.export.services.ExportStatusHandler;
+import org.imixs.archive.export.services.LogService;
+import org.imixs.archive.export.services.SchedulerService;
 
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
@@ -24,8 +25,8 @@ import jakarta.inject.Named;
 
 /**
  * The ExportController is used to monitor the export status of the
- * {@link ExportService}. The controller provides a processing log and shows the
- * current configuration. This controller does not hold any state.
+ * {@link SchedulerService}. The controller provides a processing log and shows
+ * the current configuration. This controller does not hold any state.
  *
  * @author rsoika
  *
@@ -49,15 +50,15 @@ public class ExportController implements Serializable {
     Optional<String> instanceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ExportApi.ENV_EXPORT_FTP_HOST)
+    @ConfigProperty(name = ExportApi.EXPORT_FTP_HOST)
     Optional<String> ftpServer;
 
     @Inject
-    @ConfigProperty(name = ExportApi.ENV_EXPORT_FTP_PATH)
-    Optional<String> ftpPath;
+    @ConfigProperty(name = ExportApi.EXPORT_PATH)
+    Optional<String> filePath;
 
     @Inject
-    @ConfigProperty(name = ExportApi.ENV_EXPORT_FTP_PORT, defaultValue = "21")
+    @ConfigProperty(name = ExportApi.EXPORT_FTP_PORT, defaultValue = "21")
     int ftpPort;
 
     // timeout interval in ms
@@ -69,11 +70,14 @@ public class ExportController implements Serializable {
     @RegistryType(type = MetricRegistry.Type.APPLICATION)
     MetricRegistry metricRegistry;
 
-    @SuppressWarnings("unused")
     private static Logger logger = Logger.getLogger(ExportController.class.getName());
 
     @Inject
-    ExportService exportService;
+    SchedulerService exportService;
+
+    @Inject
+    LogService logService;
+
     @Inject
     ExportStatusHandler exportStatusHandler;
 
@@ -103,8 +107,8 @@ public class ExportController implements Serializable {
         return ftpServer.orElse("");
     }
 
-    public String getFtpPath() {
-        return ftpPath.orElse("");
+    public String getFilePath() {
+        return filePath.orElse("");
     }
 
     public int getFtpPort() {
@@ -126,7 +130,7 @@ public class ExportController implements Serializable {
         try {
             exportService.startScheduler(true);
         } catch (ExportException e) {
-            exportService.warning(ExportApi.EVENTLOG_TOPIC_EXPORT, e.getMessage());
+            logService.warning(e.getMessage());
         }
     }
 
@@ -137,7 +141,7 @@ public class ExportController implements Serializable {
         try {
             exportService.stopScheduler();
         } catch (ExportException e) {
-            exportService.warning(ExportApi.EVENTLOG_TOPIC_EXPORT, e.getMessage());
+            logService.warning(e.getMessage());
         }
     }
 
@@ -162,7 +166,7 @@ public class ExportController implements Serializable {
         return 0;
     }
 
-    public List<String> getLogEntries(String context) {
-        return exportService.getLogEntries();// logTopics.get(context);
+    public List<String> getLogEntries() {
+        return logService.getLogEntries();// logTopics.get(context);
     }
 }
