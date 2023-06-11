@@ -1,4 +1,4 @@
-package org.imixs.archive.util;
+package org.imixs.archive.backup.util;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
@@ -91,8 +91,8 @@ public class LogController implements Serializable {
         return logTopics.get(context);
     }
 
-//    public void setLogEntries(List<String> logEntries) {
-//        this.logEntries = logEntries;
-//    }
+    // public void setLogEntries(List<String> logEntries) {
+    // this.logEntries = logEntries;
+    // }
 
 }

@@ -27,9 +27,9 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.util.FTPConnector;
-import org.imixs.archive.util.LogController;
-import org.imixs.archive.util.RestClientHelper;
+import org.imixs.archive.backup.util.FTPConnector;
+import org.imixs.archive.backup.util.LogController;
+import org.imixs.archive.backup.util.RestClientHelper;
 import org.imixs.melman.DocumentClient;
 import org.imixs.melman.EventLogClient;
 import org.imixs.melman.RestAPIException;

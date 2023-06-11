@@ -20,7 +20,7 @@
  *  	Imixs Software Solutions GmbH - initial API and implementation
  *  	Ralph Soika
  *******************************************************************************/
-package org.imixs.archive.util;
+package org.imixs.archive.backup.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

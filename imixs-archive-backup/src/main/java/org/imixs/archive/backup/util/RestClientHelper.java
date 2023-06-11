@@ -1,4 +1,4 @@
-package org.imixs.archive.util;
+package org.imixs.archive.backup.util;
 
 import java.io.Serializable;
 import java.util.List;

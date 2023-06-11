@@ -12,7 +12,7 @@ import org.eclipse.microprofile.metrics.Counter;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
-import org.imixs.archive.util.LogController;
+import org.imixs.archive.backup.util.LogController;
 
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;

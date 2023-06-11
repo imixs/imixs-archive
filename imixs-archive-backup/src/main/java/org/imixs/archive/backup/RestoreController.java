@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.util.LogController;
+import org.imixs.archive.backup.util.LogController;
 import org.imixs.workflow.ItemCollection;
 
 import jakarta.enterprise.context.RequestScoped;
