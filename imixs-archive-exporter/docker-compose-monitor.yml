@@ -58,46 +58,37 @@ services:
       - "8081:8080"
       - "8788:8787"
       - "9991:9990"
-    volumes:
-      - ./imixs-archive-exporter/docker/deployments:/opt/jboss/wildfly/standalone/deployments/
+
 
   ##################
-  # Backup Service
+  # Prometheus
   ##################
-  imixsbackup-app:
-    image: imixs/imixs-archive-backup:latest
-    environment:
-      WILDFLY_PASS: adminadmin
-      DEBUG: "true"
-
-      # EXAMPLE SETUP
-      WORKFLOW_SERVICE_ENDPOINT: "http://imixs-office:8080/api"
-      WORKFLOW_SERVICE_USER: "dataservice"
-      WORKFLOW_SERVICE_PASSWORD: "adminadmin"
-      WORKFLOW_SERVICE_AUTHMETHOD: "form"
-
-      EXPORT_FTP_HOST: "ftp.storage.foo"
-      EXPORT_FTP_PATH: "/test/backup-service"
-      EXPORT_FTP_PORT: "21"
-      EXPORT_FTP_USER: ""
-      EXPORT_FTP_PASSWORD: ""
-
-      METRICS_ENDPOINT: "http://localhost:9992/metrics"
-      HEALTH_ENDPOINT: "http://localhost:9992/health"
+  prometheus:
+    image: prom/prometheus:latest
     ports:
-      - "8082:8080"
-      - "8789:8787"
-      - "9992:9990"
+      - "9090:9090"
     volumes:
-      - ./imixs-archive-backup/docker/deployments:/opt/jboss/wildfly/standalone/deployments/
+      - ./docker/configuration/prometheus.yml:/etc/prometheus/prometheus.yml 
+      - prometheusdata:/prometheus/
+
+  ##################
+  # Grafana
+  ##################
+  grafana:
+    image: grafana/grafana:latest
+    ports: 
+      - "3000:3000" 
+
+
 
   ##################
   # Admin Client
   ##################
-  imixsadmin:
-    image: imixs/imixs-admin
-    ports:
-      - "8888:8080"
+  #imixsadmin:
+  #  image: imixs/imixs-admin
+  #  ports:
+  #    - "8888:8080"
 
 volumes:
   dbdata:
+  prometheusdata:

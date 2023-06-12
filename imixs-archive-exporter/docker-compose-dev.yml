@@ -58,7 +58,9 @@ services:
       - "8081:8080"
       - "8788:8787"
       - "9991:9990"
- 
+    volumes:
+      - ./docker/deployments:/opt/jboss/wildfly/standalone/deployments/
+
   ##################
   # Backup Service
   ##################

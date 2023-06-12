@@ -253,13 +253,12 @@ public class SchedulerService {
 
                     // finally remove the event log entry...
                     eventLogClient.deleteEventLogEntry(id);
-                    metricRegistry.counter("application_org_imixs_archive_export_services_SchedulerService_events")
-                            .inc();
+                    metricRegistry.counter("org_imixs_archive_export_services_SchedulerService_events").inc();
                 } catch (InvalidAccessException | EJBException | ExportException | RestAPIException e) {
                     // we also catch EJBExceptions here because we do not want to cancel the
                     // ManagedScheduledExecutorService
                     logService.warning("ExportEvent " + id + " failed: " + e.getMessage());
-                    metricRegistry.counter("application_org_imixs_archive_export_SchedulerService_errors").inc();
+                    metricRegistry.counter("org_imixs_archive_export_SchedulerService_errors").inc();
                     errors++;
                     // release lock
                     eventLogClient.unlockEventLogEntry(id);
@@ -275,7 +274,7 @@ public class SchedulerService {
 
         } catch (InvalidAccessException | EJBException | RestAPIException e) {
             logService.severe("processing EventLog failed: " + e.getMessage());
-            metricRegistry.counter("application_org_imixs_archive_export_SchedulerService_errors").inc();
+            metricRegistry.counter("org_imixs_archive_export_SchedulerService_errors").inc();
         }
     }
 
