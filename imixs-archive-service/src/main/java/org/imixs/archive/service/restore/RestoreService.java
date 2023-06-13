@@ -244,9 +244,9 @@ public class RestoreService {
 		long startTime = System.currentTimeMillis();
 
 		try {
-			// read the metdata
+			// read the metadata
 			metadata = dataService.loadMetadata();
-			// read last restor stat....
+			// read last restore stat....
 			restoreCount = metadata.getItemValueInteger(ITEM_RESTORE_SYNCCOUNT);
 			restoreSize = metadata.getItemValueInteger(ITEM_RESTORE_SYNCSIZE);
 			restoreErrors = metadata.getItemValueInteger(ITEM_RESTORE_SYNCERRORS);
@@ -295,7 +295,7 @@ public class RestoreService {
 								if (matchFilterOptions(latestSnapshot, options)) {
 									long _tmpSize = -1;
 									try {
-										logger.finest("......restoring: " + latestSnapshot);
+										logger.info("......restoring: " + latestSnapshot);
 										snapshot = dataService.loadSnapshot(latestSnapshot);
 										_tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
 										logger.finest("......size=: " + _tmpSize);
