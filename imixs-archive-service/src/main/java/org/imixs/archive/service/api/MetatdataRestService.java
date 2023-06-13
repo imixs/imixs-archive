@@ -29,14 +29,6 @@ package org.imixs.archive.service.api;
 
 import java.util.logging.Logger;
 
-import jakarta.ejb.Stateless;
-import jakarta.inject.Inject;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
-
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.resync.ResyncService;
@@ -44,6 +36,14 @@ import org.imixs.workflow.ItemCollection;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+
+import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
 /**
  * The MetatdataRestService is used to read and update the current syncpoint
@@ -63,7 +63,7 @@ public class MetatdataRestService {
     @Inject
     DataService dataService;
 
-    @javax.ws.rs.core.Context
+    @jakarta.ws.rs.core.Context
     private static HttpServletRequest servletRequest;
 
     private static Logger logger = Logger.getLogger(MetatdataRestService.class.getName());
@@ -81,8 +81,8 @@ public class MetatdataRestService {
         Cluster cluster = null;
         try {
             logger.info("...read metadata...");
-//			cluster = clusterService.getCluster();
-//			session = clusterService.getArchiveSession(cluster);
+            // cluster = clusterService.getCluster();
+            // session = clusterService.getArchiveSession(cluster);
 
             ItemCollection metadata = dataService.loadMetadata();
 
