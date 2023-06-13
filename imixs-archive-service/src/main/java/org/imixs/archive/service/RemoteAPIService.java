@@ -106,10 +106,12 @@ public class RemoteAPIService {
 
     /**
      * This method read the current snapshot id for a given UnqiueID. This
-     * information can be used to verify the sync satus of a single process
+     * information can be used to verify the sync status of a single process
      * instance.
      * 
-     * @return the current snapshotid
+     * The method throws a ArchiveException in case the snapshot did not exist
+     * 
+     * @return the current snapshotId
      * @throws ArchiveException
      * 
      */

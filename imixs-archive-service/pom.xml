@@ -276,13 +276,73 @@
 					<encoding>${project.build.sourceEncoding}</encoding>
 				</configuration>
 			</plugin>
-						
+					
+			<!-- Manik plugin -->
+			<plugin>
+				<groupId>org.imixs.maven</groupId>
+				<artifactId>manik-hotdeploy-maven-plugin</artifactId>
+				<version>2.0.0</version>
+				<executions>
+					<execution>
+						<phase>install</phase>
+						<goals>
+							<goal>deploy</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<!-- List Source and Target folders for Autodeploy and Hotdeploy -->
+					<autodeployments>
+						<deployment>
+							<!-- wildcard deployment -->
+							<source>target/*.{war,ear,jar}</source>
+							<target>docker/deployments/</target>
+							<unpack>true</unpack>						
+						</deployment>
+					</autodeployments>
+					<hotdeployments>
+						<deployment>
+							<source>src/main/webapp</source>
+							<target>docker/deployments/imixs-archive-service.war</target>
+						</deployment>						
+					</hotdeployments>
+				</configuration>
+
+			</plugin>
+		
 		</plugins>
+
 
 		<finalName>imixs-archive-service</finalName>
 	</build>
 
 	<dependencies>
+
+
+		
+		<!-- Java EE dependencies -->
+		<dependency>
+			<groupId>jakarta.platform</groupId>
+			<artifactId>jakarta.jakartaee-api</artifactId>
+			<version>${jakarta.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- Microprofile -->
+		<dependency>
+			<groupId>org.eclipse.microprofile</groupId>
+			<artifactId>microprofile</artifactId>
+			<version>${microprofile.version}</version>
+			<type>pom</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.microprofile.metrics</groupId>
+			<artifactId>microprofile-metrics-api</artifactId>
+			<version>${microprofile-metrics.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>org.imixs.workflow</groupId>
 			<artifactId>imixs-workflow-core</artifactId>

@@ -27,13 +27,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
-import javax.annotation.Resource;
-import jakarta.ejb.Stateless;
-import jakarta.ejb.Timeout;
-import jakarta.ejb.Timer;
-import jakarta.ejb.TimerConfig;
-import jakarta.inject.Inject;
-
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.RemoteAPIService;
 import org.imixs.archive.service.cassandra.ClusterService;
@@ -44,6 +37,13 @@ import org.imixs.workflow.exceptions.QueryException;
 import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
+
+import jakarta.annotation.Resource;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.Timer;
+import jakarta.ejb.TimerConfig;
+import jakarta.inject.Inject;
 
 /**
  * The SyncService synchronizes the data of a Imixs-Worklfow instance with the
@@ -260,11 +260,12 @@ public class ResyncService {
                                 syncupdate++;
                                 totalCount++;
                                 totalSize = totalSize + dataService.calculateSize(xmlDocument);
-                            } catch ( RuntimeException  e) {
-                                logger.warning("Failed to resync snapshot id '"+snapshot.getUniqueID()+"' - error: "+e.getMessage());
+                            } catch (RuntimeException e) {
+                                logger.warning("Failed to resync snapshot id '" + snapshot.getUniqueID() + "' - error: "
+                                        + e.getMessage());
                                 // we continue....
                             }
-                            
+
                         } else {
                             // This is because in case of a restore, the same snapshot takes a new $modified
                             // item. And we do not want to re-import the snapshot in the next sync cycle.

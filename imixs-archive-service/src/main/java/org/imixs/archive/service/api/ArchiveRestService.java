@@ -32,6 +32,17 @@ import java.net.URLDecoder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.cassandra.ClusterService;
+import org.imixs.archive.service.cassandra.DataService;
+import org.imixs.workflow.FileData;
+import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.xml.XMLDataCollectionAdapter;
+import org.imixs.workflow.xml.XMLDocumentAdapter;
+
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
+
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,17 +57,6 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
-
-import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.workflow.FileData;
-import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.xml.XMLDataCollectionAdapter;
-import org.imixs.workflow.xml.XMLDocumentAdapter;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
 
 /**
  * The ArchiveRestService provides a Rest API to be used by external clients.
@@ -78,7 +78,7 @@ public class ArchiveRestService {
     @Inject
     DataService dataService;
 
-    @javax.ws.rs.core.Context
+    @jakarta.ws.rs.core.Context
     private HttpServletRequest servletRequest;
 
     private static Logger logger = Logger.getLogger(ArchiveRestService.class.getName());
@@ -283,8 +283,6 @@ public class ArchiveRestService {
         return Response.status(Response.Status.NOT_FOUND).build();
 
     }
-
-
 
     /**
      * This method converts a single ItemCollection into a Jax-rs response object.

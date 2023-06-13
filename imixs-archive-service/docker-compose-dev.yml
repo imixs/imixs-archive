@@ -42,11 +42,11 @@ services:
       - "9990:9990"
       - "8787:8787"
     volumes:
-        - ~/git/imixs-archive/imixs-archive-service/src/docker/deployments:/opt/wildfly/standalone/deployments/
+      - ./docker/deployments:/opt/jboss/wildfly/standalone/deployments/
         
         
   cassandra:
-    image: cassandra:3.11
+    image: cassandra:4.0.6
     environment:
       TZ: "Europe/Berlin"   
      
