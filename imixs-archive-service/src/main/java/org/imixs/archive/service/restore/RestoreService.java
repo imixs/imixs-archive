@@ -32,12 +32,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import jakarta.annotation.Resource;
-import jakarta.ejb.Stateless;
-import jakarta.ejb.Timeout;
-import jakarta.ejb.Timer;
-import jakarta.inject.Inject;
-
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.RemoteAPIService;
 import org.imixs.archive.service.cassandra.ClusterService;
@@ -52,6 +46,12 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+
+import jakarta.annotation.Resource;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.Timer;
+import jakarta.inject.Inject;
 
 /**
  * The RestoreService restores the workflow data stored in the cassandra cluster
@@ -276,15 +276,18 @@ public class RestoreService {
 					for (String snapshotID : snapshotIDs) {
 
 						String latestSnapshot = findLatestSnapshotID(snapshotID, restoreFrom, restoreTo);
-
 						// did we found a snapshot to restore?
 						ItemCollection snapshot;
+						String remoteSnapshotID = null;
 						if (latestSnapshot != null) {
-							// yes!
-							// lets see if this snapshot is already restored or synced?
-							String remoteSnapshotID = remoteAPIService
-									.readSnapshotIDByUniqueID(dataService.getUniqueID(latestSnapshot));
-							if (latestSnapshot.equals(remoteSnapshotID)) {
+							// yes, lets see if this snapshot is already restored or synced?
+							try {
+								remoteSnapshotID = remoteAPIService
+										.readSnapshotIDByUniqueID(dataService.getUniqueID(latestSnapshot));
+							} catch (ArchiveException ae) {
+								// expected if not found
+							}
+							if (remoteSnapshotID != null && latestSnapshot.equals(remoteSnapshotID)) {
 								logger.finest(
 										"......no need to restore - snapshot:" + latestSnapshot + " is up to date!");
 							} else {
@@ -311,7 +314,7 @@ public class RestoreService {
 							}
 						} else {
 							logger.warning(
-									".... unexpected data situation:  we found no latest snapthost matching our restore time range!");
+									".... unexpected data situation:  no latest snapshot found, matching requested restore time range!");
 						}
 					}
 				}
