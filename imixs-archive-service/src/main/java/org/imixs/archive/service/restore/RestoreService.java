@@ -267,19 +267,16 @@ public class RestoreService {
 			// we search for snapshotIDs until we found one or the syncdate is after the
 			// restore.to point.
 			while (localDateRestoreTo.isAfter(localDateSyncPoint)) {
-
 				List<String> snapshotIDs = dataService.loadSnapshotsByDate(localDateSyncPoint.toLocalDate());
 				// verify all snapshots of this day....
 				if (!snapshotIDs.isEmpty()) {
-					logger.info("......restore snapshot date " + localDateSyncPoint);
+					logger.info("......validate snapshot date " + localDateSyncPoint + "...");
 					// print out the snapshotIDs we found
 					for (String snapshotID : snapshotIDs) {
-
 						String latestSnapshot = findLatestSnapshotID(snapshotID, restoreFrom, restoreTo);
-						// did we found a snapshot to restore?
 						ItemCollection snapshot;
 						String remoteSnapshotID = null;
-						if (latestSnapshot != null) {
+						if (latestSnapshot != null && matchFilterOptions(latestSnapshot, options)) {
 							// yes, lets see if this snapshot is already restored or synced?
 							try {
 								remoteSnapshotID = remoteAPIService
@@ -291,30 +288,26 @@ public class RestoreService {
 								logger.finest(
 										"......no need to restore - snapshot:" + latestSnapshot + " is up to date!");
 							} else {
-								// test the filter options
-								if (matchFilterOptions(latestSnapshot, options)) {
-									long _tmpSize = -1;
-									try {
-										logger.info("......restoring: " + latestSnapshot);
-										snapshot = dataService.loadSnapshot(latestSnapshot);
-										_tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
-										logger.finest("......size=: " + _tmpSize);
-
-										remoteAPIService.restoreSnapshot(snapshot);
-
-										restoreSize = restoreSize + _tmpSize;
-										restoreCount++;
-										snapshot = null;
-									} catch (Exception e) {
-										logger.severe("...Failed to restore '" + latestSnapshot + "' ("
-												+ messageService.userFriendlyBytes(_tmpSize) + ") - " + e.getMessage());
-										restoreErrors++;
-									}
+								// start restore...
+								long _tmpSize = -1;
+								try {
+									logger.info("......restore snapshot " + latestSnapshot + " ...");
+									snapshot = dataService.loadSnapshot(latestSnapshot);
+									_tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
+									logger.finest("......size=: " + _tmpSize);
+									remoteAPIService.restoreSnapshot(snapshot);
+									restoreSize = restoreSize + _tmpSize;
+									restoreCount++;
+									snapshot = null;
+								} catch (Exception e) {
+									logger.severe("...Failed to restore '" + latestSnapshot + "' ("
+											+ messageService.userFriendlyBytes(_tmpSize) + ") - " + e.getMessage());
+									restoreErrors++;
 								}
 							}
 						} else {
-							logger.warning(
-									".... unexpected data situation:  no latest snapshot found, matching requested restore time range!");
+							logger.fine(
+									".... no snapshot found matching requested restore time range and options");
 						}
 					}
 				}

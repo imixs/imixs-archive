@@ -14,14 +14,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jakarta.ejb.Stateless;
-import jakarta.enterprise.event.Event;
-import jakarta.inject.Inject;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
-
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.workflow.FileData;
@@ -36,6 +28,14 @@ import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.SimpleStatement;
+
+import jakarta.ejb.Stateless;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
+import jakarta.xml.bind.Unmarshaller;
 
 /**
  * The SnapshotService is used to store a imixs snapshot into the cluster
@@ -129,9 +129,10 @@ public class DataService {
 
         // verify if this snapshot is already stored - if so, we do not overwrite
         // the origin data. See issue #40
+        // For example this situation also occurs when restoring a remote snapshot.
         if (existSnapshot(snapshotID)) {
             // skip!
-            logger.info("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
+            logger.fine("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
             return;
         }
 
@@ -220,13 +221,13 @@ public class DataService {
         if (row != null) {
             // load ItemCollection object
             ByteBuffer data = row.getBytes(COLUMN_DATA);
-            if (data!=null && data.hasArray()) {
+            if (data != null && data.hasArray()) {
                 snapshot = getItemCollection(data.array());
 
                 // next we need to load the document data if exists...
                 mergeDocumentData(snapshot);
             } else {
-                logger.warning("no data found for snapshotId '"+snapshotID+"'");
+                logger.warning("no data found for snapshotId '" + snapshotID + "'");
             }
         } else {
             // does not exist - create empty object
