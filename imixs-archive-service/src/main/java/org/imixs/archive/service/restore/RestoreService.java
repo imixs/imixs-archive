@@ -275,45 +275,49 @@ public class RestoreService {
 					// print out the snapshotIDs we found
 					for (String snapshotID : snapshotIDs) {
 
-						String latestSnapshot = findLatestSnapshotID(snapshotID, restoreFrom, restoreTo);
+					    
+                        String latestSnapshot = findLatestSnapshotID(snapshotID, restoreFrom, restoreTo);
+                        // did we found a snapshot to restore?
+                        ItemCollection snapshot;
+                        String remoteSnapshotID = null;
+                        if (latestSnapshot != null) {
+                            // yes, lets see if this snapshot is already restored or synced?
+                            try {
+                                remoteSnapshotID = remoteAPIService
+                                        .readSnapshotIDByUniqueID(dataService.getUniqueID(latestSnapshot));
+                            } catch (ArchiveException ae) {
+                                // expected if not found
+                            }
+                            if (remoteSnapshotID != null && latestSnapshot.equals(remoteSnapshotID)) {
+                                logger.finest(
+                                        "......no need to restore - snapshot:" + latestSnapshot + " is up to date!");
+                            } else {
+                                // test the filter options
+                                if (matchFilterOptions(latestSnapshot, options)) {
+                                    long _tmpSize = -1;
+                                    try {
+                                        logger.info("......restoring: " + latestSnapshot);
+                                        snapshot = dataService.loadSnapshot(latestSnapshot);
+                                        _tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
+                                        logger.finest("......size=: " + _tmpSize);
 
-						// did we found a snapshot to restore?
-						ItemCollection snapshot;
-						if (latestSnapshot != null) {
-							// yes!
-							// lets see if this snapshot is already restored or synced?
-							String remoteSnapshotID = remoteAPIService
-									.readSnapshotIDByUniqueID(dataService.getUniqueID(latestSnapshot));
-							if (latestSnapshot.equals(remoteSnapshotID)) {
-								logger.finest(
-										"......no need to restore - snapshot:" + latestSnapshot + " is up to date!");
-							} else {
-								// test the filter options
-								if (matchFilterOptions(latestSnapshot, options)) {
-									long _tmpSize = -1;
-									try {
-										logger.finest("......restoring: " + latestSnapshot);
-										snapshot = dataService.loadSnapshot(latestSnapshot);
-										_tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
-										logger.finest("......size=: " + _tmpSize);
+                                        remoteAPIService.restoreSnapshot(snapshot);
 
-										remoteAPIService.restoreSnapshot(snapshot);
-
-										restoreSize = restoreSize + _tmpSize;
-										restoreCount++;
-										snapshot = null;
-									} catch (Exception e) {
-										logger.severe("...Failed to restore '" + latestSnapshot + "' ("
-												+ messageService.userFriendlyBytes(_tmpSize) + ") - " + e.getMessage());
-										restoreErrors++;
-									}
-								}
-							}
-						} else {
-							logger.warning(
-									".... unexpected data situation:  we found no latest snapthost matching our restore time range!");
-						}
-					}
+                                        restoreSize = restoreSize + _tmpSize;
+                                        restoreCount++;
+                                        snapshot = null;
+                                    } catch (Exception e) {
+                                        logger.severe("...Failed to restore '" + latestSnapshot + "' ("
+                                                + messageService.userFriendlyBytes(_tmpSize) + ") - " + e.getMessage());
+                                        restoreErrors++;
+                                    }
+                                }
+                            }
+                        } else {
+                            logger.warning(
+                                    ".... unexpected data situation:  no latest snapshot found, matching requested restore time range!");
+                        }
+                    }
 				}
 
 				// adjust snyncdate for one day....
