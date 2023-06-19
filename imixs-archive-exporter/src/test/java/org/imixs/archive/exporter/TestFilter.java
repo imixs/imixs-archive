@@ -8,15 +8,15 @@ import org.junit.Test;
 
 /**
  * Test the Optional expression
- * 
+ *
  * @author rsoika
- * 
+ *
  */
 public class TestFilter {
 
     /**
      * Test filter regex
-     * 
+     *
      */
     @Test
     public void testOptional() {
