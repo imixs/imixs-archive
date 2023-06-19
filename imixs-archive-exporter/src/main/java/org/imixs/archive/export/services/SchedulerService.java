@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.MetricRegistry;
@@ -232,11 +234,17 @@ public class SchedulerService {
                 id = eventLogEntry.getItemValueString("id");
                 ref = eventLogEntry.getItemValueString("ref");
                 String path = "";
+                String filter = "";
+                Pattern pattern = null;
                 // test if we have a data structure with a path information
                 List<Map> dataList = eventLogEntry.getItemValue("data");
                 if (dataList != null && dataList.size() > 0) {
                     ItemCollection dataItemCol = new ItemCollection(dataList.get(0));
                     path = dataItemCol.getItemValueString("path");
+                    filter = dataItemCol.getItemValueString("filter");
+                    if (!filter.isEmpty()) {
+                        pattern = Pattern.compile(filter);
+                    }
                 }
 
                 try {
@@ -247,6 +255,15 @@ public class SchedulerService {
 
                     // iterate over all Files and export it
                     for (FileData fileData : fileDataList) {
+                        // in case of a exiting filter, we test if the file name matches the filter
+                        // criteria
+                        if (pattern != null) {
+                            Matcher matcher = pattern.matcher(fileData.getName());
+                            if (!matcher.find()) {
+                                // no match!
+                                continue;
+                            }
+                        }
                         fileService.writeFileData(fileData, path);
                         success++;
                     }

@@ -16,11 +16,20 @@ The Imixs-Archive-Exporter is controlled by corresponding [EventLog Entries](htt
 	<timeout>60000</timeout>
         <document>
              <path>my-documents/</path>
+             <filter>\.pdf$</filter>
         </document>
  </eventlog>
 ```
 
-On each corresponding worklfow event a new event log entry `file.export` will be created. The Imixs-Archive-Exporter periodically check this event log entries and exports the corresponding files into a configured data space.
+On each corresponding workflow event a new event log entry `file.export` will be created. The Imixs-Archive-Exporter periodically check this event log entries and exports the corresponding files into a configured data space.
+
+## Path
+
+The optional event parameter `path` can be used to specify the target path for the file to be exported.
+
+## Filter
+
+The optional event parameter `filter` can be used to specify a regular expression to match the file name. This option can be used to export only a part of file from a workitem. For example the regular expression `\.pdf$` exports only files with the suffix '.pdf'.
 
 # Configuration
 
