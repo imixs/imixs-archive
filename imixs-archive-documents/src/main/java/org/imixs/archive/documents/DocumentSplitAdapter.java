@@ -12,6 +12,7 @@ import java.util.regex.PatternSyntaxException;
 import javax.inject.Inject;
 
 import org.imixs.archive.core.SnapshotService;
+import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.SignalAdapter;
 import org.imixs.workflow.WorkflowKernel;
@@ -175,7 +176,7 @@ public class DocumentSplitAdapter implements SignalAdapter {
                     if (debug) {
                         logger.info("....split filename " + fileName);
                     }
-                    processSubWorktitem(processData,originWorkitem, fileName);                    
+                    processSubWorkitem(processData,originWorkitem, fileName);                    
                 } 
                 if (count==0) {
                       throw new PluginException(DOCUMENTSPLIT, FILE_ERROR, "DocumentSplitAdapter - no file found matching the given filepattern, please check workflow model!");
@@ -198,7 +199,7 @@ public class DocumentSplitAdapter implements SignalAdapter {
      * @throws PluginException
      * @throws ModelException
      */
-    private void processSubWorktitem( ItemCollection processData, ItemCollection originWorkitem, String filename) throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
+    private void processSubWorkitem( ItemCollection processData, ItemCollection originWorkitem, String filename) throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
         boolean debug = logger.isLoggable(Level.FINE);
         // create new process instance
         ItemCollection workitemSubProcess = new ItemCollection();
@@ -211,16 +212,15 @@ public class DocumentSplitAdapter implements SignalAdapter {
         workitemSubProcess.removeItem("$eventlog");     
         workitemSubProcess.removeItem("txtworkflowhistory");             
 
-        // now remove all filesdata object not equal to the current filename. 
-         List<String> fileNames=originWorkitem.getFileNames(); 
-         for (String _fileName : fileNames) {
-            if (!_fileName.equals(filename)) {
-                if (debug) {
-                    logger.info("....remove filename " + _fileName);
-                }
-                workitemSubProcess.removeFile(_fileName);
-            }
-        }      
+        // now remove all filesdata objects....
+        workitemSubProcess.removeItem("$file");
+        // ... and copy the content form the origin snapshot!
+        FileData snapshotFileData = snapshotService.getWorkItemFile(originWorkitem.getUniqueID(), filename);
+        if (snapshotFileData==null) {
+             throw new PluginException(DOCUMENTSPLIT, FILE_ERROR, "DocumentSplitAdapter - no snapshot filedata object found!");
+        }
+        workitemSubProcess.addFileData(snapshotFileData);
+
         // check model version
         String sModelVersion = processData.getItemValueString("modelversion");
         if (sModelVersion.isEmpty()) {
