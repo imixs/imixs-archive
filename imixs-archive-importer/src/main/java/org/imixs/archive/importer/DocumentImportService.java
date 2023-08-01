@@ -28,14 +28,14 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import javax.ejb.EJB;
-import javax.ejb.LocalBean;
-import javax.ejb.Stateless;
-
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.WorkflowService;
 import org.imixs.workflow.engine.scheduler.Scheduler;
 import org.imixs.workflow.exceptions.PluginException;
+
+import jakarta.ejb.EJB;
+import jakarta.ejb.LocalBean;
+import jakarta.ejb.Stateless;
 
 /**
  * The DocumentImportService provides definitions and methods to process a

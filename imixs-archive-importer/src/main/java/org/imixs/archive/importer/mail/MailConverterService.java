@@ -30,8 +30,6 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.ejb.LocalBean;
-import javax.ejb.Stateless;
 import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -40,6 +38,9 @@ import javax.mail.Part;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeUtility;
+
+import jakarta.ejb.LocalBean;
+import jakarta.ejb.Stateless;
 
 /**
  * The MailConverterService provides methods to convert a Mail Message object
@@ -354,7 +355,7 @@ public class MailConverterService {
      * @throws MessagingException
      */
     private boolean isImagePart(Part bp, String id) throws MessagingException {
-        if (bp instanceof javax.mail.internet.MimeBodyPart) {
+        if (bp instanceof jakarta.mail.internet.MimeBodyPart) {
             MimeBodyPart mbp = (MimeBodyPart) bp;
             String currentID = mbp.getContentID();
             String contentType = mbp.getContentType();

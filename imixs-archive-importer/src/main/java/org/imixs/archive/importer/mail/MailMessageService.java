@@ -28,14 +28,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
-import javax.ejb.EJB;
-import javax.ejb.LocalBean;
-import javax.ejb.Stateless;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
+
+import jakarta.ejb.EJB;
+import jakarta.ejb.LocalBean;
+import jakarta.ejb.Stateless;
 
 /**
  * The MessageService provides methods attach Message objects as a file to a

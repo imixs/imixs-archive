@@ -37,12 +37,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
 import javax.mail.Address;
 import javax.mail.BodyPart;
 import javax.mail.Folder;
@@ -66,6 +60,13 @@ import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
 
 import com.sun.mail.imap.IMAPFolder;
+
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 /**
  * The EmailImportAdapter scans a IMAP account

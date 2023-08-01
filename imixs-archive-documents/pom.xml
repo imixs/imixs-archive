@@ -8,13 +8,6 @@
 	<artifactId>imixs-archive-documents</artifactId>
 
 	<dependencies>
-		<!-- JEE Dependencies -->
-		<dependency>
-			<groupId>javax</groupId>
-			<artifactId>javaee-api</artifactId>
-			<version>8.0</version>
-			<scope>provided</scope>
-		</dependency>
 		<!-- Imixs-Workflow dependencies -->
 		<dependency>
 			<groupId>org.imixs.workflow</groupId>

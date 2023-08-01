@@ -27,15 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.ejb.EJB;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.scheduler.Scheduler;
 import org.imixs.workflow.engine.scheduler.SchedulerException;
 import org.imixs.workflow.engine.scheduler.SchedulerService;
 import org.imixs.workflow.exceptions.QueryException;
+
+import jakarta.ejb.EJB;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
 
 /**
  * The DocumentImportScheduler iterates over all source definition and sends a

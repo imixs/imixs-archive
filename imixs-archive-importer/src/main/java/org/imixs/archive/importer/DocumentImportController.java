@@ -28,14 +28,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
-import javax.faces.view.ViewScoped;
-import javax.inject.Named;
-
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.scheduler.SchedulerController;
 import org.imixs.workflow.engine.scheduler.SchedulerService;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.ejb.EJB;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Named;
 
 /**
  * The DocumentImportController is used to configure the import scheduler.

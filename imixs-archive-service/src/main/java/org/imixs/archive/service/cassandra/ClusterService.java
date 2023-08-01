@@ -15,10 +15,6 @@ import java.security.cert.CertificateException;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import jakarta.ejb.Singleton;
-import jakarta.inject.Inject;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -28,13 +24,17 @@ import org.imixs.archive.service.ArchiveException;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Cluster.Builder;
-
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.RoundRobinPolicy;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.ejb.Singleton;
+import jakarta.inject.Inject;
 
 /**
  * The ClusterService provides methods to persist the content of a Imixs

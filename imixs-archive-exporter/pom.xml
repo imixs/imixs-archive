@@ -34,9 +34,7 @@
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 		<failOnMissingWebXml>false</failOnMissingWebXml>
-
 		<org.imixs.workflow.version>6.0.2</org.imixs.workflow.version>
-		<jakarta.version>10.0.0</jakarta.version>
 		<microprofile.version>5.0</microprofile.version>
 		<microprofile-metrics.version>4.0</microprofile-metrics.version>
 		
@@ -311,15 +309,6 @@
 	</build>
 
 	<dependencies>
-
-		
-		<!-- Java EE dependencies -->
-		<dependency>
-			<groupId>jakarta.platform</groupId>
-			<artifactId>jakarta.jakartaee-api</artifactId>
-			<version>${jakarta.version}</version>
-			<scope>provided</scope>
-		</dependency>
 
 		<!-- Microprofile -->
 		<dependency>

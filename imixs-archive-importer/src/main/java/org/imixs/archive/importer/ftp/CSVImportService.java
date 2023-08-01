@@ -43,10 +43,6 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.logging.Logger;
 
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPSClient;
@@ -60,6 +56,10 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
 import org.imixs.workflow.exceptions.QueryException;
+
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 /**
  * The CSVImportService reacts on DocumentImportEvent and importes a CSV file

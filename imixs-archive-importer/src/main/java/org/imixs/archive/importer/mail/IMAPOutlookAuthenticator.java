@@ -37,7 +37,6 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import javax.inject.Named;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
@@ -48,6 +47,8 @@ import javax.net.ssl.HttpsURLConnection;
 
 import org.imixs.archive.importer.DocumentImportService;
 import org.imixs.workflow.ItemCollection;
+
+import jakarta.inject.Named;
 
 /**
  * The IMAPOutlookAuthenticator authenticates against Microsoft Outlook using
