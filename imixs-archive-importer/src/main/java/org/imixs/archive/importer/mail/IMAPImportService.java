@@ -418,6 +418,12 @@ public class IMAPImportService {
         workitem.task(source.getItemValueInteger(DocumentImportService.SOURCE_ITEM_TASK));
         workitem.event(source.getItemValueInteger(DocumentImportService.SOURCE_ITEM_EVENT));
         workitem.setWorkflowGroup(source.getItemValueString("workflowgroup"));
+
+        // Add import Information
+        workitem.setItemValue("document.import.type", source.getItemValue("type"));
+        workitem.setItemValue("document.import.selector", source.getItemValue("selector"));
+        workitem.setItemValue("document.import.options", source.getItemValue("options"));
+
         return workitem;
     }
 
