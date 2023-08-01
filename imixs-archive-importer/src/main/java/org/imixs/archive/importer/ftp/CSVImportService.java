@@ -348,6 +348,11 @@ public class CSVImportService {
                 // replace txtName by the key field
                 entity.replaceItemValue("name", keyItemValue);
 
+                // Add import Information
+                entity.setItemValue("document.import.type", event.getSource().getItemValue("type"));
+                entity.setItemValue("document.import.selector", event.getSource().getItemValue("selector"));
+                entity.setItemValue("document.import.options", event.getSource().getItemValue("options"));
+
                 // store id into cache
                 if (idCache.contains(keyItemValue)) {
                     logger.warning("...WARNING dupplicate entry found: " + keyField + "=" + keyItemValue);
