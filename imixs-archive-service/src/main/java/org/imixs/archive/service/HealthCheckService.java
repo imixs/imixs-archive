@@ -33,10 +33,10 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import org.eclipse.microprofile.health.Health;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.HealthCheckResponseBuilder;
+import org.eclipse.microprofile.health.Liveness;
 import org.imixs.archive.service.cassandra.ClusterService;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -56,7 +56,7 @@ import jakarta.inject.Inject;
  * @author rsoika
  * @version 1.0
  */
-@Health
+@Liveness
 @ApplicationScoped
 public class HealthCheckService implements HealthCheck {
 
@@ -88,6 +88,7 @@ public class HealthCheckService implements HealthCheck {
 
         return builder.build();
     }
+
 
     /**
      * This method extracts the archive version form the maven pom.properties

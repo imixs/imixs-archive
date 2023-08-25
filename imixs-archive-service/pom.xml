@@ -9,7 +9,6 @@
 	<name>Imixs-Archive Service</name>
 
 	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<custom.webResources>src/main/webapp</custom.webResources>
 		<imixs-archive.applicationname>Imixs-Workflow-Archive</imixs-archive.applicationname>
 		<!-- Default docker registry -->
@@ -17,9 +16,7 @@
 		<root-context>/</root-context>
 	</properties>
 
-
 	<profiles>
-
 		<profile>
 			<id>docker</id>
 			<build>

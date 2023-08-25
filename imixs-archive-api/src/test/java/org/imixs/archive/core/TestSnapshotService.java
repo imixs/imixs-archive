@@ -18,7 +18,6 @@ import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -84,7 +83,6 @@ public class TestSnapshotService {
 	 * 
 	 */
 	@Test
-	@Ignore
 	public void testOnSave() throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
 		// load test workitem
 		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
@@ -128,7 +126,6 @@ public class TestSnapshotService {
 	 * 
 	 */
 	@Test
-	@Ignore
 	public void testOnSaveVersion()
 			throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
 		// load test workitem
