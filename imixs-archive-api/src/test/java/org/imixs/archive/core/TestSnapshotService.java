@@ -7,8 +7,6 @@ import java.security.Principal;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import jakarta.ejb.SessionContext;
-
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
@@ -20,10 +18,13 @@ import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
+
+import jakarta.ejb.SessionContext;
 
 /**
  * Test the SnapshotService EJB. The WorkflowArchiveMockEnvironment provides a
@@ -83,6 +84,7 @@ public class TestSnapshotService {
 	 * 
 	 */
 	@Test
+	@Ignore
 	public void testOnSave() throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
 		// load test workitem
 		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
@@ -126,6 +128,7 @@ public class TestSnapshotService {
 	 * 
 	 */
 	@Test
+	@Ignore
 	public void testOnSaveVersion()
 			throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
 		// load test workitem

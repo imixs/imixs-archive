@@ -84,8 +84,8 @@
 		<org.imixs.melman.version>2.0.1</org.imixs.melman.version>
 		<org.imixs.mock.version>6.0.0</org.imixs.mock.version>
 		<apache.pdfbox.version>2.0.21</apache.pdfbox.version>
-		<microprofile.version>3.0</microprofile.version>
-		<microprofile-metrics.version>2.3</microprofile-metrics.version>
+		<microprofile.version>6.0</microprofile.version>
+		<microprofile-metrics.version>5.0.0</microprofile-metrics.version>
 	</properties>
 
 	<repositories>
