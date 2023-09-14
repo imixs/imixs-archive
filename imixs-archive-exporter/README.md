@@ -23,6 +23,12 @@ The Imixs-Archive-Exporter is controlled by corresponding [EventLog Entries](htt
 
 On each corresponding workflow event a new event log entry `file.export` will be created. The Imixs-Archive-Exporter periodically check this event log entries and exports the corresponding files into a configured data space.
 
+**Note:** To process new eventLog entries you need to add the `EventLogPlugin` to your workflow model!
+
+```
+org.imixs.workflow.engine.plugins.EventLogPlugin
+```
+
 ## Path
 
 The optional event parameter `path` can be used to specify the target path for the file to be exported.
