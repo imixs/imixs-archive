@@ -62,7 +62,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
 /**
- * The CSVImportService reacts on DocumentImportEvent and importes a CSV file
+ * The CSVImportService reacts on DocumentImportEvent and imports a CSV file
  * form a FTP data source.
  * <p>
  * The implementation is based on org.apache.commons.net.ftp
@@ -109,7 +109,7 @@ public class CSVImportService {
 
         if (!"CSV".equalsIgnoreCase(event.getSource().getItemValueString("type"))) {
             // ignore data source
-            logger.finest("...... type '" + event.getSource().getItemValueString("type") + "' skiped.");
+            logger.finest("...... type '" + event.getSource().getItemValueString("type") + "' skipped.");
             return;
         }
         try {
@@ -198,13 +198,12 @@ public class CSVImportService {
                 try (ByteArrayOutputStream is = new ByteArrayOutputStream();) {
 
                     // because time stamps are not provided by all ftp servers and always in same
-                    // format
-                    // we store the checksum of the file to test if the file has changed since the
-                    // last import
+                    // format we store the checksum of the file to test if the file has changed
+                    // since the last import
                     ftpClient.retrieveFile(csvFilename, is);
                     byte[] rawData = is.toByteArray();
                     if (rawData != null && rawData.length > 0) {
-                        logger.finest("......file '" + file.getName() + "' successfull read - bytes size = "
+                        logger.finest("......file '" + file.getName() + "' successful read - bytes size = "
                                 + rawData.length);
 
                         String lastChecksum = event.getSource().getItemValueString("csv.checksum");
@@ -214,8 +213,8 @@ public class CSVImportService {
                         documentImportService.logMessage("...checksum=" + newChecksum, event);
                         if (lastChecksum.isEmpty() || !lastChecksum.equals(newChecksum)) {
                             // read data....
-                            InputStream imputStream = new ByteArrayInputStream(rawData);
-                            String log = importData(imputStream, encoding, type, keyField, event);
+                            InputStream inputStream = new ByteArrayInputStream(rawData);
+                            String log = importData(inputStream, encoding, type, keyField, event);
                             // update checksum
                             event.getSource().setItemValue("csv.checksum", newChecksum);
                             documentImportService.logMessage(log, event);
@@ -294,7 +293,7 @@ public class CSVImportService {
      * @return ErrorMessage or empty String
      * @throws PluginException
      */
-    public String importData(InputStream imputStream, String encoding, String type, String keyField,
+    public String importData(InputStream inputStream, String encoding, String type, String keyField,
             DocumentImportEvent event) throws PluginException {
 
         logger.fine("...starting csv data import...");
@@ -309,13 +308,13 @@ public class CSVImportService {
         int workitemsDeleted = 0;
         int workitemsFailed = 0;
         int blockSize = 0;
-
+        String csvFileName = event.getSource().getItemValueString("selector");
         if (encoding == null) {
             encoding = "UTF-8";
         }
 
         try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(imputStream, encoding));
+            BufferedReader in = new BufferedReader(new InputStreamReader(inputStream, encoding));
 
             // read first line containing the object type
             String header = in.readLine();
@@ -355,13 +354,13 @@ public class CSVImportService {
 
                 // store id into cache
                 if (idCache.contains(keyItemValue)) {
-                    logger.warning("...WARNING dupplicate entry found: " + keyField + "=" + keyItemValue);
+                    logger.warning("...WARNING duplicate entry found: " + keyField + "=" + keyItemValue);
                     documentImportService
-                            .logMessage("...WARNING dupplicate entry found: " + keyField + "=" + keyItemValue, event);
+                            .logMessage("...WARNING duplicate entry found: " + keyField + "=" + keyItemValue, event);
                 } else {
                     idCache.add(keyItemValue);
                 }
-                // test if entity already exits....
+                // test if entity already exists....
                 ItemCollection oldEntity = findEntityByName(entity.getItemValueString("Name"), type);
                 if (oldEntity == null) {
                     // create new workitem
@@ -370,7 +369,7 @@ public class CSVImportService {
                 } else {
                     // test if modified....
                     if (!isEqualEntity(oldEntity, entity, fields)) {
-                        logger.fine("update exsting entity: " + oldEntity.getUniqueID());
+                        logger.fine("update existing entity: " + oldEntity.getUniqueID());
                         // copy all entries from the import into the
                         // existing entity
                         oldEntity.replaceAllItems(entity.getAllItems());
@@ -381,7 +380,8 @@ public class CSVImportService {
 
                 if (blockSize >= 100) {
                     blockSize = 0;
-                    logger.info("..." + workitemsTotal + " entries read (" + workitemsUpdated + " updates)");
+                    logger.info("..." + csvFileName + ": " + workitemsTotal + " entries read (" + workitemsUpdated
+                            + " updates)");
                     // flush lucene index!
                     indexUpdateService.updateIndex();
                 }
@@ -400,8 +400,8 @@ public class CSVImportService {
         finally {
             // Close the input stream
             try {
-                if (imputStream != null) {
-                    imputStream.close();
+                if (inputStream != null) {
+                    inputStream.close();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -409,7 +409,7 @@ public class CSVImportService {
         }
 
         // now we remove all existing entries not listed in the file
-        workitemsDeleted = removeDeprecatedDocuments(idCache, type);
+        workitemsDeleted = removeDeprecatedDocuments(idCache, type, csvFileName);
         log += "..." + workitemsTotal + " entries read -> " + workitemsImported + " new entries - " + workitemsUpdated
                 + " updates - " + workitemsDeleted + " deletions - " + workitemsFailed + " errors";
 
@@ -423,12 +423,12 @@ public class CSVImportService {
      * 
      * @return count of deletions
      */
-    private int removeDeprecatedDocuments(List<String> idCache, String type) {
+    private int removeDeprecatedDocuments(List<String> idCache, String type, String csvFileName) {
         int deletions = 0;
         int firstResult = 0;
         int blockSize = 100;
 
-        logger.info("removing deprecated entries...");
+        logger.info("..." + csvFileName + ": delete deprecated entries...");
         // now we remove all existing entries not listed in the file
         String sQuery = "SELECT document FROM Document AS document WHERE document.type='" + type
                 + "' ORDER BY document.created ASC";
@@ -446,13 +446,13 @@ public class CSVImportService {
 
             if (entries.size() == blockSize) {
                 firstResult = firstResult + blockSize;
+                logger.info("..." + csvFileName + ": " + firstResult + " entries verified (" + deletions
+                        + " deletions)");
             } else {
                 // end
                 break;
             }
-
         }
-
         return deletions;
     }
 
@@ -479,10 +479,8 @@ public class CSVImportService {
             // test if the token has content
             itemValue = itemValue.trim();
             if (itemValue != null && !itemValue.isEmpty()) {
-                // create a itemvalue with the corresponding fieldname
-
+                // create a itemValue with the corresponding fieldName
                 result.replaceItemValue(fieldnames.get(iCol), itemValue);
-                // searchstring += itemValue + " ";
             } else {
                 // empty value
                 result.replaceItemValue(fieldnames.get(iCol), "");
@@ -571,7 +569,7 @@ public class CSVImportService {
      * @param key  - name of the object (name)
      * @param type - type of the object
      * 
-     * @return entity or null if no entity with the given name exits
+     * @return entity or null if no entity with the given name exists
      */
     public ItemCollection findEntityByName(String key, String type) {
 
