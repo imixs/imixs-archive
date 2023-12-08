@@ -32,11 +32,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.logging.Logger;
 
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
-import javax.enterprise.event.Observes;
-import javax.ws.rs.core.MediaType;
-
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -51,6 +46,11 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
+
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+import jakarta.enterprise.event.Observes;
+import jakarta.ws.rs.core.MediaType;
 
 /**
  * The FTPImportService reacts on DocumentImportEvent and processes a FTP data
@@ -161,7 +161,7 @@ public class FTPImportService {
                             continue;
                         }
                         logger.info("import file " + file.getName() + "...");
-                        //String fullFileName = ftpPath + "/" + file.getName();
+                        // String fullFileName = ftpPath + "/" + file.getName();
                         try (ByteArrayOutputStream is = new ByteArrayOutputStream();) {
                             ftpClient.retrieveFile(file.getName(), is);
                             byte[] rawData = is.toByteArray();
