@@ -37,17 +37,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import javax.mail.Address;
-import javax.mail.BodyPart;
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.Part;
-import javax.mail.Store;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-
+import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.imixs.archive.importer.DocumentImportEvent;
 import org.imixs.archive.importer.DocumentImportService;
 import org.imixs.workflow.FileData;
@@ -59,14 +49,22 @@ import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
 
-import com.sun.mail.imap.IMAPFolder;
-
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
+import jakarta.mail.Address;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Folder;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
+import jakarta.mail.Store;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
 
 /**
  * The EmailImportAdapter scans a IMAP account
@@ -176,15 +174,17 @@ public class IMAPImportService {
         }
         try {
             Store store = null;
-            // depending on the option "imap.authenticator" we use the corresponding IMAPAuthenticator
+            // depending on the option "imap.authenticator" we use the corresponding
+            // IMAPAuthenticator
             // to open the mail store
-            IMAPAuthenticator imapAuthenticator=null;
-            String authenticatorClass = sourceOptions.getProperty(OPTION_IMAP_AUTHENTICATOR, "org.imixs.archive.importer.mail.IMAPBasicAuthenticator");
+            IMAPAuthenticator imapAuthenticator = null;
+            String authenticatorClass = sourceOptions.getProperty(OPTION_IMAP_AUTHENTICATOR,
+                    "org.imixs.archive.importer.mail.IMAPBasicAuthenticator");
             for (IMAPAuthenticator _imapAuthenticator : this.imapAuthenticators) {
                 // find the matching authenticator....
-                if (authenticatorClass.equals(_imapAuthenticator.getClass().getName() )) {
-                    documentImportService.logMessage("...IMAPAuthenticator = "+authenticatorClass, event);
-                    imapAuthenticator=_imapAuthenticator;
+                if (authenticatorClass.equals(_imapAuthenticator.getClass().getName())) {
+                    documentImportService.logMessage("...IMAPAuthenticator = " + authenticatorClass, event);
+                    imapAuthenticator = _imapAuthenticator;
                     break;
                 }
             }
@@ -296,7 +296,7 @@ public class IMAPImportService {
                                         logger.info("mimetype=" + contentType);
                                     }
                                     if (IMAPImportHelper.isMediaTypeOctet(contentType, fileName)
-                                        && fileName.toLowerCase().endsWith(".pdf")) {
+                                            && fileName.toLowerCase().endsWith(".pdf")) {
                                         logger.info("...converting mimetype '" + contentType + "' to application/pdf");
                                         contentType = "application/pdf";
                                     }
@@ -370,8 +370,7 @@ public class IMAPImportService {
         }
 
     }
- 
-    
+
     /**
      * This method opens the IMAP archive folder. If the folder does not exist, the
      * method creates the folder. The folder name can be configured by the property
@@ -427,6 +426,5 @@ public class IMAPImportService {
 
         return workitem;
     }
-
 
 }

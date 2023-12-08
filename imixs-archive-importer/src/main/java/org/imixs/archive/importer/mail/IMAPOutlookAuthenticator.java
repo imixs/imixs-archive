@@ -37,18 +37,18 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Store;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.imixs.archive.importer.DocumentImportService;
 import org.imixs.workflow.ItemCollection;
 
 import jakarta.inject.Named;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
 
 /**
  * The IMAPOutlookAuthenticator authenticates against Microsoft Outlook using
@@ -83,7 +83,7 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
         String imapPassword = sourceConfig.getItemValueString(DocumentImportService.SOURCE_ITEM_PASSWORD);
 
         boolean debug = Boolean.getBoolean(sourceOptions.getProperty(IMAPImportService.OPTION_DEBUG, "false"));
-        
+
         // create an empty properties object...
         // Properties props = System.getProperties();
         Properties imapProperties = new Properties();
@@ -152,7 +152,7 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
      */
     public String getAuthToken(String tenantId, String clientId, String client_secret) throws IOException {
         String sURL = "https://login.microsoftonline.com/" + tenantId + "/oauth2/v2.0/token";
-        logger.finest("...oauth login url="+sURL);
+        logger.finest("...oauth login url=" + sURL);
         HttpsURLConnection httpClient = (HttpsURLConnection) new URL(sURL).openConnection();
 
         // add request header

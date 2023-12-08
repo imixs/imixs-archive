@@ -33,14 +33,13 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Store;
-
 import org.imixs.archive.importer.DocumentImportService;
 import org.imixs.workflow.ItemCollection;
 
 import jakarta.inject.Named;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Store;
 
 /**
  * The IMAPBasicAuthenticator authenticates against an Mail store using BASIC

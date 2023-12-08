@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Logger;
 
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 
 /**
  * A helper bean with static methods
@@ -44,36 +44,34 @@ import javax.ws.rs.core.MediaType;
 public class IMAPImportHelper {
     private static Logger logger = Logger.getLogger(IMAPImportHelper.class.getName());
 
- 
     /**
-     * This method returns true if the mediaType of a file attachment is 
+     * This method returns true if the mediaType of a file attachment is
      * <p>
      * "application/octet-stream"
      * <p>
-     * In some cases we have a situation where the contentType is "application/octet" which is not a valid content type.
+     * In some cases we have a situation where the contentType is
+     * "application/octet" which is not a valid content type.
      * Also in this case we return true!
      * 
      * @param contentType
      * @return
      */
     public static boolean isMediaTypeOctet(String contentType, String filename) {
-        
+
         if (contentType.contains(MediaType.APPLICATION_OCTET_STREAM)) {
             return true;
         }
-        
+
         if (contentType.toLowerCase().startsWith("application/octet")) {
             // print a warning for later analysis
             logger.warning("Unknow ContentType: " + contentType + " - in " + filename);
             // Issue #167
             return true;
         }
-        
+
         // no octet type
         return false;
     }
-    
-  
 
     /**
      * Read inputstream into a byte array.

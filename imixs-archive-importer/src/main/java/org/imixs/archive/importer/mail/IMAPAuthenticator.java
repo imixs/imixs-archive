@@ -30,10 +30,10 @@ package org.imixs.archive.importer.mail;
 
 import java.util.Properties;
 
-import javax.mail.MessagingException;
-import javax.mail.Store;
-
 import org.imixs.workflow.ItemCollection;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.Store;
 
 /**
  * The IMAPAuthenticator defines the interface to authenticate against a Mail
@@ -55,6 +55,6 @@ public interface IMAPAuthenticator {
      * @return
      * @throws MessagingException
      */
-    public Store openMessageStore(ItemCollection sourceConfig, Properties sourceOptions)  throws MessagingException;
+    public Store openMessageStore(ItemCollection sourceConfig, Properties sourceOptions) throws MessagingException;
 
 }
