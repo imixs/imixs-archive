@@ -1,6 +1,6 @@
 # The Mail IMAP Importer
 
-The CDI Bean *IMAPIImporterService* is a concrete implementation to import documents form a IMAP server. This module provides also services to convert Java Mail Message objects into HTML or PDF.
+The CDI Bean `IMAPIImporterService` is a concrete implementation to import documents form a IMAP server. This module provides also services to convert Java Mail Message objects into HTML or PDF.
 
 ## The Import Folder
 
@@ -8,23 +8,23 @@ With the 'Selector' attribute you can define the IMAP folder from which the Mail
 
 ## The Archive Folder
 
-After the *IMAPIImporterService* has imported a single message successfully the message will be moved into a IMAP archive folder named 'imixs-archive'. This folder will be automatically created if it does not yet exist on the IMAP server.
-You can change the name of the archive folder by setting the option 'archive.folder'
+After the `IMAPIImporterService` has imported a single message successfully the message will be moved into a IMAP archive folder named 'imixs-archive'. This folder will be automatically created if it does not yet exist on the IMAP server.
+You can change the name of the archive folder by setting the option `archive.folder`
 
 	archive.folder=Invoice-Archive
 
 
 ## Filtering Mails by subject using regular expressions
 
-It is possible to filter emails by a subject. Therefor a regular expression can be added by the option property named "subejct.regex" - e.g.:
+It is possible to filter emails by a subject. Therefor a regular expression can be added by the option property named `subejct.regex` - e.g.:
 
-	filter.subject=(order|offer|invoice*)
+	subject.regex=(order|offer|invoice*)
 
 In this example only messages with the text 'order', 'offer' or starting with 'invoice' will be imported. 
 
 ## Detachment Mode
 
-The *IMAPIImporterService* provides the ability to detach files from an mail message object. The behaviour can be configured by the option property named "detach.mode". The following detach modes are supported:
+The *IMAPIImporterService* provides the ability to detach files from an mail message object. The behaviour can be configured by the option property named `detach.mode`. The following detach modes are supported:
 
  - PDF - only PDF files attached will be detached together with the origin .eml file to the workitem. This is the default mode.
  - ALL - all files will be detached and the email content will be attached as a HTML file to the workitem.
@@ -72,7 +72,11 @@ For Outlook365 the IMAP Authenticator `org.imixs.archive.importer.mail.IMAPOutlo
 
 **Note:** In case of using the  IMAPOutlookAuthenticator the server name is ignored. The Server names to generate a OAuth Token and to open the Message Store are resolved internally by the Authenticator implementation. 
 
+## Debug Mode
 
+You can activate a debug mode to get more insides of the import processing by setting the option `debug`
+
+	debug=true
 
 ## Gotenberg HTML PDF Converter
 

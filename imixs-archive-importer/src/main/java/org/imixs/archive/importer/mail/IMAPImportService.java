@@ -137,7 +137,7 @@ public class IMAPImportService {
      * 
      */
     public void onEvent(@Observes DocumentImportEvent event) {
-
+        IMAPFolder inboxFolder = null;
         // check if source is already completed
         if (event.getResult() == DocumentImportEvent.PROCESSING_COMPLETED) {
             logger.finest("...... import source already completed - no processing will be performed.");
@@ -151,10 +151,8 @@ public class IMAPImportService {
         }
 
         String imapServer = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SERVER);
-        String imapFolder = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SELECTOR);
-
+        String importFolderName = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SELECTOR);
         Properties sourceOptions = documentImportService.getOptionsProperties(event.getSource());
-
         Pattern subjectPattern = null;
         String subjectRegex = sourceOptions.getProperty(OPTION_SUBJECT_REGEX, "");
         boolean debug = Boolean.getBoolean(sourceOptions.getProperty(OPTION_DEBUG, "false"));
@@ -164,19 +162,15 @@ public class IMAPImportService {
                 subjectPattern = Pattern.compile(subjectRegex);
                 documentImportService.logMessage("...subject.regex = " + subjectRegex, event);
             } catch (PatternSyntaxException e) {
-                documentImportService.logMessage("Invalid IMAP regex filter: " + e.getMessage(), event);
+                documentImportService.logMessage("Error - invalid subject regex: " + e.getMessage(), event);
                 return;
             }
         }
 
-        if (imapFolder.isEmpty()) {
-            imapFolder = "INBOX";
-        }
         try {
             Store store = null;
             // depending on the option "imap.authenticator" we use the corresponding
-            // IMAPAuthenticator
-            // to open the mail store
+            // IMAPAuthenticator to open the mail store
             IMAPAuthenticator imapAuthenticator = null;
             String authenticatorClass = sourceOptions.getProperty(OPTION_IMAP_AUTHENTICATOR,
                     "org.imixs.archive.importer.mail.IMAPBasicAuthenticator");
@@ -189,11 +183,24 @@ public class IMAPImportService {
                 }
             }
             store = imapAuthenticator.openMessageStore(event.getSource(), sourceOptions);
+            documentImportService.logMessage("...connected to IMAP server: " + imapServer + " / " + importFolderName,
+                    event);
 
-            documentImportService.logMessage("...connected to IMAP server: " + imapServer + " /" + imapFolder, event);
+            // first we need to open the INBOX...
+            inboxFolder = (IMAPFolder) store.getFolder("INBOX");
+            // next open the Import Folder
+            IMAPFolder inportFolder = null;
+            // do we have a custom import folder?
+            if (!importFolderName.isEmpty()) {
+                // in case a folder is specified this filder need to be opend from the INBOX
+                // Default folder!
+                inportFolder = (IMAPFolder) inboxFolder.getFolder(importFolderName);
+            } else {
+                // if not specified it is always the INBOX
+                inportFolder = inboxFolder;
+            }
 
-            IMAPFolder inbox = (IMAPFolder) store.getFolder(imapFolder);
-            inbox.open(Folder.READ_WRITE);
+            inportFolder.open(Folder.READ_WRITE);
 
             // Depending on the option 'detach.mode' attachments will be added to the new
             // workitem.
@@ -201,10 +208,10 @@ public class IMAPImportService {
             documentImportService.logMessage("...detach.mode = " + detachOption, event);
 
             // open archive folder...
-            IMAPFolder archiveFolder = openImapArchive(store, inbox, sourceOptions, event);
+            IMAPFolder archiveFolder = openImapArchive(store, inboxFolder, sourceOptions, event);
 
             // fetches all messages from the INBOX...
-            Message[] messages = inbox.getMessages();
+            Message[] messages = inportFolder.getMessages();
             documentImportService.logMessage("..." + messages.length + " new messages found", event);
 
             for (Message message : messages) {
@@ -354,7 +361,7 @@ public class IMAPImportService {
 
                 // move message into the archive-folder
                 Message[] messageList = { message };
-                inbox.moveMessages(messageList, archiveFolder);
+                inportFolder.moveMessages(messageList, archiveFolder);
             }
 
             logger.finest("...completed");
@@ -362,7 +369,6 @@ public class IMAPImportService {
             documentImportService.logMessage("IMAP import failed: " + e.getMessage(), event);
             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
             return;
-
         } catch (MessagingException | IOException e) {
             documentImportService.logMessage("IMAP import failed: " + e.getMessage(), event);
             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
