@@ -65,6 +65,7 @@ import jakarta.mail.Part;
 import jakarta.mail.Store;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeUtility;
 
 /**
  * The EmailImportAdapter scans a IMAP account
@@ -287,6 +288,10 @@ public class IMAPImportService {
                                         logger.warning("...skip detaching file, because of missing filename");
                                         continue; // skip this attachment
                                     }
+
+                                    // decode filename (issue #202)
+                                    fileName = MimeUtility.decodeText(fileName);
+
                                     // detach only add PDF files?
                                     if (DETACH_MODE_PDF.equals(detachOption)) {
                                         if (!fileName.toLowerCase().endsWith(".pdf")) {
