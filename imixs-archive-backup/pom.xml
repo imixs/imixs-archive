@@ -8,24 +8,22 @@
   <artifactId>imixs-archive-backup</artifactId>
   <packaging>war</packaging>
   
-
-	<repositories>
-		<!-- Sonatype Snapshot repository -->
-		<repository>
-			<id>sonatype-snaptshots</id>
-			<name>Sonatype Snapshot repository</name>
-			<url>http://oss.sonatype.org/content/repositories/snapshots</url>
-		</repository>
-	</repositories>
-	
-	
+	<name>Imixs-Archive Backup</name>
+	<url>https://github.com/imixs/imixs-workflow</url>
+	<description>Imixs Workflow provides a platform for an open and standardized workflow technology. 
+		This is the meta project for the Imixs Workflow artefacts 
+		imixs-workflow-core, imixs-workflow-engine, imixs-workflow-faces and imixs-workflow-jax-rs</description>
+	<inceptionYear>2023</inceptionYear>
+	<organization>
+		<name>Imixs Software Solutions GmbH</name>
+		<url>http://www.imixs.com</url>
+	</organization>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 		<failOnMissingWebXml>false</failOnMissingWebXml>
-
 		<org.imixs.workflow.version>6.0.1</org.imixs.workflow.version>
 		<org.imixs.melman.version>2.0.0</org.imixs.melman.version>
 		<org.imixs.jwt.version>1.0.3</org.imixs.jwt.version>
@@ -336,34 +334,6 @@
 			<version>10.0.0</version>
 			<scope>provided</scope>
 		</dependency>
-
-
 	</dependencies>
 
-
-	<!-- Distributen Management oss.sonatype.org -->
-	<distributionManagement>
-		<snapshotRepository>
-			<id>sonatype-nexus-snapshots</id>
-			<name>Sonatype Nexus Snapshots</name>
-			<url>http://oss.sonatype.org/content/repositories/snapshots</url>
-		</snapshotRepository>
-		<repository>
-			<id>sonatype-nexus-staging</id>
-			<name>Nexus Release Repository</name>
-			<url>http://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-		</repository>
-	</distributionManagement>
-
-  
-	<name>Imixs-Archive Backup</name>
-	<url>https://github.com/imixs/imixs-workflow</url>
-	<description>Imixs Workflow provides a platform for an open and standardized workflow technology. 
-		This is the meta project for the Imixs Workflow artefacts 
-		imixs-workflow-core, imixs-workflow-engine, imixs-workflow-faces and imixs-workflow-jax-rs</description>
-	<inceptionYear>2023</inceptionYear>
-	<organization>
-		<name>Imixs Software Solutions GmbH</name>
-		<url>http://www.imixs.com</url>
-	</organization>
 </project>
