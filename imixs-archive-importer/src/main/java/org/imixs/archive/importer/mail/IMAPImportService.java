@@ -53,6 +53,7 @@ import javax.mail.Part;
 import javax.mail.Store;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeUtility;
 
 import org.imixs.archive.importer.DocumentImportEvent;
 import org.imixs.archive.importer.DocumentImportService;
@@ -282,6 +283,10 @@ public class IMAPImportService {
                                         logger.warning("...skip detaching file, because of missing filename");
                                         continue; // skip this attachment
                                     }
+
+                                    // decode filename (issue #202)
+                                    fileName = MimeUtility.decodeText(fileName);
+
                                     // detach only add PDF files?
                                     if (DETACH_MODE_PDF.equals(detachOption)) {
                                         if (!fileName.toLowerCase().endsWith(".pdf")) {
