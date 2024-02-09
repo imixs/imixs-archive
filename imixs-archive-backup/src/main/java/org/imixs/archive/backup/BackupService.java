@@ -27,6 +27,10 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.metrics.Counter;
+import org.eclipse.microprofile.metrics.Metadata;
+import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.annotation.RegistryScope;
 import org.imixs.archive.backup.util.FTPConnector;
 import org.imixs.archive.backup.util.LogController;
 import org.imixs.archive.backup.util.RestClientHelper;
@@ -75,6 +79,9 @@ public class BackupService {
     @Inject
     LogController logController;
 
+    public static final String METRIC_EVENTS_PROCESSED = "backup_events_processed";
+    public static final String METRIC_EVENTS_ERRORS = "backup_events_errors";
+
     // timeout interval in ms
     @Inject
     @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "10000")
@@ -120,6 +127,10 @@ public class BackupService {
 
     @Inject
     BackupStatusHandler backupStatusHandler;
+
+    @Inject
+    @RegistryScope(scope = MetricRegistry.APPLICATION_SCOPE)
+    MetricRegistry metricRegistry;
 
     @PostConstruct
     public void init() {
@@ -201,12 +212,17 @@ public class BackupService {
                     // finally remove the event log entry...
                     eventLogClient.deleteEventLogEntry(id);
                     success++;
+
+                    countMetric(METRIC_EVENTS_PROCESSED);
+
                 } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
                     // we also catch EJBExceptions here because we do not want to cancel the
                     // ManagedScheduledExecutorService
                     logController.warning(BackupApi.TOPIC_BACKUP,
                             "SnapshotEvent " + id + " backup failed: " + e.getMessage());
                     errors++;
+                    countMetric(METRIC_EVENTS_ERRORS);
+
                 }
             }
 
@@ -227,6 +243,23 @@ public class BackupService {
             } catch (BackupException e1) {
                 logController.warning(BackupApi.TOPIC_BACKUP, "Failed to restart backup scheduler: " + e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Helper method to create a counter and inc the coutner
+     *
+     * @param name
+     */
+    private void countMetric(String name) {
+
+        try {
+            Metadata metadata = Metadata.builder().withName(name)
+                    .withDescription("Imixs-Backup Service - processed backup events").build();
+            Counter counter = metricRegistry.counter(metadata);
+            counter.inc();
+        } catch (Exception e) {
+            logger.severe("Unable to create metrics for ' " + name + "'");
         }
     }
 

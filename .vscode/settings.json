@@ -4,12 +4,12 @@
 // - Linux: $HOME/.config/Code/User/settings.json
 // - Mac: $HOME/Library/Application Support/Code/User/settings.json
 {
-  "editor.formatOnSave": true,
+  // Organize Java Imports
   "editor.codeActionsOnSave": {
     "source.organizeImports": "explicit"
   },
-  "java.checkstyle.version": "8.44",
-  "java.checkstyle.autocheck": true,
+  // Checkstile
   "java.checkstyle.configuration": "https://raw.githubusercontent.com/imixs/imixs-workflow/master/imixs-checkstyle-8.44.xml",
-  "java.configuration.updateBuildConfiguration": "automatic"
+  "editor.formatOnSave": true
 }
+  

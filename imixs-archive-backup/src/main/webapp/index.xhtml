@@ -1,5 +1,4 @@
-<ui:composition template="/WEB-INF/templates/layout.xhtml"
-	xmlns:faces="jakarta.faces" xmlns:f="jakarta.faces.core"
+<ui:composition template="/WEB-INF/templates/layout.xhtml" xmlns:faces="jakarta.faces" xmlns:f="jakarta.faces.core"
 	xmlns:h="jakarta.faces.html" xmlns:ui="jakarta.faces.facelets">
 
 	<ui:define name="content">
@@ -7,110 +6,112 @@
 
 			<h:form id="connect_form_id">
 
-			<section class="" style="">
-				<div class="card" style="grid-column-start: span 12;min-height: 0px;">
-					<h1 style="line-height: 0;">
-						<span class="typcn typcn-cloud-storage-outline"></span> Imixs Backup Service
-					</h1>
-				</div>
-			</section>
-
-			<section class="" style="">
-				<div class="card" style="grid-column-start: span 12;">
-
-				
-					<p class="help">
-						<span class="typcn typcn-lightbulb"></span> Imixs-Workflow API
-						Endpoint Configuration.
-					</p>
-
-					<div class="imixs-form-section" style="grid-column-start: span 12;">
-
-
-						<table class="imixsdatatable"
-							style="grid-column-start: span 12; margin: 10px 0;">
-							<tr>
-								<td style="width: 25%;">Imixs-Workflow Instance:</td>
-								<td>#{backupController.getInstanceEndpoint()}</td>
-							</tr>
-
-							<tr>
-								<td>Backup Status:</td>
-								<td>#{backupController.getStatus()} <ui:fragment
-										rendered="#{backupController.isConnected()}">
-										<span class="typcn typcn-media-record"
-											style="font-size: 1.3em; color: #5c9e5c;"></span>
-									</ui:fragment> <ui:fragment rendered="#{!backupController.isConnected()}">
-										<span class="typcn typcn-media-record"
-											style="font-size: 1.3em; color: #e84848;"></span>
-									</ui:fragment>
-
-								</td>
-							</tr>
-
-							<tr>
-								<td>Interval:</td>
-								<td>#{backupController.getInterval()} ms</td>
-							</tr>
-
-							<tr>
-								<td>Next Timeout:</td>
-								<td>#{backupController.getNextTimeout()}</td>
-							</tr>
-
-
-							<tr>
-								<td>FTP Host:</td>
-								<td>#{backupController.ftpServer}:#{backupController.ftpPort}</td>
-							</tr>
-
-							<tr>
-								<td>Backup Space:</td>
-								<td>#{backupController.ftpPath}</td>
-							</tr>
-
-						</table>
+				<section class="" style="">
+					<div class="card" style="grid-column-start: span 12;min-height: 0px;">
+						<h1 style="line-height: 0;">
+							<span class="typcn typcn-cloud-storage-outline"></span> Imixs Backup Service
+						</h1>
 					</div>
+				</section>
 
-					<div class="imixs-form-section">
+				<section class="" style="">
+					<div class="card" style="grid-column-start: span 12;">
 
-						<span style="grid-column-start: span 8;"> <h:commandButton
-								value="Refresh" action="/" /> <h:commandButton value="Start"
-								style="background:#4dc24f;"
-								actionListener="#{backupController.start()}"
-								rendered="#{!backupController.connected}" /> <h:commandButton
-								value="Stop" style="background: #e84848;"
-								rendered="#{backupController.connected}"
-								actionListener="#{backupController.stop()}" />
-						</span>
+
+						<p class="help">
+							<span class="typcn typcn-lightbulb"></span> Imixs-Workflow API
+							Endpoint Configuration.
+						</p>
+
+						<div class="imixs-form-section" style="grid-column-start: span 12;">
+
+
+							<table class="imixsdatatable" style="grid-column-start: span 12; margin: 10px 0;">
+								<tr>
+									<td style="width: 25%;">Imixs-Workflow Instance:</td>
+									<td>#{backupController.getInstanceEndpoint()}</td>
+								</tr>
+
+								<tr>
+									<td>Backup Status:</td>
+									<td>#{backupController.getStatus()} <ui:fragment
+											rendered="#{backupController.isConnected()}">
+											<span class="typcn typcn-media-record"
+												style="font-size: 1.3em; color: #5c9e5c;"></span>
+										</ui:fragment>
+										<ui:fragment rendered="#{!backupController.isConnected()}">
+											<span class="typcn typcn-media-record"
+												style="font-size: 1.3em; color: #e84848;"></span>
+										</ui:fragment>
+
+									</td>
+								</tr>
+
+								<tr>
+									<td>Interval:</td>
+									<td>#{backupController.getInterval()} ms</td>
+								</tr>
+
+								<tr>
+									<td>Next Timeout:</td>
+									<td>#{backupController.getNextTimeout()}</td>
+								</tr>
+
+
+								<tr>
+									<td>FTP Host:</td>
+									<td>#{backupController.ftpServer}:#{backupController.ftpPort}</td>
+								</tr>
+
+								<tr>
+									<td>Backup Space:</td>
+									<td>#{backupController.ftpPath}</td>
+								</tr>
+
+							</table>
+						</div>
+
+						<div class="imixs-form-section">
+
+							<span style="grid-column-start: span 8;">
+								<h:commandButton value="Refresh" action="/" />
+								<h:commandButton value="Start" style="background:#4dc24f;"
+									actionListener="#{backupController.start()}"
+									rendered="#{!backupController.connected}" />
+								<h:commandButton value="Stop" style="background: #e84848;"
+									rendered="#{backupController.connected}"
+									actionListener="#{backupController.stop()}" />
+							</span>
+						</div>
 					</div>
-				</div>
 
 				</section>
-				
+
 				<!-- Metrics -->
-				
+
 
 
 				<section class="" style="">
 					<div class="card" style="grid-column-start: span 7;">
-			
+
 						<h1 class="lead">
-							#{exportController.getCounterByName('eventProcessed')} Events
+							#{backupController.getCounterByName('backup_events_processed')} Events
 						</h1>
 						<p class="lead">
-							Number of processed export events since last start.</p>
-			
-						
-			
+							Total Number of processed backup events since last start.</p>
+
+
+
 					</div>
 					<div class="card" style="grid-column-start: span 5;">
 						<h1 class="lead">
-							<span style="#{(exportController.getCounterByName('errors')>0)?'color: #e84848;':''}">#{exportController.getCounterByName('errors')} Errors</span>
+							<span
+								style="#{(backupController.getCounterByName('backup_events_errors')>0)?'color: #e84848;':''}">#{backupController.getCounterByName('backup_events_errors')}
+								Errors</span>
 						</h1>
 						<p class="lead">
-							Number of processed export errors since last start.</p>
-			
+							Total backup errros since last start.</p>
+
 					</div>
 				</section>
 

@@ -11,7 +11,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.Counter;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
-import org.eclipse.microprofile.metrics.annotation.RegistryType;
+import org.eclipse.microprofile.metrics.annotation.RegistryScope;
 import org.imixs.archive.backup.util.LogController;
 
 import jakarta.enterprise.context.RequestScoped;
@@ -45,7 +45,7 @@ public class BackupController implements Serializable {
     String metricsEndpoint;
 
     @Inject
-    @RegistryType(type = MetricRegistry.Type.APPLICATION)
+    @RegistryScope(scope = MetricRegistry.APPLICATION_SCOPE)
     MetricRegistry metricRegistry;
 
     @Inject
@@ -147,10 +147,8 @@ public class BackupController implements Serializable {
      * @return
      */
     public long getCounterByName(String name) {
-
         // find counter by name
         SortedMap<MetricID, Counter> allCounters = metricRegistry.getCounters();
-
         for (Map.Entry<MetricID, Counter> entry : allCounters.entrySet()) {
 
             MetricID metricID = entry.getKey();
@@ -158,7 +156,7 @@ public class BackupController implements Serializable {
                 return entry.getValue().getCount();
             }
         }
-        logger.warning("Metric Counter : " + name + " not found!");
+        logger.fine("Metric Counter : " + name + " not found!");
         return 0;
     }
 }
