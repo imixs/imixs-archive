@@ -69,7 +69,7 @@ public class MailMessageService {
         String htmlMessage = mailConverterService.convertToHTML(message);
         if (htmlMessage != null) {
             // attache file
-            String filename = message.getSubject() + ".html";
+            String filename = resolveSubjectToFileName(message) + ".html";
             FileData fileData = new FileData(filename, htmlMessage.getBytes("UTF-8"), "text/html", null);
             workitem.addFileData(fileData);
         }
