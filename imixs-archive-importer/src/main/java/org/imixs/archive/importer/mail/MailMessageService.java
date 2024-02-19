@@ -96,7 +96,7 @@ public class MailMessageService {
                     new ByteArrayInputStream(htmlMessage.getBytes(StandardCharsets.UTF_8)));
             if (pdfContent != null) {
                 // attache file
-                String filename = message.getSubject() + ".pdf";
+                String filename = resolveSubjectToFileName(message) + ".pdf";
                 FileData fileData = new FileData(filename, pdfContent, "application/pdf", null);
                 workitem.addFileData(fileData);
             }
@@ -117,9 +117,31 @@ public class MailMessageService {
         logger.fine("...attach message as eml file...");
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         message.writeTo(baos);
-        String filename = message.getSubject() + ".eml";
+        String filename = resolveSubjectToFileName(message) + ".eml";
         FileData fileData = new FileData(filename, baos.toByteArray(), "message/rfc822", null);
         workitem.addFileData(fileData);
     }
 
+    /**
+     * Helper method to resolve the subject to a valid filename to be used to store
+     * .pdf and .eml files.
+     * 
+     * @param message
+     * @return
+     * @throws MessagingException
+     */
+    private String resolveSubjectToFileName(Message message) throws MessagingException {
+        String subject = "-- no subject --";
+        if (message.getSubject() != null && !message.getSubject().isEmpty()) {
+            subject = message.getSubject();
+        }
+        // Define a regex pattern for invalid file characters
+        String invalidCharsRegex = "[\\\\/:*?\"<>|]";
+        // Replace invalid characters with underscores
+        subject = subject.replaceAll(invalidCharsRegex, "_");
+        // remove leading and trailing whitespaces
+        subject = subject.trim();
+
+        return subject;
+    }
 }
