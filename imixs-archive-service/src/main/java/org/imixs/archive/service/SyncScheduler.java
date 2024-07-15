@@ -3,6 +3,13 @@ package org.imixs.archive.service;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.imixs.melman.BasicAuthenticator;
+import org.imixs.melman.DocumentClient;
+import org.imixs.melman.EventLogClient;
+import org.imixs.melman.FormAuthenticator;
+import org.imixs.melman.RestAPIException;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.DeclareRoles;
@@ -17,13 +24,6 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.client.ClientRequestFilter;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.melman.BasicAuthenticator;
-import org.imixs.melman.DocumentClient;
-import org.imixs.melman.EventLogClient;
-import org.imixs.melman.FormAuthenticator;
-import org.imixs.melman.RestAPIException;
-
 /**
  * The SyncScheduler starts a TimerService to pull new snapshot events from the
  * workflow instance and push the snapshot data into the cassandra cluster
@@ -35,14 +35,13 @@ import org.imixs.melman.RestAPIException;
 @Startup
 @Singleton
 @LocalBean
-//@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 @DeclareRoles({ "org.imixs.ACCESSLEVEL.MANAGERACCESS" })
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 public class SyncScheduler {
 
     // timeout interval in ms
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
+    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_INTERVAL, defaultValue = "5000")
     long interval;
 
     @Inject
@@ -108,12 +107,14 @@ public class SyncScheduler {
         EventLogClient eventLogClient = null;
         ClientRequestFilter authenticator = null;
 
+        logger.fine("--- run timeout.... timerinfo= " + timer.getInfo());
         try {
             // Test the authentication method and create a corresponding Authenticator
             if ("Form".equalsIgnoreCase(workflowServiceAuthMethod.get())) {
                 // test if a JSESSIONID exists?
                 String jSessionID = (String) timer.getInfo();
                 if (jSessionID == null || jSessionID.isEmpty()) {
+                    logger.fine("--- jSessionID is empty - need new login....");
                     // no - we need to login first and store the JSESSIONID in a new timer object...
                     // create a FormAuthenticator
                     FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(),
@@ -121,16 +122,21 @@ public class SyncScheduler {
                     // Authentication successful - do we have a JSESSIONID?
                     String jsessionID = formAuth.getJsessionID();
                     if (jsessionID != null && !jsessionID.isEmpty()) {
+                        logger.fine("--- reinitialze timer with new jSessionID : " + jsessionID + " and interval="
+                                + interval);
                         // yes - terminate existing timer and create a new one with the JSESSIONID
+
                         timer.cancel();
                         final TimerConfig timerConfig = new TimerConfig();
                         timerConfig.setInfo(jsessionID);
                         timerConfig.setPersistent(false);
                         timerService.createIntervalTimer(interval, interval, timerConfig);
-                        logger.info("successful connected: " + workflowServiceEndpoint.get());
+                        logger.fine("---created new timer");
+                        logger.info("successful connected: " + workflowServiceEndpoint.get() + " new Timer created...");
                         return;
                     }
                 } else {
+                    logger.fine("--- reuse jSessionID " + jSessionID + " for login....");
                     // we have already a jsessionCooke Data object - so create a new
                     // FormAuthenticator form the JSESSIONID
                     FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(), jSessionID);
@@ -150,11 +156,12 @@ public class SyncScheduler {
                 documentClient.registerClientRequestFilter(authenticator);
                 eventLogClient = new EventLogClient(workflowServiceEndpoint.get());
                 eventLogClient.registerClientRequestFilter(authenticator);
-
+                logger.fine("--- process event log....");
                 // release dead locks...
                 archiveSyncService.releaseDeadLocks(eventLogClient);
                 // process the eventLog...
                 archiveSyncService.processEventLog(eventLogClient, documentClient);
+                logger.fine("--- process event log completed.");
             } else {
                 // no valid Authenticator!
                 logger.warning("unable to connect: " + workflowServiceEndpoint);

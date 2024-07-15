@@ -5,13 +5,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jakarta.ejb.EJBException;
-import jakarta.ejb.LocalBean;
-import jakarta.ejb.Stateless;
-import jakarta.ejb.TransactionAttribute;
-import jakarta.ejb.TransactionAttributeType;
-import jakarta.inject.Inject;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.melman.DocumentClient;
@@ -19,6 +12,13 @@ import org.imixs.melman.EventLogClient;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.InvalidAccessException;
+
+import jakarta.ejb.EJBException;
+import jakarta.ejb.LocalBean;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionAttributeType;
+import jakarta.inject.Inject;
 
 /**
  * The SyncService pulls a Snapshot into an Apache Cassandra archive. The
@@ -81,6 +81,8 @@ public class SyncService {
         String id = null;
         String ref = null;
         ItemCollection snapshot = null;
+        long count = 0;
+        long duration = System.currentTimeMillis();
 
         if (documentClient == null || eventLogClient == null) {
             // no client object
@@ -121,6 +123,7 @@ public class SyncService {
                         eventLogClient.createEventLogEntry(ImixsArchiveApp.EVENTLOG_TOPIC_BACKUP, ref, null);
                     }
                 }
+                count++;
             } catch (InvalidAccessException | EJBException | ArchiveException e) {
                 // we also catch EJBExceptions here because we do not want to cancel the
                 // ManagedScheduledExecutorService
@@ -131,6 +134,7 @@ public class SyncService {
                 // eventLogService.removeEvent(eventLogEntry.getId());
             }
         }
+        logger.info("Processed " + count + " snapshot events in " + (System.currentTimeMillis() - duration) + "ms");
 
     }
 

@@ -39,23 +39,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jakarta.ejb.EJB;
-import jakarta.enterprise.context.RequestScoped;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.Encoded;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotException;
 import org.imixs.archive.core.SnapshotService;
@@ -73,6 +56,23 @@ import org.imixs.workflow.xml.XMLDataCollection;
 import org.imixs.workflow.xml.XMLDataCollectionAdapter;
 import org.imixs.workflow.xml.XMLDocument;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
+
+import jakarta.ejb.EJB;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.Encoded;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 
 /**
  * The SnapshotRestService provides a Rest API to access the snapshot data.
@@ -97,10 +97,10 @@ import org.imixs.workflow.xml.XMLDocumentAdapter;
 public class SnapshotRestService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-  
+
     @Inject
     @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT)
-    Optional<String> archiveServiceEndpoint;    
+    Optional<String> archiveServiceEndpoint;
 
     @jakarta.ws.rs.core.Context
     private HttpServletRequest servletRequest;
@@ -164,7 +164,7 @@ public class SnapshotRestService implements Serializable {
                 long l = System.currentTimeMillis();
                 byte[] fileContent;
                 fileContent = archiveClientService.loadFileFromArchive(fileData);
-                if (fileContent != null && fileContent.length>0) {
+                if (fileContent != null && fileContent.length > 0) {
                     Response.ResponseBuilder builder = Response.ok(fileContent, fileData.getContentType());
                     // found -> return directy.
                     if (debug) {
@@ -176,7 +176,7 @@ public class SnapshotRestService implements Serializable {
                     // Critical situation!
                     // The file data is not available in the cassandra storage
                     // We print a error message and try to load the file from the local snapshot
-                    logger.severe("Failed to load '" + file+"' form imixs-archive - fallback to local snapshot...");
+                    logger.severe("Failed to load '" + file + "' form imixs-archive - fallback to local snapshot...");
                 }
 
             } catch (RestAPIException e) {
@@ -220,7 +220,7 @@ public class SnapshotRestService implements Serializable {
         query += " WHERE document.modified > '" + isoFormat.format(syncpoint) + "'";
         query += " AND document.type LIKE '" + SnapshotService.TYPE_PRAFIX + "%' ";
         query += " ORDER BY document.modified ASC";
-        logger.finest("......QUERY=" + query);
+        logger.info("......QUERY-1=" + query);
 
         result = documentService.getDocumentsByQuery(query, 1);
         // do we found new data?
@@ -245,20 +245,20 @@ public class SnapshotRestService implements Serializable {
         query = "SELECT document FROM Document AS document ";
         query += " WHERE document.modified = '" + isoFormat.format(syncpoint) + "'";
         query += " AND document.type LIKE '" + SnapshotService.TYPE_PRAFIX + "%' ";
-        logger.finest("......QUERY=" + query);
+        logger.info("......QUERY-2=" + query);
         result = documentService.getDocumentsByQuery(query, 16 + 1);
 
-        // if more than 16 syncpoints with the same modifed time stamp exists we have in
-        // deed a problem
+        // if more than 16 syncPoints with the same modified time stamp exists we have
+        // in deed a problem
         if (result.size() > 16) {
             throw new SnapshotException(SnapshotException.INVALID_DATA,
-                    "more than 16 document entites are found with the same modified timestamp. "
-                            + "We assumed that this case is impossible. Sync is not possible.");
+                    "more than 16 document entities found with the same modified timestamp. "
+                            + "We assumed that this case is impossible. Sync is not possible and will be terminated...");
         }
         if (result.size() == 0) {
             throw new SnapshotException(SnapshotException.INVALID_DATA,
                     "failed to load snapshot by modified timestamp. "
-                            + "We assumed that this case is impossible. Sync is not possible.");
+                            + "We assumed that this case is impossible. Sync is not possible and will be terminated...");
         }
 
         return XMLDataCollectionAdapter.getDataCollection(result);
@@ -333,8 +333,8 @@ public class SnapshotRestService implements Serializable {
             // Explicit write archive event log entry to update ArchiveService...
             if (archiveServiceEndpoint.isPresent() && !archiveServiceEndpoint.get().isEmpty()) {
                 eventLogService.createEvent(SnapshotService.EVENTLOG_TOPIC_ADD, snapshotID);
-            }             
-            
+            }
+
             logger.info("......document '" + originUnqiueID + "' restored.");
             return Response.ok(XMLDataCollectionAdapter.getDataCollection(document), MediaType.APPLICATION_XML).build();
 

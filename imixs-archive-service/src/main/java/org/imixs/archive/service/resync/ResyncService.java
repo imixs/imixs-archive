@@ -223,7 +223,7 @@ public class ResyncService {
             totalSize = metaData.getItemValueLong(ITEM_SYNCSIZE);
 
             // ...start sync
-            logger.info("...start syncronizing at syncpoint " + new Date(syncPoint) + "...");
+            logger.info("...start synchronizing at syncPoint " + new Date(syncPoint) + "...");
 
             // Daylight Saving Time Correction
             // issue #53
@@ -235,14 +235,16 @@ public class ResyncService {
             }
 
             while (true) {
-
+                long lReadTime = System.currentTimeMillis();
+                long lTotalTime = System.currentTimeMillis();
                 XMLDataCollection xmlDataCollection = remoteAPIService.readSyncData(syncPoint);
-
                 if (xmlDataCollection != null) {
+                    logger.info("...found " + xmlDataCollection.getDocument().length + " snapshots at syncpoint "
+                            + new Date(syncPoint) + " in " + (System.currentTimeMillis() - lReadTime) + "ms");
                     List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
 
                     for (XMLDocument xmlDocument : snapshotList) {
-
+                        long lSyncTime = System.currentTimeMillis();
                         ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
 
                         // update snypoint
@@ -265,12 +267,17 @@ public class ResyncService {
                                         + e.getMessage());
                                 // we continue....
                             }
+                            logger.info(
+                                    "...snapshot '" + snapshot.getUniqueID() + "' written in  "
+                                            + (System.currentTimeMillis() - lSyncTime) + "ms");
 
                         } else {
                             // This is because in case of a restore, the same snapshot takes a new $modified
                             // item. And we do not want to re-import the snapshot in the next sync cycle.
                             // see issue #40
-                            logger.fine("...snapshot '" + snapshot.getUniqueID() + "' already exits....");
+                            logger.info(
+                                    "...snapshot '" + snapshot.getUniqueID() + "' already exits - verification took "
+                                            + (System.currentTimeMillis() - lSyncTime) + "ms");
                         }
 
                         syncread++;
@@ -282,6 +289,10 @@ public class ResyncService {
                         metaData.setItemValue(ITEM_SYNCSIZE, totalSize);
                         lastUniqueID = "0";
                         dataService.saveMetadata(metaData);
+
+                        logger.info(
+                                "...snapshot '" + snapshot.getUniqueID() + "' synchronized in "
+                                        + (System.currentTimeMillis() - lTotalTime) + "ms");
 
                         if (syncStatusHandler.getStatus() == ResyncStatusHandler.STAUS_CANCELED) {
                             break;
