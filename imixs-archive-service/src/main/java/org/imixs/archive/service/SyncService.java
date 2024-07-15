@@ -64,7 +64,6 @@ public class SyncService {
 
     @Inject
     DataService dataService;
-
     private static Logger logger = Logger.getLogger(SyncService.class.getName());
 
     /**

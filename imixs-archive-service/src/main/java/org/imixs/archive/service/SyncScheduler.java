@@ -4,10 +4,9 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.melman.BasicAuthenticator;
+import org.imixs.archive.service.util.RestClientHelper;
 import org.imixs.melman.DocumentClient;
 import org.imixs.melman.EventLogClient;
-import org.imixs.melman.FormAuthenticator;
 import org.imixs.melman.RestAPIException;
 
 import jakarta.annotation.PostConstruct;
@@ -22,7 +21,6 @@ import jakarta.ejb.Timer;
 import jakarta.ejb.TimerConfig;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.client.ClientRequestFilter;
 
 /**
  * The SyncScheduler starts a TimerService to pull new snapshot events from the
@@ -70,6 +68,9 @@ public class SyncScheduler {
     @Resource
     jakarta.ejb.TimerService timerService;
 
+    @Inject
+    RestClientHelper restClientHelper;
+
     private static Logger logger = Logger.getLogger(SyncScheduler.class.getName());
 
     /**
@@ -105,58 +106,69 @@ public class SyncScheduler {
     public void run(Timer timer) {
         DocumentClient documentClient = null;
         EventLogClient eventLogClient = null;
-        ClientRequestFilter authenticator = null;
+        // ClientRequestFilter authenticator = null;
 
-        logger.fine("--- run timeout.... timerinfo= " + timer.getInfo());
+        logger.fine("--- run timeout.... timerInfo= " + timer.getInfo());
         try {
-            // Test the authentication method and create a corresponding Authenticator
-            if ("Form".equalsIgnoreCase(workflowServiceAuthMethod.get())) {
-                // test if a JSESSIONID exists?
-                String jSessionID = (String) timer.getInfo();
-                if (jSessionID == null || jSessionID.isEmpty()) {
-                    logger.info("Missing or invalid jSessionID - need new login....");
-                    // no - we need to login first and store the JSESSIONID in a new timer object...
-                    // create a FormAuthenticator
-                    FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(),
-                            workflowServiceUser.get(), workflowServicePassword.get());
-                    // Authentication successful - do we have a JSESSIONID?
-                    String jsessionID = formAuth.getJsessionID();
-                    if (jsessionID != null && !jsessionID.isEmpty()) {
-                        logger.fine("--- reinitialze timer with new jSessionID : " + jsessionID + " and interval="
-                                + interval);
-                        // yes - terminate existing timer and create a new one with the JSESSIONID
 
-                        timer.cancel();
-                        final TimerConfig timerConfig = new TimerConfig();
-                        timerConfig.setInfo(jsessionID);
-                        timerConfig.setPersistent(false);
-                        timerService.createIntervalTimer(interval, interval, timerConfig);
-                        logger.fine("---created new timer");
-                        logger.info(
-                                "successful reconnected: " + workflowServiceEndpoint.get() + " , new Timer created...");
-                        return;
-                    }
-                } else {
-                    logger.fine("--- reuse jSessionID " + jSessionID + " for login....");
-                    // we have already a jsessionCooke Data object - so create a new
-                    // FormAuthenticator form the JSESSIONID
-                    FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(), jSessionID);
-                    authenticator = formAuth;
-                }
-            } else {
-                // Default behaviro - use a BasicAuthenticator
-                BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser.get(),
-                        workflowServicePassword.get());
-                authenticator = basicAuth;
-            }
+            // init rest clients....
+            documentClient = restClientHelper.createDocumentClient();
+            eventLogClient = restClientHelper.createEventLogClient(documentClient);
+
+            // // Test the authentication method and create a corresponding Authenticator
+            // if ("Form".equalsIgnoreCase(workflowServiceAuthMethod.get())) {
+            // // test if a JSESSIONID exists?
+            // String jSessionID = (String) timer.getInfo();
+            // if (jSessionID == null || jSessionID.isEmpty()) {
+            // logger.info("Missing or invalid jSessionID - need new login....");
+            // // no - we need to login first and store the JSESSIONID in a new timer
+            // object...
+            // // create a FormAuthenticator
+            // FormAuthenticator formAuth = new
+            // FormAuthenticator(workflowServiceEndpoint.get(),
+            // workflowServiceUser.get(), workflowServicePassword.get());
+            // // Authentication successful - do we have a JSESSIONID?
+            // String jsessionID = formAuth.getJsessionID();
+            // if (jsessionID != null && !jsessionID.isEmpty()) {
+            // logger.fine("--- reinitialze timer with new jSessionID : " + jsessionID + "
+            // and interval="
+            // + interval);
+            // // yes - terminate existing timer and create a new one with the JSESSIONID
+
+            // timer.cancel();
+            // final TimerConfig timerConfig = new TimerConfig();
+            // timerConfig.setInfo(jsessionID);
+            // timerConfig.setPersistent(false);
+            // timerService.createIntervalTimer(interval, interval, timerConfig);
+            // logger.fine("---created new timer");
+            // logger.info(
+            // "successful reconnected: " + workflowServiceEndpoint.get() + " , new Timer
+            // created...");
+            // return;
+            // }
+            // } else {
+            // logger.fine("--- reuse jSessionID " + jSessionID + " for login....");
+            // // we have already a jsessionCooke Data object - so create a new
+            // // FormAuthenticator form the JSESSIONID
+            // FormAuthenticator formAuth = new
+            // FormAuthenticator(workflowServiceEndpoint.get(), jSessionID);
+            // authenticator = formAuth;
+            // }
+            // } else {
+            // // Default behaviro - use a BasicAuthenticator
+            // BasicAuthenticator basicAuth = new
+            // BasicAuthenticator(workflowServiceUser.get(),
+            // workflowServicePassword.get());
+            // authenticator = basicAuth;
+            // }
 
             // do we have a valid authentication?
-            if (authenticator != null) {
+            if (documentClient != null) {
                 // yes - create the client objects
-                documentClient = new DocumentClient(workflowServiceEndpoint.get());
-                documentClient.registerClientRequestFilter(authenticator);
-                eventLogClient = new EventLogClient(workflowServiceEndpoint.get());
-                eventLogClient.registerClientRequestFilter(authenticator);
+                // documentClient = new DocumentClient(workflowServiceEndpoint.get());
+                // documentClient.registerClientRequestFilter(authenticator);
+                // eventLogClient = new EventLogClient(workflowServiceEndpoint.get());
+                // eventLogClient.registerClientRequestFilter(authenticator);
                 logger.fine("--- process event log....");
                 // release dead locks...
                 archiveSyncService.releaseDeadLocks(eventLogClient);
