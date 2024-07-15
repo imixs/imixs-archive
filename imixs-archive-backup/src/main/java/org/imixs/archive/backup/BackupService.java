@@ -132,10 +132,14 @@ public class BackupService {
     @RegistryScope(scope = MetricRegistry.APPLICATION_SCOPE)
     MetricRegistry metricRegistry;
 
+    DocumentClient documentClient = null;
+    EventLogClient eventLogClient = null;
+
     @PostConstruct
     public void init() {
         // init timer....
         if (workflowServiceEndpoint.isPresent()) {
+            logger.info("init BackupService endpoint: " + workflowServiceEndpoint.get().toString());
             // Registering a non-persistent Timer Service.
             try {
                 startScheduler(true);
@@ -166,12 +170,13 @@ public class BackupService {
         int total = 0;
         int success = 0;
         int errors = 0;
+        long duration = System.currentTimeMillis();
         try {
             backupStatusHandler.setTimer(_timer);
-
+            logger.info("Processing backup events...");
             // init rest clients....
-            DocumentClient documentClient = restClientHelper.getDocumentClient();
-            EventLogClient eventLogClient = restClientHelper.getEventLogClient(documentClient);
+            DocumentClient documentClient = restClientHelper.createDocumentClient();
+            EventLogClient eventLogClient = restClientHelper.createEventLogClient(documentClient);
             if (documentClient == null || eventLogClient == null) {
                 logController.warning(BackupApi.TOPIC_BACKUP,
                         "Unable to connect to workflow instance endpoint - please verify configuration!");
@@ -192,43 +197,42 @@ public class BackupService {
             eventLogClient.setPageSize(100);
             List<ItemCollection> events = eventLogClient.searchEventLog(BackupApi.EVENTLOG_TOPIC_BACKUP);
 
-            for (ItemCollection eventLogEntry : events) {
-                total++;
-                topic = eventLogEntry.getItemValueString("topic");
-                id = eventLogEntry.getItemValueString("id");
-                ref = eventLogEntry.getItemValueString("ref");
+            if (events != null && events.size() > 0) {
+                logger.info(" -> " + events.size() + " backup events found...");
+                for (ItemCollection eventLogEntry : events) {
+                    total++;
+                    topic = eventLogEntry.getItemValueString("topic");
+                    id = eventLogEntry.getItemValueString("id");
+                    ref = eventLogEntry.getItemValueString("ref");
+                    try {
+                        // first try to lock the eventLog entry....
+                        eventLogClient.lockEventLogEntry(id);
+                        // pull the snapshotEvent ...
+                        logger.finest("......pull snapshot " + ref + "....");
+                        // eventCache.add(eventLogEntry);
+                        ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
+                        ftpConnector.put(snapshot);
+                        // finally remove the event log entry...
+                        eventLogClient.deleteEventLogEntry(id);
+                        success++;
+                        countMetric(METRIC_EVENTS_PROCESSED);
 
-                try {
-                    // first try to lock the eventLog entry....
-                    eventLogClient.lockEventLogEntry(id);
+                    } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
+                        // we also catch EJBExceptions here because we do not want to cancel the
+                        // ManagedScheduledExecutorService
+                        logController.warning(BackupApi.TOPIC_BACKUP,
+                                "SnapshotEvent " + id + " backup failed: " + e.getMessage());
+                        errors++;
+                        countMetric(METRIC_EVENTS_ERRORS);
 
-                    // pull the snapshotEvent ...
-                    logger.finest("......pull snapshot " + ref + "....");
-                    // eventCache.add(eventLogEntry);
-                    ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
-
-                    ftpConnector.put(snapshot);
-
-                    // finally remove the event log entry...
-                    eventLogClient.deleteEventLogEntry(id);
-                    success++;
-
-                    countMetric(METRIC_EVENTS_PROCESSED);
-
-                } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
-                    // we also catch EJBExceptions here because we do not want to cancel the
-                    // ManagedScheduledExecutorService
-                    logController.warning(BackupApi.TOPIC_BACKUP,
-                            "SnapshotEvent " + id + " backup failed: " + e.getMessage());
-                    errors++;
-                    countMetric(METRIC_EVENTS_ERRORS);
-
+                    }
                 }
-            }
+                // print log
+                logController.info(BackupApi.TOPIC_BACKUP, success + " snapshots backed up in "
+                        + (System.currentTimeMillis() - duration) + " ms - " + errors + " errors...");
 
-            // print log
-            if (total > 0) {
-                logController.info(BackupApi.TOPIC_BACKUP, success + " snapshots backed up, " + errors + " errors...");
+            } else {
+                logger.info(" -> no backup events found.");
             }
 
             backupStatusHandler.setStatus(BackupStatusHandler.STATUS_SCHEDULED);
@@ -237,7 +241,7 @@ public class BackupService {
             // In case of a exception during processing the event log
             // the timer service will automatically restarted. This is important
             // to resolve restarts of the workflow engine.
-            logController.warning(BackupApi.TOPIC_BACKUP, "processsing EventLog failed: " + e.getMessage());
+            logController.warning(BackupApi.TOPIC_BACKUP, "processing EventLog failed: " + e.getMessage());
             try {
                 restartScheduler();
             } catch (BackupException e1) {
@@ -252,7 +256,6 @@ public class BackupService {
      * @param name
      */
     private void countMetric(String name) {
-
         try {
             Metadata metadata = Metadata.builder().withName(name)
                     .withDescription("Imixs-Backup Service - processed backup events").build();
@@ -291,22 +294,24 @@ public class BackupService {
      */
     public ItemCollection pullSnapshot(ItemCollection eventLogEntry, DocumentClient documentClient,
             EventLogClient eventLogClient) throws BackupException {
-
-        if (eventLogEntry == null || documentClient == null || eventLogClient == null) {
-            // no client object
-            logger.fine("...no eventLogClient available!");
-            return null;
-        }
-
-        String ref = eventLogEntry.getItemValueString("ref");
-        String id = eventLogEntry.getItemValueString("id");
-        logger.finest("......pullSnapshot ref " + ref + "...");
-        // lookup the snapshot...
-        ItemCollection snapshot;
+        String ref = null;
+        String id = null;
         try {
+            if (eventLogEntry == null || documentClient == null || eventLogClient == null) {
+                // no client object
+                logger.fine("...no eventLogClient available!");
+                return null;
+            }
+
+            ref = eventLogEntry.getItemValueString("ref");
+            id = eventLogEntry.getItemValueString("id");
+            logger.fine("......pullSnapshot ref " + ref + "...");
+            // lookup the snapshot...
+            ItemCollection snapshot;
+
             snapshot = documentClient.getDocument(ref);
             if (snapshot != null) {
-                logger.finest("...write snapshot into backup store...");
+                logger.fine("...write snapshot into backup store...");
                 return snapshot;
             }
         } catch (RestAPIException e) {
@@ -316,8 +321,13 @@ public class BackupService {
             try {
                 eventLogClient.deleteEventLogEntry(id);
             } catch (RestAPIException e1) {
-                throw new BackupException("REMOTE_EXCEPTION", "Unable to delte eventLogEntry: " + id, e1);
+                throw new BackupException("REMOTE_EXCEPTION", "Unable to delete eventLogEntry: " + id, e1);
             }
+
+        } catch (RuntimeException e) {
+            // can occur in case of a 404
+            logController.warning(BackupApi.TOPIC_BACKUP, "Failed to pull Snapshot " + ref + " -> " + e.getMessage());
+            throw new BackupException("REMOTE_EXCEPTION", "Failed to pull Snapshot: " + e.getMessage(), e);
         }
         return null;
     }

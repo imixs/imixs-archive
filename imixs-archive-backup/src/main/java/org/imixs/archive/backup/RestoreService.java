@@ -144,7 +144,7 @@ public class RestoreService {
             restoreStatusHandler.setTimer(_timer);
 
             // init rest clients....
-            DocumentClient documentClient = restClientHelper.getDocumentClient();
+            DocumentClient documentClient = restClientHelper.createDocumentClient();
 
             if (documentClient == null) {
                 logController.warning(BackupApi.TOPIC_RESTORE,
