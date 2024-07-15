@@ -114,7 +114,7 @@ public class SyncScheduler {
                 // test if a JSESSIONID exists?
                 String jSessionID = (String) timer.getInfo();
                 if (jSessionID == null || jSessionID.isEmpty()) {
-                    logger.fine("--- jSessionID is empty - need new login....");
+                    logger.info("Missing or invalid jSessionID - need new login....");
                     // no - we need to login first and store the JSESSIONID in a new timer object...
                     // create a FormAuthenticator
                     FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(),
@@ -132,7 +132,8 @@ public class SyncScheduler {
                         timerConfig.setPersistent(false);
                         timerService.createIntervalTimer(interval, interval, timerConfig);
                         logger.fine("---created new timer");
-                        logger.info("successful connected: " + workflowServiceEndpoint.get() + " new Timer created...");
+                        logger.info(
+                                "successful reconnected: " + workflowServiceEndpoint.get() + " , new Timer created...");
                         return;
                     }
                 } else {
