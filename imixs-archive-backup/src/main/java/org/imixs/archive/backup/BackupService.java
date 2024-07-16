@@ -211,10 +211,12 @@ public class BackupService {
                         logger.finest("......pull snapshot " + ref + "....");
                         // eventCache.add(eventLogEntry);
                         ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
-                        ftpConnector.put(snapshot);
-                        // finally remove the event log entry...
-                        eventLogClient.deleteEventLogEntry(id);
-                        success++;
+                        if (snapshot != null) {
+                            ftpConnector.put(snapshot);
+                            // finally remove the event log entry...
+                            eventLogClient.deleteEventLogEntry(id);
+                            success++;
+                        }
                         countMetric(METRIC_EVENTS_PROCESSED);
 
                     } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
