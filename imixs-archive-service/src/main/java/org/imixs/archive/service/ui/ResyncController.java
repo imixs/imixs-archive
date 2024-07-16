@@ -6,17 +6,17 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Logger;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.RequestScoped;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
-
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
 import org.imixs.workflow.ItemCollection;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 /**
  * CID Bean for the resync service.
@@ -122,13 +122,14 @@ public class ResyncController implements Serializable {
             }
 
         } catch (ArchiveException | ParseException e) {
-            logger.severe("failed to set new syncpoint: " + e.getMessage());
+            logger.severe("failed to set new SyncPoint: " + e.getMessage());
         }
 
     }
-    
+
     /**
      * Returns true if the sync service is actually running
+     * 
      * @return
      */
     public boolean isRunning() {
@@ -148,6 +149,5 @@ public class ResyncController implements Serializable {
         }
 
     }
-
 
 }

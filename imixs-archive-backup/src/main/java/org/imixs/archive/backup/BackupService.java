@@ -69,7 +69,6 @@ import jakarta.inject.Inject;
  * @version 1.0
  * @author rsoika
  */
-
 @Singleton
 @Startup
 public class BackupService {
@@ -354,6 +353,7 @@ public class BackupService {
      */
     public void startScheduler(boolean clearLog) throws BackupException {
         try {
+            restClientHelper.reset();
             if (clearLog) {
                 // clear log in case of a normal start
                 logController.reset(BackupApi.TOPIC_BACKUP);

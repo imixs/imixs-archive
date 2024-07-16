@@ -36,8 +36,9 @@ import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.RemoteAPIService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
+import org.imixs.archive.service.util.RestClientHelper;
+import org.imixs.melman.DocumentClient;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -48,7 +49,11 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
 import jakarta.annotation.Resource;
-import jakarta.ejb.Stateless;
+import jakarta.annotation.security.DeclareRoles;
+import jakarta.annotation.security.RunAs;
+import jakarta.ejb.LocalBean;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
 import jakarta.ejb.Timeout;
 import jakarta.ejb.Timer;
 import jakarta.inject.Inject;
@@ -80,9 +85,12 @@ import jakarta.inject.Inject;
  * @version 1.0
  * @author rsoika
  */
-
-@Stateless
-public class RestoreService {
+@Startup
+@Singleton
+@LocalBean
+@DeclareRoles({ "org.imixs.ACCESSLEVEL.MANAGERACCESS" })
+@RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
+public class RestoreScheduler {
 
 	public final static String TIMER_ID_RESTORESERVICE = "IMIXS_ARCHIVE_RESTORE_TIMER";
 	public final static long TIMER_INTERVAL_DURATION = 60000;
@@ -97,7 +105,7 @@ public class RestoreService {
 
 	public final static String MESSAGE_TOPIC = "restore";
 
-	private static Logger logger = Logger.getLogger(RestoreService.class.getName());
+	private static Logger logger = Logger.getLogger(RestoreScheduler.class.getName());
 
 	@Inject
 	DataService dataService;
@@ -113,6 +121,9 @@ public class RestoreService {
 
 	@Resource
 	jakarta.ejb.TimerService timerService;
+
+	@Inject
+	RestClientHelper restClientHelper;
 
 	/**
 	 * Starts a new restore process with a EJB TimerService
@@ -143,7 +154,7 @@ public class RestoreService {
 				timer = null;
 			} catch (Exception e) {
 				messageService.logMessage(MESSAGE_TOPIC, "Failed to stop existing timer - " + e.getMessage());
-				throw new ArchiveException(ResyncService.class.getName(), ArchiveException.INVALID_WORKITEM,
+				throw new ArchiveException(RestoreScheduler.class.getName(), ArchiveException.INVALID_WORKITEM,
 						" failed to cancle existing timer!");
 			}
 		}
@@ -233,6 +244,7 @@ public class RestoreService {
 	 */
 	@Timeout
 	void onTimeout(jakarta.ejb.Timer timer) throws Exception {
+		DocumentClient documentClient = null;
 		Session session = null;
 		Cluster cluster = null;
 		ItemCollection metadata = null;
@@ -244,6 +256,9 @@ public class RestoreService {
 		long startTime = System.currentTimeMillis();
 
 		try {
+			// init rest clients....
+			documentClient = restClientHelper.createDocumentClient();
+
 			// read the metadata
 			metadata = dataService.loadMetadata();
 			// read last restore stat....
@@ -280,7 +295,8 @@ public class RestoreService {
 							// yes, lets see if this snapshot is already restored or synced?
 							try {
 								remoteSnapshotID = remoteAPIService
-										.readSnapshotIDByUniqueID(dataService.getUniqueID(latestSnapshot));
+										.readSnapshotIDByUniqueID(dataService.getUniqueID(latestSnapshot),
+												documentClient);
 							} catch (ArchiveException ae) {
 								// expected if not found
 							}
@@ -295,7 +311,7 @@ public class RestoreService {
 									snapshot = dataService.loadSnapshot(latestSnapshot);
 									_tmpSize = dataService.calculateSize(XMLDocumentAdapter.getDocument(snapshot));
 									logger.finest("......size=: " + _tmpSize);
-									remoteAPIService.restoreSnapshot(snapshot);
+									remoteAPIService.restoreSnapshot(snapshot, documentClient);
 									restoreSize = restoreSize + _tmpSize;
 									restoreCount++;
 									snapshot = null;
@@ -464,7 +480,7 @@ public class RestoreService {
 	public List<ItemCollection> getOptions(ItemCollection metaData) {
 		// convert current list of options into a list of ItemCollection elements
 		ArrayList<ItemCollection> result = new ArrayList<ItemCollection>();
-		List<Object> mapOrderItems = metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS);
+		List<Object> mapOrderItems = metaData.getItemValue(RestoreScheduler.ITEM_RESTORE_OPTIONS);
 		for (Object mapOderItem : mapOrderItems) {
 			if (mapOderItem instanceof Map) {
 				ItemCollection itemCol = new ItemCollection((Map) mapOderItem);
@@ -490,7 +506,7 @@ public class RestoreService {
 			for (ItemCollection orderItem : options) {
 				mapOrderItems.add(orderItem.getAllItems());
 			}
-			metaData.replaceItemValue(RestoreService.ITEM_RESTORE_OPTIONS, mapOrderItems);
+			metaData.replaceItemValue(RestoreScheduler.ITEM_RESTORE_OPTIONS, mapOrderItems);
 		}
 	}
 

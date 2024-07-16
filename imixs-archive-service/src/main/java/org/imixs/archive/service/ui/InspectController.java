@@ -6,17 +6,20 @@ import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
-import jakarta.enterprise.context.SessionScoped;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
-
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.RemoteAPIService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
+import org.imixs.archive.service.util.RestClientHelper;
+import org.imixs.melman.DocumentClient;
+import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.ItemCollection;
+
+import jakarta.enterprise.context.SessionScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 /**
  * CID Bean to inspect a single process instance.
@@ -45,13 +48,16 @@ public class InspectController implements Serializable {
     DataService dataService;
 
     @Inject
-    ResyncService syncService;
+    ResyncService resyncService;
 
     @Inject
     MessageService messageService;
 
     @Inject
     RemoteAPIService remoteAPIService;
+
+    @Inject
+    RestClientHelper restClientHelper;
 
     public InspectController() {
         super();
@@ -118,14 +124,14 @@ public class InspectController implements Serializable {
     public void loadSnapshotIDs() {
         try {
             logger.finest("......load snapshots for " + uniqueid + "...");
-
+            DocumentClient documentClient = restClientHelper.createDocumentClient();
             // max count 100, reverse order
             snapshotIDs = dataService.loadSnapshotsByUnqiueID(uniqueid, 100, true);
 
             // test the current snapshot from the live system!
-            setCurrentSnapshotID(remoteAPIService.readSnapshotIDByUniqueID(uniqueid));
+            setCurrentSnapshotID(remoteAPIService.readSnapshotIDByUniqueID(uniqueid, documentClient));
 
-        } catch (ArchiveException e) {
+        } catch (ArchiveException | RestAPIException e) {
             logger.severe("failed to load snapshot ids: " + e.getMessage());
         }
     }
@@ -137,11 +143,12 @@ public class InspectController implements Serializable {
     public void restoreSnapshot(String id) {
         try {
             logger.info("......restore snapshotID " + uniqueid + "...");
+            DocumentClient documentClient = restClientHelper.createDocumentClient();
             ItemCollection snapshot = dataService.loadSnapshot(id);
-            remoteAPIService.restoreSnapshot(snapshot);
+            remoteAPIService.restoreSnapshot(snapshot, documentClient);
             // refresh snapshot list....
             loadSnapshotIDs();
-        } catch (ArchiveException e) {
+        } catch (ArchiveException | RestAPIException e) {
             logger.severe("failed to load snapshot ids: " + e.getMessage());
         }
     }

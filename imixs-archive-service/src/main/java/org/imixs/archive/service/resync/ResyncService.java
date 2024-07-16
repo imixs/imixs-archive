@@ -32,6 +32,8 @@ import org.imixs.archive.service.RemoteAPIService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.util.MessageService;
+import org.imixs.archive.service.util.RestClientHelper;
+import org.imixs.melman.DocumentClient;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.QueryException;
 import org.imixs.workflow.xml.XMLDataCollection;
@@ -71,7 +73,7 @@ public class ResyncService {
     public final static String DEFAULT_SCHEDULER_DEFINITION = "hour=*";
 
     public final static String MESSAGE_TOPIC = "sync";
-    private final static int MAX_COUNT = 100;
+    private final static int MAX_COUNT = 500;
 
     @Resource
     jakarta.ejb.TimerService timerService;
@@ -90,6 +92,9 @@ public class ResyncService {
 
     @Inject
     ResyncStatusHandler syncStatusHandler;
+
+    @Inject
+    RestClientHelper restClientHelper;
 
     private static Logger logger = Logger.getLogger(ResyncService.class.getName());
 
@@ -204,8 +209,9 @@ public class ResyncService {
     @Timeout
     void onTimeout(jakarta.ejb.Timer timer) throws Exception {
         long syncPoint = 0;
-        int syncupdate = 0;
-        int syncread = 0;
+        int syncUpdates = 0;
+        int syncBlockRead = 0;
+        int syncTotalRead = 0;
         long totalCount = 0;
         long totalSize = 0;
         ItemCollection metaData = null;
@@ -215,7 +221,8 @@ public class ResyncService {
         long lProfiler = System.currentTimeMillis();
 
         try {
-
+            // init rest clients....
+            DocumentClient documentClient = restClientHelper.createDocumentClient();
             // load metadata and get last syncpoint
             metaData = dataService.loadMetadata();
             syncPoint = metaData.getItemValueLong(ITEM_SYNCPOINT);
@@ -237,12 +244,11 @@ public class ResyncService {
             while (true) {
                 long lReadTime = System.currentTimeMillis();
                 long lTotalTime = System.currentTimeMillis();
-                XMLDataCollection xmlDataCollection = remoteAPIService.readSyncData(syncPoint);
+                XMLDataCollection xmlDataCollection = remoteAPIService.readSyncData(syncPoint, documentClient);
                 if (xmlDataCollection != null) {
                     logger.info("...found " + xmlDataCollection.getDocument().length + " snapshots at syncpoint "
                             + new Date(syncPoint) + " in " + (System.currentTimeMillis() - lReadTime) + "ms");
                     List<XMLDocument> snapshotList = Arrays.asList(xmlDataCollection.getDocument());
-
                     for (XMLDocument xmlDocument : snapshotList) {
                         long lSyncTime = System.currentTimeMillis();
                         ItemCollection snapshot = XMLDocumentAdapter.putDocument(xmlDocument);
@@ -251,7 +257,6 @@ public class ResyncService {
                         Date syncpointdate = snapshot.getItemValueDate("$modified");
                         syncPoint = syncpointdate.getTime();
                         logger.fine("......data found - new syncpoint=" + syncPoint);
-
                         // verify if this snapshot is already stored - if so, we do not overwrite
                         // the origin data
                         if (!dataService.existSnapshot(snapshot.getUniqueID())) {
@@ -259,7 +264,7 @@ public class ResyncService {
                             try {
                                 lastUniqueID = snapshot.getUniqueID();
                                 dataService.saveSnapshot(snapshot);
-                                syncupdate++;
+                                syncUpdates++;
                                 totalCount++;
                                 totalSize = totalSize + dataService.calculateSize(xmlDocument);
                             } catch (RuntimeException e) {
@@ -270,7 +275,6 @@ public class ResyncService {
                             logger.info(
                                     "...snapshot '" + snapshot.getUniqueID() + "' written in  "
                                             + (System.currentTimeMillis() - lSyncTime) + "ms");
-
                         } else {
                             // This is because in case of a restore, the same snapshot takes a new $modified
                             // item. And we do not want to re-import the snapshot in the next sync cycle.
@@ -279,17 +283,15 @@ public class ResyncService {
                                     "...snapshot '" + snapshot.getUniqueID() + "' already exits - verification took "
                                             + (System.currentTimeMillis() - lSyncTime) + "ms");
                         }
-
-                        syncread++;
+                        syncBlockRead++;
+                        syncTotalRead++;
 
                         // update metadata
                         metaData.setItemValue(ITEM_SYNCPOINT, syncPoint);
                         metaData.setItemValue(ITEM_SYNCCOUNT, totalCount);
-
                         metaData.setItemValue(ITEM_SYNCSIZE, totalSize);
                         lastUniqueID = "0";
                         dataService.saveMetadata(metaData);
-
                         logger.info(
                                 "...snapshot '" + snapshot.getUniqueID() + "' synchronized in "
                                         + (System.currentTimeMillis() - lTotalTime) + "ms");
@@ -300,13 +302,14 @@ public class ResyncService {
                     }
 
                     // print log message if data was synced
-                    if (syncread > MAX_COUNT) {
+                    if (syncBlockRead >= MAX_COUNT) {
                         messageService.logMessage(MESSAGE_TOPIC,
-                                "... " + syncread + " snapshots verified (" + syncupdate + " updates) in: "
-                                        + ((System.currentTimeMillis()) - lProfiler) + " ms, next syncpoint "
+                                "... " + syncTotalRead + " snapshots verified (" + syncUpdates + " updates) in: "
+                                        + formatDuration((System.currentTimeMillis()) - lProfiler)
+                                        + " , next syncpoint "
                                         + new Date(syncPoint));
                         // reset count
-                        syncread = 0;
+                        syncBlockRead = 0;
                     }
 
                     if (syncStatusHandler.getStatus() == ResyncStatusHandler.STAUS_CANCELED) {
@@ -335,4 +338,26 @@ public class ResyncService {
         }
     }
 
+    private static String formatDuration(long durationInMillis) {
+        long durationInSeconds = durationInMillis / 1000;
+        long durationInMinutes = durationInSeconds / 60;
+        long durationInHours = durationInMinutes / 60;
+
+        String formattedDuration;
+
+        if (durationInHours > 0) {
+            formattedDuration = String.format("%d hours, %d minutes und %d seconds",
+                    durationInHours,
+                    durationInMinutes % 60,
+                    durationInSeconds % 60);
+        } else if (durationInMinutes > 0) {
+            formattedDuration = String.format("%d minutes and %d seconds",
+                    durationInMinutes,
+                    durationInSeconds % 60);
+        } else {
+            formattedDuration = String.format("%d seconds", durationInSeconds);
+        }
+
+        return formattedDuration;
+    }
 }

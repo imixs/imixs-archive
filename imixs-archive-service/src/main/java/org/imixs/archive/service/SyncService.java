@@ -85,7 +85,7 @@ public class SyncService {
 
         if (documentClient == null || eventLogClient == null) {
             // no client object
-            logger.fine("...no eventLogClient available!");
+            logger.warning("...no eventLogClient available!");
             return;
         }
 
@@ -149,7 +149,7 @@ public class SyncService {
     public void releaseDeadLocks(EventLogClient eventLogClient) throws RestAPIException {
         if (eventLogClient == null) {
             // no client object
-            logger.fine("...no eventLogClient available!");
+            logger.warning("...no eventLogClient available!");
             return;
         }
         eventLogClient.releaseDeadLocks(deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,

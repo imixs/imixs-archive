@@ -8,20 +8,19 @@ import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.ejb.Timer;
-import jakarta.enterprise.context.RequestScoped;
-import jakarta.enterprise.context.SessionScoped;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
-
 import org.imixs.archive.service.ArchiveException;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
-import org.imixs.archive.service.restore.RestoreService;
+import org.imixs.archive.service.restore.RestoreScheduler;
 import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
 import org.imixs.workflow.ItemCollection;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.ejb.Timer;
+import jakarta.enterprise.context.SessionScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 /**
  * CID Bean for the resync service.
@@ -56,7 +55,7 @@ public class RestoreController implements Serializable {
     DataService dataService;
 
     @Inject
-    RestoreService restoreService;
+    RestoreScheduler restoreService;
 
     @Inject
     MessageService messageService;
@@ -73,7 +72,7 @@ public class RestoreController implements Serializable {
     void init() {
         reset();
     }
-    
+
     /**
      * This method initializes the default sync date
      * 
@@ -143,21 +142,21 @@ public class RestoreController implements Serializable {
      */
     public Date getRestoreSyncPoint() {
         long lsyncPoint;
-        lsyncPoint = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCPOINT);
+        lsyncPoint = metaData.getItemValueLong(RestoreScheduler.ITEM_RESTORE_SYNCPOINT);
         Date syncPoint = new Date(lsyncPoint);
         return syncPoint;
     }
 
     public long getRestoreCount() {
-        return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCCOUNT);
+        return metaData.getItemValueLong(RestoreScheduler.ITEM_RESTORE_SYNCCOUNT);
     }
 
     public long getRestoreErrors() {
-        return metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCERRORS);
+        return metaData.getItemValueLong(RestoreScheduler.ITEM_RESTORE_SYNCERRORS);
     }
 
     public String getRestoreSize() {
-        long l = metaData.getItemValueLong(RestoreService.ITEM_RESTORE_SYNCSIZE);
+        long l = metaData.getItemValueLong(RestoreScheduler.ITEM_RESTORE_SYNCSIZE);
         String result = messageService.userFriendlyBytes(l);
         String[] parts = result.split(" ");
         restoreSizeUnit = parts[1];
@@ -199,7 +198,7 @@ public class RestoreController implements Serializable {
             logger.info("......init restore process: " + this.getRestoreFrom() + " to " + this.getRestoreTo());
             restoreService.setOptions(options, metaData);
             restoreService.start(restoreDateFrom, restoreDateTo,
-                    metaData.getItemValue(RestoreService.ITEM_RESTORE_OPTIONS));
+                    metaData.getItemValue(RestoreScheduler.ITEM_RESTORE_OPTIONS));
         } catch (ArchiveException e) {
             logger.severe("failed to start restore process: " + e.getMessage());
         }
@@ -213,14 +212,12 @@ public class RestoreController implements Serializable {
      */
     public void stopRestore() {
         try {
-        	restoreService.cancel();
+            restoreService.cancel();
         } catch (ArchiveException e) {
             e.printStackTrace();
         }
-
     }
 
-    
     /**
      * Returns true if a restore is running.
      * 
@@ -232,7 +229,7 @@ public class RestoreController implements Serializable {
     }
 
     public List<String> getMessages() {
-        return messageService.getMessages(RestoreService.MESSAGE_TOPIC);
+        return messageService.getMessages(RestoreScheduler.MESSAGE_TOPIC);
     }
 
     /**

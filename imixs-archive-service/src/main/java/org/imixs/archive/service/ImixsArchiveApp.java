@@ -27,13 +27,8 @@
 
 package org.imixs.archive.service;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.core.Application;
-
-import org.imixs.archive.service.resync.ResyncService;
-import org.imixs.archive.service.util.MessageService;
 
 /**
  * The Imixs-Archive-Service application setup
@@ -41,7 +36,6 @@ import org.imixs.archive.service.util.MessageService;
  * @author rsoika
  * 
  */
-
 @ApplicationPath("api")
 public class ImixsArchiveApp extends Application {
 
@@ -49,7 +43,6 @@ public class ImixsArchiveApp extends Application {
     public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
     public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
     public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
-    
     public static final String ITEM_BACKUPRESTORE = "$backuprestore";
 
     // rest service endpoint
@@ -62,28 +55,8 @@ public class ImixsArchiveApp extends Application {
     public static final String WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
     public static final String BACKUP_SERVICE_ENDPOINT = "backup.service.endpoint";
 
-    @Inject
-    ResyncService syncService;
-
-    @Inject
-    MessageService messageService;
-
     public ImixsArchiveApp() {
         super();
     }
 
-    /**
-     * Initialize the web application
-     */
-    @PostConstruct
-    public void initialize() {
-        if (syncService != null) {
-            try {
-                syncService.start();       
-            } catch (ArchiveException e) {
-                messageService.logMessage(ResyncService.MESSAGE_TOPIC, "Failed to start scheduler - " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-    }
 }

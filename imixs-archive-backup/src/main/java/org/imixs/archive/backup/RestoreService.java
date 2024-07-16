@@ -341,7 +341,7 @@ public class RestoreService {
      */
     public void startScheduler() throws BackupException {
         try {
-
+            restClientHelper.reset();
             logController.reset(BackupApi.TOPIC_RESTORE);
             logController.info(BackupApi.TOPIC_RESTORE,
                     "Starting restore scheduler - initalDelay=0ms  inverval=" + interval + "ms ....");

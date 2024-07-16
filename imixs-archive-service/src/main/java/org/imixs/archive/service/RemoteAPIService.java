@@ -27,9 +27,7 @@ import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.cassandra.ClusterService;
-import org.imixs.melman.BasicAuthenticator;
 import org.imixs.melman.DocumentClient;
-import org.imixs.melman.FormAuthenticator;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.xml.XMLDataCollection;
@@ -83,12 +81,11 @@ public class RemoteAPIService {
      * @throws ArchiveException
      * 
      */
-    public XMLDataCollection readSyncData(long syncPoint) throws ArchiveException {
+    public XMLDataCollection readSyncData(long syncPoint, DocumentClient documentClient) throws ArchiveException {
         XMLDataCollection result = null;
         // load next document
         String url = "";
         try {
-            DocumentClient documentClient = initWorkflowClient();
             url = SNAPSHOT_SYNCPOINT_RESOURCE + syncPoint;
             logger.finest("...... read data: " + url + "....");
 
@@ -115,11 +112,10 @@ public class RemoteAPIService {
      * @throws ArchiveException
      * 
      */
-    public String readSnapshotIDByUniqueID(String uniqueid) throws ArchiveException {
+    public String readSnapshotIDByUniqueID(String uniqueid, DocumentClient documentClient) throws ArchiveException {
         String result = null;
         try {
             // load single document
-            DocumentClient documentClient = initWorkflowClient();
             String url = DOCUMENTS_RESOURCE + uniqueid + "?items=$snapshotid";
             logger.finest("...... read snapshotid: " + url + "....");
 
@@ -137,9 +133,8 @@ public class RemoteAPIService {
         return result;
     }
 
-    public void restoreSnapshot(ItemCollection snapshot) throws ArchiveException {
+    public void restoreSnapshot(ItemCollection snapshot, DocumentClient documentClient) throws ArchiveException {
         try {
-            DocumentClient documentClient = initWorkflowClient();
             String url = SNAPSHOT_RESOURCE;
             logger.finest("...... post data: " + url + "....");
             // documentClient.postDocument(url, snapshot);
@@ -151,9 +146,8 @@ public class RemoteAPIService {
 
     }
 
-    public void deleteSnapshot(String id) throws ArchiveException {
+    public void deleteSnapshot(String id, DocumentClient documentClient) throws ArchiveException {
         try {
-            DocumentClient documentClient = initWorkflowClient();
             String url = SNAPSHOT_RESOURCE;
             logger.finest("...... delete data: " + url + "....");
             documentClient.deleteDocument(id);
@@ -170,27 +164,31 @@ public class RemoteAPIService {
      * 
      * @throws RestAPIException
      */
-    DocumentClient initWorkflowClient() throws RestAPIException {
+    // DocumentClient initWorkflowClient() throws RestAPIException {
 
-        logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " + workflowServiceEndpoint);
+    // logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " +
+    // workflowServiceEndpoint);
 
-        DocumentClient documentClient = new DocumentClient(workflowServiceEndpoint.get());
+    // DocumentClient documentClient = new
+    // DocumentClient(workflowServiceEndpoint.get());
 
-        // Test authentication method
-        if ("Form".equalsIgnoreCase(workflowServiceAuthMethod.get())) {
-            // default basic authenticator
-            FormAuthenticator formAuth = new FormAuthenticator(workflowServiceEndpoint.get(), workflowServiceUser.get(),
-                    workflowServicePassword.get());
-            // register the authenticator
-            documentClient.registerClientRequestFilter(formAuth);
+    // // Test authentication method
+    // if ("Form".equalsIgnoreCase(workflowServiceAuthMethod.get())) {
+    // // default basic authenticator
+    // FormAuthenticator formAuth = new
+    // FormAuthenticator(workflowServiceEndpoint.get(), workflowServiceUser.get(),
+    // workflowServicePassword.get());
+    // // register the authenticator
+    // documentClient.registerClientRequestFilter(formAuth);
 
-        } else {
-            // default basic authenticator
-            BasicAuthenticator basicAuth = new BasicAuthenticator(workflowServiceUser.get(),
-                    workflowServicePassword.get());
-            // register the authenticator
-            documentClient.registerClientRequestFilter(basicAuth);
-        }
-        return documentClient;
-    }
+    // } else {
+    // // default basic authenticator
+    // BasicAuthenticator basicAuth = new
+    // BasicAuthenticator(workflowServiceUser.get(),
+    // workflowServicePassword.get());
+    // // register the authenticator
+    // documentClient.registerClientRequestFilter(basicAuth);
+    // }
+    // return documentClient;
+    // }
 }

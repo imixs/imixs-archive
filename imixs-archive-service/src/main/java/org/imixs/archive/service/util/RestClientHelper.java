@@ -140,4 +140,12 @@ public class RestClientHelper implements Serializable {
         }
     }
 
+    /**
+     * This method invalidates the rest clients
+     */
+    public void reset() {
+        documentClient = null;
+        eventLogClient = null;
+    }
+
 }

@@ -15,7 +15,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.imixs.archive.service.ArchiveException;
-import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
@@ -94,9 +93,6 @@ public class DataService {
 
     @Inject
     ClusterService clusterService;
-
-    @Inject
-    ResyncService schedulerService;
 
     @Inject
     protected Event<ArchiveEvent> events;

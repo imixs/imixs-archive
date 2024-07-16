@@ -106,7 +106,6 @@ public class SyncScheduler {
     public void run(Timer timer) {
         DocumentClient documentClient = null;
         EventLogClient eventLogClient = null;
-        // ClientRequestFilter authenticator = null;
 
         logger.fine("--- run timeout.... timerInfo= " + timer.getInfo());
         try {
@@ -183,6 +182,7 @@ public class SyncScheduler {
         } catch (NotFoundException | RestAPIException e) {
             logger.warning("unable to process event log: " + e.getMessage());
             // we need to reset the timer and discard the current JSESSIONID
+            restClientHelper.reset();
             timer.cancel();
             final TimerConfig timerConfig = new TimerConfig();
             timerConfig.setInfo(""); // empty info string indicates no JSESSIONID!
