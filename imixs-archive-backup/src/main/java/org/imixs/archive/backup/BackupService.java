@@ -220,8 +220,7 @@ public class BackupService {
                     } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
                         // we also catch EJBExceptions here because we do not want to cancel the
                         // ManagedScheduledExecutorService
-                        logController.warning(BackupApi.TOPIC_BACKUP,
-                                "SnapshotEvent " + id + " backup failed: " + e.getMessage());
+                        logController.warning(BackupApi.TOPIC_BACKUP, "SnapshotEvent " + id + ": " + e.getMessage());
                         errors++;
                         countMetric(METRIC_EVENTS_ERRORS);
 
@@ -325,9 +324,9 @@ public class BackupService {
             }
 
         } catch (RuntimeException e) {
-            // can occur in case of a 404
-            logController.warning(BackupApi.TOPIC_BACKUP, "Failed to pull Snapshot " + ref + " -> " + e.getMessage());
-            throw new BackupException("REMOTE_EXCEPTION", "Failed to pull Snapshot: " + e.getMessage(), e);
+            // can occur in rare cases on the ejb container
+            throw new BackupException("REMOTE_EXCEPTION", "Failed to pull Snapshot " + ref + " -> " + e.getMessage(),
+                    e);
         }
         return null;
     }
