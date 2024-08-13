@@ -3,14 +3,15 @@ package org.imixs.archive.documents;
 import java.util.List;
 import java.util.logging.Logger;
 
-import jakarta.inject.Inject;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowContext;
 import org.imixs.workflow.engine.plugins.AbstractPlugin;
+import org.imixs.workflow.exceptions.AdapterException;
 import org.imixs.workflow.exceptions.PluginException;
+
+import jakarta.inject.Inject;
 
 /**
  * The TikaPlugin extracts the textual information from document attachments.
@@ -51,6 +52,7 @@ public class OCRDocumentPlugin extends AbstractPlugin {
      * 
      * 
      * @throws PluginException
+     * @throws AdapterException
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -58,7 +60,7 @@ public class OCRDocumentPlugin extends AbstractPlugin {
         if ("model".equalsIgnoreCase(serviceMode)) {
             List<String> tikaOptions = null;
             String filePattern = null;
-            int maxPdfPages=0;
+            int maxPdfPages = 0;
             // read optional tika options
             ItemCollection evalItemCollection = this.getWorkflowService().evalWorkflowResult(event, "tika", document,
                     false);
@@ -69,7 +71,12 @@ public class OCRDocumentPlugin extends AbstractPlugin {
             }
 
             // update the dms meta data
-            ocrService.extractText(document, snapshotService.findSnapshot(document), null, tikaOptions,filePattern,maxPdfPages);
+            try {
+                ocrService.extractText(document, snapshotService.findSnapshot(document), null, tikaOptions, filePattern,
+                        maxPdfPages);
+            } catch (AdapterException e) {
+                throw new PluginException(e);
+            }
         } else {
             logger.warning("unexpected TIKA_SERVICE_MODE=" + serviceMode
                     + " - running the OCRDocumentAdapter the env TIKA_SERVICE_MODE should be set to 'model'. Plugin will be ignored!");

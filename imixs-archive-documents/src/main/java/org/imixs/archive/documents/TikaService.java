@@ -18,14 +18,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import jakarta.ejb.Stateless;
-import jakarta.inject.Inject;
-
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.exceptions.AdapterException;
 import org.imixs.workflow.exceptions.PluginException;
+
+import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
 
 /**
  * The OCRService extracts the textual information from document attachments of
@@ -62,7 +63,9 @@ public class TikaService {
 
     public static final String FILE_ATTRIBUTE_TEXT = "text";
     public static final String DEFAULT_ENCODING = "UTF-8";
-    public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
+    // public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
+    public static final String API_ERROR = "API_ERROR";
+    public static final String DOCUMENT_ERROR = "DOCUMENT_ERROR";
     public static final String ENV_OCR_SERVICE_ENDPOINT = "ocr.service.endpoint";
     public static final String ENV_OCR_SERVICE_MODE = "ocr.service.mode";
     public static final String ENV_OCR_SERVICE_MAXFILESIZE = "ocr.service.maxfilesize";
@@ -102,8 +105,9 @@ public class TikaService {
      * 
      * @param workitem
      * @throws PluginException
+     * @throws AdapterException
      */
-    public void extractText(ItemCollection workitem, ItemCollection snapshot) throws PluginException {
+    public void extractText(ItemCollection workitem, ItemCollection snapshot) throws PluginException, AdapterException {
         extractText(workitem, snapshot, ocrStategy, null, null, 0);
     }
 
@@ -133,9 +137,10 @@ public class TikaService {
      * @param options          - optional tika header params
      * @param filePatternRegex - optional regular expression to match files
      * @throws PluginException
+     * @throws AdapterException
      */
     public void extractText(ItemCollection workitem, ItemCollection snapshot, String _ocrStategy, List<String> options,
-            String filePatternRegex, int maxPdfPages) throws PluginException {
+            String filePatternRegex, int maxPdfPages) throws PluginException, AdapterException {
         boolean debug = logger.isLoggable(Level.FINE);
         Pattern filePattern = null;
 
@@ -150,7 +155,7 @@ public class TikaService {
 
         // validate OCR MODE....
         if ("AUTO, NO_OCR, OCR_ONLY, OCR_AND_TEXT_EXTRACTION".indexOf(ocrStategy) == -1) {
-            throw new PluginException(TikaService.class.getSimpleName(), PLUGIN_ERROR,
+            throw new PluginException(TikaService.class.getSimpleName(), API_ERROR,
                     "Invalid TIKA_OCR_MODE - expected one of the following options: NO_OCR | OCR_ONLY | OCR_AND_TEXT_EXTRACTION");
         }
 
@@ -165,12 +170,12 @@ public class TikaService {
 
         // print tika options...
         if (debug) {
-            logger.info("......  filepattern = "+filePatternRegex); 
+            logger.info("......  filepattern = " + filePatternRegex);
             for (String opt : options) {
                 logger.info("......  Tika Option = " + opt);
             }
         }
-       
+
         // do we have a file pattern?
         if (filePatternRegex != null && !filePatternRegex.isEmpty()) {
             filePattern = Pattern.compile(filePatternRegex);
@@ -179,17 +184,17 @@ public class TikaService {
         long l = System.currentTimeMillis();
         // List<ItemCollection> currentDmsList = DMSHandler.getDmsList(workitem);
         List<FileData> files = workitem.getFileData();
-        
+
         if (debug) {
-            logger.info("... found " + files.size() +" files");
+            logger.info("... found " + files.size() + " files");
         }
 
         for (FileData fileData : files) {
-            logger.fine("... processing file: "+fileData.getName()); 
+            logger.fine("... processing file: " + fileData.getName());
             // do we have an optional file pattern?
             if (filePattern != null && !filePattern.matcher(fileData.getName()).find()) {
                 // the file did not match the given pattern!
-                logger.info("... filename does not match given pattern!"); 
+                logger.info("... filename does not match given pattern!");
                 continue;
             }
 
@@ -208,12 +213,14 @@ public class TikaService {
                         // we ignore the file!
                         if (originFileData.getContent() != null
                                 && originFileData.getContent().length > ocrMaxFileSize) {
-                            logger.warning("The file size '" + fileData.getName() + "' excided the allowed max size of "
-                                    + ocrMaxFileSize + " bytes (file size=" + originFileData.getContent().length + ")");
-                            continue;
+                            throw new AdapterException(TikaService.class.getSimpleName(), DOCUMENT_ERROR,
+                                    "The file '" + fileData.getName() + "' exceed the allowed max size of "
+                                            + ocrMaxFileSize + " bytes (file size=" + originFileData.getContent().length
+                                            + ")");
                         }
                         if (debug) {
-                            logger.info("...text extraction '" + originFileData.getName() + "' content size=" +originFileData.getContent().length +" ...");
+                            logger.info("...text extraction '" + originFileData.getName() + "' content size="
+                                    + originFileData.getContent().length + " ...");
                         }
 
                         textContent = doORCProcessing(originFileData, options, maxPdfPages);
@@ -221,14 +228,14 @@ public class TikaService {
                         if (textContent == null) {
                             logger.warning("Unable to extract text-content for '" + fileData.getName() + "'");
                             textContent = "";
-                        }                      
+                        }
                         // store the ocrContent....
                         List<Object> list = new ArrayList<Object>();
                         list.add(textContent);
                         fileData.setAttribute(FILE_ATTRIBUTE_TEXT, list);
 
                     } catch (IOException e) {
-                        throw new PluginException(TikaService.class.getSimpleName(), PLUGIN_ERROR,
+                        throw new PluginException(TikaService.class.getSimpleName(), API_ERROR,
                                 "Unable to scan attached document '" + fileData.getName() + "'", e);
                     }
                 }
@@ -265,7 +272,7 @@ public class TikaService {
         }
 
         if (debug) {
-            logger.info("...ocr scanning of document " + fileData.getName() +" ....");
+            logger.info("...ocr scanning of document " + fileData.getName() + " ....");
         }
         // adapt ContentType
         String contentType = adaptContentType(fileData);
@@ -334,7 +341,7 @@ public class TikaService {
             }
 
             // compute length
-            
+
             urlConnection.setRequestProperty("Content-Length", "" + Integer.valueOf(fileData.getContent().length));
             OutputStream output = urlConnection.getOutputStream();
             writer = new PrintWriter(new OutputStreamWriter(output, DEFAULT_ENCODING), true);
@@ -347,8 +354,8 @@ public class TikaService {
             }
             if (resposeCode >= 200 && resposeCode <= 299) {
                 logger.info("...call readResponse....");
-                return readResponse(urlConnection, DEFAULT_ENCODING,debug);
-            } 
+                return readResponse(urlConnection, DEFAULT_ENCODING, debug);
+            }
 
             logger.warning("... no data!");
             // no data!
@@ -376,17 +383,17 @@ public class TikaService {
             List<String> ocrContentList = (List<String>) fileData.getAttribute(FILE_ATTRIBUTE_TEXT);
             // do we have a value list at all?
             // Issue #166
-            if (ocrContentList==null || ocrContentList.size()==0) {
+            if (ocrContentList == null || ocrContentList.size() == 0) {
                 // no attribute found
                 return false;
             }
-            
+
             // test the text value ....
-            String textValue=ocrContentList.get(0) ;
-            if (textValue==null || textValue.isEmpty()) {
+            String textValue = ocrContentList.get(0);
+            if (textValue == null || textValue.isEmpty()) {
                 return false;
             }
-            
+
             // else we do have a content!
             return true;
         }
@@ -442,7 +449,7 @@ public class TikaService {
      * @throws IOException
      */
     private String readResponse(URLConnection urlConnection, String encoding, boolean debug) throws IOException {
-      
+
         // get content of result
         if (debug) {
             logger.info("......readResponse....");
@@ -461,7 +468,7 @@ public class TikaService {
             if (debug) {
                 logger.info("......ContentEncoding=" + sContentEncoding);
             }
-            
+
             // if an encoding is provided read stream with encoding.....
             if (sContentEncoding != null && !sContentEncoding.isEmpty())
                 in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), sContentEncoding));

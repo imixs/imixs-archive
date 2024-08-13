@@ -3,15 +3,16 @@ package org.imixs.archive.documents;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import jakarta.ejb.Stateless;
-import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.ProcessingEvent;
+import org.imixs.workflow.exceptions.AdapterException;
 import org.imixs.workflow.exceptions.PluginException;
+
+import jakarta.ejb.Stateless;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 
 /**
  * The TikaDocumentService extracts the textual information from document
@@ -48,12 +49,9 @@ public class OCRDocumentService {
     @ConfigProperty(name = TikaService.ENV_OCR_SERVICE_MODE, defaultValue = "auto")
     String serviceMode;
 
-
-
     @Inject
     SnapshotService snapshotService;
-    
-     
+
     @Inject
     TikaService ocrService;
 
@@ -64,21 +62,22 @@ public class OCRDocumentService {
      * @throws PluginException
      */
     public void onBeforeProcess(@Observes ProcessingEvent processingEvent) throws PluginException {
-    
+
         if (!serviceEndpoint.isPresent() || serviceEndpoint.get().isEmpty()) {
             return;
         }
-       
+
         // Service only runs if the Tika Service mode is set to 'auto'
         if ("auto".equalsIgnoreCase(serviceMode)) {
             if (processingEvent.getEventType() == ProcessingEvent.BEFORE_PROCESS) {
-                ItemCollection workitem=processingEvent.getDocument();
-                ocrService.extractText(workitem, snapshotService.findSnapshot(workitem));
-               // extractText(processingEvent.getDocument());
+                ItemCollection workitem = processingEvent.getDocument();
+                try {
+                    ocrService.extractText(workitem, snapshotService.findSnapshot(workitem));
+                } catch (AdapterException e) {
+                    throw new PluginException(e);
+                }
             }
         }
     }
-
- 
 
 }
