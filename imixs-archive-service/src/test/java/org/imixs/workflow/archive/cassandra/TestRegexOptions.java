@@ -1,9 +1,11 @@
 package org.imixs.workflow.archive.cassandra;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.regex.Pattern;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test class for testing the regex options for restore
@@ -24,13 +26,13 @@ public class TestRegexOptions {
 		Pattern regexPattern = Pattern.compile(regex);
 
 		value = "snapshot-process";
-		Assert.assertTrue(regexPattern.matcher(value).find());
+		assertTrue(regexPattern.matcher(value).find());
 
 		value = "snapshot-processx";
-		Assert.assertFalse(regexPattern.matcher(value).find());
+		assertFalse(regexPattern.matcher(value).find());
 
 		value = "process";
-		Assert.assertTrue(regexPattern.matcher(value).find());
+		assertTrue(regexPattern.matcher(value).find());
 
 	}
 
@@ -43,18 +45,16 @@ public class TestRegexOptions {
 		Pattern regexPattern = Pattern.compile(regex);
 
 		value = "snapshot-process";
-		Assert.assertTrue(regexPattern.matcher(value).find());
+		assertTrue(regexPattern.matcher(value).find());
 
 		value = "snapshot-processx";
-		Assert.assertFalse(regexPattern.matcher(value).find());
+		assertFalse(regexPattern.matcher(value).find());
 
 		value = "process";
-		Assert.assertTrue(regexPattern.matcher(value).find());
-		
-		
-		value = "snapshot-space";
-		Assert.assertTrue(regexPattern.matcher(value).find());
+		assertTrue(regexPattern.matcher(value).find());
 
+		value = "snapshot-space";
+		assertTrue(regexPattern.matcher(value).find());
 
 	}
 

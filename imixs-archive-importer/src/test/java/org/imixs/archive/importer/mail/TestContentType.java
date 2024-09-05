@@ -1,9 +1,10 @@
 package org.imixs.archive.importer.mail;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.logging.Logger;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test strip contenttype
@@ -22,7 +23,7 @@ public class TestContentType {
         }
 
         logger.info("'" + contentType + "'");
-        Assert.assertEquals("text/html", contentType);
+        assertEquals("text/html", contentType);
     }
 
 }

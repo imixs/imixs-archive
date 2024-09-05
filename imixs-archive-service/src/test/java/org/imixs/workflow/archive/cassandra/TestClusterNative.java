@@ -1,14 +1,14 @@
 package org.imixs.workflow.archive.cassandra;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
@@ -30,25 +30,25 @@ public class TestClusterNative {
 	/**
 	 * Test the local connection
 	 */
-	@Ignore
+	@Disabled
 	@Test
 	public void testCluster() {
 
 		Cluster cluster = Cluster.builder().addContactPoint(CONNACT_POINT).build();
 
-		Assert.assertNotNull(cluster);
+		assertNotNull(cluster);
 
 		cluster.init();
 
 		Session session = cluster.connect();
 
-		Assert.assertNotNull(session);
+		assertNotNull(session);
 	}
 
 	/**
 	 * Test createKeyspace if not exists...
 	 */
-	@Ignore
+	@Disabled
 	@Test
 	public void createKeyspace() {
 		Cluster cluster = Cluster.builder().addContactPoint(CONNACT_POINT).build();
@@ -64,11 +64,12 @@ public class TestClusterNative {
 	/**
 	 * Test createKeyspace if not exists...
 	 */
-	@Ignore
+	@Disabled
 	@Test
 	public void createTable() {
 		Session session = connect();
-//		String statement = "CREATE TABLE IF NOT EXISTS imixs_test (id uuid PRIMARY KEY, title text, subject text);";
+		// String statement = "CREATE TABLE IF NOT EXISTS imixs_test (id uuid PRIMARY
+		// KEY, title text, subject text);";
 		String statement = "CREATE TABLE IF NOT EXISTS document (id text PRIMARY KEY, type text, created timestamp, modified timestamp, data text);";
 
 		session.execute(statement);
@@ -91,7 +92,7 @@ public class TestClusterNative {
 		Cluster cluster = Cluster.builder().addContactPoint(CONNACT_POINT).build();
 		cluster.init();
 		Session session = cluster.connect(KEYSPACE);
-		Assert.assertNotNull(session);
+		assertNotNull(session);
 		return session;
 	}
 }

@@ -1,10 +1,11 @@
 package org.imixs.archive.exporter;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test the Optional expression
@@ -28,10 +29,10 @@ public class TestFilter {
         Matcher matcher = pattern.matcher(name);
 
         if (!matcher.find()) {
-            Assert.fail();
+            fail();
         }
 
-        // Assert.assertTrue(name.matches(filter));
+        // assertTrue(name.matches(filter));
 
     }
 

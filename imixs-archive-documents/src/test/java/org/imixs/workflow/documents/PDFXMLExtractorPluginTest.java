@@ -1,5 +1,8 @@
 package org.imixs.workflow.documents;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -8,15 +11,14 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import org.imixs.archive.documents.PDFXMLExtractorPlugin;
+import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.WorkflowMockEnvironment;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 /**
@@ -38,13 +40,12 @@ public class PDFXMLExtractorPluginTest {
 	 */
 	WorkflowMockEnvironment workflowMockEnvironment;
 
-	@Before
+	@BeforeEach
 	public void setup() throws PluginException, ModelException {
 
 		workflowMockEnvironment = new WorkflowMockEnvironment();
-		workflowMockEnvironment.setModelPath("/bpmn/TestZUGFeRD.bpmn");
-
-		workflowMockEnvironment.setup();
+		workflowMockEnvironment.setUp();
+		workflowMockEnvironment.loadBPMNModel("/bpmn/TestZUGFeRD.bpmn");
 
 		// mock abstract plugin class for the plitAndJoinPlugin
 		plugin = Mockito.mock(PDFXMLExtractorPlugin.class, Mockito.CALLS_REAL_METHODS);
@@ -59,11 +60,6 @@ public class PDFXMLExtractorPluginTest {
 
 	}
 
-	@After
-	public void teardown() {
-
-	}
-
 	/**
 	 * Test extracting an embedded xml file from a PDF file using the pdfBox
 	 * library.
@@ -73,81 +69,78 @@ public class PDFXMLExtractorPluginTest {
 	public void testPDFXMLExtractor() {
 		ItemCollection workitem = null;
 		try {
-			event = workflowMockEnvironment.getModel().getEvent(100, 10);
+
 			// Build a Document....
 			workitem = new ItemCollection();
+			workitem.model("1.0.0").task(100).event(10);
+			event = workflowMockEnvironment.getModelService().getModelManager().loadEvent(workitem);
 			// load the example pdf ..
 			String fileName = "ZUGFeRD/20160504_MX16124-000005_001-001_Muster.pdf";
 			InputStream inputStream = getClass().getResourceAsStream("/" + fileName);
 			byte[] fileData = PDFXMLExtractorPlugin.streamToByteArray(inputStream);
-			workitem.addFile(fileData, fileName, "");
+			workitem.addFileData(new FileData(fileName, fileData, "", null));
 
 			byte[] xmldata = PDFXMLExtractorPlugin.getXMLFile(workitem, ".pdf");
 
-			Assert.assertNotNull(xmldata);
-			
+			assertNotNull(xmldata);
+
 			// show first 100 characters from xml.....
-			String xml=new String(xmldata);
+			String xml = new String(xmldata);
 			logger.info(xml.substring(0, 100) + "...");
 
 		} catch (PluginException | ModelException | IOException e) {
 
 			e.printStackTrace();
-			Assert.fail();
+			fail();
 		}
 
-		Assert.assertNotNull(workitem);
+		assertNotNull(workitem);
 
 	}
-	
-	
-	
+
 	/**
-	 * Test extracting an embedded xml file from a PDF file, converting the xml into a XMLDocument
-	 * and merging the data into the current document. 
+	 * Test extracting an embedded xml file from a PDF file, converting the xml into
+	 * a XMLDocument
+	 * and merging the data into the current document.
 	 * 
 	 */
 	@Test
-	@Ignore
+	@Disabled
 	public void testMergeXMLData() {
 		ItemCollection workitem = null;
 		try {
-			event = workflowMockEnvironment.getModel().getEvent(100, 10);
 			// Build a Document....
 			workitem = new ItemCollection();
+			workitem.model("1.0.0").task(100).event(10);
+			event = workflowMockEnvironment.getModelService().getModelManager().loadEvent(workitem);
+
 			// load the example pdf ..
 			String fileName = "ZUGFeRD/20160504_MX16124-000005_001-001_Muster.pdf";
 			InputStream inputStream = getClass().getResourceAsStream("/" + fileName);
 			byte[] fileData = PDFXMLExtractorPlugin.streamToByteArray(inputStream);
-			workitem.addFile(fileData, fileName, "");
+			workitem.addFileData(new FileData(fileName, fileData, "", null));
 
-			
-			workitem=plugin.run(workitem, event);
+			workitem = plugin.run(workitem, event);
 
-			Assert.assertNotNull(workitem);
-			
+			assertNotNull(workitem);
 
 		} catch (PluginException | ModelException | IOException e) {
 
 			e.printStackTrace();
-			Assert.fail();
+			fail();
 		}
 
-		Assert.assertNotNull(workitem);
+		assertNotNull(workitem);
 
 	}
-	
-	
-	
-	
 
 	/**
 	 * Test the regex for pdf file names.
 	 */
 	@Test
 	public void testRegex() {
-		Assert.assertTrue(Pattern.compile(".pdf").matcher("sample.pdf").find());
-		Assert.assertTrue(Pattern.compile(".[pP][dD][fF]").matcher("sample.PDF").find());
+		assertTrue(Pattern.compile(".pdf").matcher("sample.pdf").find());
+		assertTrue(Pattern.compile(".[pP][dD][fF]").matcher("sample.PDF").find());
 	}
 
 }

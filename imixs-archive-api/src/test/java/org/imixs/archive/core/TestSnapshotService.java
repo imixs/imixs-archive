@@ -96,7 +96,7 @@ public class TestSnapshotService {
 		assertTrue(snapshotID.startsWith("W0000-00001"));
 
 		// load the snapshot workitem
-		ItemCollection snapshotworkitem = workflowEnvironment.getDatabase().get(snapshotID);
+		ItemCollection snapshotworkitem = workflowEnvironment.getDocumentService().load(snapshotID);
 		assertNotNull(snapshotworkitem);
 
 	}
@@ -142,7 +142,7 @@ public class TestSnapshotService {
 		assertTrue(snapshotID.startsWith("W0000-00001"));
 
 		// load the snapshot workitem
-		ItemCollection snapshotworkitem = workflowEnvironment.getDatabase().get(snapshotID);
+		ItemCollection snapshotworkitem = workflowEnvironment.getDocumentService().load(snapshotID);
 		assertNotNull(snapshotworkitem);
 
 		// test the file content
@@ -170,7 +170,7 @@ public class TestSnapshotService {
 		// now lets check the version....
 		String versionID = workitem.getItemValueString("$uniqueIdVersions");
 
-		ItemCollection version = workflowEnvironment.getDatabase().get(versionID);
+		ItemCollection version = workflowEnvironment.getDocumentService().load(versionID);
 		assertNotNull(version);
 
 		// simulate snaptshot cdi event
@@ -185,7 +185,7 @@ public class TestSnapshotService {
 		assertFalse(snapshotID.equals(versionSnapshot));
 
 		// we load the snapshot version and we expect again the fail content....
-		ItemCollection snapshotworkitemVersion = workflowEnvironment.getDatabase().get(versionSnapshot);
+		ItemCollection snapshotworkitemVersion = workflowEnvironment.getDocumentService().load(versionSnapshot);
 		assertNotNull(snapshotworkitemVersion);
 
 		// test the file content
@@ -239,7 +239,7 @@ public class TestSnapshotService {
 		assertTrue(snapshotID.startsWith("W0000-00001"));
 
 		// load the snapshot workitem
-		ItemCollection snapshotworkitem = workflowEnvironment.getDatabase().get(snapshotID);
+		ItemCollection snapshotworkitem = workflowEnvironment.getDocumentService().load(snapshotID);
 		assertNotNull(snapshotworkitem);
 
 		// test the file data of workitem

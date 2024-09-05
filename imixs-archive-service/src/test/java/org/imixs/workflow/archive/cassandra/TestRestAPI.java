@@ -1,13 +1,16 @@
 package org.imixs.workflow.archive.cassandra;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.util.List;
 
 import org.imixs.melman.DocumentClient;
 import org.imixs.melman.FormAuthenticator;
 import org.imixs.workflow.ItemCollection;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 /**
  * This class makes a test agains a running instance of office workflow to test
@@ -21,7 +24,7 @@ public class TestRestAPI {
 	 * This various snaphsot id patterns
 	 * 
 	 */
-	@Ignore
+	@Disabled
 	@Test
 	public void simpleApiTest() {
 
@@ -35,13 +38,13 @@ public class TestRestAPI {
 
 			List<ItemCollection> result = documentClient.getCustomResource(apiURL + "/snapshot/syncpoint/0");
 
-			Assert.assertNotNull(result);
-			Assert.assertEquals(1, result.size());
+			assertNotNull(result);
+			assertEquals(1, result.size());
 
 		} catch (Exception e) {
 
 			e.printStackTrace();
-			Assert.fail();
+			fail();
 		}
 
 	}

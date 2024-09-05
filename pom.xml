@@ -87,13 +87,13 @@
 		<jakarta.version>10.0.0</jakarta.version>
 		<org.imixs.workflow.version>6.1.0-SNAPSHOT</org.imixs.workflow.version>
 		<org.imixs.melman.version>2.1.0-SNAPSHOT</org.imixs.melman.version>
-		<org.imixs.mock.version>6.1.0-SNAPSHOT</org.imixs.mock.version>
 		<apache.pdfbox.version>2.0.21</apache.pdfbox.version>
 		<microprofile.version>6.0</microprofile.version>
 		<microprofile-metrics.version>4.0</microprofile-metrics.version>
 		<!-- test dependencies -->
 		<junit.jupiter.version>5.9.2</junit.jupiter.version>
 		<mockito.version>5.8.0</mockito.version>
+		<org.imixs.mock.version>6.1.0-SNAPSHOT</org.imixs.mock.version>
 	</properties>
 
 	<repositories>
@@ -119,6 +119,13 @@
 					<target>11</target>
 				</configuration>
 			</plugin>
+			<!-- Testing JUnit 5 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.22.2</version>
+			</plugin>
+
 			<!-- release management -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
