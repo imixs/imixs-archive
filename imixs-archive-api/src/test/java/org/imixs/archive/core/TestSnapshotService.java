@@ -1,9 +1,12 @@
 package org.imixs.archive.core;
 
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -16,14 +19,10 @@ import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
-
-import jakarta.ejb.SessionContext;
 
 /**
  * Test the SnapshotService EJB. The WorkflowArchiveMockEnvironment provides a
@@ -34,43 +33,35 @@ import jakarta.ejb.SessionContext;
  */
 public class TestSnapshotService {
 	private final static Logger logger = Logger.getLogger(TestSnapshotService.class.getName());
- 
-	@Spy
+
+	@InjectMocks
 	SnapshotService snapshotService;
 
-	
-	SessionContext ctx;
+	ItemCollection workitem;
+	ItemCollection event;
 
-	ItemCollection documentContext;
-	ItemCollection documentActivity, documentProcess;
-
-	WorkflowMockEnvironment workflowMockEnvironment;
+	WorkflowMockEnvironment workflowEnvironment;
 
 	/**
 	 * Load test model and mock SnapshotPlugin
 	 * 
 	 * @throws ModelException
 	 */
-	@Before
+	@BeforeEach
 	public void setup() throws PluginException, ModelException {
+		// Ensures that @Mock and @InjectMocks annotations are processed
+		MockitoAnnotations.openMocks(this);
 
-		workflowMockEnvironment = new WorkflowMockEnvironment();
-		workflowMockEnvironment.setModelPath("/bpmn/TestSnapshotService.bpmn");
-		workflowMockEnvironment.setup();
+		workflowEnvironment = new WorkflowMockEnvironment();
 
-		MockitoAnnotations.initMocks(this);
+		workflowEnvironment.setUp();
+		workflowEnvironment.loadBPMNModel("/bpmn/TestSnapshotService.bpmn");
 
 		// mock session context
-		ctx = Mockito.mock(SessionContext.class);
-		snapshotService.ejbCtx = ctx;
-		// simulate SessionContext ctx.getCallerPrincipal().getName()
-		Principal principal = Mockito.mock(Principal.class);
-		when(principal.getName()).thenReturn("manfred");
-		when(ctx.getCallerPrincipal()).thenReturn(principal);
+		snapshotService.ejbCtx = workflowEnvironment.getWorkflowContext().getSessionContext();
 
-		snapshotService.documentService = workflowMockEnvironment.getDocumentService();
+		snapshotService.documentService = workflowEnvironment.getDocumentService();
 
-		
 	}
 
 	/**
@@ -85,30 +76,28 @@ public class TestSnapshotService {
 	@Test
 	public void testOnSave() throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
 		// load test workitem
-		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
-		workitem.replaceItemValue(WorkflowKernel.MODELVERSION, WorkflowMockEnvironment.DEFAULT_MODEL_VERSION);
-		workitem.replaceItemValue(WorkflowKernel.TASKID, 1000);
-		workitem.replaceItemValue(WorkflowKernel.EVENTID, 10);
+		ItemCollection workitem = workflowEnvironment.getDocumentService().load("W0000-00001");
+		workitem.model("1.0.0").task(1000).event(10);
 
 		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
-		snapshotService.archiveServiceEndpoint=Optional.of("");
-		snapshotService.backupServiceEndpoint=Optional.of("");
+		snapshotService.archiveServiceEndpoint = Optional.of("");
+		snapshotService.backupServiceEndpoint = Optional.of("");
 		snapshotService.onSave(documentEvent);
 
-		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
+		workitem = workflowEnvironment.getWorkflowService().processWorkItem(workitem);
 
-		Assert.assertEquals("1.0.0", workitem.getItemValueString("$ModelVersion"));
+		assertEquals("1.0.0", workitem.getItemValueString("$ModelVersion"));
 
 		// test the $snapshotID
-		Assert.assertTrue(workitem.hasItem(SnapshotService.SNAPSHOTID));
+		assertTrue(workitem.hasItem(SnapshotService.SNAPSHOTID));
 		String snapshotID = workitem.getItemValueString(SnapshotService.SNAPSHOTID);
-		Assert.assertFalse(snapshotID.isEmpty());
+		assertFalse(snapshotID.isEmpty());
 		logger.info("$snapshotid=" + snapshotID);
-		Assert.assertTrue(snapshotID.startsWith("W0000-00001"));
+		assertTrue(snapshotID.startsWith("W0000-00001"));
 
 		// load the snapshot workitem
-		ItemCollection snapshotworkitem = workflowMockEnvironment.getDatabase().get(snapshotID);
-		Assert.assertNotNull(snapshotworkitem);
+		ItemCollection snapshotworkitem = workflowEnvironment.getDatabase().get(snapshotID);
+		assertNotNull(snapshotworkitem);
 
 	}
 
@@ -129,64 +118,60 @@ public class TestSnapshotService {
 	public void testOnSaveVersion()
 			throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
 		// load test workitem
-		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
-		workitem.replaceItemValue(WorkflowKernel.MODELVERSION, WorkflowMockEnvironment.DEFAULT_MODEL_VERSION);
-		workitem.replaceItemValue(WorkflowKernel.TASKID, 1000);
-		// trigger the split event
-		workitem.replaceItemValue(WorkflowKernel.EVENTID, 10);
+		ItemCollection workitem = workflowEnvironment.getDocumentService().load("W0000-00001");
+		workitem.model("1.0.0").task(1000).event(10);
 
 		byte[] data = "This is a test".getBytes();
 		// we attache a file....
-		//workitem.addFile(data, "test.txt", null);
+		// workitem.addFile(data, "test.txt", null);
 		workitem.addFileData(new FileData("test.txt", data, null, null));
-		
-		
-		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
-		snapshotService.archiveServiceEndpoint=Optional.of("");
-		snapshotService.backupServiceEndpoint=Optional.of("");
-		snapshotService.onSave(documentEvent);
-		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
 
-		Assert.assertEquals("1.0.0", workitem.getItemValueString("$ModelVersion"));
+		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
+		snapshotService.archiveServiceEndpoint = Optional.of("");
+		snapshotService.backupServiceEndpoint = Optional.of("");
+		snapshotService.onSave(documentEvent);
+		workitem = workflowEnvironment.getWorkflowService().processWorkItem(workitem);
+
+		assertEquals("1.0.0", workitem.getItemValueString("$ModelVersion"));
 
 		// test the $snapshotID
-		Assert.assertTrue(workitem.hasItem(SnapshotService.SNAPSHOTID));
+		assertTrue(workitem.hasItem(SnapshotService.SNAPSHOTID));
 		String snapshotID = workitem.getItemValueString(SnapshotService.SNAPSHOTID);
-		Assert.assertFalse(snapshotID.isEmpty());
+		assertFalse(snapshotID.isEmpty());
 		logger.info("$snapshotid=" + snapshotID);
-		Assert.assertTrue(snapshotID.startsWith("W0000-00001"));
+		assertTrue(snapshotID.startsWith("W0000-00001"));
 
 		// load the snapshot workitem
-		ItemCollection snapshotworkitem = workflowMockEnvironment.getDatabase().get(snapshotID);
-		Assert.assertNotNull(snapshotworkitem);
+		ItemCollection snapshotworkitem = workflowEnvironment.getDatabase().get(snapshotID);
+		assertNotNull(snapshotworkitem);
 
 		// test the file content
-		//List<Object> fileData = snapshotworkitem.getFile("test.txt");
-		FileData fileData=snapshotworkitem.getFileData("test.txt");
-		Assert.assertEquals("This is a test", new String(fileData.getContent()));
- 
+		// List<Object> fileData = snapshotworkitem.getFile("test.txt");
+		FileData fileData = snapshotworkitem.getFileData("test.txt");
+		assertEquals("This is a test", new String(fileData.getContent()));
+
 		/*
 		 * Now we trigger a second event to create a version be we remove the file
 		 * content before...
-		 */ 
+		 */
 		workitem.replaceItemValue(WorkflowKernel.EVENTID, 20);
 		documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
 		snapshotService.onSave(documentEvent);
-		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
+		workitem = workflowEnvironment.getWorkflowService().processWorkItem(workitem);
 
 		// remove the file content from the origin....
 		workitem.removeFile("test.txt");
-		workflowMockEnvironment.getDocumentService().save(workitem);
+		workflowEnvironment.getDocumentService().save(workitem);
 
-		/* 
+		/*
 		 * now lets check the version. The version should have the file content.
 		 */
 
 		// now lets check the version....
 		String versionID = workitem.getItemValueString("$uniqueIdVersions");
 
-		ItemCollection version = workflowMockEnvironment.getDatabase().get(versionID);
-		Assert.assertNotNull(version);
+		ItemCollection version = workflowEnvironment.getDatabase().get(versionID);
+		assertNotNull(version);
 
 		// simulate snaptshot cdi event
 		DocumentEvent documentEvent2 = new DocumentEvent(version, DocumentEvent.ON_DOCUMENT_SAVE);
@@ -197,17 +182,17 @@ public class TestSnapshotService {
 		logger.info("Version $snapshotid=" + versionSnapshot);
 
 		// version snapshot id MUST not be equal
-		Assert.assertFalse(snapshotID.equals(versionSnapshot));
+		assertFalse(snapshotID.equals(versionSnapshot));
 
 		// we load the snapshot version and we expect again the fail content....
-		ItemCollection snapshotworkitemVersion = workflowMockEnvironment.getDatabase().get(versionSnapshot);
-		Assert.assertNotNull(snapshotworkitemVersion);
+		ItemCollection snapshotworkitemVersion = workflowEnvironment.getDatabase().get(versionSnapshot);
+		assertNotNull(snapshotworkitemVersion);
 
 		// test the file content
-		//List<Object> fileDataVersion = snapshotworkitemVersion.getFile("test.txt");
-		FileData fileDataVersion=snapshotworkitemVersion.getFileData("test.txt");
-		//byte[] contentVersion = (byte[]) fileDataVersion.get(1);
-		Assert.assertEquals("This is a test", new String(fileDataVersion.getContent()));
+		// List<Object> fileDataVersion = snapshotworkitemVersion.getFile("test.txt");
+		FileData fileDataVersion = snapshotworkitemVersion.getFileData("test.txt");
+		// byte[] contentVersion = (byte[]) fileDataVersion.get(1);
+		assertEquals("This is a test", new String(fileDataVersion.getContent()));
 
 	}
 
@@ -227,58 +212,57 @@ public class TestSnapshotService {
 	public void testFileDataAndDMSEntries()
 			throws AccessDeniedException, ProcessingErrorException, PluginException, ModelException {
 		// load test workitem
-		ItemCollection workitem = workflowMockEnvironment.getDatabase().get("W0000-00001");
-		workitem.replaceItemValue(WorkflowKernel.MODELVERSION, WorkflowMockEnvironment.DEFAULT_MODEL_VERSION);
-		workitem.replaceItemValue(WorkflowKernel.TASKID, 1000);
-		workitem.replaceItemValue(WorkflowKernel.EVENTID, 10);
+		ItemCollection workitem = workflowEnvironment.getDocumentService().load("W0000-00001");
+
+		workitem.model("1.0.0").task(1000).event(10);
 
 		// add file...
 		byte[] dummyContent = { 1, 2, 3 };
-		FileData filedata = new FileData("test.txt", dummyContent, "text",null);
+		FileData filedata = new FileData("test.txt", dummyContent, "text", null);
 		workitem.addFileData(filedata);
 
 		DocumentEvent documentEvent = new DocumentEvent(workitem, DocumentEvent.ON_DOCUMENT_SAVE);
 
-		snapshotService.archiveServiceEndpoint=Optional.of("");
-		snapshotService.backupServiceEndpoint=Optional.of("");
+		snapshotService.archiveServiceEndpoint = Optional.of("");
+		snapshotService.backupServiceEndpoint = Optional.of("");
 		snapshotService.onSave(documentEvent);
 
-		workitem = workflowMockEnvironment.getWorkflowService().processWorkItem(workitem);
+		workitem = workflowEnvironment.getWorkflowService().processWorkItem(workitem);
 
-		Assert.assertEquals("1.0.0", workitem.getItemValueString("$ModelVersion"));
+		assertEquals("1.0.0", workitem.getItemValueString("$ModelVersion"));
 
 		// test the $snapshotID
-		Assert.assertTrue(workitem.hasItem(SnapshotService.SNAPSHOTID));
+		assertTrue(workitem.hasItem(SnapshotService.SNAPSHOTID));
 		String snapshotID = workitem.getItemValueString(SnapshotService.SNAPSHOTID);
-		Assert.assertFalse(snapshotID.isEmpty());
+		assertFalse(snapshotID.isEmpty());
 		logger.info("$snapshotid=" + snapshotID);
-		Assert.assertTrue(snapshotID.startsWith("W0000-00001"));
+		assertTrue(snapshotID.startsWith("W0000-00001"));
 
 		// load the snapshot workitem
-		ItemCollection snapshotworkitem = workflowMockEnvironment.getDatabase().get(snapshotID);
-		Assert.assertNotNull(snapshotworkitem);
+		ItemCollection snapshotworkitem = workflowEnvironment.getDatabase().get(snapshotID);
+		assertNotNull(snapshotworkitem);
 
 		// test the file data of workitem
 		FileData testfiledataOrigin = workitem.getFileData("test.txt");
-		Assert.assertEquals(filedata.getName(), testfiledataOrigin.getName());
-		Assert.assertEquals(filedata.getContentType(), testfiledataOrigin.getContentType());
-		Assert.assertTrue(testfiledataOrigin.getContent().length == 0);
+		assertEquals(filedata.getName(), testfiledataOrigin.getName());
+		assertEquals(filedata.getContentType(), testfiledataOrigin.getContentType());
+		assertTrue(testfiledataOrigin.getContent().length == 0);
 
 		// test the file data of snapshot
 		FileData testfiledataSnapshot = snapshotworkitem.getFileData("test.txt");
-		Assert.assertEquals(filedata.getName(), testfiledataSnapshot.getName());
-		Assert.assertEquals(filedata.getContentType(), testfiledataSnapshot.getContentType());
-		Assert.assertTrue(testfiledataSnapshot.getContent().length == 3);
+		assertEquals(filedata.getName(), testfiledataSnapshot.getName());
+		assertEquals(filedata.getContentType(), testfiledataSnapshot.getContentType());
+		assertTrue(testfiledataSnapshot.getContent().length == 3);
 
 		// now test the DMS item
-		ItemCollection dmsItemCol =new ItemCollection(testfiledataOrigin.getAttributes());
-		Assert.assertNotNull(dmsItemCol);
-		Assert.assertEquals(3, dmsItemCol.getItemValueInteger("size"));
+		ItemCollection dmsItemCol = new ItemCollection(testfiledataOrigin.getAttributes());
+		assertNotNull(dmsItemCol);
+		assertEquals(3, dmsItemCol.getItemValueInteger("size"));
 		try {
-			Assert.assertTrue(testfiledataSnapshot.validateMD5(dmsItemCol.getItemValueString("md5checksum")));
+			assertTrue(testfiledataSnapshot.validateMD5(dmsItemCol.getItemValueString("md5checksum")));
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
-			Assert.fail();
+			fail();
 		}
 	}
 

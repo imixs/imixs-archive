@@ -37,6 +37,15 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.imixs.workflow.FileData;
+import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.WorkflowKernel;
+import org.imixs.workflow.engine.DocumentEvent;
+import org.imixs.workflow.engine.DocumentService;
+import org.imixs.workflow.engine.EventLogService;
+import org.imixs.workflow.exceptions.AccessDeniedException;
+
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.DeclareRoles;
 import jakarta.annotation.security.RunAs;
@@ -46,15 +55,6 @@ import jakarta.ejb.SessionContext;
 import jakarta.ejb.Stateless;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.workflow.FileData;
-import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.WorkflowKernel;
-import org.imixs.workflow.engine.DocumentEvent;
-import org.imixs.workflow.engine.DocumentService;
-import org.imixs.workflow.engine.EventLogService;
-import org.imixs.workflow.exceptions.AccessDeniedException;
 
 /**
  * This service component provides a mechanism to transfer the content of a
@@ -138,7 +138,7 @@ public class SnapshotService {
                                                                                                       // overwriting
                                                                                                       // file content
     public static final String ITEM_BACKUPRESTORE = "$backuprestore";
-    
+
     public static final String PROPERTY_SNAPSHOT_WORKITEMLOB_SUPPORT = "snapshot.workitemlob_suport";
     public static final String PROPERTY_SNAPSHOT_HISTORY = "snapshot.history";
     public static final String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
@@ -353,7 +353,8 @@ public class SnapshotService {
             eventLogService.createEvent(EVENTLOG_TOPIC_ADD, snapshot.getUniqueID());
         } else {
             // 10. write backup event log entry...
-            // If no ArchiveService is connected, but a BackupService, than we create immediately a Backup Event
+            // If no ArchiveService is connected, but a BackupService, than we create
+            // immediately a Backup Event
             if (backupServiceEndpoint.isPresent() && !backupServiceEndpoint.get().isEmpty()) {
                 if (debug) {
                     logger.finest("......create event log entry " + EVENTLOG_TOPIC_BACKUP);

@@ -29,7 +29,7 @@ package org.imixs.archive.core;
 
 /**
  * An SnapshotException is a runtime exception which is thrown by a
- * SnapshotService if data is not read or writable. 
+ * SnapshotService if data is not read or writable.
  * 
  * @see org.imixs.archive.core.SnapshotService
  * @author rsoika
