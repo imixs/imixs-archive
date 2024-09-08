@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
-"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"
-	xmlns:c="http://java.sun.com/jsp/jstl/core"
-	xmlns:h="http://java.sun.com/jsf/html"
-	xmlns:f="http://java.sun.com/jsf/core"
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:h="http://java.sun.com/jsf/html" xmlns:f="http://java.sun.com/jsf/core"
 	xmlns:ui="http://java.sun.com/jsf/facelets">
 
 <h:head>
@@ -35,12 +33,9 @@
 
 	<!-- Style
     ================================================== -->
-	<link rel="stylesheet"
-		href="#{facesContext.externalContext.requestContextPath}/layout/css/imixs-basic.css" />
-	<link rel="stylesheet"
-		href="#{facesContext.externalContext.requestContextPath}/layout/css/imixs-layout.css" />
-	<link rel="stylesheet"
-		href="#{facesContext.externalContext.requestContextPath}/layout/css/imixs-archive.css" />
+	<link rel="stylesheet" href="#{facesContext.externalContext.requestContextPath}/layout/css/imixs-basic.css" />
+	<link rel="stylesheet" href="#{facesContext.externalContext.requestContextPath}/layout/css/imixs-layout.css" />
+	<link rel="stylesheet" href="#{facesContext.externalContext.requestContextPath}/layout/css/imixs-archive.css" />
 
 
 	<script type="text/javascript"
@@ -50,43 +45,30 @@
 <h:body>
 	<f:view>
 		<nav> <!-- Sidebar -->
-		<div class="nav-sidebar">
-
-
-			<div class="title-bar">
-				<h4>
-					<a
-						href="#{facesContext.externalContext.requestContextPath}/imixsarchive">Imixs-Archive</a>
-				</h4>
-				<small><a
-					href="#{facesContext.externalContext.requestContextPath}/imixsarchive">v#{message.application_build}</a></small>
+			<div class="nav-sidebar">
+				<div class="title-bar">
+					<h4>
+						<a href="#{facesContext.externalContext.requestContextPath}/imixsarchive">Imixs-Archive</a>
+					</h4>
+					<small><a
+							href="#{facesContext.externalContext.requestContextPath}/imixsarchive">v#{message.application_build}</a></small>
+				</div>
+				<ul>
+					<li class="nav-item"><a href="#{facesContext.externalContext.requestContextPath}/"><span
+								class="typcn typcn-chart-bar-outline"></span>Monitor</a></li>
+				</ul>
+				<hr />
+				<ul>
+					<li class="nav-item"><a
+							href="#{facesContext.externalContext.requestContextPath}/inspect.xhtml"><span
+								class="typcn typcn-compass"></span>Inspect</a></li>
+					<li class="nav-item"><a href="#{facesContext.externalContext.requestContextPath}/resync.xhtml"><span
+								class="typcn typcn-arrow-sync-outline"></span>Resync</a></li>
+					<li class="nav-item"><a
+							href="#{facesContext.externalContext.requestContextPath}/restore.xhtml"><span
+								class="typcn typcn-database"></span>Restore</a></li>
+				</ul>
 			</div>
-
-			<ul>
-				<li class="nav-item"><a
-					href="#{facesContext.externalContext.requestContextPath}/"><span
-						class="typcn typcn-chart-bar-outline"></span>Monitor</a></li>
-
-			</ul>
-			<hr />
-			<ul>
-				<li class="nav-item"><a
-					href="#{facesContext.externalContext.requestContextPath}/inspect.xhtml"><span
-						class="typcn typcn-compass"></span>Inspect</a></li>
-
-				<li class="nav-item"><a
-					href="#{facesContext.externalContext.requestContextPath}/resync.xhtml"><span
-						class="typcn typcn-arrow-sync-outline"></span>Resync</a></li>
-
-				<li class="nav-item"><a
-					href="#{facesContext.externalContext.requestContextPath}/restore.xhtml"><span
-						class="typcn typcn-database"></span>Restore</a></li>
-
-			</ul>
-
-
-
-		</div>
 		</nav>
 
 		<!-- Page Content -->
@@ -97,46 +79,30 @@
 
 			</div>
 
-
 			<div id="imixs-content" class="main-container">
 				<ui:insert name="content">
 					<h2>Default Content</h2>
 				</ui:insert>
 			</div>
 
-
-
 			<div id="imixs-footer">
 				<ui:insert name="footer">
 					<ui:include src="footer.xhtml" />
 				</ui:insert>
 			</div>
-
-
 		</div>
-
-
-
-
-
 	</f:view>
-
-
 
 
 	<script type="text/javascript">
 		/*<![CDATA[*/
 
-		$(document).ready(function() {
-
+		$(document).ready(function () {
 			//setDateFormat('#{cc.attrs.dateformat}');
-			// $(this).imixsInitFileUpload();
-
 			$('a.imixs-button').button();
 			$(this).imixsLayout();
-
+			$(this).imixsInitFileUpload();
 			$("span.imixs-tooltip").layoutImixsTooltip();
-
 		});
 
 		/*]]>*/
