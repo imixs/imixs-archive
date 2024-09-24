@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<rsm:CrossIndustryInvoice xmlns:a='urn:un:unece:uncefact:data:standard:QualifiedDataType:100' xmlns:rsm='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100' xmlns:qdt='urn:un:unece:uncefact:data:standard:QualifiedDataType:10' xmlns:ram='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100' xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:udt='urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100'>
+  <rsm:ExchangedDocumentContext>
+    <ram:GuidelineSpecifiedDocumentContextParameter>
+      <ram:ID>urn:cen.eu:en16931:2017</ram:ID>
+    </ram:GuidelineSpecifiedDocumentContextParameter>
+  </rsm:ExchangedDocumentContext>
+  <rsm:ExchangedDocument>
+  <ram:ID>R-00010</ram:ID>
+  <ram:TypeCode>380</ram:TypeCode>
+  <ram:IssueDateTime>
+    <udt:DateTimeString format='102'>20210728</udt:DateTimeString>
+  </ram:IssueDateTime>
+  <ram:IncludedNote>
+    <ram:Content>Rechnung</ram:Content>
+  </ram:IncludedNote>
+  <ram:IncludedNote>
+    <ram:Content>XRechnung</ram:Content>
+  </ram:IncludedNote>
+</rsm:ExchangedDocument>
+
+  <rsm:SupplyChainTradeTransaction>
+  <ram:IncludedSupplyChainTradeLineItem>
+  <ram:AssociatedDocumentLineDocument>
+    <ram:LineID>1</ram:LineID>
+  </ram:AssociatedDocumentLineDocument>
+  <ram:SpecifiedTradeProduct>
+    <ram:Name>Pressefotos</ram:Name>
+    <ram:Description></ram:Description>
+  </ram:SpecifiedTradeProduct>
+  <ram:SpecifiedLineTradeAgreement>
+    <ram:GrossPriceProductTradePrice>
+      <ram:ChargeAmount>2380.0</ram:ChargeAmount>
+    </ram:GrossPriceProductTradePrice>
+    <ram:NetPriceProductTradePrice>
+      <ram:ChargeAmount>2000.0</ram:ChargeAmount>
+    </ram:NetPriceProductTradePrice>
+  </ram:SpecifiedLineTradeAgreement>
+  <ram:SpecifiedLineTradeDelivery>
+    <ram:BilledQuantity unitCode='H87'>1.0</ram:BilledQuantity>
+  </ram:SpecifiedLineTradeDelivery>
+  <ram:SpecifiedLineTradeSettlement>
+    <ram:ApplicableTradeTax>
+      <ram:TypeCode>VAT</ram:TypeCode>
+      <ram:CategoryCode>S</ram:CategoryCode>
+      <ram:RateApplicablePercent>19.0</ram:RateApplicablePercent>
+    </ram:ApplicableTradeTax>
+    <ram:SpecifiedTradeSettlementLineMonetarySummation>
+      <ram:LineTotalAmount>2000.0</ram:LineTotalAmount>
+    </ram:SpecifiedTradeSettlementLineMonetarySummation>
+  </ram:SpecifiedLineTradeSettlement>
+</ram:IncludedSupplyChainTradeLineItem>
+
+<ram:IncludedSupplyChainTradeLineItem>
+  <ram:AssociatedDocumentLineDocument>
+    <ram:LineID>2</ram:LineID>
+  </ram:AssociatedDocumentLineDocument>
+  <ram:SpecifiedTradeProduct>
+    <ram:Name>Einräumung von ausschließlichen Nutzungsrechten an audiovisuelles Material zur Veröffentlichung in Zeitungen, Zeitschriften, auf Webseiten</ram:Name>
+    <ram:Description></ram:Description>
+  </ram:SpecifiedTradeProduct>
+  <ram:SpecifiedLineTradeAgreement>
+    <ram:GrossPriceProductTradePrice>
+      <ram:ChargeAmount>2000.9</ram:ChargeAmount>
+    </ram:GrossPriceProductTradePrice>
+    <ram:NetPriceProductTradePrice>
+      <ram:ChargeAmount>1870.0</ram:ChargeAmount>
+    </ram:NetPriceProductTradePrice>
+  </ram:SpecifiedLineTradeAgreement>
+  <ram:SpecifiedLineTradeDelivery>
+    <ram:BilledQuantity unitCode='H87'>1.0</ram:BilledQuantity>
+  </ram:SpecifiedLineTradeDelivery>
+  <ram:SpecifiedLineTradeSettlement>
+    <ram:ApplicableTradeTax>
+      <ram:TypeCode>VAT</ram:TypeCode>
+      <ram:CategoryCode>S</ram:CategoryCode>
+      <ram:RateApplicablePercent>7.0</ram:RateApplicablePercent>
+    </ram:ApplicableTradeTax>
+    <ram:SpecifiedTradeSettlementLineMonetarySummation>
+      <ram:LineTotalAmount>1870.0</ram:LineTotalAmount>
+    </ram:SpecifiedTradeSettlementLineMonetarySummation>
+  </ram:SpecifiedLineTradeSettlement>
+</ram:IncludedSupplyChainTradeLineItem>
+
+  <ram:ApplicableHeaderTradeAgreement>
+  <ram:BuyerReference>123-1234512345-12</ram:BuyerReference>
+  <ram:SellerTradeParty>
+    <ram:Name>Max Mustermann</ram:Name>
+    <ram:PostalTradeAddress>
+      <ram:PostcodeCode>12345</ram:PostcodeCode>
+      <ram:LineOne>Musterstraße 123</ram:LineOne>
+      <ram:CityName>Muster</ram:CityName>
+      <ram:CountryID>DE</ram:CountryID>
+    </ram:PostalTradeAddress>
+    <ram:SpecifiedTaxRegistration><ram:ID schemeID='VA'>DE111111111</ram:ID></ram:SpecifiedTaxRegistration>
+  </ram:SellerTradeParty>
+  <ram:BuyerTradeParty>
+    <ram:Name>Viborg Metall GbR</ram:Name>
+    <ram:PostalTradeAddress>
+      <ram:PostcodeCode>75180</ram:PostcodeCode>
+      <ram:LineOne>Bahnhofstraße 74</ram:LineOne>
+      <ram:CityName>Pforzheim</ram:CityName>
+      <ram:CountryID>DE</ram:CountryID>
+    </ram:PostalTradeAddress>
+    
+  </ram:BuyerTradeParty>
+</ram:ApplicableHeaderTradeAgreement>
+
+  <ram:ApplicableHeaderTradeDelivery>
+  <ram:ActualDeliverySupplyChainEvent>
+    <ram:OccurrenceDateTime>
+      <udt:DateTimeString format='102'>20210728</udt:DateTimeString>
+    </ram:OccurrenceDateTime>
+  </ram:ActualDeliverySupplyChainEvent>
+</ram:ApplicableHeaderTradeDelivery>
+
+  <ram:ApplicableHeaderTradeSettlement>
+  <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+  <ram:ApplicableTradeTax>
+  <ram:CalculatedAmount>130.9</ram:CalculatedAmount>
+  <ram:TypeCode>VAT</ram:TypeCode>
+  <ram:BasisAmount>1870.0</ram:BasisAmount>
+  <ram:CategoryCode>S</ram:CategoryCode>
+  <ram:RateApplicablePercent>7.0</ram:RateApplicablePercent>
+</ram:ApplicableTradeTax>
+
+<ram:ApplicableTradeTax>
+  <ram:CalculatedAmount>380.0</ram:CalculatedAmount>
+  <ram:TypeCode>VAT</ram:TypeCode>
+  <ram:BasisAmount>2000.0</ram:BasisAmount>
+  <ram:CategoryCode>S</ram:CategoryCode>
+  <ram:RateApplicablePercent>19.0</ram:RateApplicablePercent>
+</ram:ApplicableTradeTax>
+
+  <ram:SpecifiedTradePaymentTerms>
+    <ram:Description>Bei Zahlung bis zum 31.08.2021 werden 1.5% Skonto gewährt.</ram:Description>
+    <ram:DueDateDateTime>
+      <udt:DateTimeString format='102'>20210811</udt:DateTimeString>
+    </ram:DueDateDateTime>
+  </ram:SpecifiedTradePaymentTerms>
+  <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+    <ram:LineTotalAmount>3870.0</ram:LineTotalAmount>
+    <ram:AllowanceTotalAmount>0</ram:AllowanceTotalAmount>
+    <ram:TaxBasisTotalAmount>3870.0</ram:TaxBasisTotalAmount>
+    <ram:TaxTotalAmount currencyID="EUR">510.9</ram:TaxTotalAmount>
+    <ram:GrandTotalAmount>4380.9</ram:GrandTotalAmount>
+    <ram:TotalPrepaidAmount>0</ram:TotalPrepaidAmount>
+    <ram:DuePayableAmount>4380.9</ram:DuePayableAmount>
+  </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+</ram:ApplicableHeaderTradeSettlement>
+
+</rsm:SupplyChainTradeTransaction>
+
+</rsm:CrossIndustryInvoice>
