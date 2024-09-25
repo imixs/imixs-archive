@@ -14,7 +14,9 @@ import org.imixs.archive.documents.EInvoiceAdapter;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.DocumentService;
+import org.imixs.workflow.engine.WorkflowService;
 import org.imixs.workflow.exceptions.AdapterException;
+import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,9 @@ class EInvoiceAdapterTest {
     @Mock
     private DocumentService documentService;
 
+    @Mock
+    private WorkflowService workflowService;
+
     @InjectMocks
     private EInvoiceAdapter adapter;
 
@@ -42,9 +47,17 @@ class EInvoiceAdapterTest {
     private ItemCollection event;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws PluginException, ModelException {
+        // MockitoAnnotations.openMocks(this);
+
         workitem = new ItemCollection();
         event = new ItemCollection();
+        // set test txtActivityResult....
+        String config = "<e-invoice name=\"READ\">\n";
+        config += "   <item>invoice.number=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID</item>\n";
+        config += "   <item>invoice.date=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:IssueDateTime</item>\n";
+        config += "</e-invoice>";
+        event.setItemValue("txtActivityResult", config);
     }
 
     @Test
@@ -52,11 +65,8 @@ class EInvoiceAdapterTest {
         // Prepare test data
         FileData pdfFile = createFileData("e-invoice/Rechnung_R_00011.pdf", "application/pdf");
         workitem.addFileData(pdfFile);
-
-        // Execute the adapter
-        String result = adapter.detectEInvoiceFormat(workitem);
-
-        // Verify the result
+        FileData fileData = adapter.detectEInvoice(workitem);
+        String result = EInvoiceAdapter.detectEInvoiceType(fileData);
         assertNotNull(result);
         assertEquals("Factur-X/ZUGFeRD 2.0", result);
     }
@@ -67,7 +77,8 @@ class EInvoiceAdapterTest {
         FileData xmlFile = createFileData("e-invoice/Rechnung_R_00010.xml", "application/xml");
         workitem.addFileData(xmlFile);
 
-        String result = adapter.detectEInvoiceFormat(workitem);
+        FileData fileData = adapter.detectEInvoice(workitem);
+        String result = EInvoiceAdapter.detectEInvoiceType(fileData);
 
         // Verify the result
         assertNotNull(result);
@@ -80,8 +91,8 @@ class EInvoiceAdapterTest {
         FileData zipFile = createFileData("e-invoice/XRechnung_Beispiel.zip", "application/zip");
         workitem.addFileData(zipFile);
 
-        String result = adapter.detectEInvoiceFormat(workitem);
-
+        FileData fileData = adapter.detectEInvoice(workitem);
+        String result = EInvoiceAdapter.detectEInvoiceType(fileData);
         // Verify the result
         assertNotNull(result);
         assertEquals("Factur-X/ZUGFeRD 2.0", result);
@@ -94,18 +105,17 @@ class EInvoiceAdapterTest {
         workitem.addFileData(txtFile);
 
         // Execute the adapter
-        String result = adapter.detectEInvoiceFormat(workitem);
-
+        FileData fileData = adapter.detectEInvoice(workitem);
         // Verify the result
-        assertNull(result);
+        assertNull(fileData);
     }
 
     @Test
     void testExecuteWithNoAttachments() throws AdapterException, PluginException {
         // Execute the adapter
-        String result = adapter.detectEInvoiceFormat(workitem);
+        FileData fileData = adapter.detectEInvoice(workitem);
         // Verify the result
-        assertNull(result);
+        assertNull(fileData);
     }
 
     /**

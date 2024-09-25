@@ -4,6 +4,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +33,7 @@ import org.apache.pdfbox.pdmodel.PDEmbeddedFilesNameTreeNode;
 import org.apache.pdfbox.pdmodel.common.PDNameTreeNode;
 import org.apache.pdfbox.pdmodel.common.filespecification.PDComplexFileSpecification;
 import org.apache.pdfbox.pdmodel.common.filespecification.PDEmbeddedFile;
+import org.imixs.archive.core.SnapshotService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.SignalAdapter;
@@ -45,34 +51,31 @@ import jakarta.inject.Inject;
  * The EInvoiceAdapter can detect and extract content from e-invoice documents
  * in different formats.
  * <p>
- * The detection outcome of the adapter is a new item named 'einvoice.format'
- * with the
- * type of the e-invoice format:
+ * The detection outcome of the adapter is a new item named 'einvoice.type'
+ * with the detected type of the e-invoice format. E.g:
  * 
- * - zugferd
- * - xrechnung
+ * - Factur-X/ZUGFeRD 2.0
  * 
- * 
- * The Adapter can be configured by the BPMN event either to detect the
- * e-invoice
- * type (DETECT) or extract e-invoice data fields (READ)
+ * The Adapter can be configured by the BPMN event to extract e-invoice data
+ * fields
  * <p>
  * Example e-invoice configuration:
  * 
  * <pre>
  * {@code
-        <e-invoice name="DETECT">
-        </e-invoice>
  
         <e-invoice name="READ">
-            <item>invoice.number=</item>
-            <result-event>JSON</result-event>
+            <entity>invoice.number=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID</entity>
+	 		<entity>invoice.date=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:IssueDateTime</entity>
         </e-invoice>	
  * }
  * </pre>
  * 
- * In 'READ' mode the adapter expects item elements with a itemname followed by
- * a xPath expression
+ * In 'READ' mode the currently the only supported mode. The adapter expects
+ * item elements with a item name followed by a xPath expression
+ * <p>
+ * If the document is not a e-invoice no items and also the einvoice.type
+ * field will be set.
  * 
  * @author rsoika
  * @version 2.0
@@ -81,8 +84,9 @@ import jakarta.inject.Inject;
 public class EInvoiceAdapter implements SignalAdapter {
 	private static Logger logger = Logger.getLogger(EInvoiceAdapter.class.getName());
 
-	public static final String E_INVOICE_DETECT = "DETECT";
 	public static final String E_INVOICE_READ = "READ";
+	public static final String FILE_ATTRIBUTE_XML = "xml";
+	public static final String FILE_ATTRIBUTE_EINVOICE_TYPE = "einvoice.type";
 
 	public static final String PARSING_EXCEPTION = "PARSING_EXCEPTION";
 	public static final String PLUGIN_ERROR = "PLUGIN_ERROR";
@@ -97,6 +101,7 @@ public class EInvoiceAdapter implements SignalAdapter {
 	static {
 		NAMESPACES.put("rsm", "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100");
 		NAMESPACES.put("ram", "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100");
+		NAMESPACES.put("udt", "urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100");
 		// Add more namespaces as needed
 	}
 
@@ -108,6 +113,9 @@ public class EInvoiceAdapter implements SignalAdapter {
 
 	@Inject
 	private WorkflowService workflowService;
+
+	@Inject
+	SnapshotService snapshotService;
 
 	/**
 	 * Executes the e-invoice detection process on the given workitem.
@@ -124,67 +132,130 @@ public class EInvoiceAdapter implements SignalAdapter {
 	public ItemCollection execute(ItemCollection workitem, ItemCollection event)
 			throws AdapterException, PluginException {
 
-		List<ItemCollection> detectDefinitions = workflowService.evalWorkflowResultXML(event, "e-invoice",
-				E_INVOICE_DETECT, workitem, false);
 		List<ItemCollection> readDefinitions = workflowService.evalWorkflowResultXML(event, "e-invoice",
 				E_INVOICE_READ, workitem, false);
 
-		// Detect E-Invoice
-		if (detectDefinitions != null && detectDefinitions.size() > 0) {
-			String einvoiceFormat = detectEInvoiceFormat(workitem);
-
-			if (einvoiceFormat != null) {
-				workitem.setItemValue("einvoice.format", einvoiceFormat);
-				logger.info("Detected e-invoice format: " + einvoiceFormat);
-			} else {
-				logger.info("No e-invoice format detected.");
-			}
-		}
-
-		// Read E-Invoice Data
+		// Detect and read E-Invoice Data
 		if (readDefinitions != null && readDefinitions.size() > 0) {
-			ItemCollection itemDefinition = readDefinitions.get(0);
-			List<String> items = itemDefinition.getItemValueList("item", String.class);
-			readEInvoiceContent(workitem, items);
+
+			FileData eInvoiceFileData = detectEInvoice(workitem);
+
+			if (eInvoiceFileData == null) {
+				logger.info("No e-invoice type detected.");
+				return workitem;
+			} else {
+				String einvoiceType = detectEInvoiceType(eInvoiceFileData);
+				workitem.setItemValue(FILE_ATTRIBUTE_EINVOICE_TYPE, einvoiceType);
+				logger.info("Detected e-invoice type: " + einvoiceType);
+				ItemCollection itemDefinition = readDefinitions.get(0);
+				List<String> entities = itemDefinition.getItemValueList("entity", String.class);
+				readEInvoiceContent(eInvoiceFileData, entities, workitem);
+			}
+
 		}
 
 		return workitem;
 	}
 
 	/**
-	 * Detects the e-invoice format from the attached files in the workitem.
+	 * Detects the first e-invoice from the attached files in the workitem.
 	 * It first checks for PDF files with embedded XML, then standalone XML files.
+	 * The method returns the FileData Object with the new attributes
+	 * 'einvoice.type' and 'xml'
 	 *
 	 * @param workitem The workitem containing the attachments to analyze
-	 * @return The detected e-invoice format, or null if not detected
+	 * @return The detected e-invoice type, or null if not detected
 	 * @throws PluginException If there's an error in processing the attachments
 	 */
-	public String detectEInvoiceFormat(ItemCollection workitem) throws PluginException {
-		byte[] xmlData = getXMLFile(workitem, PDF_PATTERN);
-		if (xmlData != null) {
-			return analyzeXMLContent(xmlData);
+	public FileData detectEInvoice(ItemCollection workitem) throws PluginException {
+
+		FileData xmlFileData = getXMLFileData(workitem, PDF_PATTERN);
+		if (xmlFileData != null) {
+			analyzeXMLContent(xmlFileData);
+			return xmlFileData;
 		}
 
-		xmlData = getXMLFile(workitem, XML_PATTERN);
-		if (xmlData != null) {
-			return analyzeXMLContent(xmlData);
+		// text XML....
+		xmlFileData = getXMLFileData(workitem, XML_PATTERN);
+		if (xmlFileData != null) {
+			analyzeXMLContent(xmlFileData);
+			return xmlFileData;
 		}
 
-		xmlData = getXMLFromZip(workitem);
-		if (xmlData != null) {
-			return analyzeXMLContent(xmlData);
+		xmlFileData = getXMLFromZip(workitem);
+		if (xmlFileData != null) {
+			analyzeXMLContent(xmlFileData);
+			return xmlFileData;
 		}
 
 		return null;
 	}
 
-	private byte[] getXMLFromZip(ItemCollection document) throws PluginException {
-		List<String> filenames = document.getFileNames();
+	/**
+	 * This method detects the einvoice.type of a given FileData
+	 * 
+	 * @param workitem
+	 * @return
+	 * @throws PluginException
+	 */
+	public static String detectEInvoiceType(FileData fileData) throws PluginException {
+		@SuppressWarnings("unchecked")
+		List<Object> list = (List<Object>) fileData.getAttribute(FILE_ATTRIBUTE_EINVOICE_TYPE);
+		if (list == null || list.size() == 0) {
+			return null;
+		}
+
+		return list.get(0).toString();
+	}
+
+	/**
+	 * Stores a XML Content into the FileData attribute 'xml'
+	 * 
+	 * @param fileData
+	 * @param xmlData
+	 */
+	@SuppressWarnings("unchecked")
+	private void storeXMLContent(FileData fileData, byte[] xmlData) {
+		// store the xmlContent....
+		List<Object> list = (List<Object>) fileData.getAttribute(FILE_ATTRIBUTE_XML);
+		if (list == null) {
+			list = new ArrayList<Object>();
+		}
+		list.add(xmlData);
+		fileData.setAttribute(FILE_ATTRIBUTE_XML, list);
+	}
+
+	/**
+	 * Reads the XML Content from the FileData attribute 'xml'
+	 * 
+	 * @param fileData
+	 * @param xmlData
+	 */
+	@SuppressWarnings("unchecked")
+	private byte[] readXMLContent(FileData fileData) {
+		// store the ocrContent....
+		List<Object> list = (List<Object>) fileData.getAttribute(FILE_ATTRIBUTE_XML);
+		if (list != null) {
+			return (byte[]) list.get(0);
+		}
+		return null;
+	}
+
+	private FileData getXMLFromZip(ItemCollection workitem) throws PluginException {
+		List<String> filenames = workitem.getFileNames();
 		for (String filename : filenames) {
 			if (ZIP_PATTERN.matcher(filename).find()) {
 				logger.info("Extracting XML from ZIP file: " + filename);
-				FileData fileData = document.getFileData(filename);
-				return extractXMLFromZip(fileData.getContent());
+
+				FileData fileData = workitem.getFileData(filename);
+				byte[] fileContent = fileData.getContent();
+				if (snapshotService != null) {
+					FileData snapShotFileData = snapshotService.getWorkItemFile(workitem.getUniqueID(), filename);
+					fileContent = snapShotFileData.getContent();
+				}
+				byte[] xmlData = extractXMLFromZip(fileContent);
+				storeXMLContent(fileData, xmlData);
+				return fileData;
 			}
 		}
 		return null;
@@ -218,7 +289,10 @@ public class EInvoiceAdapter implements SignalAdapter {
 	 * @param xmlData The XML content as a byte array
 	 * @return The detected e-invoice format
 	 */
-	private String analyzeXMLContent(byte[] xmlData) {
+	private String analyzeXMLContent(FileData fileData) {
+		byte[] xmlData = readXMLContent(fileData);
+
+		// fileData.getContent();
 		try {
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			factory.setNamespaceAware(true);
@@ -231,6 +305,8 @@ public class EInvoiceAdapter implements SignalAdapter {
 
 			if ("CrossIndustryInvoice".equals(rootLocalName) &&
 					"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100".equals(rootNamespace)) {
+
+				fileData.setAttribute("einvoice.type", Arrays.asList("Factur-X/ZUGFeRD 2.0"));
 				return "Factur-X/ZUGFeRD 2.0";
 			}
 
@@ -248,19 +324,31 @@ public class EInvoiceAdapter implements SignalAdapter {
 	 * Extracts XML content from attached files matching the given pattern.
 	 * For PDF files, it extracts embedded XML. For XML files, it returns the file
 	 * content.
+	 * The Method returns an updated fileData object attached to the workitem even
+	 * if the content was fetched from a Snapshot
 	 *
-	 * @param document    The ItemCollection containing the attachments
+	 * @param workitem    The ItemCollection containing the attachments
 	 * @param filePattern The pattern to match file names
 	 * @return The XML content as a byte array, or null if not found
 	 * @throws PluginException If there's an error in processing the files
 	 */
-	private byte[] getXMLFile(ItemCollection document, Pattern filePattern) throws PluginException {
-		List<String> filenames = document.getFileNames();
+	private FileData getXMLFileData(ItemCollection workitem, Pattern filePattern) throws PluginException {
+		List<String> filenames = workitem.getFileNames();
 		for (String filename : filenames) {
 			if (filePattern.matcher(filename).find()) {
 				logger.info("Extracting embedded XML from '" + filename + "'");
-				FileData fileData = document.getFileData(filename);
-				return filePattern == PDF_PATTERN ? getFirstEmbeddedXML(fileData.getContent()) : fileData.getContent();
+				FileData fileData = workitem.getFileData(filename);
+				byte[] fileContent = fileData.getContent();
+				if (snapshotService != null) {
+					FileData snapShotFileData = snapshotService.getWorkItemFile(workitem.getUniqueID(), filename);
+					fileContent = snapShotFileData.getContent();
+				}
+				byte[] xmlContent = fileContent;
+				if (filePattern == PDF_PATTERN) {
+					xmlContent = getFirstEmbeddedXML(fileContent);
+				}
+				storeXMLContent(fileData, xmlContent);
+				return fileData;
 			}
 		}
 		return null;
@@ -344,9 +432,9 @@ public class EInvoiceAdapter implements SignalAdapter {
 	 * @param xmlData
 	 * @return
 	 */
-	private void readEInvoiceContent(ItemCollection workitem, List<String> itemDefinitions) {
-		byte[] xmlData = null;
-		// TODO get the xml data....
+	private void readEInvoiceContent(FileData eInvoiceFileData, List<String> entityDefinitions,
+			ItemCollection workitem) {
+		byte[] xmlData = readXMLContent(eInvoiceFileData);
 
 		try {
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -374,7 +462,7 @@ public class EInvoiceAdapter implements SignalAdapter {
 			Map<String, XPathExpression> compiledExpressions = new HashMap<>();
 
 			// extract the itemName and the expression from each itemDefinition....
-			for (String itemDef : itemDefinitions) {
+			for (String itemDef : entityDefinitions) {
 				String[] parts = itemDef.split("=", 2);
 				if (parts.length != 2) {
 					logger.warning("Invalid item definition: " + itemDef);
@@ -395,7 +483,18 @@ public class EInvoiceAdapter implements SignalAdapter {
 				if (expr != null) {
 					Node node = (Node) expr.evaluate(doc, XPathConstants.NODE);
 					String itemValue = node != null ? node.getTextContent() : null;
-					workitem.setItemValue(itemName, itemValue);
+
+					if (itemName.endsWith("date")) {
+						SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+						try {
+							Date invoiceDate = formatter.parse(itemValue);
+							workitem.setItemValue(itemName, invoiceDate);
+						} catch (ParseException e) {
+							e.printStackTrace();
+						}
+					} else {
+						workitem.setItemValue(itemName, itemValue);
+					}
 				}
 			}
 		} catch (Exception e) {
