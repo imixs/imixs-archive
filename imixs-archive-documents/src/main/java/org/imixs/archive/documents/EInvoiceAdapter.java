@@ -64,15 +64,17 @@ import jakarta.inject.Inject;
  * <pre>
  * {@code
  
-        <e-invoice name="READ">
-            <entity>invoice.number=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID</entity>
-	 		<entity>invoice.date=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:IssueDateTime</entity>
-        </e-invoice>	
+      <e-invoice name="ENTITY">
+        <name>invoice.date</name>
+        <type>date</type>
+		<xpath>//rsm:CrossInvoice/ram:ID</xpath>
+      </e-invoice>
+
  * }
  * </pre>
  * 
- * In 'READ' mode the currently the only supported mode. The adapter expects
- * item elements with a item name followed by a xPath expression
+ * If the type is not set the item value will be treated as a String. Possible
+ * types are 'double' and 'date'
  * <p>
  * If the document is not a e-invoice no items and also the einvoice.type
  * field will be set.
@@ -84,7 +86,7 @@ import jakarta.inject.Inject;
 public class EInvoiceAdapter implements SignalAdapter {
 	private static Logger logger = Logger.getLogger(EInvoiceAdapter.class.getName());
 
-	public static final String E_INVOICE_READ = "READ";
+	public static final String E_INVOICE_ENTITY = "ENTITY";
 	public static final String FILE_ATTRIBUTE_XML = "xml";
 	public static final String FILE_ATTRIBUTE_EINVOICE_TYPE = "einvoice.type";
 
@@ -132,14 +134,13 @@ public class EInvoiceAdapter implements SignalAdapter {
 	public ItemCollection execute(ItemCollection workitem, ItemCollection event)
 			throws AdapterException, PluginException {
 
-		List<ItemCollection> readDefinitions = workflowService.evalWorkflowResultXML(event, "e-invoice",
-				E_INVOICE_READ, workitem, false);
+		List<ItemCollection> entityDefinitions = workflowService.evalWorkflowResultXML(event, "e-invoice",
+				E_INVOICE_ENTITY, workitem, false);
 
 		// Detect and read E-Invoice Data
-		if (readDefinitions != null && readDefinitions.size() > 0) {
+		if (entityDefinitions != null && entityDefinitions.size() > 0) {
 
 			FileData eInvoiceFileData = detectEInvoice(workitem);
-
 			if (eInvoiceFileData == null) {
 				logger.info("No e-invoice type detected.");
 				return workitem;
@@ -147,9 +148,10 @@ public class EInvoiceAdapter implements SignalAdapter {
 				String einvoiceType = detectEInvoiceType(eInvoiceFileData);
 				workitem.setItemValue(FILE_ATTRIBUTE_EINVOICE_TYPE, einvoiceType);
 				logger.info("Detected e-invoice type: " + einvoiceType);
-				ItemCollection itemDefinition = readDefinitions.get(0);
-				List<String> entities = itemDefinition.getItemValueList("entity", String.class);
-				readEInvoiceContent(eInvoiceFileData, entities, workitem);
+				// ItemCollection itemDefinition = entityDefinitions.get(0);
+				// List<String> entities = itemDefinition.getItemValueList("entity",
+				// String.class);
+				readEInvoiceContent(eInvoiceFileData, entityDefinitions, workitem);
 			}
 
 		}
@@ -425,14 +427,14 @@ public class EInvoiceAdapter implements SignalAdapter {
 	 * <p>
 	 * Example:
 	 * 
-	 * invoice.number=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID
-	 * invoice.date=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:IssueDateTime
-	 *
+	 * <entity name=
+	 * "invoice.number">//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID</entity>
+	 * 
 	 * 
 	 * @param xmlData
 	 * @return
 	 */
-	private void readEInvoiceContent(FileData eInvoiceFileData, List<String> entityDefinitions,
+	private void readEInvoiceContent(FileData eInvoiceFileData, List<ItemCollection> entityDefinitions,
 			ItemCollection workitem) {
 		byte[] xmlData = readXMLContent(eInvoiceFileData);
 
@@ -462,14 +464,16 @@ public class EInvoiceAdapter implements SignalAdapter {
 			Map<String, XPathExpression> compiledExpressions = new HashMap<>();
 
 			// extract the itemName and the expression from each itemDefinition....
-			for (String itemDef : entityDefinitions) {
-				String[] parts = itemDef.split("=", 2);
-				if (parts.length != 2) {
-					logger.warning("Invalid item definition: " + itemDef);
+			for (ItemCollection entityDef : entityDefinitions) {
+
+				if (entityDef.getItemValueString("name").isEmpty()
+						|| entityDef.getItemValueString("xpath").isEmpty()) {
+					logger.warning("Invalid entity definition: " + entityDef);
 					continue;
 				}
-				String itemName = parts[0].trim();
-				String xPathExpr = parts[1].trim();
+				String itemName = entityDef.getItemValueString("name");
+				String xPathExpr = entityDef.getItemValueString("xpath");
+				String itemType = entityDef.getItemValueString("type");
 				XPathExpression expr = compiledExpressions.computeIfAbsent(xPathExpr,
 						k -> {
 							try {
@@ -483,8 +487,9 @@ public class EInvoiceAdapter implements SignalAdapter {
 				if (expr != null) {
 					Node node = (Node) expr.evaluate(doc, XPathConstants.NODE);
 					String itemValue = node != null ? node.getTextContent() : null;
+					// test if we have a type....
 
-					if (itemName.endsWith("date")) {
+					if ("date".equalsIgnoreCase(itemType)) {
 						SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
 						try {
 							Date invoiceDate = formatter.parse(itemValue);
@@ -492,7 +497,10 @@ public class EInvoiceAdapter implements SignalAdapter {
 						} catch (ParseException e) {
 							e.printStackTrace();
 						}
+					} else if ("double".equalsIgnoreCase(itemType)) {
+						workitem.setItemValue(itemName, Double.parseDouble(itemValue));
 					} else {
+						// default...
 						workitem.setItemValue(itemName, itemValue);
 					}
 				}
@@ -537,4 +545,5 @@ public class EInvoiceAdapter implements SignalAdapter {
 		}
 		return null;
 	}
+
 }
