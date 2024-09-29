@@ -180,6 +180,19 @@
 				<version>3.0.0</version>
 			</plugin>
 		</plugins>
+
+
+		<testResources>
+			<!-- 
+			<testResource>
+				<directory>${basedir}/../reports</directory>
+			</testResource>
+			-->
+			<testResource>
+				<directory>${basedir}/src/test/resources</directory>
+			</testResource>
+		</testResources>
+
 	</build>
 
 	<reporting>

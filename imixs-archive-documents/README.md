@@ -189,9 +189,81 @@ For more details about the OCR configuration see the [Imixs-Archive-OCR project]
 
 All extracted textual information from attached documents is also searchable by the Imixs search index. The class *org.imixs.workflow.documents.DocumentIndexer* adds the ocr content for each file attachment into the search index.
 
+
+
+## The e-Invoice Adapter
+
+The Adapter  class `org.imixs.workflow.documents.EInvoiceAdapter`  can detect and extract content from e-invoice documents in different formats.
+
+The detection outcome of the adapter is a new item named 'einvoice.type' with the detected type of the e-invoice format. E.g:
+
+ - Factur-X/ZUGFeRD 2.0
+
+The Adapter can be configured in an BPMN event to extract e-invoice data fields by the following entity definition 
+
+```xml
+	  <e-invoice name="ENTITY">
+		<name>Item Name</name>
+		<type>Item Type (text|date|double</type>
+		<xpath>xPath expression</xpath>
+	  </e-invoice>
+```
+
+**Example e-invoice configuration:** 
+
+```xml
+<e-invoice name="ENTITY">
+  <name>invoice.number</name>
+  <xpath>//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID</xpath>
+</e-invoice>
+<e-invoice name="ENTITY">
+  <name>invoice.date</name>
+  <type>date</type>
+  <xpath>//rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString/text()</xpath>
+</e-invoice>
+<e-invoice name="ENTITY">
+  <name>invoice.total</name>
+  <type>double</type>
+  <xpath>//ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:GrandTotalAmount</xpath>
+</e-invoice>
+<e-invoice name="ENTITY">
+  <name>cdtr.name</name>
+  <xpath>//ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:Name/text()</xpath>
+</e-invoice>
+```
+
+
+
+
+
+
+
+
+If the type is not set the item value will be treated as a String. Possible types are 'double' and 'date'
+
+If the document is not a e-invoice no items and also the einvoice.type field will be set.
+
+
+
+## The e-Invoice AutoAdapter
+
+
+The Adapter  class `org.imixs.workflow.documents.EInvoiceAutoAdapter`  is an extension of the EInvoiceAdapter and can be used to resolve all relevant e-invoice fields automatically. The following fields are supported:
+
+| Item   			| Type  	| Description 				| XPath
+| ----------------- | --------- | ------------------------- | -------------------------------------------------------
+| invoice.number    | text  	| Invoice number 			| //rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID
+| invoice.date    	| date  	| Invoice date 				| //rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString/text()
+| invoice.total    	| double	| Invoice total grant amount| //ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:GrandTotalAmount
+| cdtr.name         | text  	| Creditor name				| //ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:Name/text()
+
+
+
+
+
 ## The PDF XML Plugin
 
-The plugin class "*org.imixs.workflow.documents.parser.PDFXMLExtractorPlugin*" can be used to extract embedded XML Data from a PDF document and convert the data into a Imixs Workitem. For example the _ZUGFeRD_ defines a standard XML document for invoices. 
+The plugin class `org.imixs.workflow.documents.EInvoiceAdapter` can be used to  extract embedded XML Data from a PDF document and convert the data into a Imixs Workitem. For example the _ZUGFeRD_ defines a standard XML document for invoices. 
 
 The plugin can be activated by the BPMN Model with the following result definition: 
 

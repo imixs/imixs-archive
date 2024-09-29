@@ -22,9 +22,11 @@ import java.util.zip.ZipInputStream;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -44,6 +46,7 @@ import org.imixs.workflow.exceptions.PluginException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
 
 import jakarta.inject.Inject;
 
@@ -64,11 +67,11 @@ import jakarta.inject.Inject;
  * <pre>
  * {@code
  
-      <e-invoice name="ENTITY">
-        <name>invoice.date</name>
-        <type>date</type>
+	  <e-invoice name="ENTITY">
+		<name>invoice.date</name>
+		<type>date</type>
 		<xpath>//rsm:CrossInvoice/ram:ID</xpath>
-      </e-invoice>
+	  </e-invoice>
 
  * }
  * </pre>
@@ -98,7 +101,7 @@ public class EInvoiceAdapter implements SignalAdapter {
 	private static final Pattern XML_PATTERN = Pattern.compile(".[xX][mM][lL]$");
 	private static final Pattern ZIP_PATTERN = Pattern.compile(".[zZ][iI][pP]$");
 
-	private static final Map<String, String> NAMESPACES = new HashMap<>();
+	public static final Map<String, String> NAMESPACES = new HashMap<>();
 
 	static {
 		NAMESPACES.put("rsm", "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100");
@@ -109,6 +112,9 @@ public class EInvoiceAdapter implements SignalAdapter {
 
 	public static String PROCESSING_ERROR = "PROCESSING_ERROR";
 	public static final String CONFIG_ERROR = "CONFIG_ERROR";
+
+	private XPath xpath = null;
+	private Document xmlDoc = null;
 
 	@Inject
 	DocumentService documentService;
@@ -234,7 +240,7 @@ public class EInvoiceAdapter implements SignalAdapter {
 	 * @param xmlData
 	 */
 	@SuppressWarnings("unchecked")
-	private byte[] readXMLContent(FileData fileData) {
+	public byte[] readXMLContent(FileData fileData) {
 		// store the ocrContent....
 		List<Object> list = (List<Object>) fileData.getAttribute(FILE_ATTRIBUTE_XML);
 		if (list != null) {
@@ -439,13 +445,73 @@ public class EInvoiceAdapter implements SignalAdapter {
 		byte[] xmlData = readXMLContent(eInvoiceFileData);
 
 		try {
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			factory.setNamespaceAware(true);
-			DocumentBuilder builder = factory.newDocumentBuilder();
-			Document doc = builder.parse(new ByteArrayInputStream(xmlData));
+
+			createXMLDoc(xmlData);
+
+			// Map<String, XPathExpression> compiledExpressions = new HashMap<>();
+
+			// extract the itemName and the expression from each itemDefinition....
+			for (ItemCollection entityDef : entityDefinitions) {
+
+				if (entityDef.getItemValueString("name").isEmpty()
+						|| entityDef.getItemValueString("xpath").isEmpty()) {
+					logger.warning("Invalid entity definition: " + entityDef);
+					continue;
+				}
+				String itemName = entityDef.getItemValueString("name");
+				String xPathExpr = entityDef.getItemValueString("xpath");
+				String itemType = entityDef.getItemValueString("type");
+
+				readItem(workitem, xPathExpr, itemType, itemName);
+				// XPathExpression expr = compiledExpressions.computeIfAbsent(xPathExpr,
+				// k -> {
+				// try {
+				// return xpath.compile(k);
+				// } catch (Exception e) {
+				// logger.warning("Error compiling XPath expression: " + k + " - " +
+				// e.getMessage());
+				// return null;
+				// }
+				// });
+				// // extract the xpath value and update the workitem...
+				// if (expr != null) {
+				// Node node = (Node) expr.evaluate(xmlDoc, XPathConstants.NODE);
+				// String itemValue = node != null ? node.getTextContent() : null;
+				// // test if we have a type....
+
+				// if ("date".equalsIgnoreCase(itemType)) {
+				// SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+				// try {
+				// Date invoiceDate = formatter.parse(itemValue);
+				// workitem.setItemValue(itemName, invoiceDate);
+				// } catch (ParseException e) {
+				// e.printStackTrace();
+				// }
+				// } else if ("double".equalsIgnoreCase(itemType)) {
+				// workitem.setItemValue(itemName, Double.parseDouble(itemValue));
+				// } else {
+				// // default...
+				// workitem.setItemValue(itemName, itemValue);
+				// }
+				// }
+			}
+		} catch (Exception e) {
+			logger.warning("Error analyzing XML content: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Returns a XPath instance to be used to resolve xpath expressions.
+	 * 
+	 * The method uses a cache
+	 * 
+	 * @return
+	 */
+	private void createXPath() {
+		if (xpath == null) {
 
 			XPathFactory xPathfactory = XPathFactory.newInstance();
-			XPath xpath = xPathfactory.newXPath();
+			xpath = xPathfactory.newXPath();
 
 			xpath.setNamespaceContext(new NamespaceContext() {
 				public String getNamespaceURI(String prefix) {
@@ -460,53 +526,74 @@ public class EInvoiceAdapter implements SignalAdapter {
 					return null;
 				}
 			});
+		}
+	}
 
-			Map<String, XPathExpression> compiledExpressions = new HashMap<>();
+	/**
+	 * Creates the XML document instance based on a XML content
+	 * 
+	 * @param xmlData
+	 * @throws PluginException
+	 */
+	public void createXMLDoc(byte[] xmlData) throws PluginException {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setNamespaceAware(true);
+		DocumentBuilder builder;
+		try {
+			builder = factory.newDocumentBuilder();
+			xmlDoc = builder.parse(new ByteArrayInputStream(xmlData));
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			throw new PluginException(EInvoiceAdapter.class.getSimpleName(), PARSING_EXCEPTION,
+					"Failed to parse XML Content: " + e.getMessage(), e);
+		}
 
-			// extract the itemName and the expression from each itemDefinition....
-			for (ItemCollection entityDef : entityDefinitions) {
+	}
 
-				if (entityDef.getItemValueString("name").isEmpty()
-						|| entityDef.getItemValueString("xpath").isEmpty()) {
-					logger.warning("Invalid entity definition: " + entityDef);
-					continue;
-				}
-				String itemName = entityDef.getItemValueString("name");
-				String xPathExpr = entityDef.getItemValueString("xpath");
-				String itemType = entityDef.getItemValueString("type");
-				XPathExpression expr = compiledExpressions.computeIfAbsent(xPathExpr,
-						k -> {
-							try {
-								return xpath.compile(k);
-							} catch (Exception e) {
-								logger.warning("Error compiling XPath expression: " + k + " - " + e.getMessage());
-								return null;
-							}
-						});
-				// extract the xpath value and update the workitem...
-				if (expr != null) {
-					Node node = (Node) expr.evaluate(doc, XPathConstants.NODE);
-					String itemValue = node != null ? node.getTextContent() : null;
-					// test if we have a type....
+	/**
+	 * Reads a single item from an e-invoice document based on a xPathExp
+	 * 
+	 * @param workitem
+	 * @param xPathExpr
+	 * @param itemType
+	 * @param itemName
+	 * @throws PluginException
+	 */
+	public void readItem(ItemCollection workitem, String xPathExpr, String itemType,
+			String itemName) throws PluginException {
 
-					if ("date".equalsIgnoreCase(itemType)) {
-						SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
-						try {
-							Date invoiceDate = formatter.parse(itemValue);
-							workitem.setItemValue(itemName, invoiceDate);
-						} catch (ParseException e) {
-							e.printStackTrace();
-						}
-					} else if ("double".equalsIgnoreCase(itemType)) {
-						workitem.setItemValue(itemName, Double.parseDouble(itemValue));
-					} else {
-						// default...
-						workitem.setItemValue(itemName, itemValue);
+		if (xmlDoc == null) {
+			logger.warning("Missing XML Doc !");
+			return;
+		}
+		createXPath();
+		XPathExpression expr = null;
+
+		try {
+			expr = xpath.compile(xPathExpr);
+
+			// extract the xpath value and update the workitem...
+			if (expr != null) {
+				Node node = (Node) expr.evaluate(xmlDoc, XPathConstants.NODE);
+				String itemValue = node != null ? node.getTextContent() : null;
+				// test if we have a type....
+				if ("date".equalsIgnoreCase(itemType)) {
+					SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+					try {
+						Date invoiceDate = formatter.parse(itemValue);
+						workitem.setItemValue(itemName, invoiceDate);
+					} catch (ParseException e) {
+						e.printStackTrace();
 					}
+				} else if ("double".equalsIgnoreCase(itemType)) {
+					workitem.setItemValue(itemName, Double.parseDouble(itemValue));
+				} else {
+					// default...
+					workitem.setItemValue(itemName, itemValue);
 				}
 			}
-		} catch (Exception e) {
-			logger.warning("Error analyzing XML content: " + e.getMessage());
+		} catch (XPathExpressionException e) {
+			throw new PluginException(EInvoiceAdapter.class.getSimpleName(), PARSING_EXCEPTION,
+					"Error compiling XPath expression: " + xPathExpr + " - " + e.getMessage(), e);
 		}
 	}
 

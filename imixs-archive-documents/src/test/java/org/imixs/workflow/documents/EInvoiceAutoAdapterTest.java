@@ -26,13 +26,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * This test class is testing the EInvoiceAdapter and tests different
+ * This test class is testing the EInvoiceAutoAdapter and tests different
  * kind of files
  * 
  * 
  */
 @ExtendWith(MockitoExtension.class)
-class EInvoiceAdapterTest {
+class EInvoiceAutoAdapterTest {
 
     @Mock
     private DocumentService documentService;
