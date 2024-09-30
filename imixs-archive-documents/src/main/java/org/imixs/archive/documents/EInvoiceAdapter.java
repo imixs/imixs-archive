@@ -334,7 +334,9 @@ public class EInvoiceAdapter implements SignalAdapter {
 	 * content.
 	 * The Method returns an updated fileData object attached to the workitem even
 	 * if the content was fetched from a Snapshot
-	 *
+	 * <p>
+	 * If the file is no XML or a PDF without embedded XML the method returns null
+	 * 
 	 * @param workitem    The ItemCollection containing the attachments
 	 * @param filePattern The pattern to match file names
 	 * @return The XML content as a byte array, or null if not found
@@ -351,12 +353,17 @@ public class EInvoiceAdapter implements SignalAdapter {
 					FileData snapShotFileData = snapshotService.getWorkItemFile(workitem.getUniqueID(), filename);
 					fileContent = snapShotFileData.getContent();
 				}
-				byte[] xmlContent = fileContent;
+				byte[] xmlContent = null;
 				if (filePattern == PDF_PATTERN) {
 					xmlContent = getFirstEmbeddedXML(fileContent);
 				}
-				storeXMLContent(fileData, xmlContent);
-				return fileData;
+				if (filePattern == XML_PATTERN) {
+					xmlContent = fileContent;
+				}
+				if (xmlContent != null) {
+					storeXMLContent(fileData, xmlContent);
+					return fileData;
+				}
 			}
 		}
 		return null;
