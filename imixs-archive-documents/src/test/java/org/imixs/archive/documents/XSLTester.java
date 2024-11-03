@@ -1,4 +1,4 @@
-package org.imixs.workflow.documents;
+package org.imixs.archive.documents;
 
 import java.io.BufferedReader;
 import java.io.FileOutputStream;

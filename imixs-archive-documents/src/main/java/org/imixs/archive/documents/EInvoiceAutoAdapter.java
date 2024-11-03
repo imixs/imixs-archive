@@ -1,11 +1,21 @@
 package org.imixs.archive.documents;
 
+import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
+import java.text.ParseException;
 import java.util.logging.Logger;
+
+import javax.xml.xpath.XPathExpressionException;
 
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.AdapterException;
 import org.imixs.workflow.exceptions.PluginException;
+import org.mustangproject.BankDetails;
+import org.mustangproject.Invoice;
+import org.mustangproject.TradeParty;
+import org.mustangproject.ZUGFeRD.TransactionCalculator;
+import org.mustangproject.ZUGFeRD.ZUGFeRDInvoiceImporter;
 
 /**
  * The EInvoiceAutoAdapter can detect and extract content from e-invoice
@@ -67,15 +77,34 @@ public class EInvoiceAutoAdapter extends EInvoiceAdapter {
 		byte[] xmlData = readXMLContent(eInvoiceFileData);
 		logger.info("Autodetect e-invoice data...");
 
-		createXMLDoc(xmlData);
+		// createXMLDoc(xmlData);
+		try {
+			ZUGFeRDInvoiceImporter zii = new ZUGFeRDInvoiceImporter(new ByteArrayInputStream(xmlData));
 
-		readItem(workitem, "//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID", "text", "invoice.number");
-		readItem(workitem, "//rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString/text()", "date",
-				"invoice.date");
-		readItem(workitem, "//ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:GrandTotalAmount", "double",
-				"invoice.total");
-		readItem(workitem, "//ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:Name/text()", "text",
-				"cdtr.name");
+			Invoice invoice = zii.extractInvoice();
+			workitem.setItemValue("invoice.number", invoice.getNumber());
+			workitem.setItemValue("cdtr.name", invoice.getOwnOrganisationName());
+			workitem.setItemValue("invoice.date", invoice.getIssueDate());
+
+			TransactionCalculator tc = new TransactionCalculator(invoice);
+			BigDecimal value = tc.getValue();
+			workitem.setItemValue("invoice.total.net", tc.getValue());
+			workitem.setItemValue("invoice.total", tc.getGrandTotal());
+			workitem.setItemValue("invoice.total.tax", tc.getGrandTotal().floatValue() - tc.getValue().floatValue());
+
+			try {
+				TradeParty payee = invoice.getSender();
+				BankDetails bankDetails = payee.getBankDetails().get(0);
+				workitem.setItemValue("cdtr.bic", bankDetails.getBIC());
+				workitem.setItemValue("cdtr.iban", bankDetails.getIBAN());
+			} catch (Exception e) {
+				// no bank data
+			}
+
+		} catch (XPathExpressionException | ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 	}
 

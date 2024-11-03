@@ -1,4 +1,4 @@
-package org.imixs.workflow.documents;
+package org.imixs.archive.documents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,53 +10,71 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.imixs.archive.documents.EInvoiceAdapter;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.engine.DocumentService;
-import org.imixs.workflow.engine.WorkflowService;
+import org.imixs.workflow.engine.WorkflowMockEnvironment;
 import org.imixs.workflow.exceptions.AdapterException;
 import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
+import org.openbpmn.bpmn.BPMNModel;
 
 /**
  * This test class is testing the EInvoiceAdapter and tests different
  * kind of files
  * 
- * 
  */
-@ExtendWith(MockitoExtension.class)
 class EInvoiceAdapterTest {
 
-    @Mock
-    private DocumentService documentService;
-
-    @Mock
-    private WorkflowService workflowService;
-
     @InjectMocks
-    private EInvoiceAdapter adapter;
+    protected EInvoiceAdapter adapter;
 
-    private ItemCollection workitem;
-    private ItemCollection event;
+    protected ItemCollection workitem;
+    protected ItemCollection event;
+    protected WorkflowMockEnvironment workflowEnvironment;
+    BPMNModel model = null;
 
     @BeforeEach
-    void setUp() throws PluginException, ModelException {
-        // MockitoAnnotations.openMocks(this);
+    public void setUp() throws PluginException, ModelException {
+        // Ensures that @Mock and @InjectMocks annotations are processed
+        MockitoAnnotations.openMocks(this);
+        workflowEnvironment = new WorkflowMockEnvironment();
 
-        workitem = new ItemCollection();
+        // register AccessAdapter Mock
+        workflowEnvironment.registerAdapter(adapter);
+
+        // Setup Environment
+        workflowEnvironment.setUp();
+        workflowEnvironment.loadBPMNModel("/bpmn/TestZUGFeRD.bpmn");
+        model = workflowEnvironment.getModelService().getModelManager().getModel("1.0.0");
+        adapter.workflowService = workflowEnvironment.getWorkflowService();
+
+        // prepare data
+        workitem = new ItemCollection().model("1.0.0").task(100);
+
         event = new ItemCollection();
         // set test txtActivityResult....
-        String config = "<e-invoice name=\"READ\">\n";
-        config += "   <item>invoice.number=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID</item>\n";
-        config += "   <item>invoice.date=//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:IssueDateTime</item>\n";
-        config += "</e-invoice>";
+        String config = "<e-invoice name=\"ENTITY\">\n" + //
+                "  <name>invoice.number</name>\n" + //
+                "  <xpath>//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID</xpath>\n" + //
+                "</e-invoice>\n" + //
+                "<e-invoice name=\"ENTITY\">\n" + //
+                "  <name>invoice.date</name>\n" + //
+                "  <type>date</type>\n" + //
+                "  <xpath>//rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString/text()</xpath>\n" + //
+                "</e-invoice>\n" + //
+                "<e-invoice name=\"ENTITY\">\n" + //
+                "  <name>invoice.total</name>\n" + //
+                "  <type>double</type>\n" + //
+                "  <xpath>//ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:GrandTotalAmount</xpath>\n" + //
+                "</e-invoice>\n" + //
+                "<e-invoice name=\"ENTITY\">\n" + //
+                "  <name>cdtr.name</name>\n" + //
+                "  <xpath>//ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:Name/text()</xpath>\n" + //
+                "</e-invoice>";
         event.setItemValue("txtActivityResult", config);
     }
 
@@ -83,6 +101,28 @@ class EInvoiceAdapterTest {
         // Verify the result
         assertNotNull(result);
         assertEquals("Factur-X/ZUGFeRD 2.0", result);
+    }
+
+    /**
+     * This test uses the xpath expressions form teh workflow event to extract xml
+     * content.
+     * 
+     * @throws AdapterException
+     * @throws PluginException
+     * @throws IOException
+     */
+    @Test
+    void testExecuteWithStandaloneXMLExtractData() throws AdapterException, PluginException, IOException {
+
+        // Prepare test data
+        FileData xmlFile = createFileData("e-invoice/Rechnung_R_00010.xml", "application/xml");
+        workitem.addFileData(xmlFile);
+
+        adapter.execute(workitem, event);
+
+        assertEquals("R-00010", workitem.getItemValueString("invoice.number"));
+        assertEquals("Max Mustermann", workitem.getItemValueString("cdtr.name"));
+
     }
 
     @Test

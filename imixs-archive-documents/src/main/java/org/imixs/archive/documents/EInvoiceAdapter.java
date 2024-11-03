@@ -120,7 +120,7 @@ public class EInvoiceAdapter implements SignalAdapter {
 	DocumentService documentService;
 
 	@Inject
-	private WorkflowService workflowService;
+	WorkflowService workflowService;
 
 	@Inject
 	SnapshotService snapshotService;

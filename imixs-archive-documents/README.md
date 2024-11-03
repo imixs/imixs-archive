@@ -234,11 +234,6 @@ The Adapter can be configured in an BPMN event to extract e-invoice data fields 
 
 
 
-
-
-
-
-
 If the type is not set the item value will be treated as a String. Possible types are 'double' and 'date'
 
 If the document is not a e-invoice no items and also the einvoice.type field will be set.

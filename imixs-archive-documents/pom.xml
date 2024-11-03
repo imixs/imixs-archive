@@ -47,6 +47,14 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- e-invoice mustang-->
+		<dependency>
+			<groupId>org.mustangproject</groupId>
+			<artifactId>validator</artifactId>
+			<classifier>shaded</classifier>
+			<version>2.14.2</version>
+		</dependency>
+
 	</dependencies>
 	<name>Imixs-Archive Documents</name>
 </project>

@@ -1,4 +1,4 @@
-package org.imixs.workflow.documents;
+package org.imixs.archive.documents;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,7 +10,6 @@ import java.io.InputStream;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import org.imixs.archive.documents.PDFXMLExtractorPlugin;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.WorkflowMockEnvironment;
