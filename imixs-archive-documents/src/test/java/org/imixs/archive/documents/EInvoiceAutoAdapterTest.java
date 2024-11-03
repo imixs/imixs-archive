@@ -4,9 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +77,11 @@ class EInvoiceAutoAdapterTest {
 
         assertEquals("R-00010", workitem.getItemValueString("invoice.number"));
         assertEquals("Max Mustermann", workitem.getItemValueString("cdtr.name"));
+        LocalDate invoiceDate = workitem.getItemValueDate("invoice.date").toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        assertEquals(LocalDate.of(2021, 7, 28), invoiceDate);
+
     }
 
     /**
@@ -98,10 +102,11 @@ class EInvoiceAutoAdapterTest {
 
         assertEquals("R-00011", workitem.getItemValueString("invoice.number"));
         assertEquals("Max Mustermann", workitem.getItemValueString("cdtr.name"));
-        ZonedDateTime expectedZdt = ZonedDateTime.of(2021, 7, 27, 0, 0, 0, 0, ZoneId.of("Europe/Berlin"));
-        Date expectedDate = Date.from(expectedZdt.toInstant());
 
-        assertEquals(expectedDate, workitem.getItemValueDate("invoice.date"));
+        LocalDate invoiceDate = workitem.getItemValueDate("invoice.date").toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        assertEquals(LocalDate.of(2021, 7, 27), invoiceDate);
 
         // Payment data
         assertEquals(892.50, workitem.getItemValueFloat("invoice.total"));

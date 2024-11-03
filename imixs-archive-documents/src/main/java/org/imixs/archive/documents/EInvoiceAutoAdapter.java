@@ -82,6 +82,7 @@ public class EInvoiceAutoAdapter extends EInvoiceAdapter {
 			ZUGFeRDInvoiceImporter zii = new ZUGFeRDInvoiceImporter(new ByteArrayInputStream(xmlData));
 
 			Invoice invoice = zii.extractInvoice();
+
 			workitem.setItemValue("invoice.number", invoice.getNumber());
 			workitem.setItemValue("cdtr.name", invoice.getOwnOrganisationName());
 			workitem.setItemValue("invoice.date", invoice.getIssueDate());
