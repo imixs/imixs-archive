@@ -109,4 +109,32 @@ public class EInvoiceAutoAdapter extends EInvoiceAdapter {
 
 	}
 
+	/**
+	 * This method resolves the content of a factur-x e-invocie file and extracts
+	 * all invoice and customer fields.
+	 * 
+	 * This is the variant without Mustang Project
+	 * 
+	 * 
+	 * @param xmlData
+	 * @return
+	 * @throws PluginException
+	 */
+	private void readEInvoiceContentNativeXML(FileData eInvoiceFileData,
+			ItemCollection workitem) throws PluginException {
+		byte[] xmlData = readXMLContent(eInvoiceFileData);
+		logger.info("Autodetect e-invoice data...");
+
+		createXMLDoc(xmlData);
+
+		readItem(workitem, "//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID", "text", "invoice.number");
+		readItem(workitem, "//rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString/text()", "date",
+				"invoice.date");
+		readItem(workitem, "//ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:GrandTotalAmount", "double",
+				"invoice.total");
+		readItem(workitem, "//ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:Name/text()", "text",
+				"cdtr.name");
+
+	}
+
 }
