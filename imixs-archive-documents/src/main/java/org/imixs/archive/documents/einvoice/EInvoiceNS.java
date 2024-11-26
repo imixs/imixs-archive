@@ -19,7 +19,8 @@ package org.imixs.archive.documents.einvoice;
  * @author rsoika
  */
 public enum EInvoiceNS {
-    A, // default
+    CBC, //
+    CAC, //
     RSM, //
     QDT, //
     RAM, //

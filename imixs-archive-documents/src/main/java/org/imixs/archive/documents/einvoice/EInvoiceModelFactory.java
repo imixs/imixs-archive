@@ -85,7 +85,7 @@ public class EInvoiceModelFactory {
 
             // explicit remove whitespace
 
-            EInvoiceModel model = new EInvoiceModel(doc);
+            EInvoiceModel model = new EInvoiceModelCII(doc);
 
             return model;
         } catch (ParserConfigurationException | SAXException | IOException e) {
