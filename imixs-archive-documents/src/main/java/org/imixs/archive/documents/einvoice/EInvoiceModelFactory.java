@@ -16,7 +16,11 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 /**
- * The BPMNModelFactory can be used to load or create a BPMNModel instance.
+ * The EInvoiceModelFactory can be used to load or create a EInvoiceModel
+ * instance.
+ * 
+ * The factory detects the XML format and loads the EInvoiceModel either by the
+ * EInvoiceModelCII or the EInvoiceModelUBL
  * 
  * @author rsoika
  *
@@ -33,9 +37,7 @@ public class EInvoiceModelFactory {
      * 
      */
     public static EInvoiceModel read(File modelFile) throws FileNotFoundException {
-
         return read(new FileInputStream(modelFile));
-
     }
 
     /**
@@ -50,9 +52,11 @@ public class EInvoiceModelFactory {
     }
 
     /**
-     * Reads a EInvoiceModel instance from an InputStream.
+     * Reads a EInvoiceModel instance from an InputStream and detect the e-invoice
+     * format.
      * <p>
-     *
+     * The method uses the corresponding model implementation to read a
+     * EInvoiceModel
      * 
      * @param modelFile
      * @return a EInvoiceModel instance
@@ -83,9 +87,13 @@ public class EInvoiceModelFactory {
             Document doc = db.parse(is);
             Element root = doc.getDocumentElement();
 
-            // explicit remove whitespace
-
-            EInvoiceModel model = new EInvoiceModelCII(doc);
+            EInvoiceModel model = null;
+            String rootName = root.getTagName();
+            if ("rsm:CrossIndustryInvoice".equals(rootName)) {
+                model = new EInvoiceModelCII(doc);
+            } else {
+                model = new EInvoiceModelUBL(doc);
+            }
 
             return model;
         } catch (ParserConfigurationException | SAXException | IOException e) {

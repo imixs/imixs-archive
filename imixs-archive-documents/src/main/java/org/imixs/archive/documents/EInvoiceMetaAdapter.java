@@ -9,8 +9,9 @@ import org.imixs.workflow.exceptions.PluginException;
 
 /**
  * The EInvoiceAutoAdapter can detect and extract content from e-invoice
- * documents
- * in different formats. This Adapter class extends the {@link EInvoiceAdapter}
+ * documents in different formats.
+ * 
+ * This Adapter class extends the {@link EInvoiceAdapter}
  * and resolves pre defined Items according to the Factur-X/ZUGFeRD 2.0
  * standard.
  * 

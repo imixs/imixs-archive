@@ -1,21 +1,17 @@
 package org.imixs.archive.documents;
 
 import java.io.ByteArrayInputStream;
-import java.math.BigDecimal;
-import java.text.ParseException;
+import java.io.FileNotFoundException;
+import java.math.RoundingMode;
 import java.util.logging.Logger;
 
-import javax.xml.xpath.XPathExpressionException;
-
+import org.imixs.archive.documents.einvoice.EInvoiceModel;
+import org.imixs.archive.documents.einvoice.EInvoiceModelFactory;
+import org.imixs.archive.documents.einvoice.TradeParty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.AdapterException;
 import org.imixs.workflow.exceptions.PluginException;
-import org.mustangproject.BankDetails;
-import org.mustangproject.Invoice;
-import org.mustangproject.TradeParty;
-import org.mustangproject.ZUGFeRD.TransactionCalculator;
-import org.mustangproject.ZUGFeRD.ZUGFeRDInvoiceImporter;
 
 /**
  * The EInvoiceAutoAdapter can detect and extract content from e-invoice
@@ -50,90 +46,52 @@ public class EInvoiceAutoAdapter extends EInvoiceAdapter {
 		FileData eInvoiceFileData = detectEInvoice(workitem);
 
 		if (eInvoiceFileData == null) {
-			logger.info("No e-invoice type detected.");
+			logger.fine("No e-invoice type detected.");
 			return workitem;
 		} else {
 			String einvoiceType = detectEInvoiceType(eInvoiceFileData);
 			workitem.setItemValue(FILE_ATTRIBUTE_EINVOICE_TYPE, einvoiceType);
 			logger.info("Detected e-invoice type: " + einvoiceType);
 
-			readEInvoiceContent(eInvoiceFileData, workitem);
+			byte[] xmlData = readXMLContent(eInvoiceFileData);
+			try {
+				EInvoiceModel model = EInvoiceModelFactory.read(new ByteArrayInputStream(xmlData));
+
+				resolveItemValues(workitem, model);
+
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			// readEInvoiceContent(eInvoiceFileData, workitem);
 		}
 
 		return workitem;
 	}
 
 	/**
-	 * This method resolves the content of a factur-x e-invocie file and extracts
-	 * all invoice and customer fields.
+	 * This method resolves the imixs items for an invoice base don a EInvoiceModel
 	 * 
-	 * 
-	 * @param xmlData
-	 * @return
-	 * @throws PluginException
+	 * @param workitem
+	 * @param model
 	 */
-	private void readEInvoiceContent(FileData eInvoiceFileData,
-			ItemCollection workitem) throws PluginException {
-		byte[] xmlData = readXMLContent(eInvoiceFileData);
-		logger.info("Autodetect e-invoice data...");
+	private void resolveItemValues(ItemCollection workitem, EInvoiceModel model) {
 
-		// createXMLDoc(xmlData);
-		try {
-			ZUGFeRDInvoiceImporter zii = new ZUGFeRDInvoiceImporter(new ByteArrayInputStream(xmlData));
+		workitem.setItemValue("invoice.number", model.getId());
+		workitem.setItemValue("invoice.date", model.getIssueDateTime());
 
-			Invoice invoice = zii.extractInvoice();
+		workitem.setItemValue("invoice.total", model.getGrandTotalAmount().setScale(2, RoundingMode.HALF_UP));
+		workitem.setItemValue("invoice.total.net", model.getNetTotalAmount().setScale(2, RoundingMode.HALF_UP));
+		workitem.setItemValue("invoice.total.tax", model.getTaxTotalAmount().setScale(2, RoundingMode.HALF_UP));
 
-			workitem.setItemValue("invoice.number", invoice.getNumber());
-			workitem.setItemValue("cdtr.name", invoice.getOwnOrganisationName());
-			workitem.setItemValue("invoice.date", invoice.getIssueDate());
+		// Date.from(model.getIssueDateTime().atStartOfDay(ZoneId.systemDefault()).toInstant()));
 
-			TransactionCalculator tc = new TransactionCalculator(invoice);
-			BigDecimal value = tc.getValue();
-			workitem.setItemValue("invoice.total.net", tc.getValue());
-			workitem.setItemValue("invoice.total", tc.getGrandTotal());
-			workitem.setItemValue("invoice.total.tax", tc.getGrandTotal().floatValue() - tc.getValue().floatValue());
-
-			try {
-				TradeParty payee = invoice.getSender();
-				BankDetails bankDetails = payee.getBankDetails().get(0);
-				workitem.setItemValue("cdtr.bic", bankDetails.getBIC());
-				workitem.setItemValue("cdtr.iban", bankDetails.getIBAN());
-			} catch (Exception e) {
-				// no bank data
-			}
-
-		} catch (XPathExpressionException | ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		TradeParty seller = model.findTradeParty("seller");
+		if (seller != null) {
+			workitem.setItemValue("cdtr.name", seller.getName());
+			workitem.setItemValue("cdtr.vatid", seller.getVatNumber());
 		}
-
-	}
-
-	/**
-	 * This method resolves the content of a factur-x e-invocie file and extracts
-	 * all invoice and customer fields.
-	 * 
-	 * This is the variant without Mustang Project
-	 * 
-	 * 
-	 * @param xmlData
-	 * @return
-	 * @throws PluginException
-	 */
-	private void readEInvoiceContentNativeXML(FileData eInvoiceFileData,
-			ItemCollection workitem) throws PluginException {
-		byte[] xmlData = readXMLContent(eInvoiceFileData);
-		logger.info("Autodetect e-invoice data...");
-
-		createXMLDoc(xmlData);
-
-		readItem(workitem, "//rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID", "text", "invoice.number");
-		readItem(workitem, "//rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString/text()", "date",
-				"invoice.date");
-		readItem(workitem, "//ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:GrandTotalAmount", "double",
-				"invoice.total");
-		readItem(workitem, "//ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:Name/text()", "text",
-				"cdtr.name");
 
 	}
 

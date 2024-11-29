@@ -85,13 +85,8 @@ public class EInvoiceModelCII extends EInvoiceModel {
     }
 
     /**
-     * This method instantiates a new eInvoice model based on a given
-     * org.w3c.dom.Document. The method parses the namespaces.
-     * <p>
+     * This method parses the xml content and builds the model.
      * 
-     * 
-     * 
-     * @param doc
      */
     @Override
     public void parseContent() {

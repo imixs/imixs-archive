@@ -60,6 +60,34 @@ class EInvoiceAutoAdapterTest {
     }
 
     /**
+     * Simple test that extracts the invoice from a XML file in ubl format
+     * 
+     * @throws AdapterException
+     * @throws PluginException
+     * @throws IOException
+     */
+    @Test
+    void testUBLFormat() throws AdapterException, PluginException, IOException {
+        // Prepare test data
+        FileData xmlFile = createFileData("e-invoice/EN16931_Einfach.ubl.xml", "application/xml");
+        workitem.addFileData(xmlFile);
+
+        adapter.execute(workitem, event);
+
+        assertEquals("471102", workitem.getItemValueString("invoice.number"));
+
+        LocalDate invoiceDate = workitem.getItemValueDate("invoice.date").toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        assertEquals(LocalDate.of(2018, 03, 05), invoiceDate);
+        assertEquals("Lieferant GmbH", workitem.getItemValueString("cdtr.name"));
+
+        assertEquals(529.87, workitem.getItemValueDouble("invoice.total"));
+        assertEquals(473.0, workitem.getItemValueDouble("invoice.total.net"));
+        assertEquals(56.87, workitem.getItemValueDouble("invoice.total.tax"));
+    }
+
+    /**
      * Simple test that extracts the invoice from a XML file - number and the
      * creditor name
      * 
