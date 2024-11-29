@@ -311,11 +311,17 @@ public class EInvoiceAdapter implements SignalAdapter {
 			String rootNamespace = rootElement.getNamespaceURI();
 			String rootLocalName = rootElement.getLocalName();
 
+			// CII
 			if ("CrossIndustryInvoice".equals(rootLocalName) &&
 					"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100".equals(rootNamespace)) {
-
 				fileData.setAttribute("einvoice.type", Arrays.asList("Factur-X/ZUGFeRD 2.0"));
 				return "Factur-X/ZUGFeRD 2.0";
+			}
+			// UBL
+			if ("Invoice".equals(rootLocalName) &&
+					rootNamespace.startsWith("urn:oasis:names:specification:ubl")) {
+				fileData.setAttribute("einvoice.type", Arrays.asList("Factur-X/UBL"));
+				return "Factur-X/UBL";
 			}
 
 			// Add more conditions here for other formats as needed
