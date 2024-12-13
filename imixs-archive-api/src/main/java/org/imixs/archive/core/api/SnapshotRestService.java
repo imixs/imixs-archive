@@ -244,7 +244,6 @@ public class SnapshotRestService implements Serializable {
         query = "SELECT document FROM Document AS document ";
         query += " WHERE document.modified = '" + isoFormat.format(syncpoint) + "'";
         query += " AND document.type LIKE '" + SnapshotService.TYPE_PRAFIX + "%' ";
-        logger.info("......QUERY-2=" + query);
         result = documentService.getDocumentsByQuery(query, 16 + 1);
 
         // if more than 16 syncPoints with the same modified time stamp exists we have
