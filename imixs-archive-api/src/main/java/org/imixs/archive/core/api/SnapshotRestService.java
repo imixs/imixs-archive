@@ -220,7 +220,6 @@ public class SnapshotRestService implements Serializable {
         query += " WHERE document.modified > '" + isoFormat.format(syncpoint) + "'";
         query += " AND document.type LIKE '" + SnapshotService.TYPE_PRAFIX + "%' ";
         query += " ORDER BY document.modified ASC";
-        logger.info("......QUERY-1=" + query);
 
         result = documentService.getDocumentsByQuery(query, 1);
         // do we found new data?

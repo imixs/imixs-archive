@@ -140,6 +140,22 @@ public class EInvoiceModelCII extends EInvoiceModel {
 
             }
 
+            // due date
+            Element specifiedTradePaymentTermsElement = findChildNodeByName(element, EInvoiceNS.RAM,
+                    "SpecifiedTradePaymentTerms");
+            if (specifiedTradePaymentTermsElement != null) {
+                Element dateTimeElement = findChildNodeByName(specifiedTradePaymentTermsElement, EInvoiceNS.RAM,
+                        "DueDateDateTime");
+                if (dateTimeElement != null) {
+                    Element dateTimeElementString = findChildNodeByName(dateTimeElement, EInvoiceNS.UDT,
+                            "DateTimeString");
+                    if (dateTimeElementString != null) {
+                        String dateStr = dateTimeElementString.getTextContent();
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+                        dueDateTime = LocalDate.parse(dateStr, formatter);
+                    }
+                }
+            }
         }
 
         // read ApplicableHeaderTradeAgreement - buyerReference

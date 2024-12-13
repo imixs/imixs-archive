@@ -36,6 +36,7 @@ public abstract class EInvoiceModel {
     protected String id = null;
     protected String buyerReference = null;
     protected LocalDate issueDateTime = null;
+    protected LocalDate dueDateTime = null;
     protected BigDecimal grandTotalAmount = new BigDecimal("0.00");
     protected BigDecimal taxTotalAmount = new BigDecimal("0.00");
     protected BigDecimal netTotalAmount = new BigDecimal("0.00");
@@ -88,6 +89,10 @@ public abstract class EInvoiceModel {
 
     public LocalDate getIssueDateTime() {
         return issueDateTime;
+    }
+
+    public LocalDate getDueDateTime() {
+        return dueDateTime;
     }
 
     public BigDecimal getGrandTotalAmount() {

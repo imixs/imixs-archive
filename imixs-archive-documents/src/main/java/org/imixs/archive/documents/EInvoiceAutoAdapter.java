@@ -80,6 +80,7 @@ public class EInvoiceAutoAdapter extends EInvoiceAdapter {
 
 		workitem.setItemValue("invoice.number", model.getId());
 		workitem.setItemValue("invoice.date", model.getIssueDateTime());
+		workitem.setItemValue("invoice.duedate", model.getDueDateTime());
 
 		workitem.setItemValue("invoice.total", model.getGrandTotalAmount().setScale(2, RoundingMode.HALF_UP));
 		workitem.setItemValue("invoice.total.net", model.getNetTotalAmount().setScale(2, RoundingMode.HALF_UP));
