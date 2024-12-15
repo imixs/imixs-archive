@@ -54,11 +54,6 @@ public class EInvoiceModelCII extends EInvoiceModel {
         for (int j = 0; j < defAttributes.getLength(); j++) {
             Node node = defAttributes.item(j);
 
-            // if (getPrefix(EInvoiceNS.A).equals(node.getLocalName())
-            // && !getUri(EInvoiceNS.A).equals(node.getNodeValue())) {
-            // logger.fine("...set A namespace URI: " + node.getNodeValue());
-            // setUri(EInvoiceNS.A, node.getNodeValue());
-            // }
             if (getPrefix(EInvoiceNS.RSM).equals(node.getLocalName())
                     && !getUri(EInvoiceNS.RSM).equals(node.getNodeValue())) {
                 logger.fine("...set RSM namespace URI: " + node.getNodeValue());
@@ -226,5 +221,32 @@ public class EInvoiceModelCII extends EInvoiceModel {
             }
         }
         return tradeParty;
+    }
+
+    @Override
+    public void setNetTotalAmount(BigDecimal value) {
+        // Finde das SpecifiedTradeSettlementHeaderMonetarySummation Element
+        Element element = findChildNodeByName(supplyChainTradeTransaction, EInvoiceNS.RAM,
+                "ApplicableHeaderTradeSettlement");
+        if (element != null) {
+            Element tradeSettlementElement = findChildNodeByName(element, EInvoiceNS.RAM,
+                    "SpecifiedTradeSettlementHeaderMonetarySummation");
+            if (tradeSettlementElement != null) {
+                // Update LineTotalAmount
+                Element lineTotalElement = findChildNodeByName(tradeSettlementElement, EInvoiceNS.RAM,
+                        "LineTotalAmount");
+                if (lineTotalElement != null) {
+                    lineTotalElement.setTextContent(value.toPlainString());
+                    // Update auch den internen Wert
+                    netTotalAmount = value;
+                }
+                // Update TaxBasisTotalAmount
+                Element taxBasisElement = findChildNodeByName(tradeSettlementElement, EInvoiceNS.RAM,
+                        "TaxBasisTotalAmount");
+                if (taxBasisElement != null) {
+                    taxBasisElement.setTextContent(value.toPlainString());
+                }
+            }
+        }
     }
 }

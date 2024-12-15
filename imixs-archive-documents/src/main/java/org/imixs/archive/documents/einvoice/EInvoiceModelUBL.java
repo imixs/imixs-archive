@@ -102,30 +102,6 @@ public class EInvoiceModelUBL extends EInvoiceModel {
 
         parseTotal();
 
-        // // read Total amount
-        // element = findChildNodeByName(supplyChainTradeTransaction, EInvoiceNS.RAM,
-        // "ApplicableHeaderTradeSettlement");
-        // if (element != null) {
-        // Element tradeSettlementElement = findChildNodeByName(element, EInvoiceNS.RAM,
-        // "SpecifiedTradeSettlementHeaderMonetarySummation");
-        // if (tradeSettlementElement != null) {
-        // Element child = findChildNodeByName(tradeSettlementElement, EInvoiceNS.RAM,
-        // "GrandTotalAmount");
-        // if (child != null) {
-        // grandTotalAmount = new BigDecimal(child.getTextContent());
-        // }
-        // child = findChildNodeByName(tradeSettlementElement, EInvoiceNS.RAM,
-        // "TaxTotalAmount");
-        // if (child != null) {
-        // taxTotalAmount = new BigDecimal(child.getTextContent());
-        // }
-        // netTotalAmount = grandTotalAmount.subtract(taxTotalAmount).setScale(2,
-        // RoundingMode.HALF_UP);
-
-        // }
-
-        // }
-
     }
 
     /**
@@ -184,43 +160,13 @@ public class EInvoiceModelUBL extends EInvoiceModel {
 
         }
 
-        // Element postalAddress = findChildNodeByName(tradePartyElement,
-        // EInvoiceNS.RAM,
-        // "PostalTradeAddress");
-        // if (postalAddress != null) {
-        // partyElement = findChildNodeByName(postalAddress, EInvoiceNS.RAM,
-        // "PostcodeCode");
-        // if (partyElement != null) {
-        // tradeParty.setPostcodeCode(partyElement.getTextContent());
-        // }
-        // partyElement = findChildNodeByName(postalAddress, EInvoiceNS.RAM,
-        // "CityName");
-        // if (partyElement != null) {
-        // tradeParty.setCityName(partyElement.getTextContent());
-        // }
-        // partyElement = findChildNodeByName(postalAddress, EInvoiceNS.RAM,
-        // "CountryID");
-        // if (partyElement != null) {
-        // tradeParty.setCountryId(partyElement.getTextContent());
-        // }
-        // partyElement = findChildNodeByName(postalAddress, EInvoiceNS.RAM,
-        // "LineOne");
-        // if (partyElement != null) {
-        // tradeParty.setStreetAddress(partyElement.getTextContent());
-        // }
-        // }
-
-        // Element specifiedTaxRegistration = findChildNodeByName(tradePartyElement,
-        // EInvoiceNS.RAM,
-        // "SpecifiedTaxRegistration");
-        // if (specifiedTaxRegistration != null) {
-        // partyElement = findChildNodeByName(specifiedTaxRegistration, EInvoiceNS.RAM,
-        // "ID");
-        // if (partyElement != null) {
-        // tradeParty.setVatNumber(partyElement.getTextContent());
-        // }
-        // }
         return tradeParty;
+    }
+
+    @Override
+    public void setNetTotalAmount(BigDecimal value) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setNetTotalAmount'");
     }
 
 }

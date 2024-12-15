@@ -1,5 +1,7 @@
 package org.imixs.archive.documents.einvoice;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
@@ -10,6 +12,13 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
+
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -105,6 +114,12 @@ public abstract class EInvoiceModel {
 
     public BigDecimal getNetTotalAmount() {
         return netTotalAmount;
+    }
+
+    public abstract void setNetTotalAmount(BigDecimal value);
+
+    public void setNetTotalAmount(Double value) {
+        setNetTotalAmount(BigDecimal.valueOf(value));
     }
 
     /**
@@ -266,6 +281,40 @@ public abstract class EInvoiceModel {
             PREFIX_BY_NAMESPACE.put(ns, prefix + ":");
         }
 
+    }
+
+    /**
+     * Returns the XML representation of the current document as a byte array
+     * 
+     * @return byte array containing the XML data
+     * @throws TransformerException
+     */
+    public byte[] getContent() throws TransformerException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            // Setup transformer
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+
+            // Configure output properties
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "3");
+
+            // Transform DOM to byte array
+            DOMSource source = new DOMSource(doc);
+            StreamResult result = new StreamResult(outputStream);
+            transformer.transform(source, result);
+
+            return outputStream.toByteArray();
+
+        } finally {
+            try {
+                outputStream.close();
+            } catch (IOException e) {
+                logger.warning("Failed to close output stream: " + e.getMessage());
+            }
+        }
     }
 
 }
