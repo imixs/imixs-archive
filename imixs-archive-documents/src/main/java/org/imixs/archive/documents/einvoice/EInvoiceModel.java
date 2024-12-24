@@ -122,6 +122,12 @@ public abstract class EInvoiceModel {
         setNetTotalAmount(BigDecimal.valueOf(value));
     }
 
+    public abstract void setGrandTotalAmount(BigDecimal value);
+
+    public void setGrandTotalAmount(Double value) {
+        setGrandTotalAmount(BigDecimal.valueOf(value));
+    }
+
     /**
      * Returns all trade parties
      * 

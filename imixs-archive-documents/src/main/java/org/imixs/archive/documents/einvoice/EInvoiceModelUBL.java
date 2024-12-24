@@ -169,4 +169,10 @@ public class EInvoiceModelUBL extends EInvoiceModel {
         throw new UnsupportedOperationException("Unimplemented method 'setNetTotalAmount'");
     }
 
+    @Override
+    public void setGrandTotalAmount(BigDecimal value) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setGrandTotalAmount'");
+    }
+
 }

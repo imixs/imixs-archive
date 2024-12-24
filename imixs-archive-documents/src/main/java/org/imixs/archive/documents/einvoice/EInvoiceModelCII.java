@@ -249,4 +249,29 @@ public class EInvoiceModelCII extends EInvoiceModel {
             }
         }
     }
+
+    @Override
+    public void setGrandTotalAmount(BigDecimal value) {
+        // Finde das SpecifiedTradeSettlementHeaderMonetarySummation Element
+        Element element = findChildNodeByName(supplyChainTradeTransaction, EInvoiceNS.RAM,
+                "ApplicableHeaderTradeSettlement");
+        if (element != null) {
+            Element tradeSettlementElement = findChildNodeByName(element, EInvoiceNS.RAM,
+                    "SpecifiedTradeSettlementHeaderMonetarySummation");
+            if (tradeSettlementElement != null) {
+
+                // Update GrandTotalAmount
+                Element amountElement = findChildNodeByName(tradeSettlementElement, EInvoiceNS.RAM,
+                        "GrandTotalAmount");
+                if (amountElement != null) {
+                    amountElement.setTextContent(value.toPlainString());
+                }
+                amountElement = findChildNodeByName(tradeSettlementElement, EInvoiceNS.RAM,
+                        "DuePayableAmount");
+                if (amountElement != null) {
+                    amountElement.setTextContent(value.toPlainString());
+                }
+            }
+        }
+    }
 }
