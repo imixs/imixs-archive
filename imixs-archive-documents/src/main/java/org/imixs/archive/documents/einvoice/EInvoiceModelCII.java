@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -182,6 +184,9 @@ public class EInvoiceModelCII extends EInvoiceModel {
             }
         }
 
+        // read line items...
+        parseTradeLineItems();
+
     }
 
     public TradeParty parseTradeParty(Element tradePartyElement, String type) {
@@ -230,6 +235,98 @@ public class EInvoiceModelCII extends EInvoiceModel {
             }
         }
         return tradeParty;
+    }
+
+    /**
+     * Parse the trade line items and return a list of items collected
+     * 
+     * @return
+     */
+    public Set<TradeLineItem> parseTradeLineItems() {
+        Set<TradeLineItem> items = new LinkedHashSet<>();
+
+        Set<Element> lineItems = findChildNodesByName(supplyChainTradeTransaction, EInvoiceNS.RAM,
+                "IncludedSupplyChainTradeLineItem");
+
+        for (Element lineItem : lineItems) {
+            // Get Line ID
+            Element docLine = findChildNodeByName(lineItem, EInvoiceNS.RAM, "AssociatedDocumentLineDocument");
+            if (docLine == null)
+                continue;
+
+            Element idElement = findChildNodeByName(docLine, EInvoiceNS.RAM, "LineID");
+            if (idElement == null)
+                continue;
+
+            TradeLineItem item = new TradeLineItem(idElement.getTextContent());
+
+            // Product details
+            Element product = findChildNodeByName(lineItem, EInvoiceNS.RAM, "SpecifiedTradeProduct");
+            if (product != null) {
+                Element nameElement = findChildNodeByName(product, EInvoiceNS.RAM, "Name");
+                if (nameElement != null) {
+                    item.setName(nameElement.getTextContent());
+                }
+                Element descElement = findChildNodeByName(product, EInvoiceNS.RAM, "Description");
+                if (descElement != null) {
+                    item.setDescription(descElement.getTextContent());
+                }
+            }
+
+            // Price info
+            Element agreement = findChildNodeByName(lineItem, EInvoiceNS.RAM, "SpecifiedLineTradeAgreement");
+            if (agreement != null) {
+                Element grossPrice = findChildNodeByName(agreement, EInvoiceNS.RAM, "GrossPriceProductTradePrice");
+                if (grossPrice != null) {
+                    Element amount = findChildNodeByName(grossPrice, EInvoiceNS.RAM, "ChargeAmount");
+                    if (amount != null) {
+                        item.setGrossPrice(Double.parseDouble(amount.getTextContent()));
+                    }
+                }
+
+                Element netPrice = findChildNodeByName(agreement, EInvoiceNS.RAM, "NetPriceProductTradePrice");
+                if (netPrice != null) {
+                    Element amount = findChildNodeByName(netPrice, EInvoiceNS.RAM, "ChargeAmount");
+                    if (amount != null) {
+                        item.setNetPrice(Double.parseDouble(amount.getTextContent()));
+                    }
+                }
+            }
+
+            // Quantity
+            Element delivery = findChildNodeByName(lineItem, EInvoiceNS.RAM, "SpecifiedLineTradeDelivery");
+            if (delivery != null) {
+                Element quantity = findChildNodeByName(delivery, EInvoiceNS.RAM, "BilledQuantity");
+                if (quantity != null) {
+                    item.setQuantity(Double.parseDouble(quantity.getTextContent()));
+                }
+            }
+
+            // VAT and total
+            Element settlement = findChildNodeByName(lineItem, EInvoiceNS.RAM, "SpecifiedLineTradeSettlement");
+            if (settlement != null) {
+                Element tax = findChildNodeByName(settlement, EInvoiceNS.RAM, "ApplicableTradeTax");
+                if (tax != null) {
+                    Element rate = findChildNodeByName(tax, EInvoiceNS.RAM, "RateApplicablePercent");
+                    if (rate != null) {
+                        item.setVat(Double.parseDouble(rate.getTextContent()));
+                    }
+                }
+
+                Element summation = findChildNodeByName(settlement, EInvoiceNS.RAM,
+                        "SpecifiedTradeSettlementLineMonetarySummation");
+                if (summation != null) {
+                    Element total = findChildNodeByName(summation, EInvoiceNS.RAM, "LineTotalAmount");
+                    if (total != null) {
+                        item.setTotal(Double.parseDouble(total.getTextContent()));
+                    }
+                }
+            }
+
+            items.add(item);
+        }
+
+        return items;
     }
 
     @Override
@@ -353,4 +450,87 @@ public class EInvoiceModelCII extends EInvoiceModel {
             }
         }
     }
+
+    /**
+     * Adds a new TradeLineItem into the XML tree.
+     * 
+     * @param item
+     */
+    public void addTradeLineItem(TradeLineItem item) {
+        Element lineItem = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "IncludedSupplyChainTradeLineItem");
+
+        // Document Line with ID
+        Element docLine = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "AssociatedDocumentLineDocument");
+        Element lineId = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "LineID");
+        lineId.setTextContent(item.getId());
+        docLine.appendChild(lineId);
+        lineItem.appendChild(docLine);
+
+        // Product details
+        Element product = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "SpecifiedTradeProduct");
+        if (item.getName() != null) {
+            Element name = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "Name");
+            name.setTextContent(item.getName());
+            product.appendChild(name);
+        }
+        if (item.getDescription() != null) {
+            Element desc = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "Description");
+            desc.setTextContent(item.getDescription());
+            product.appendChild(desc);
+        }
+        lineItem.appendChild(product);
+
+        // Trade Agreement (Prices)
+        Element agreement = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "SpecifiedLineTradeAgreement");
+
+        Element grossPrice = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "GrossPriceProductTradePrice");
+        Element grossAmount = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "ChargeAmount");
+        grossAmount.setTextContent(String.valueOf(item.getGrossPrice()));
+        grossPrice.appendChild(grossAmount);
+        agreement.appendChild(grossPrice);
+
+        Element netPrice = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "NetPriceProductTradePrice");
+        Element netAmount = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "ChargeAmount");
+        netAmount.setTextContent(String.valueOf(item.getNetPrice()));
+        netPrice.appendChild(netAmount);
+        agreement.appendChild(netPrice);
+
+        lineItem.appendChild(agreement);
+
+        // Trade Delivery (Quantity)
+        Element delivery = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "SpecifiedLineTradeDelivery");
+        Element quantity = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "BilledQuantity");
+        quantity.setAttribute("unitCode", "C62"); // Standard unit code
+        quantity.setTextContent(String.valueOf(item.getQuantity()));
+        delivery.appendChild(quantity);
+        lineItem.appendChild(delivery);
+
+        // Trade Settlement (VAT and Total)
+        Element settlement = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "SpecifiedLineTradeSettlement");
+
+        Element tax = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "ApplicableTradeTax");
+        Element typeCode = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "TypeCode");
+        typeCode.setTextContent("VAT");
+        Element categoryCode = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "CategoryCode");
+        categoryCode.setTextContent("S");
+        Element rate = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "RateApplicablePercent");
+        rate.setTextContent(String.valueOf(item.getVat()));
+        tax.appendChild(typeCode);
+        tax.appendChild(categoryCode);
+        tax.appendChild(rate);
+        settlement.appendChild(tax);
+
+        Element summation = getDoc()
+                .createElement(getPrefix(EInvoiceNS.RAM) + "SpecifiedTradeSettlementLineMonetarySummation");
+        Element total = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "LineTotalAmount");
+        total.setTextContent(String.valueOf(item.getTotal()));
+        summation.appendChild(total);
+        settlement.appendChild(summation);
+
+        lineItem.appendChild(settlement);
+
+        // Add to supplyChainTradeTransaction
+        supplyChainTradeTransaction.appendChild(lineItem);
+    }
+
 }

@@ -76,8 +76,9 @@ public class TradeParty {
     // toString method for easy debugging
     @Override
     public String toString() {
-        return "SellerTradeParty{" +
-                "name='" + name + '\'' +
+        return "TradeParty{" +
+                "type='" + type + '\'' +
+                ", name='" + name + '\'' +
                 ", postcodeCode='" + postcodeCode + '\'' +
                 ", streetAddress='" + streetAddress + '\'' +
                 ", cityName='" + cityName + '\'' +

@@ -50,6 +50,7 @@ public abstract class EInvoiceModel {
     protected BigDecimal taxTotalAmount = new BigDecimal("0.00");
     protected BigDecimal netTotalAmount = new BigDecimal("0.00");
     protected Set<TradeParty> tradeParties = null;
+    protected Set<TradeLineItem> tradeLineItems = null;
 
     private final Map<EInvoiceNS, String> URI_BY_NAMESPACE = new HashMap<>();
     private final Map<EInvoiceNS, String> PREFIX_BY_NAMESPACE = new HashMap<>();
@@ -66,6 +67,7 @@ public abstract class EInvoiceModel {
     public EInvoiceModel(Document doc) {
         // this();
         tradeParties = new LinkedHashSet<>();
+        tradeLineItems = new LinkedHashSet<>();
 
         if (doc != null) {
             this.doc = doc;
@@ -178,6 +180,62 @@ public abstract class EInvoiceModel {
             TradeParty party = iterParties.next();
             if (type.equals(party.getType())) {
                 return party;
+            }
+        }
+        // not found
+        return null;
+    }
+
+    /**
+     * Returns all trade line items
+     * 
+     * @return
+     */
+    public Set<TradeLineItem> getTradeLineItems() {
+        if (tradeLineItems == null) {
+            tradeLineItems = new LinkedHashSet<TradeLineItem>();
+        }
+        return tradeLineItems;
+    }
+
+    /**
+     * Adds a new Trade line item. If a item with this id already exists, the method
+     * removes first the existing item.
+     * 
+     * @param item
+     */
+    public void setTradeLineItem(TradeLineItem item) {
+
+        if (item == null) {
+            return;
+        }
+
+        // Remove existing items of same id (if exists)
+        TradeLineItem existingItem = findTradeLineItem(item.getId());
+        if (existingItem != null) {
+            tradeLineItems.remove(existingItem);
+        }
+
+        // Add new party
+        tradeLineItems.add(item);
+    }
+
+    /**
+     * Finds a Trade line item by its id. Method can return null if not trade line
+     * item of the id is defined in the invoice
+     * 
+     * @param id
+     * @return
+     */
+    public TradeLineItem findTradeLineItem(String id) {
+        if (id == null || id.isEmpty()) {
+            return null;
+        }
+        Iterator<TradeLineItem> items = getTradeLineItems().iterator();
+        while (items.hasNext()) {
+            TradeLineItem item = items.next();
+            if (id.equals(item.getId())) {
+                return item;
             }
         }
         // not found
