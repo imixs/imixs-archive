@@ -382,6 +382,43 @@ public class EInvoiceModelCII extends EInvoiceModel {
     }
 
     /**
+     * Update Duedate
+     */
+    @Override
+    public void setDueDateTime(LocalDate value) {
+        Element element = findChildNodeByName(supplyChainTradeTransaction, EInvoiceNS.RAM,
+                "ApplicableHeaderTradeSettlement");
+        if (element != null) {
+            Element specifiedTradePaymentTermsElement = findOrCreateChildNodeByName(element, EInvoiceNS.RAM,
+                    "SpecifiedTradePaymentTerms");
+            if (specifiedTradePaymentTermsElement != null) {
+                Element dueDateTimeElement = findOrCreateChildNodeByName(specifiedTradePaymentTermsElement,
+                        EInvoiceNS.RAM,
+                        "DueDateDateTime");
+                Element dateTimeElement = findOrCreateChildNodeByName(dueDateTimeElement, EInvoiceNS.UDT,
+                        "DateTimeString");
+                dateTimeElement.setAttribute("format", "102");
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+                dateTimeElement.setTextContent(formatter.format(value));
+            }
+        }
+    }
+
+    /**
+     * Update Invoice date
+     */
+    @Override
+    public void setIssueDateTime(LocalDate value) {
+        Element element = findOrCreateChildNodeByName(exchangedDocument, EInvoiceNS.RAM,
+                "IssueDateTime");
+        Element dateTimeElement = findOrCreateChildNodeByName(element, EInvoiceNS.UDT,
+                "DateTimeString");
+        dateTimeElement.setAttribute("format", "102");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        dateTimeElement.setTextContent(formatter.format(value));
+    }
+
+    /**
      * Updates or creates a trade party in the model and XML structure
      * 
      * @param newParty the trade party to be set
@@ -391,6 +428,7 @@ public class EInvoiceModelCII extends EInvoiceModel {
      * 
      * @param newParty the trade party to be set
      */
+    @Override
     public void setTradeParty(TradeParty newParty) {
         if (newParty == null) {
             return;
@@ -423,7 +461,7 @@ public class EInvoiceModelCII extends EInvoiceModel {
             }
 
             // Update Name
-            updateElementValue(tradePartyElement, "Name", newParty.getName());
+            updateElementValue(tradePartyElement, EInvoiceNS.RAM, "Name", newParty.getName());
 
             // Update PostalTradeAddress
             Element postalAddress = findChildNodeByName(tradePartyElement, EInvoiceNS.RAM, "PostalTradeAddress");
@@ -433,10 +471,10 @@ public class EInvoiceModelCII extends EInvoiceModel {
             }
 
             // Update address details
-            updateElementValue(postalAddress, "PostcodeCode", newParty.getPostcodeCode());
-            updateElementValue(postalAddress, "CityName", newParty.getCityName());
-            updateElementValue(postalAddress, "CountryID", newParty.getCountryId());
-            updateElementValue(postalAddress, "LineOne", newParty.getStreetAddress());
+            updateElementValue(postalAddress, EInvoiceNS.RAM, "PostcodeCode", newParty.getPostcodeCode());
+            updateElementValue(postalAddress, EInvoiceNS.RAM, "CityName", newParty.getCityName());
+            updateElementValue(postalAddress, EInvoiceNS.RAM, "CountryID", newParty.getCountryId());
+            updateElementValue(postalAddress, EInvoiceNS.RAM, "LineOne", newParty.getStreetAddress());
 
             // Update VAT registration if available
             if (newParty.getVatNumber() != null && !newParty.getVatNumber().isEmpty()) {
@@ -446,7 +484,7 @@ public class EInvoiceModelCII extends EInvoiceModel {
                     taxRegistration = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "SpecifiedTaxRegistration");
                     tradePartyElement.appendChild(taxRegistration);
                 }
-                updateElementValue(taxRegistration, "ID", newParty.getVatNumber());
+                updateElementValue(taxRegistration, EInvoiceNS.RAM, "ID", newParty.getVatNumber());
             }
         }
     }
@@ -456,7 +494,13 @@ public class EInvoiceModelCII extends EInvoiceModel {
      * 
      * @param item
      */
-    public void addTradeLineItem(TradeLineItem item) {
+    @Override
+    public void setTradeLineItem(TradeLineItem item) {
+        if (item == null) {
+            return;
+        }
+
+        super.setTradeLineItem(item);
         Element lineItem = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "IncludedSupplyChainTradeLineItem");
 
         // Document Line with ID

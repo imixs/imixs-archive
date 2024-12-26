@@ -175,4 +175,16 @@ public class EInvoiceModelUBL extends EInvoiceModel {
         throw new UnsupportedOperationException("Unimplemented method 'setGrandTotalAmount'");
     }
 
+    @Override
+    public void setIssueDateTime(LocalDate value) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setIssueDateTime'");
+    }
+
+    @Override
+    public void setDueDateTime(LocalDate value) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setDueDateTime'");
+    }
+
 }
