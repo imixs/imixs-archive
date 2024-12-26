@@ -141,6 +141,28 @@ public abstract class EInvoiceModel {
     }
 
     /**
+     * Adds a new Trade party. If a party with this type already exists, the method
+     * removes first the existing party.
+     * 
+     * @param party
+     */
+    public void setTradeParty(TradeParty party) {
+
+        if (party == null) {
+            return;
+        }
+
+        // Remove existing party of same type (if exists)
+        TradeParty existingParty = findTradeParty(party.getType());
+        if (existingParty != null) {
+            tradeParties.remove(existingParty);
+        }
+
+        // Add new party
+        tradeParties.add(party);
+    }
+
+    /**
      * Finds a Trade Party by its type. Method can return null if not trade party of
      * the type is defined in the invoice
      * 
@@ -151,7 +173,7 @@ public abstract class EInvoiceModel {
         if (type == null || type.isEmpty()) {
             return null;
         }
-        Iterator<TradeParty> iterParties = tradeParties.iterator();
+        Iterator<TradeParty> iterParties = getTradeParties().iterator();
         while (iterParties.hasNext()) {
             TradeParty party = iterParties.next();
             if (type.equals(party.getType())) {
@@ -214,6 +236,21 @@ public abstract class EInvoiceModel {
             // no child elements with the given name found!
             return null;
         }
+    }
+
+    /**
+     * Helper method to update or create an element with a given value
+     */
+    public void updateElementValue(Element parent, String elementName, String value) {
+        if (value == null) {
+            return;
+        }
+        Element element = findChildNodeByName(parent, EInvoiceNS.RAM, elementName);
+        if (element == null) {
+            element = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + elementName);
+            parent.appendChild(element);
+        }
+        element.setTextContent(value);
     }
 
     /**

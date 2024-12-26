@@ -19,52 +19,6 @@ public class TradeParty {
     public TradeParty(String type) {
         this.type = type;
     }
-    // public TradeParty(Element sellerElement, String type) {
-    // this.type = type;
-    // // Parse name
-    // Element element=sellerElement.getElementsByTagNameNS( EInvoiceNS.RAM.name(),
-    // "name");
-    // this.name =
-    // .getElementsByTagName("ram:Name")
-    // .item(0)
-    // .getTextContent();
-
-    // // Get PostalTradeAddress element
-    // Element postalAddress = (Element) sellerElement
-    // .getElementsByTagName("ram:PostalTradeAddress")
-    // .item(0);
-
-    // // Parse address details
-    // this.postcodeCode = postalAddress
-    // .getElementsByTagName("ram:PostcodeCode")
-    // .item(0)
-    // .getTextContent();
-
-    // this.streetAddress = postalAddress
-    // .getElementsByTagName("ram:LineOne")
-    // .item(0)
-    // .getTextContent();
-
-    // this.cityName = postalAddress
-    // .getElementsByTagName("ram:CityName")
-    // .item(0)
-    // .getTextContent();
-
-    // this.countryId = postalAddress
-    // .getElementsByTagName("ram:CountryID")
-    // .item(0)
-    // .getTextContent();
-
-    // // // Parse VAT number
-    // // Element taxRegistration = (Element) sellerElement
-    // // .getElementsByTagName("ram:SpecifiedTaxRegistration")
-    // // .item(0);
-
-    // // this.vatNumber = taxRegistration
-    // // .getElementsByTagName("ram:ID")
-    // // .item(0)
-    // // .getTextContent();
-    // }
 
     // Getters
     public String getType() {

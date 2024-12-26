@@ -173,6 +173,15 @@ public class EInvoiceModelCII extends EInvoiceModel {
             }
         }
 
+        // read ShipToTradeParty from ApplicableHeaderTradeDelivery
+        element = findChildNodeByName(supplyChainTradeTransaction, EInvoiceNS.RAM, "ApplicableHeaderTradeDelivery");
+        if (element != null) {
+            Element tradePartyElement = findChildNodeByName(element, EInvoiceNS.RAM, "ShipToTradeParty");
+            if (tradePartyElement != null) {
+                tradeParties.add(parseTradeParty(tradePartyElement, "ship_to"));
+            }
+        }
+
     }
 
     public TradeParty parseTradeParty(Element tradePartyElement, String type) {
@@ -271,6 +280,76 @@ public class EInvoiceModelCII extends EInvoiceModel {
                 if (amountElement != null) {
                     amountElement.setTextContent(value.toPlainString());
                 }
+            }
+        }
+    }
+
+    /**
+     * Updates or creates a trade party in the model and XML structure
+     * 
+     * @param newParty the trade party to be set
+     */
+    /**
+     * Updates or creates a trade party in the model and XML structure
+     * 
+     * @param newParty the trade party to be set
+     */
+    public void setTradeParty(TradeParty newParty) {
+        if (newParty == null) {
+            return;
+        }
+
+        // First update the model
+        super.setTradeParty(newParty);
+
+        Element parentElement;
+        String elementName;
+
+        // Determine parent element and party element name based on type
+        if ("ship_to".equals(newParty.getType())) {
+            parentElement = findChildNodeByName(supplyChainTradeTransaction, EInvoiceNS.RAM,
+                    "ApplicableHeaderTradeDelivery");
+            elementName = "ShipToTradeParty";
+        } else {
+            parentElement = findChildNodeByName(supplyChainTradeTransaction, EInvoiceNS.RAM,
+                    "ApplicableHeaderTradeAgreement");
+            elementName = newParty.getType().equals("seller") ? "SellerTradeParty" : "BuyerTradeParty";
+        }
+
+        if (parentElement != null) {
+            Element tradePartyElement = findChildNodeByName(parentElement, EInvoiceNS.RAM, elementName);
+
+            // Create element if it doesn't exist
+            if (tradePartyElement == null) {
+                tradePartyElement = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + elementName);
+                parentElement.appendChild(tradePartyElement);
+            }
+
+            // Update Name
+            updateElementValue(tradePartyElement, "Name", newParty.getName());
+
+            // Update PostalTradeAddress
+            Element postalAddress = findChildNodeByName(tradePartyElement, EInvoiceNS.RAM, "PostalTradeAddress");
+            if (postalAddress == null) {
+                postalAddress = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "PostalTradeAddress");
+                tradePartyElement.appendChild(postalAddress);
+            }
+
+            // Update address details
+            updateElementValue(postalAddress, "PostcodeCode", newParty.getPostcodeCode());
+            updateElementValue(postalAddress, "CityName", newParty.getCityName());
+            updateElementValue(postalAddress, "CountryID", newParty.getCountryId());
+            updateElementValue(postalAddress, "LineOne", newParty.getStreetAddress());
+
+            // Update VAT registration if available
+            if (newParty.getVatNumber() != null && !newParty.getVatNumber().isEmpty()) {
+                Element taxRegistration = findChildNodeByName(tradePartyElement, EInvoiceNS.RAM,
+                        "SpecifiedTaxRegistration");
+                if (taxRegistration == null) {
+                    taxRegistration = getDoc().createElement(getPrefix(EInvoiceNS.RAM) + "SpecifiedTaxRegistration");
+                    tradePartyElement.appendChild(taxRegistration);
+                }
+                updateElementValue(taxRegistration, "ID", newParty.getVatNumber());
             }
         }
     }
