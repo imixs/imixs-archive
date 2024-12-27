@@ -346,6 +346,7 @@ public class EInvoiceModelCII extends EInvoiceModel {
      */
     @Override
     public void setId(String value) {
+        super.setId(value);
         Element element = findOrCreateChildNode(exchangedDocument, EInvoiceNS.RAM, "ID");
         element.setTextContent(value);
     }
@@ -355,6 +356,7 @@ public class EInvoiceModelCII extends EInvoiceModel {
      */
     @Override
     public void setIssueDateTime(LocalDate value) {
+        super.setIssueDateTime(value);
         Element element = findOrCreateChildNode(exchangedDocument, EInvoiceNS.RAM,
                 "IssueDateTime");
         Element dateTimeElement = findOrCreateChildNode(element, EInvoiceNS.UDT,
@@ -366,7 +368,7 @@ public class EInvoiceModelCII extends EInvoiceModel {
 
     @Override
     public void setNetTotalAmount(BigDecimal value) {
-
+        super.setNetTotalAmount(value);
         // Update LineTotalAmount
         Element lineTotalElement = findChildNode(specifiedTradeSettlementHeaderMonetarySummation, EInvoiceNS.RAM,
                 "LineTotalAmount");
@@ -382,11 +384,16 @@ public class EInvoiceModelCII extends EInvoiceModel {
             taxBasisElement.setTextContent(value.toPlainString());
         }
 
+        // Update ApplicationTradeTax
+        Element applicableTradeTax = findOrCreateChildNode(applicableHeaderTradeSettlement,
+                EInvoiceNS.RAM, "ApplicableTradeTax");
+        updateElementValue(applicableTradeTax, EInvoiceNS.RAM, "BasisAmount", value.toPlainString());
+
     }
 
     @Override
     public void setGrandTotalAmount(BigDecimal value) {
-
+        super.setGrandTotalAmount(value);
         // Update GrandTotalAmount
         Element amountElement = findChildNode(specifiedTradeSettlementHeaderMonetarySummation, EInvoiceNS.RAM,
                 "GrandTotalAmount");
@@ -406,11 +413,18 @@ public class EInvoiceModelCII extends EInvoiceModel {
      */
     @Override
     public void setTaxTotalAmount(BigDecimal value) {
+        super.setTaxTotalAmount(value);
         Element amountElement = findOrCreateChildNode(specifiedTradeSettlementHeaderMonetarySummation,
                 EInvoiceNS.RAM,
                 "TaxTotalAmount");
         amountElement.setTextContent(value.toPlainString());
         amountElement.setAttribute("currencyID", "EUR");
+
+        // Update ApplicableTradeTax/CalculatedAmount
+        Element applicableTradeTax = findOrCreateChildNode(applicableHeaderTradeSettlement,
+                EInvoiceNS.RAM, "ApplicableTradeTax");
+        updateElementValue(applicableTradeTax, EInvoiceNS.RAM, "CalculatedAmount", value.toPlainString());
+
     }
 
     /**
@@ -418,7 +432,7 @@ public class EInvoiceModelCII extends EInvoiceModel {
      */
     @Override
     public void setDueDateTime(LocalDate value) {
-
+        super.setDueDateTime(value);
         Element specifiedTradePaymentTermsElement = findOrCreateChildNode(applicableHeaderTradeSettlement,
                 EInvoiceNS.RAM,
                 "SpecifiedTradePaymentTerms");

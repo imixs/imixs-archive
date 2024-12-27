@@ -49,6 +49,7 @@ public abstract class EInvoiceModel {
     protected BigDecimal grandTotalAmount = new BigDecimal("0.00");
     protected BigDecimal taxTotalAmount = new BigDecimal("0.00");
     protected BigDecimal netTotalAmount = new BigDecimal("0.00");
+    protected BigDecimal vat = new BigDecimal("0.00");
     protected Set<TradeParty> tradeParties = null;
     protected Set<TradeLineItem> tradeLineItems = null;
 
@@ -96,35 +97,53 @@ public abstract class EInvoiceModel {
         return id;
     }
 
-    public abstract void setId(String value);
+    public void setId(String value) {
+        id = value;
+    }
 
     public LocalDate getIssueDateTime() {
         return issueDateTime;
     }
 
-    public abstract void setIssueDateTime(LocalDate value);
+    public void setIssueDateTime(LocalDate value) {
+        issueDateTime = value;
+    }
 
     public LocalDate getDueDateTime() {
         return dueDateTime;
     }
 
-    public abstract void setDueDateTime(LocalDate value);
+    public void setDueDateTime(LocalDate value) {
+        dueDateTime = value;
+    }
 
     public BigDecimal getGrandTotalAmount() {
         return grandTotalAmount;
     }
 
-    public abstract void setGrandTotalAmount(BigDecimal value);
+    public void setGrandTotalAmount(BigDecimal value) {
+        grandTotalAmount = value;
+    }
 
     public void setGrandTotalAmount(Double value) {
         setGrandTotalAmount(BigDecimal.valueOf(value));
+    }
+
+    public BigDecimal getVat() {
+        return vat;
+    }
+
+    public void setVat(BigDecimal vat) {
+        this.vat = vat;
     }
 
     public BigDecimal getTaxTotalAmount() {
         return taxTotalAmount;
     }
 
-    public abstract void setTaxTotalAmount(BigDecimal value);
+    public void setTaxTotalAmount(BigDecimal value) {
+        taxTotalAmount = value;
+    }
 
     public void setTaxTotalAmount(Double value) {
         setTaxTotalAmount(BigDecimal.valueOf(value));
@@ -134,7 +153,9 @@ public abstract class EInvoiceModel {
         return netTotalAmount;
     }
 
-    public abstract void setNetTotalAmount(BigDecimal value);
+    public void setNetTotalAmount(BigDecimal value) {
+        netTotalAmount = value;
+    }
 
     public void setNetTotalAmount(Double value) {
         setNetTotalAmount(BigDecimal.valueOf(value));
