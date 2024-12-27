@@ -81,20 +81,20 @@ public class EInvoiceModelUBL extends EInvoiceModel {
     private void loadDocumentCoreData() {
         Element element = null;
         // cbc:ID
-        element = findChildNodeByName(getRoot(), EInvoiceNS.CBC, "ID");
+        element = findChildNode(getRoot(), EInvoiceNS.CBC, "ID");
         if (element != null) {
             id = element.getTextContent();
         }
 
         // read Date time
-        element = findChildNodeByName(getRoot(), EInvoiceNS.CBC, "IssueDate");
+        element = findChildNode(getRoot(), EInvoiceNS.CBC, "IssueDate");
         if (element != null) {
             String dateStr = element.getTextContent();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             issueDateTime = LocalDate.parse(dateStr, formatter);
         }
 
-        Element accountingSupplierPartyElement = findChildNodeByName(getRoot(), EInvoiceNS.CAC,
+        Element accountingSupplierPartyElement = findChildNode(getRoot(), EInvoiceNS.CAC,
                 "AccountingSupplierParty");
         if (accountingSupplierPartyElement != null) {
             tradeParties.add(parseTradeParty(accountingSupplierPartyElement, "seller"));
@@ -109,18 +109,18 @@ public class EInvoiceModelUBL extends EInvoiceModel {
      * 
      */
     public void parseTotal() {
-        Element monetaryTotalElement = findChildNodeByName(getRoot(), EInvoiceNS.CAC,
+        Element monetaryTotalElement = findChildNode(getRoot(), EInvoiceNS.CAC,
                 "LegalMonetaryTotal");
         if (monetaryTotalElement != null) {
 
             Element child = null;
-            child = findChildNodeByName(monetaryTotalElement, EInvoiceNS.CBC,
+            child = findChildNode(monetaryTotalElement, EInvoiceNS.CBC,
                     "TaxInclusiveAmount");
             if (child != null) {
                 grandTotalAmount = new BigDecimal(child.getTextContent()).setScale(2, RoundingMode.HALF_UP);
             }
             // net
-            child = findChildNodeByName(monetaryTotalElement, EInvoiceNS.CBC,
+            child = findChildNode(monetaryTotalElement, EInvoiceNS.CBC,
                     "LineExtensionAmount");
             if (child != null) {
                 netTotalAmount = new BigDecimal(child.getTextContent()).setScale(2, RoundingMode.HALF_UP);
@@ -144,14 +144,14 @@ public class EInvoiceModelUBL extends EInvoiceModel {
         Element partyElement = null;
 
         // Parse name
-        partyElement = findChildNodeByName(tradePartyElement, EInvoiceNS.CAC,
+        partyElement = findChildNode(tradePartyElement, EInvoiceNS.CAC,
                 "Party");
         if (partyElement != null) {
             // partyname
-            Element element = findChildNodeByName(partyElement, EInvoiceNS.CAC,
+            Element element = findChildNode(partyElement, EInvoiceNS.CAC,
                     "PartyName");
             if (element != null) {
-                element = findChildNodeByName(element, EInvoiceNS.CBC,
+                element = findChildNode(element, EInvoiceNS.CBC,
                         "Name");
                 if (element != null) {
                     tradeParty.setName(element.getTextContent());
@@ -161,6 +161,18 @@ public class EInvoiceModelUBL extends EInvoiceModel {
         }
 
         return tradeParty;
+    }
+
+    @Override
+    public void setId(String value) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setId'");
+    }
+
+    @Override
+    public void setIssueDateTime(LocalDate value) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setIssueDateTime'");
     }
 
     @Override
@@ -176,15 +188,15 @@ public class EInvoiceModelUBL extends EInvoiceModel {
     }
 
     @Override
-    public void setIssueDateTime(LocalDate value) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setIssueDateTime'");
-    }
-
-    @Override
     public void setDueDateTime(LocalDate value) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'setDueDateTime'");
+    }
+
+    @Override
+    public void setTaxTotalAmount(BigDecimal value) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setTaxTotalAmount'");
     }
 
 }

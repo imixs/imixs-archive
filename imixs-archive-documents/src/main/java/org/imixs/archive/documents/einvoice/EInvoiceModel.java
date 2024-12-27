@@ -68,7 +68,6 @@ public abstract class EInvoiceModel {
         // this();
         tradeParties = new LinkedHashSet<>();
         tradeLineItems = new LinkedHashSet<>();
-
         if (doc != null) {
             this.doc = doc;
             root = doc.getDocumentElement();
@@ -76,7 +75,6 @@ public abstract class EInvoiceModel {
                 setNameSpaces();
                 parseContent();
             }
-
         }
     }
 
@@ -98,6 +96,8 @@ public abstract class EInvoiceModel {
         return id;
     }
 
+    public abstract void setId(String value);
+
     public LocalDate getIssueDateTime() {
         return issueDateTime;
     }
@@ -114,8 +114,20 @@ public abstract class EInvoiceModel {
         return grandTotalAmount;
     }
 
+    public abstract void setGrandTotalAmount(BigDecimal value);
+
+    public void setGrandTotalAmount(Double value) {
+        setGrandTotalAmount(BigDecimal.valueOf(value));
+    }
+
     public BigDecimal getTaxTotalAmount() {
         return taxTotalAmount;
+    }
+
+    public abstract void setTaxTotalAmount(BigDecimal value);
+
+    public void setTaxTotalAmount(Double value) {
+        setTaxTotalAmount(BigDecimal.valueOf(value));
     }
 
     public BigDecimal getNetTotalAmount() {
@@ -126,12 +138,6 @@ public abstract class EInvoiceModel {
 
     public void setNetTotalAmount(Double value) {
         setNetTotalAmount(BigDecimal.valueOf(value));
-    }
-
-    public abstract void setGrandTotalAmount(BigDecimal value);
-
-    public void setGrandTotalAmount(Double value) {
-        setGrandTotalAmount(BigDecimal.valueOf(value));
     }
 
     /**
@@ -289,7 +295,7 @@ public abstract class EInvoiceModel {
      * @return - Child Element matching the given node name. If no nodes were found,
      *         the method returns null
      */
-    public Element findChildNodeByName(Element parent, EInvoiceNS ns, String nodeName) {
+    public Element findChildNode(Element parent, EInvoiceNS ns, String nodeName) {
         Set<Element> elementList = findChildNodesByName(parent, ns, nodeName);
         if (elementList.iterator().hasNext()) {
             // return first element
@@ -311,7 +317,7 @@ public abstract class EInvoiceModel {
      * @return - Child Element matching the given node name. If no nodes were found,
      *         the method returns null
      */
-    public Element findOrCreateChildNodeByName(Element parent, EInvoiceNS ns, String nodeName) {
+    public Element findOrCreateChildNode(Element parent, EInvoiceNS ns, String nodeName) {
         Set<Element> elementList = findChildNodesByName(parent, ns, nodeName);
         if (elementList.iterator().hasNext()) {
             // return first element
@@ -319,25 +325,37 @@ public abstract class EInvoiceModel {
         } else {
             // no child elements with the given name found
             // create one
-            Element element = getDoc().createElement(getPrefix(ns) + nodeName);
-            parent.appendChild(element);
-            return element;
+            return createChildNode(parent, ns, nodeName);
         }
     }
 
     /**
-     * Helper method to update or create an element with a given value
+     * This helper method creates a new child node by name from a given parent
+     * node.
+     * 
+     * @param parent
+     * @param nodeName
+     * @return - Child Element matching the given node name. If no nodes were found,
+     *         the method returns null
      */
-    public void updateElementValue(Element parent, EInvoiceNS nameSpace, String elementName, String value) {
+    public Element createChildNode(Element parent, EInvoiceNS ns, String nodeName) {
+        Element element = getDoc().createElement(getPrefix(ns) + nodeName);
+        parent.appendChild(element);
+        return element;
+    }
+
+    /**
+     * Helper method to update or create an element with a given value
+     * 
+     * @return - updated Element
+     */
+    public Element updateElementValue(Element parent, EInvoiceNS nameSpace, String elementName, String value) {
         if (value == null) {
-            return;
+            return null;
         }
-        Element element = findChildNodeByName(parent, nameSpace, elementName);
-        if (element == null) {
-            element = getDoc().createElement(getPrefix(nameSpace) + elementName);
-            parent.appendChild(element);
-        }
+        Element element = findOrCreateChildNode(parent, nameSpace, elementName);
         element.setTextContent(value);
+        return element;
     }
 
     /**
