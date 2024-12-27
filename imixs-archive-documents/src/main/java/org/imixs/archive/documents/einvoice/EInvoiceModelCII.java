@@ -502,10 +502,17 @@ public class EInvoiceModelCII extends EInvoiceModel {
             }
 
             // Update address details
+
+            // <ram:PostalTradeAddress>
+            // <ram:PostcodeCode>12345</ram:PostcodeCode>
+            // <ram:LineOne>Musterstraße 123</ram:LineOne>
+            // <ram:CityName>Muster</ram:CityName>
+            // <ram:CountryID>DE</ram:CountryID>
+            // </ram:PostalTradeAddress>
             updateElementValue(postalAddress, EInvoiceNS.RAM, "PostcodeCode", newParty.getPostcodeCode());
+            updateElementValue(postalAddress, EInvoiceNS.RAM, "LineOne", newParty.getStreetAddress());
             updateElementValue(postalAddress, EInvoiceNS.RAM, "CityName", newParty.getCityName());
             updateElementValue(postalAddress, EInvoiceNS.RAM, "CountryID", newParty.getCountryId());
-            updateElementValue(postalAddress, EInvoiceNS.RAM, "LineOne", newParty.getStreetAddress());
 
             // Update VAT registration if available
             if (newParty.getVatNumber() != null && !newParty.getVatNumber().isEmpty()) {

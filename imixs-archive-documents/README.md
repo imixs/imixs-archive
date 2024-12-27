@@ -253,7 +253,7 @@ The Adapter  class `org.imixs.workflow.documents.EInvoiceAutoAdapter`  is an ext
 | cdtr.name         | text  	| Creditor name				| //ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:Name/text()
 
 
-
+You can use the [Online eInvoice Validator](https://www.itb.ec.europa.eu/invoice/upload) to test a e-invoice document. 
 
 
 ## The PDF XML Plugin
