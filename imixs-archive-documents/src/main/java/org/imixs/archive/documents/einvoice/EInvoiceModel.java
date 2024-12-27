@@ -353,6 +353,29 @@ public abstract class EInvoiceModel {
     /**
      * This helper method creates a new child node by name from a given parent
      * node.
+     * <p>
+     * If the param insertBefore is given, the new element is inserted before this
+     * element.
+     * 
+     * @param parent
+     * @param nodeName
+     * @param insertBefore
+     * @return - Child Element matching the given node name. If no nodes were found,
+     *         the method returns null
+     */
+    public Element createChildNode(Element parent, EInvoiceNS ns, String nodeName, Element insertBefore) {
+        Element element = getDoc().createElement(getPrefix(ns) + nodeName);
+        if (insertBefore != null) {
+            parent.insertBefore(element, insertBefore);
+        } else {
+            parent.appendChild(element);
+        }
+        return element;
+    }
+
+    /**
+     * This helper method creates a new child node by name from a given parent
+     * node.
      * 
      * @param parent
      * @param nodeName
@@ -360,9 +383,7 @@ public abstract class EInvoiceModel {
      *         the method returns null
      */
     public Element createChildNode(Element parent, EInvoiceNS ns, String nodeName) {
-        Element element = getDoc().createElement(getPrefix(ns) + nodeName);
-        parent.appendChild(element);
-        return element;
+        return createChildNode(parent, ns, nodeName, null);
     }
 
     /**

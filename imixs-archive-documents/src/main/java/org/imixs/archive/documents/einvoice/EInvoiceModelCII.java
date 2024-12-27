@@ -28,6 +28,8 @@ public class EInvoiceModelCII extends EInvoiceModel {
     protected Element supplyChainTradeTransaction;
     protected Element applicableHeaderTradeSettlement;
     protected Element specifiedTradeSettlementHeaderMonetarySummation;
+    protected Element applicableHeaderTradeDelivery;
+    protected Element applicableHeaderTradeAgreement;
 
     public EInvoiceModelCII(Document doc) {
         super(doc);
@@ -97,6 +99,11 @@ public class EInvoiceModelCII extends EInvoiceModel {
         exchangedDocument = findOrCreateChildNode(getRoot(), EInvoiceNS.RSM, "ExchangedDocument");
         supplyChainTradeTransaction = findOrCreateChildNode(getRoot(), EInvoiceNS.RSM,
                 "SupplyChainTradeTransaction");
+
+        applicableHeaderTradeAgreement = findOrCreateChildNode(supplyChainTradeTransaction, EInvoiceNS.RAM,
+                "ApplicableHeaderTradeAgreement");
+        applicableHeaderTradeDelivery = findOrCreateChildNode(supplyChainTradeTransaction, EInvoiceNS.RAM,
+                "ApplicableHeaderTradeDelivery");
 
         applicableHeaderTradeSettlement = findOrCreateChildNode(supplyChainTradeTransaction, EInvoiceNS.RAM,
                 "ApplicableHeaderTradeSettlement");
@@ -168,32 +175,26 @@ public class EInvoiceModelCII extends EInvoiceModel {
         }
 
         // read ApplicableHeaderTradeAgreement - buyerReference
-        element = findChildNode(supplyChainTradeTransaction, EInvoiceNS.RAM, "ApplicableHeaderTradeAgreement");
-        if (element != null) {
-            Element buyerReferenceElement = findChildNode(element, EInvoiceNS.RAM,
-                    "BuyerReference");
-            if (buyerReferenceElement != null) {
-                buyerReference = buyerReferenceElement.getTextContent();
-            }
-            Element tradePartyElement = findChildNode(element, EInvoiceNS.RAM,
-                    "SellerTradeParty");
-            if (tradePartyElement != null) {
-                tradeParties.add(parseTradeParty(tradePartyElement, "seller"));
-            }
-            tradePartyElement = findChildNode(element, EInvoiceNS.RAM,
-                    "BuyerTradeParty");
-            if (tradePartyElement != null) {
-                tradeParties.add(parseTradeParty(tradePartyElement, "buyer"));
-            }
+        Element buyerReferenceElement = findChildNode(applicableHeaderTradeAgreement, EInvoiceNS.RAM,
+                "BuyerReference");
+        if (buyerReferenceElement != null) {
+            buyerReference = buyerReferenceElement.getTextContent();
+        }
+        Element tradePartyElement = findChildNode(applicableHeaderTradeAgreement, EInvoiceNS.RAM,
+                "SellerTradeParty");
+        if (tradePartyElement != null) {
+            tradeParties.add(parseTradeParty(tradePartyElement, "seller"));
+        }
+        tradePartyElement = findChildNode(applicableHeaderTradeAgreement, EInvoiceNS.RAM,
+                "BuyerTradeParty");
+        if (tradePartyElement != null) {
+            tradeParties.add(parseTradeParty(tradePartyElement, "buyer"));
         }
 
         // read ShipToTradeParty from ApplicableHeaderTradeDelivery
-        element = findChildNode(supplyChainTradeTransaction, EInvoiceNS.RAM, "ApplicableHeaderTradeDelivery");
-        if (element != null) {
-            Element tradePartyElement = findChildNode(element, EInvoiceNS.RAM, "ShipToTradeParty");
-            if (tradePartyElement != null) {
-                tradeParties.add(parseTradeParty(tradePartyElement, "ship_to"));
-            }
+        tradePartyElement = findChildNode(applicableHeaderTradeDelivery, EInvoiceNS.RAM, "ShipToTradeParty");
+        if (tradePartyElement != null) {
+            tradeParties.add(parseTradeParty(tradePartyElement, "ship_to"));
         }
 
         // read line items...
@@ -473,12 +474,10 @@ public class EInvoiceModelCII extends EInvoiceModel {
 
         // Determine parent element and party element name based on type
         if ("ship_to".equals(newParty.getType())) {
-            parentElement = findChildNode(supplyChainTradeTransaction, EInvoiceNS.RAM,
-                    "ApplicableHeaderTradeDelivery");
+            parentElement = applicableHeaderTradeDelivery;
             elementName = "ShipToTradeParty";
         } else {
-            parentElement = findChildNode(supplyChainTradeTransaction, EInvoiceNS.RAM,
-                    "ApplicableHeaderTradeAgreement");
+            parentElement = applicableHeaderTradeAgreement;
             elementName = newParty.getType().equals("seller") ? "SellerTradeParty" : "BuyerTradeParty";
         }
 
@@ -541,8 +540,9 @@ public class EInvoiceModelCII extends EInvoiceModel {
         super.setTradeLineItem(item);
 
         // create main tags...
+        // Insert before ApplicableHeaderTradeAgreement !!
         Element lineItem = createChildNode(supplyChainTradeTransaction, EInvoiceNS.RAM,
-                "IncludedSupplyChainTradeLineItem");
+                "IncludedSupplyChainTradeLineItem", applicableHeaderTradeAgreement);
         Element associatedDocumentLineDocument = createChildNode(lineItem, EInvoiceNS.RAM,
                 "AssociatedDocumentLineDocument");
         Element product = createChildNode(lineItem, EInvoiceNS.RAM, "SpecifiedTradeProduct");
