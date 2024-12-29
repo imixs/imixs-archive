@@ -5,9 +5,9 @@ import java.io.FileNotFoundException;
 import java.math.RoundingMode;
 import java.util.logging.Logger;
 
-import org.imixs.archive.documents.einvoice.EInvoiceModel;
-import org.imixs.archive.documents.einvoice.EInvoiceModelFactory;
-import org.imixs.archive.documents.einvoice.TradeParty;
+import org.imixs.einvoice.EInvoiceModel;
+import org.imixs.einvoice.EInvoiceModelFactory;
+import org.imixs.einvoice.TradeParty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.exceptions.AdapterException;
@@ -56,7 +56,6 @@ public class EInvoiceAutoAdapter extends EInvoiceAdapter {
 			byte[] xmlData = readXMLContent(eInvoiceFileData);
 			try {
 				EInvoiceModel model = EInvoiceModelFactory.read(new ByteArrayInputStream(xmlData));
-
 				resolveItemValues(workitem, model);
 
 			} catch (FileNotFoundException e) {

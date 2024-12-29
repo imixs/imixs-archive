@@ -11,9 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.imixs.archive.documents.einvoice.EInvoiceModel;
-import org.imixs.archive.documents.einvoice.EInvoiceModelFactory;
-import org.imixs.archive.documents.einvoice.TradeParty;
+import org.imixs.einvoice.EInvoiceModel;
+import org.imixs.einvoice.EInvoiceModelFactory;
+import org.imixs.einvoice.TradeParty;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.exceptions.AdapterException;
 import org.imixs.workflow.exceptions.ModelException;
