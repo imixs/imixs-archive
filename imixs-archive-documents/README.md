@@ -185,7 +185,7 @@ For more details about the OCR configuration see the [Imixs-Archive-OCR project]
 
 
 
-## Searching Documents
+### Searching Documents
 
 All extracted textual information from attached documents is also searchable by the Imixs search index. The class *org.imixs.workflow.documents.DocumentIndexer* adds the ocr content for each file attachment into the search index.
 
@@ -193,7 +193,23 @@ All extracted textual information from attached documents is also searchable by 
 
 ## The e-Invoice Adapter
 
-The Adapter  class `org.imixs.workflow.documents.EInvoiceAdapter`  can detect and extract content from e-invoice documents in different formats.
+The Adapter  class `org.imixs.workflow.documents.EInvoiceAutoAdapter` can be used to extract data from an e-invoice document. The `EInvoiceAutoAdapter` class automatically resolve all relevant e-invoice fields. The following fields are supported:
+
+| Item   			| Type  	| Description 				|
+| ----------------- | --------- | ------------------------- | 
+| invoice.number    | text  	| Invoice number 			|
+| invoice.date    	| date  	| Invoice date 				| 
+| invoice.duedate   | date  	| Invoice due date 			|
+| invoice.total    	| double	| Invoice total grant amount| 
+| invoice.total.net	| double	| Invoice total net amount	| 
+| invoice.total.tx 	| double	| Invoice total tax amount	| 
+| cdtr.name         | text  	| Creditor name				|
+
+The implementation of the EInvoice Adapter classes is based on the [Imixs e-invoice project](https://github.com/imixs/e-invoice).
+
+### The e-Invoice MetaAdapter
+
+The Adapter class `org.imixs.workflow.documents.EInvoiceMetaAdapter` can detect and extract content from e-invoice documents in different formats. This implementation is based on XPath expressions and can resolve custom fields not supported by the `EInvoiceAutoAdapter` class. 
 
 The detection outcome of the adapter is a new item named 'einvoice.type' with the detected type of the e-invoice format. E.g:
 
@@ -233,45 +249,8 @@ The Adapter can be configured in an BPMN event to extract e-invoice data fields 
 ```
 
 
-
 If the type is not set the item value will be treated as a String. Possible types are 'double' and 'date'
-
 If the document is not a e-invoice no items and also the einvoice.type field will be set.
-
-
-
-## The e-Invoice AutoAdapter
-
-
-The Adapter  class `org.imixs.workflow.documents.EInvoiceAutoAdapter`  is an extension of the EInvoiceAdapter and can be used to resolve all relevant e-invoice fields automatically. The following fields are supported:
-
-| Item   			| Type  	| Description 				| XPath
-| ----------------- | --------- | ------------------------- | -------------------------------------------------------
-| invoice.number    | text  	| Invoice number 			| //rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID
-| invoice.date    	| date  	| Invoice date 				| //rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString/text()
-| invoice.total    	| double	| Invoice total grant amount| //ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:GrandTotalAmount
-| cdtr.name         | text  	| Creditor name				| //ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:Name/text()
-
-
-You can use the [Online eInvoice Validator](https://www.itb.ec.europa.eu/invoice/upload) to test a e-invoice document. 
-
-
-## The PDF XML Plugin
-
-The plugin class `org.imixs.workflow.documents.EInvoiceAdapter` can be used to  extract embedded XML Data from a PDF document and convert the data into a Imixs Workitem. For example the _ZUGFeRD_ defines a standard XML document for invoices. 
-
-The plugin can be activated by the BPMN Model with the following result definition: 
-
-
-	<item name="PDFXMLPlugin">
-		<filename>*.xml</filename>
-	    <report>myReport</report>
-	</item>
-
-The Item "PDFXMLExtractorPlugin" provides the following processing instructions for the PDFXMLPlugin:
-
- * filename - regular expression to select embedded files
- * report - imixs-report definition to convert the xml into a Imixs WorkItem. 
 
 
 
@@ -280,12 +259,14 @@ The Item "PDFXMLExtractorPlugin" provides the following processing instructions 
 
 To include the imixs-archive-documents plugins the following maven dependency can be added:
 
+```xml
+	<!-- Imixs-Documents / Tika Service -->	
+	<dependency>
+		<groupId>org.imixs.workflow</groupId>
+		<artifactId>imixs-archive-documents</artifactId>
+		<scope>compile</scope>
+	</dependency>	
+```
 
-		<!-- Imixs-Documents / Tika Service -->	
-		<dependency>
-			<groupId>org.imixs.workflow</groupId>
-			<artifactId>imixs-archive-documents</artifactId>
-			<scope>compile</scope>
-		</dependency>	
-	
+
 	
