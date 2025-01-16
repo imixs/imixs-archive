@@ -476,37 +476,7 @@ public class EInvoiceAdapter implements SignalAdapter {
 				String itemType = entityDef.getItemValueString("type");
 
 				readItem(workitem, xPathExpr, itemType, itemName);
-				// XPathExpression expr = compiledExpressions.computeIfAbsent(xPathExpr,
-				// k -> {
-				// try {
-				// return xpath.compile(k);
-				// } catch (Exception e) {
-				// logger.warning("Error compiling XPath expression: " + k + " - " +
-				// e.getMessage());
-				// return null;
-				// }
-				// });
-				// // extract the xpath value and update the workitem...
-				// if (expr != null) {
-				// Node node = (Node) expr.evaluate(xmlDoc, XPathConstants.NODE);
-				// String itemValue = node != null ? node.getTextContent() : null;
-				// // test if we have a type....
 
-				// if ("date".equalsIgnoreCase(itemType)) {
-				// SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
-				// try {
-				// Date invoiceDate = formatter.parse(itemValue);
-				// workitem.setItemValue(itemName, invoiceDate);
-				// } catch (ParseException e) {
-				// e.printStackTrace();
-				// }
-				// } else if ("double".equalsIgnoreCase(itemType)) {
-				// workitem.setItemValue(itemName, Double.parseDouble(itemValue));
-				// } else {
-				// // default...
-				// workitem.setItemValue(itemName, itemValue);
-				// }
-				// }
 			}
 		} catch (Exception e) {
 			logger.warning("Error analyzing XML content: " + e.getMessage());

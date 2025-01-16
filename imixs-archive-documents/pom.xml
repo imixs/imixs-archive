@@ -42,7 +42,7 @@
 		<dependency>
 			<groupId>org.imixs.util</groupId>
 			<artifactId>imixs-e-invoice</artifactId>
-			<version>1.0.0-SNAPSHOT</version>
+			<version>${org.imixs-e-invoice.version}</version>
 		</dependency>
 
 

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<mgns1:CrossIndustryInvoice
+  xmlns:mgns1="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
+  xmlns:mgns2="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
+  xmlns:mgns3="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
+
+  <mgns1:ExchangedDocumentContext>
+    <mgns2:BusinessProcessSpecifiedDocumentContextParameter>
+      <mgns2:ID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</mgns2:ID>
+    </mgns2:BusinessProcessSpecifiedDocumentContextParameter>
+    <mgns2:GuidelineSpecifiedDocumentContextParameter>
+      <mgns2:ID>
+        urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0#conformant#urn:xeinkauf.de:kosit:extension:xrechnung_3.0</mgns2:ID>
+    </mgns2:GuidelineSpecifiedDocumentContextParameter>
+  </mgns1:ExchangedDocumentContext>
+
+  <mgns1:ExchangedDocument>
+    <mgns2:ID>102026</mgns2:ID>
+    <mgns2:TypeCode>380</mgns2:TypeCode>
+    <mgns2:IssueDateTime>
+      <mgns3:DateTimeString format="102">20250101</mgns3:DateTimeString>
+    </mgns2:IssueDateTime>
+  </mgns1:ExchangedDocument>
+
+  <mgns1:SupplyChainTradeTransaction>
+    <mgns2:IncludedSupplyChainTradeLineItem>
+      <mgns2:AssociatedDocumentLineDocument>
+        <mgns2:LineID>1</mgns2:LineID>
+        <mgns2:IncludedNote>
+          <mgns2:Content>Vertrag 66790-01&#13;&#10;IDNR: 5657,S/N: 2Y3333302, CN IR ADV DX C5840I</mgns2:Content>
+        </mgns2:IncludedNote>
+      </mgns2:AssociatedDocumentLineDocument>
+      <mgns2:SpecifiedTradeProduct>
+        <mgns2:SellerAssignedID>Pauschale</mgns2:SellerAssignedID>
+        <mgns2:Name>Pauschale</mgns2:Name>
+      </mgns2:SpecifiedTradeProduct>
+      <mgns2:SpecifiedLineTradeAgreement>
+        <mgns2:NetPriceProductTradePrice>
+          <mgns2:ChargeAmount>44.00</mgns2:ChargeAmount>
+          <mgns2:BasisQuantity unitCode="H87">1</mgns2:BasisQuantity>
+        </mgns2:NetPriceProductTradePrice>
+      </mgns2:SpecifiedLineTradeAgreement>
+      <mgns2:SpecifiedLineTradeDelivery>
+        <mgns2:BilledQuantity unitCode="H87">1.00</mgns2:BilledQuantity>
+      </mgns2:SpecifiedLineTradeDelivery>
+      <mgns2:SpecifiedLineTradeSettlement>
+        <mgns2:ApplicableTradeTax>
+          <mgns2:TypeCode>VAT</mgns2:TypeCode>
+          <mgns2:CategoryCode>S</mgns2:CategoryCode>
+          <mgns2:RateApplicablePercent>19.00</mgns2:RateApplicablePercent>
+        </mgns2:ApplicableTradeTax>
+        <mgns2:BillingSpecifiedPeriod>
+          <mgns2:StartDateTime>
+            <mgns3:DateTimeString format="102">20250101</mgns3:DateTimeString>
+          </mgns2:StartDateTime>
+          <mgns2:EndDateTime>
+            <mgns3:DateTimeString format="102">20250131</mgns3:DateTimeString>
+          </mgns2:EndDateTime>
+        </mgns2:BillingSpecifiedPeriod>
+        <mgns2:SpecifiedTradeSettlementLineMonetarySummation>
+          <mgns2:LineTotalAmount>44.00</mgns2:LineTotalAmount>
+        </mgns2:SpecifiedTradeSettlementLineMonetarySummation>
+      </mgns2:SpecifiedLineTradeSettlement>
+    </mgns2:IncludedSupplyChainTradeLineItem>
+    <mgns2:ApplicableHeaderTradeAgreement>
+      <mgns2:BuyerReference>ohne</mgns2:BuyerReference>
+      <mgns2:SellerTradeParty>
+        <mgns2:Name>Foo Innovation GmbH</mgns2:Name>
+        <mgns2:DefinedTradeContact>
+          <mgns2:PersonName>Max Musternn</mgns2:PersonName>
+          <mgns2:TelephoneUniversalCommunication>
+            <mgns2:CompleteNumber>+49(40)23854517</mgns2:CompleteNumber>
+          </mgns2:TelephoneUniversalCommunication>
+          <mgns2:EmailURIUniversalCommunication>
+            <mgns2:URIID>foo@imixs.de</mgns2:URIID>
+          </mgns2:EmailURIUniversalCommunication>
+        </mgns2:DefinedTradeContact>
+        <mgns2:PostalTradeAddress>
+          <mgns2:PostcodeCode>22089</mgns2:PostcodeCode>
+          <mgns2:LineOne>Heidenkampsweg 45</mgns2:LineOne>
+          <mgns2:CityName>Hamburg</mgns2:CityName>
+          <mgns2:CountryID>DE</mgns2:CountryID>
+        </mgns2:PostalTradeAddress>
+        <mgns2:URIUniversalCommunication>
+          <mgns2:URIID schemeID="EM">info@imixs.com</mgns2:URIID>
+        </mgns2:URIUniversalCommunication>
+        <mgns2:SpecifiedTaxRegistration>
+          <mgns2:ID schemeID="VA">DE9994727754</mgns2:ID>
+        </mgns2:SpecifiedTaxRegistration>
+      </mgns2:SellerTradeParty>
+      <mgns2:BuyerTradeParty>
+        <mgns2:ID>66790</mgns2:ID>
+        <mgns2:Name>ABC GmbH</mgns2:Name>
+        <mgns2:PostalTradeAddress>
+          <mgns2:PostcodeCode>20457</mgns2:PostcodeCode>
+          <mgns2:LineOne>Lindenstr 8</mgns2:LineOne>
+          <mgns2:CityName>Hamburg</mgns2:CityName>
+          <mgns2:CountryID>DE</mgns2:CountryID>
+        </mgns2:PostalTradeAddress>
+        <mgns2:URIUniversalCommunication>
+          <mgns2:URIID schemeID="EM" />
+        </mgns2:URIUniversalCommunication>
+      </mgns2:BuyerTradeParty>
+      <mgns2:SellerOrderReferencedDocument>
+        <mgns2:IssuerAssignedID>98234</mgns2:IssuerAssignedID>
+      </mgns2:SellerOrderReferencedDocument>
+    </mgns2:ApplicableHeaderTradeAgreement>
+    <mgns2:ApplicableHeaderTradeDelivery>
+      <mgns2:ShipToTradeParty>
+        <mgns2:Name>VALUES. Health GmbH</mgns2:Name>
+        <mgns2:PostalTradeAddress>
+          <mgns2:PostcodeCode>20457</mgns2:PostcodeCode>
+          <mgns2:LineOne>Lindenstr 8</mgns2:LineOne>
+          <mgns2:CityName>Hamburg</mgns2:CityName>
+          <mgns2:CountryID>DE</mgns2:CountryID>
+        </mgns2:PostalTradeAddress>
+      </mgns2:ShipToTradeParty>
+      <mgns2:ActualDeliverySupplyChainEvent>
+        <mgns2:OccurrenceDateTime>
+          <mgns3:DateTimeString format="102">20250131</mgns3:DateTimeString>
+        </mgns2:OccurrenceDateTime>
+      </mgns2:ActualDeliverySupplyChainEvent>
+    </mgns2:ApplicableHeaderTradeDelivery>
+    <mgns2:ApplicableHeaderTradeSettlement>
+      <mgns2:InvoiceCurrencyCode>EUR</mgns2:InvoiceCurrencyCode>
+      <mgns2:SpecifiedTradeSettlementPaymentMeans>
+        <mgns2:TypeCode>30</mgns2:TypeCode>
+        <mgns2:PayeePartyCreditorFinancialAccount>
+          <mgns2:IBANID>DE49200000001002127296</mgns2:IBANID>
+          <mgns2:AccountName>Foo Innovation GmbH</mgns2:AccountName>
+        </mgns2:PayeePartyCreditorFinancialAccount>
+        <mgns2:PayeeSpecifiedCreditorFinancialInstitution>
+          <mgns2:BICID>HASPDEHHABC</mgns2:BICID>
+        </mgns2:PayeeSpecifiedCreditorFinancialInstitution>
+      </mgns2:SpecifiedTradeSettlementPaymentMeans>
+      <mgns2:ApplicableTradeTax>
+        <mgns2:CalculatedAmount>8.36</mgns2:CalculatedAmount>
+        <mgns2:TypeCode>VAT</mgns2:TypeCode>
+        <mgns2:BasisAmount>44.00</mgns2:BasisAmount>
+        <mgns2:CategoryCode>S</mgns2:CategoryCode>
+        <mgns2:RateApplicablePercent>19.00</mgns2:RateApplicablePercent>
+      </mgns2:ApplicableTradeTax>
+      <mgns2:SpecifiedTradePaymentTerms>
+        <mgns2:Description>Innerhalb 14 Tagen nach Rechungsdatum netto, spätestens zum 15.01.2025</mgns2:Description>
+        <mgns2:DueDateDateTime>
+          <mgns3:DateTimeString format="102">20250115</mgns3:DateTimeString>
+        </mgns2:DueDateDateTime>
+      </mgns2:SpecifiedTradePaymentTerms>
+      <mgns2:SpecifiedTradeSettlementHeaderMonetarySummation>
+        <mgns2:LineTotalAmount>44.00</mgns2:LineTotalAmount>
+        <mgns2:TaxBasisTotalAmount>44.00</mgns2:TaxBasisTotalAmount>
+        <mgns2:TaxTotalAmount currencyID="EUR">8.36</mgns2:TaxTotalAmount>
+        <mgns2:GrandTotalAmount>52.36</mgns2:GrandTotalAmount>
+        <mgns2:DuePayableAmount>52.36</mgns2:DuePayableAmount>
+      </mgns2:SpecifiedTradeSettlementHeaderMonetarySummation>
+    </mgns2:ApplicableHeaderTradeSettlement>
+  </mgns1:SupplyChainTradeTransaction>
+
+</mgns1:CrossIndustryInvoice>

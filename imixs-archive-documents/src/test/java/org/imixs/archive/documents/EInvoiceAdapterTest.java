@@ -125,6 +125,28 @@ class EInvoiceAdapterTest {
 
     }
 
+    /**
+     * This test uses the xpath expressions form a xml document with custom
+     * namespaces
+     * 
+     * @throws AdapterException
+     * @throws PluginException
+     * @throws IOException
+     */
+    @Test
+    void testExecuteWithCustomNamespaces() throws AdapterException, PluginException, IOException {
+
+        // Prepare test data
+        FileData xmlFile = createFileData("e-invoice/Rechnung_CustomNamespace_CII.xml", "application/xml");
+        workitem.addFileData(xmlFile);
+
+        adapter.execute(workitem, event);
+
+        assertEquals("102026", workitem.getItemValueString("invoice.number"));
+        assertEquals("Foo Innovation GmbH", workitem.getItemValueString("cdtr.name"));
+
+    }
+
     @Test
     void testExecuteWithZIPContainingXML() throws AdapterException, PluginException, IOException {
         // Prepare test data
