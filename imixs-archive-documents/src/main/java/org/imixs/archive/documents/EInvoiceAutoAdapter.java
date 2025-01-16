@@ -3,6 +3,8 @@ package org.imixs.archive.documents;
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 import org.imixs.einvoice.EInvoiceModel;
@@ -58,6 +60,9 @@ public class EInvoiceAutoAdapter extends EInvoiceAdapter {
 				EInvoiceModel model = EInvoiceModelFactory.read(new ByteArrayInputStream(xmlData));
 				resolveItemValues(workitem, model);
 
+				// store xml into the text attribute
+				String xmlText = new String(xmlData, StandardCharsets.UTF_8);
+				eInvoiceFileData.setAttribute("text", Arrays.asList(xmlText));
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
