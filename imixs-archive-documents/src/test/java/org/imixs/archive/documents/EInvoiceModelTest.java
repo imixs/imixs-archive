@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.imixs.einvoice.EInvoiceFormatException;
 import org.imixs.einvoice.EInvoiceModel;
 import org.imixs.einvoice.EInvoiceModelFactory;
 import org.imixs.einvoice.TradeParty;
@@ -34,7 +35,7 @@ class EInvoiceModelTest {
     }
 
     @Test
-    void testStandaloneXML() throws AdapterException, PluginException, IOException {
+    void testStandaloneXML() throws AdapterException, PluginException, IOException, EInvoiceFormatException {
         // Prepare test data
 
         EInvoiceModel eInvoiceModel = loadEInvoice("e-invoice/Rechnung_R_00010.xml", "application/xml");
@@ -90,14 +91,17 @@ class EInvoiceModelTest {
      * @param contentType
      * @return
      * @throws IOException
+     * @throws EInvoiceFormatException
      */
-    private EInvoiceModel loadEInvoice(String fileName, String contentType) throws IOException {
+    private EInvoiceModel loadEInvoice(String fileName, String contentType)
+            throws IOException, EInvoiceFormatException {
         ClassLoader classLoader = getClass().getClassLoader();
         try (InputStream is = classLoader.getResourceAsStream(fileName)) {
             if (is == null) {
                 throw new IOException("Resource not found: " + fileName);
             }
             return EInvoiceModelFactory.read(is);
+
         }
     }
 

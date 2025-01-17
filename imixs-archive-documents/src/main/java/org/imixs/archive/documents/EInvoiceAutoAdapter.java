@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
+import org.imixs.einvoice.EInvoiceFormatException;
 import org.imixs.einvoice.EInvoiceModel;
 import org.imixs.einvoice.EInvoiceModelFactory;
 import org.imixs.einvoice.TradeParty;
@@ -59,16 +60,15 @@ public class EInvoiceAutoAdapter extends EInvoiceAdapter {
 			try {
 				EInvoiceModel model = EInvoiceModelFactory.read(new ByteArrayInputStream(xmlData));
 				resolveItemValues(workitem, model);
-
 				// store xml into the text attribute
 				String xmlText = new String(xmlData, StandardCharsets.UTF_8);
 				eInvoiceFileData.setAttribute("text", Arrays.asList(xmlText));
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			} catch (FileNotFoundException | EInvoiceFormatException e) {
+				throw new AdapterException(
+						EInvoiceAutoAdapter.class.getSimpleName(), EInvoiceFormatException.INVALID_FORMAT_EXCEPTION,
+						"Failed to read E-Invoice: " + e.getMessage());
 
-			// readEInvoiceContent(eInvoiceFileData, workitem);
+			}
 		}
 
 		return workitem;
