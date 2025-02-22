@@ -202,6 +202,19 @@ public class CSVImportService {
                     // since the last import
                     ftpClient.retrieveFile(csvFilename, is);
                     byte[] rawData = is.toByteArray();
+
+                    // Close Connection now
+                    try {
+                        logger.info("...document content read, closing FTP client.");
+                        ftpClient.logout();
+                        ftpClient.disconnect();
+                    } catch (IOException e) {
+                        documentImportService.logMessage(
+                                "...FTP error - failed to close connection after reading CSV File: " + e.getMessage(),
+                                event);
+                        // we still can continue as we should already have read the file content...
+                    }
+
                     if (rawData != null && rawData.length > 0) {
                         logger.finest("......file '" + file.getName() + "' successful read - bytes size = "
                                 + rawData.length);
@@ -242,11 +255,13 @@ public class CSVImportService {
 
         } catch (IOException e) {
             logger.severe("FTP I/O Error: " + e.getMessage());
-            int r = ftpClient.getReplyCode();
-            logger.severe("FTP ReplyCode=" + r);
-
-            documentImportService.logMessage("...FTP file transfer failed (replyCode=" + r + ") : " + e.getMessage(),
-                    event);
+            if (ftpClient.isConnected()) {
+                int r = ftpClient.getReplyCode();
+                logger.severe("FTP ReplyCode=" + r);
+                documentImportService.logMessage(
+                        "...FTP file transfer failed (replyCode=" + r + ") : " + e.getMessage(),
+                        event);
+            }
             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
             return;
         } catch (PluginException e) {
@@ -258,10 +273,13 @@ public class CSVImportService {
             return;
 
         } finally {
-            // do logout....
+            // do logout if still connected....
             try {
-                ftpClient.logout();
-                ftpClient.disconnect();
+                if (ftpClient.isConnected()) {
+                    logger.warning("FTP Client is till connected, closing.....");
+                    ftpClient.logout();
+                    ftpClient.disconnect();
+                }
             } catch (IOException e) {
                 documentImportService.logMessage("...FTP file transfer failed: " + e.getMessage(), event);
                 event.setResult(DocumentImportEvent.PROCESSING_ERROR);
