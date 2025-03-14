@@ -27,25 +27,18 @@
 
 package org.imixs.archive.core;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.core.cassandra.ArchiveRemoteService;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.ItemCollection;
-import org.imixs.workflow.engine.DocumentService;
-import org.imixs.workflow.exceptions.AccessDeniedException;
 import org.imixs.workflow.exceptions.InvalidAccessException;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.DeclareRoles;
 import jakarta.annotation.security.RunAs;
-import jakarta.ejb.EJB;
 import jakarta.ejb.EJBException;
 import jakarta.ejb.SessionContext;
 import jakarta.ejb.Singleton;
@@ -66,15 +59,15 @@ import jakarta.ws.rs.PathParam;
  * Configuration:
  * 
  * <pre>
- * ARCHIVE_SNAPSHOT_COMPACTOR_GRACE_PERIOD=5
+ * ARCHIVE_SNAPSHOT_COMPACTOR_GRACE_PERIOD=3
  * ARCHIVE_SNAPSHOT_COMPACTOR_ENABLED=true
- * ARCHIVE_SNAPSHOT_COMPACTOR_INTERVAL=4
- * ARCHIVE_SNAPSHOT_COMPACTOR_INITIALDELAY=30000
+ * ARCHIVE_SNAPSHOT_COMPACTOR_INTERVAL=14400
+ * ARCHIVE_SNAPSHOT_COMPACTOR_INITIALDELAY=30
  * </pre>
  * <p>
  * 
  * 
- * @version 2.0
+ * @version 1.0
  * @author rsoika
  */
 @Singleton
@@ -83,7 +76,7 @@ import jakarta.ws.rs.PathParam;
 @RunAs("org.imixs.ACCESSLEVEL.MANAGERACCESS")
 @Path("/snapshot/compactor")
 public class SnapshotCompactorService {
-
+    private static Logger logger = Logger.getLogger(SnapshotCompactorService.class.getName());
     // rest service endpoint
     public static final String ARCHIVE_SNAPSHOT_COMPACTOR_GRACE_PERIOD = "archive.snapshot.compactor.grace.period";
     public static final String ARCHIVE_SNAPSHOT_COMPACTOR_ENABLED = "archive.snapshot.compactor.enabled";
@@ -95,11 +88,8 @@ public class SnapshotCompactorService {
     @Resource
     SessionContext ejbCtx;
 
-    @EJB
-    DocumentService documentService;
-
-    @EJB
-    ArchiveRemoteService archiveRemoteService;
+    @Inject
+    SnapshotCompactorJob snapshotCompactorJob;
 
     @Inject
     @ConfigProperty(name = ARCHIVE_SNAPSHOT_COMPACTOR_ENABLED, defaultValue = "false")
@@ -110,54 +100,42 @@ public class SnapshotCompactorService {
     int compactorGracePeriod;
 
     @Inject
-    @ConfigProperty(name = ARCHIVE_SNAPSHOT_COMPACTOR_INTERVAL, defaultValue = "4") // hours
+    @ConfigProperty(name = ARCHIVE_SNAPSHOT_COMPACTOR_INTERVAL, defaultValue = "14400") // sec
     int compactorInterval;
 
     @Inject
-    @ConfigProperty(name = ARCHIVE_SNAPSHOT_COMPACTOR_INITIALDELAY, defaultValue = "30000") // ms
+    @ConfigProperty(name = ARCHIVE_SNAPSHOT_COMPACTOR_INITIALDELAY, defaultValue = "30") // sec
     long initialDelay;
+
+    @Inject
+    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT)
+    Optional<String> archiveServiceEndpoint;
 
     @Resource
     TimerService timerService;
 
     Timer timer = null;
 
-    private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
-
     @PostConstruct
     public void init() {
         // init timer....
-        if (compactorEnabled) {
-            logger.info("init SnapshotCompactorService - grace period=" + compactorGracePeriod);
+        if (compactorEnabled && archiveServiceEndpoint.isPresent() && !archiveServiceEndpoint.get().isEmpty()) {
             // Registering a non-persistent Timer Service.
             try {
-                startScheduler();
-            } catch (IllegalArgumentException e) {
+                logger.info("├── Scheduling SnapshotCompactor:");
+                logger.info("│   ├── grace period=" + compactorGracePeriod + " years ");
+                logger.info("│   ├── initialDelay=" + initialDelay + "sec  interval=" + compactorInterval + "sec...");
+                logger.info("│   ├── interval=" + compactorInterval + " sec...");
+                // Registering a non-persistent Timer Service.
+                final TimerConfig timerConfig = new TimerConfig();
+                timerConfig.setInfo("ARCHIVE_SNAPSHOT_COMPACTOR");
+                timerConfig.setPersistent(false);
+                long interval = compactorInterval * 1000;
+                timer = timerService.createIntervalTimer(initialDelay * 1000, interval, timerConfig);
+            } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
                 logger.warning("Failed to init scheduler: " + e.getMessage());
             }
         }
-    }
-
-    /**
-     * This method initializes an in-memory scheduler.
-     *
-     * @throws BackupException
-     */
-    public void startScheduler() throws SnapshotException {
-        try {
-            logger.info(
-                    "├── Scheduling SnapshotCompactor:");
-            logger.info("│   ├── initialDelay=" + initialDelay + "ms  interval=" + compactorInterval + "hours...");
-            // Registering a non-persistent Timer Service.
-            final TimerConfig timerConfig = new TimerConfig();
-            timerConfig.setInfo("ARCHIVE_SNAPSHOT_COMPACTOR"); // empty info string indicates no JSESSIONID!
-            timerConfig.setPersistent(false);
-            long interval = compactorInterval * 60 * 60 * 1000;
-            timer = timerService.createIntervalTimer(initialDelay, interval, timerConfig);
-        } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
-            throw new SnapshotException("TIMER_EXCEPTION", "Failed to init scheduler ", e);
-        }
-
     }
 
     /**
@@ -172,7 +150,7 @@ public class SnapshotCompactorService {
     @Timeout
     public void onTimeout(jakarta.ejb.Timer _timer) {
         try {
-            // compactSnapshots(compactorGracePeriod, 100);
+            compactSnapshots(compactorGracePeriod, 100, true);
         } catch (InvalidAccessException | EJBException e) {
             logger.warning("processing EventLog failed: " + e.getMessage());
         }
@@ -191,71 +169,37 @@ public class SnapshotCompactorService {
      * 
      * @param period
      */
-    private void compactSnapshots(int period, int maxCount, boolean doDelete) {
+    // @TransactionAttribute(value = TransactionAttributeType.NOT_SUPPORTED)
+    public void compactSnapshots(int period, int maxCount, boolean doDelete) {
         int batchSize = 10;
         int totalCount = 0;
         int totalDeletions = 0;
-        logger.info("├── compactSnapshots - grace period=" + period + " max count=" + maxCount);
+        logger.info("├── Started compactSnapshots:");
+        logger.info("│   ├── grace period=" + period);
+        logger.info("│   ├── max count=" + maxCount);
         // compute batch count
         int totalPages = (int) Math.ceil((double) maxCount / batchSize);
         try {
             for (int pageIndex = 0; pageIndex < totalPages; pageIndex++) {
                 // load snapshot batch...
-                List<ItemCollection> snapshots = findAllSnapshotsByGracePeriod(period, batchSize);
-                totalCount = totalCount + snapshots.size();
-                int deletions = processSnapshotBatch(snapshots, doDelete);
+                ItemCollection metaData = snapshotCompactorJob.processSnapshotBatchWithFinding(period, batchSize,
+                        doDelete);
+                int processed = metaData.getItemValueInteger("snapshots.processed");
+                int deletions = metaData.getItemValueInteger("snapshots.deleted");
+                totalCount = totalCount + processed;
                 totalDeletions = totalDeletions + deletions;
-                // Fortschritt loggen
-                logger.info("│   ├── Processed " + batchSize + " snapshots -  " + deletions + " deletions");
+                logger.info("│   ├── Processed " + totalCount + " snapshots - " + totalDeletions + " deletions");
                 // short break...
                 Thread.sleep(500);
             }
             logger.info("├── compactSnapshots completed:");
-            logger.info("│   ├── " + totalCount + " snapshots verified - " + totalDeletions + " successful deletions.");
+            logger.info("│   ├── snapshots processed = " + totalCount);
+            logger.info("│   ├── snapshots deleted   = " + totalDeletions);
+            logger.info("├── Finished!");
         } catch (InterruptedException e) {
             logger.warning("├── Failed to process snapshots : " + e.getMessage());
         }
 
-    }
-
-    /**
-     * Process a smaller batch of snapshots
-     */
-    private int processSnapshotBatch(List<ItemCollection> snapshots, boolean doDelete) {
-        int deletions = 0;
-        for (ItemCollection snapshot : snapshots) {
-
-            String id = snapshot.getUniqueID();
-            boolean snapshotExists = false;
-            try {
-                List<ItemCollection> remoteSnapshot = archiveRemoteService.loadSnapshotFromArchive(id);
-                snapshotExists = (remoteSnapshot != null && remoteSnapshot.size() > 0);
-
-                if (snapshotExists) {
-                    logger.info("│   │   ├── Snapshot " + id + " exists in archive and will be deleted now...");
-                    if (doDelete) {
-                        documentService.remove(snapshot);
-                        deletions++;
-                    }
-                } else {
-                    logger.warning("│   │   ├── Snapshot " + id
-                            + " not found in archive! Snapshot data will be refreshed!");
-                    String originId = id.substring(id.lastIndexOf("-") + 1);
-                    ItemCollection originWorkitem = documentService.load(originId);
-                    if (originWorkitem == null) {
-                        logger.severe("│   │   ├── Fatal Error - origin workitem '" + originId + "' does not exist!");
-                    } else {
-                        // force snapshot creation by saving the origin data...
-                        documentService.save(originWorkitem);
-                        // short delay (5s)....
-                        Thread.sleep(5000);
-                    }
-                }
-            } catch (AccessDeniedException | RestAPIException | InterruptedException e) {
-                logger.warning("│   │   ├── Failed to process snapshot " + id + " : " + e.getMessage());
-            }
-        }
-        return deletions;
     }
 
     /**
@@ -267,33 +211,6 @@ public class SnapshotCompactorService {
         logger.info("snapshot compactor test mode - period=" + period);
         compactSnapshots(period, 10, false);
         return "test period = " + period;
-    }
-
-    /**
-     * This method returns all existing Snapshot-workitems after a given grace
-     * period.
-     * 
-     * The method selects only archive, archivedeleted and workitemdeleted.
-     * 
-     * 
-     * @param uniqueid
-     * @return
-     */
-    public List<ItemCollection> findAllSnapshotsByGracePeriod(int period, int maxCount) {
-        if (period < 1) {
-            throw new SnapshotException(SNAPSHOT_COMPACTOR_ERROR, "grace period should not be lower than 1!");
-        }
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.YEAR, -period);
-        Date gracePeriodDate = calendar.getTime();
-        SimpleDateFormat dateformat = new SimpleDateFormat("yyyy-MM-dd");
-
-        String query = "SELECT document FROM Document AS document WHERE "
-                + "(document.type = 'snapshot-workitemarchive' OR document.type = 'snapshot-workitemarchivedeleted'  OR document.type = 'snapshot-workitemdeleted' )"
-                + "  AND document.modified <'" + dateformat.format(gracePeriodDate)
-                + "' ORDER BY document.modified DESC";
-        return documentService.getDocumentsByQuery(query, maxCount);
     }
 
 }

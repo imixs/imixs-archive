@@ -128,13 +128,17 @@ Thus, in this example a system processing 1 million process instances per year c
 
 The SnapshotCompactorService is responsible to delete snapshot entities from the database after a grace period. The period is defined in years and has a hard coded minimum of 1 year.
 
-```
-ARCHIVE_SNAPSHOT_COMPACTOR_GRACE_PERIOD=5
-ARCHIVE_SNAPSHOT_COMPACTOR_ENABLED=true
-ARCHIVE_SNAPSHOT_COMPACTOR_INTERVAL=4
-```
+| Parameter                               | Type    | Description                                                             |
+| --------------------------------------- | ------- | ----------------------------------------------------------------------- |
+| ARCHIVE_SERVICE_ENDPOINT                | url     | archive service endpoint                                                |
+| ARCHIVE_SNAPSHOT_COMPACTOR_GRACE_PERIOD | years   | grace period in years after a snapshot will be deleted (default 1 year) |
+| ARCHIVE_SNAPSHOT_COMPACTOR_ENABLED      | boolean | true=enabled                                                            |
+| ARCHIVE_SNAPSHOT_COMPACTOR_INTERVAL     | seconds | compactor interval (default 14400 = 4 hours)                            |
+| ARCHIVE_SNAPSHOT_COMPACTOR_INITIALDELAY | seconds | initial delay (default 30 sec)                                          |
 
-The SnapshotCompactorService runs as a backend managed executer service every 4 hours.
+The SnapshotCompactorService runs as a backend timer service. The default interval is 4 hours.
+
+**Note:** The SnapshotCompactorService needs a `ARCHIVE_SERVICE_ENDPOINT` to be defined!
 
 # Deployment
 

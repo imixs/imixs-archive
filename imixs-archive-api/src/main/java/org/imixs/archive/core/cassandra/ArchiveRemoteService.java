@@ -23,12 +23,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 /**
- * The ArchiveRemoteService provides a method to load a snapshot or a file form
- * a remote
- * cassandra archive.
+ * The ArchiveRemoteService provides a methods to load a snapshot or a file form
+ * a remote Cassandra archive.
  * <p>
- * The service is called by Imixs-Office-Workflow to load documents from the
- * cassandra archive.
+ * The service is called by Imixs-Office-Workflow to load documents and
+ * attachments from the archive.
  * 
  * @version 1.3
  * @author ralph.soika@imixs.com
@@ -57,7 +56,7 @@ public class ArchiveRemoteService {
 
     /**
      * This method loads the file content for a given md5 checksum directly from the
-     * cassandra archive using the resource
+     * Cassandra archive using the resource
      * <p>
      * <code>/archive/md5/{md5}</code>
      * <p>
@@ -79,7 +78,6 @@ public class ArchiveRemoteService {
         }
 
         boolean debug = logger.isLoggable(Level.FINE);
-
         // first we lookup the FileData object
         if (fileData != null) {
             ItemCollection dmsData = new ItemCollection(fileData.getAttributes());
@@ -90,7 +88,7 @@ public class ArchiveRemoteService {
                 try {
                     DocumentClient documentClient = initDocumentClient();
                     if (documentClient == null) {
-                        logger.warning("Unable to initalize document client!");
+                        logger.warning("Unable to initialize document client!");
                     } else {
                         Client rsClient = documentClient.newClient();
                         String url = archiveServiceEndpoint.get() + "/archive/md5/" + md5;
@@ -156,12 +154,10 @@ public class ArchiveRemoteService {
             return null;
         }
 
-        boolean debug = logger.isLoggable(Level.FINE);
-
         try {
             DocumentClient documentClient = initDocumentClient();
             if (documentClient == null) {
-                logger.warning("Unable to initalize document client!");
+                logger.warning("Unable to initialize document client!");
             } else {
                 String url = archiveServiceEndpoint.get() + "/archive/snapshot/" + snapshotID;
 

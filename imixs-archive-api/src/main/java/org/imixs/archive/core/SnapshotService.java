@@ -38,6 +38,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.imixs.archive.core.cassandra.ArchiveRemoteService;
+import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
@@ -163,6 +165,9 @@ public class SnapshotService {
 
     @EJB
     DocumentService documentService;
+
+    @EJB
+    ArchiveRemoteService archiveRemoteService;
 
     @EJB
     EventLogService eventLogService;
@@ -421,27 +426,42 @@ public class SnapshotService {
     }
 
     /**
-     * This method loads the snapshot for a given origin workItem .
+     * This method loads the snapshot for a given origin workItem.
+     * The method first tries to load the snapshot data directly form the
+     * documentService. If the snapshot was already removed from the database the
+     * service calls the Cassandra cluster to load the data.
      * 
      * @param workitem
      * @return ItemCollection - snapshot object if found
      */
     public ItemCollection findSnapshot(ItemCollection workitem) {
         String snapshotID;
+        ItemCollection snapshot = null;
         // test if we have a $snapshotid
         snapshotID = workitem.getItemValueString("$snapshotid");
         if (!snapshotID.isEmpty()) {
-            return documentService.load(snapshotID);
-        } else {
-            return null;
+            snapshot = documentService.load(snapshotID);
+            if (snapshot == null) {
+                // remote call...
+                try {
+                    List<ItemCollection> snapshotList = archiveRemoteService.loadSnapshotFromArchive(snapshotID);
+                    if (snapshotList != null && snapshotList.size() > 0) {
+                        snapshot = snapshotList.get(0);
+                    }
+                } catch (RestAPIException e) {
+                    logger.warning("Failed to load remote snapshot data: " + e.getMessage());
+                }
+                return snapshot;
+            }
         }
+        return snapshot;
     }
 
     /**
      * This method returns the fileData from a snapshot by a given origin workItem
-     * uniqueid.
+     * uniqueId.
      * 
-     * @param uniqueid
+     * @param uniqueId
      * @param file     - file name
      * @return FileData object for the given filename.
      */
