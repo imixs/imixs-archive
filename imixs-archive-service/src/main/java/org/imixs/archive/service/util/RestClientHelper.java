@@ -70,41 +70,43 @@ public class RestClientHelper implements Serializable {
         if (documentClient != null) {
             return documentClient;
         }
-        logger.info("RestClientHelper create DocumentClient....");
+        logger.info("├── RestClientHelper create DocumentClient....");
         if (instanceEndpoint.isPresent()) {
 
             documentClient = new WorkflowClient(instanceEndpoint.get());
             String auttype = instanceAuthmethod.orElse("BASIC").toUpperCase();
+            logger.info("│   ├── auth type=" + auttype);
             if ("BASIC".equals(auttype)) {
-                // Create a authenticator
                 BasicAuthenticator basicAuth = new BasicAuthenticator(instanceUser.orElse(""),
                         instancePassword.orElse(""));
-                // register the authenticator
                 documentClient.registerClientRequestFilter(basicAuth);
             }
-            if ("FORM".equals(auttype)) {
 
+            if ("FORM".equals(auttype)) {
                 logger.info("RestClientHelper create FormAuthenticator.... instance endpoint="
                         + instanceEndpoint.orElse(""));
-                // Create a authenticator
                 FormAuthenticator formAuth = new FormAuthenticator(instanceEndpoint.orElse(""), instanceUser.orElse(""),
                         instancePassword.orElse(""));
-                // register the authenticator
                 documentClient.registerClientRequestFilter(formAuth);
-
             }
+
             if ("COOKIE".equals(auttype)) {
                 Cookie cookie = new Cookie.Builder(instanceUser.orElse("")).path("/").value(instancePassword.orElse(""))
                         .build();
-
-                // Cookie cookie = new Cookie(instanceUser.orElse(""),
-                // instancePassword.orElse(""), "/", "");
                 CookieAuthenticator cookieAuth = new CookieAuthenticator(cookie);
                 documentClient.registerClientRequestFilter(cookieAuth);
             }
+
             if ("JWT".equalsIgnoreCase(instancePassword.orElse(""))) {
-                JWTAuthenticator jwtAuht = new JWTAuthenticator(instancePassword.orElse(""));
-                documentClient.registerClientRequestFilter(jwtAuht);
+                JWTAuthenticator jwtAuth = new JWTAuthenticator(instancePassword.orElse(""));
+                documentClient.registerClientRequestFilter(jwtAuth);
+            }
+
+            if ("KEYCLOAK".equalsIgnoreCase(auttype)) {
+                KeycloakAuthenticator keycloakAuth = new KeycloakAuthenticator(instanceEndpoint.orElse(""),
+                        instanceUser.orElse(""),
+                        instancePassword.orElse(""));
+                documentClient.registerClientRequestFilter(keycloakAuth);
             }
         }
 

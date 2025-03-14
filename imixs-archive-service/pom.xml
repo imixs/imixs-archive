@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.imixs.workflow</groupId>
@@ -49,7 +51,7 @@
 				</plugins>
 			</build>
 		</profile>
-		
+
 		<profile>
 			<id>debug</id>
 			<build>
@@ -64,7 +66,7 @@
 								<configuration>
 
 									<target>
-									
+
 										<exec executable="docker">
 											<arg value="build" />
 											<arg value="-f" />
@@ -72,8 +74,8 @@
 											<arg value="-t" />
 											<arg value="imixs/imixs-archive-service" />
 											<arg value="./" />
-										</exec>									
-									
+										</exec>
+
 									</target>
 								</configuration>
 								<goals>
@@ -85,7 +87,7 @@
 
 				</plugins>
 			</build>
-		</profile>		
+		</profile>
 
 		<profile>
 			<id>docker-build</id>
@@ -104,7 +106,8 @@
 										<exec executable="docker">
 											<arg value="build" />
 											<arg value="-t" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
 											<arg value="./" />
 										</exec>
 									</target>
@@ -136,17 +139,21 @@
 										<exec executable="docker">
 											<arg value="build" />
 											<arg value="-t" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
 											<arg value="./" />
 										</exec>
 										<exec executable="docker">
 											<arg value="tag" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
-											<arg value="${org.imixs.docker.registry}/imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="${org.imixs.docker.registry}/imixs/imixs-archive-service:${project.version}" />
 										</exec>
 										<exec executable="docker">
 											<arg value="push" />
-											<arg value="${org.imixs.docker.registry}/imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="${org.imixs.docker.registry}/imixs/imixs-archive-service:${project.version}" />
 										</exec>
 									</target>
 								</configuration>
@@ -160,7 +167,7 @@
 				</plugins>
 			</build>
 		</profile>
-		
+
 		<profile>
 			<id>docker-hub</id>
 			<build>
@@ -177,12 +184,14 @@
 										<exec executable="docker">
 											<arg value="build" />
 											<arg value="-t" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
 											<arg value="./" />
 										</exec>
 										<exec executable="docker">
 											<arg value="push" />
-											<arg value="imixs/imixs-archive-service:${project.version}" />
+											<arg
+												value="imixs/imixs-archive-service:${project.version}" />
 										</exec>
 									</target>
 								</configuration>
@@ -230,8 +239,8 @@
 
 				</plugins>
 			</build>
-		</profile>		
-				
+		</profile>
+
 	</profiles>
 
 	<build>
@@ -273,7 +282,7 @@
 					<encoding>${project.build.sourceEncoding}</encoding>
 				</configuration>
 			</plugin>
-					
+
 			<!-- Manik plugin -->
 			<plugin>
 				<groupId>org.imixs.maven</groupId>
@@ -294,19 +303,19 @@
 							<!-- wildcard deployment -->
 							<source>target/*.{war,ear,jar}</source>
 							<target>docker/deployments/</target>
-							<unpack>true</unpack>						
+							<unpack>true</unpack>
 						</deployment>
 					</autodeployments>
 					<hotdeployments>
 						<deployment>
 							<source>src/main/webapp</source>
 							<target>docker/deployments/imixs-archive-service.war</target>
-						</deployment>						
+						</deployment>
 					</hotdeployments>
 				</configuration>
 
 			</plugin>
-		
+
 		</plugins>
 
 
@@ -349,7 +358,7 @@
 			<version>3.11.3</version>
 			<scope>compile</scope>
 		</dependency>
-		
+
 		<!-- Apache Commons FTP Client -->
 		<dependency>
 			<groupId>commons-net</groupId>
@@ -357,7 +366,18 @@
 			<scope>compile</scope>
 		</dependency>
 
-	
+		<!-- Keycloak -->
+		<dependency>
+			<groupId>org.keycloak</groupId>
+			<artifactId>keycloak-authz-client</artifactId>
+			<version>26.0.4</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.5.7</version>
+		</dependency>
 	</dependencies>
 
 	<packaging>war</packaging>
