@@ -96,14 +96,8 @@ public class ArchiveRestService {
         Cluster cluster = null;
         try {
             logger.finest("...read snapshot...");
-            // cluster = clusterService.getCluster();
-            // session = clusterService.getArchiveSession(cluster);
-
             ItemCollection snapshot = dataService.loadSnapshot(id);
-
             return convertResult(snapshot, format);
-            // return XMLDataCollectionAdapter.getDataCollection(snapshot);
-            // return XMLDocumentAdapter.getDocument(snapshot);
         } catch (Exception e) {
             logger.warning("...Failed to initalize imixsarchive keyspace: " + e.getMessage());
             return null;

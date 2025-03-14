@@ -51,18 +51,6 @@ public class SyncScheduler {
     Optional<String> workflowServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_AUTHMETHOD)
-    Optional<String> workflowServiceAuthMethod;
-
-    @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_USER)
-    Optional<String> workflowServiceUser;
-
-    @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_PASSWORD)
-    Optional<String> workflowServicePassword;
-
-    @Inject
     SyncService archiveSyncService;
 
     @Resource
@@ -114,61 +102,10 @@ public class SyncScheduler {
             documentClient = restClientHelper.createDocumentClient();
             eventLogClient = restClientHelper.createEventLogClient(documentClient);
 
-            // // Test the authentication method and create a corresponding Authenticator
-            // if ("Form".equalsIgnoreCase(workflowServiceAuthMethod.get())) {
-            // // test if a JSESSIONID exists?
-            // String jSessionID = (String) timer.getInfo();
-            // if (jSessionID == null || jSessionID.isEmpty()) {
-            // logger.info("Missing or invalid jSessionID - need new login....");
-            // // no - we need to login first and store the JSESSIONID in a new timer
-            // object...
-            // // create a FormAuthenticator
-            // FormAuthenticator formAuth = new
-            // FormAuthenticator(workflowServiceEndpoint.get(),
-            // workflowServiceUser.get(), workflowServicePassword.get());
-            // // Authentication successful - do we have a JSESSIONID?
-            // String jsessionID = formAuth.getJsessionID();
-            // if (jsessionID != null && !jsessionID.isEmpty()) {
-            // logger.fine("--- reinitialze timer with new jSessionID : " + jsessionID + "
-            // and interval="
-            // + interval);
-            // // yes - terminate existing timer and create a new one with the JSESSIONID
-
-            // timer.cancel();
-            // final TimerConfig timerConfig = new TimerConfig();
-            // timerConfig.setInfo(jsessionID);
-            // timerConfig.setPersistent(false);
-            // timerService.createIntervalTimer(interval, interval, timerConfig);
-            // logger.fine("---created new timer");
-            // logger.info(
-            // "successful reconnected: " + workflowServiceEndpoint.get() + " , new Timer
-            // created...");
-            // return;
-            // }
-            // } else {
-            // logger.fine("--- reuse jSessionID " + jSessionID + " for login....");
-            // // we have already a jsessionCooke Data object - so create a new
-            // // FormAuthenticator form the JSESSIONID
-            // FormAuthenticator formAuth = new
-            // FormAuthenticator(workflowServiceEndpoint.get(), jSessionID);
-            // authenticator = formAuth;
-            // }
-            // } else {
-            // // Default behaviro - use a BasicAuthenticator
-            // BasicAuthenticator basicAuth = new
-            // BasicAuthenticator(workflowServiceUser.get(),
-            // workflowServicePassword.get());
-            // authenticator = basicAuth;
-            // }
-
             // do we have a valid authentication?
             if (documentClient != null) {
                 // yes - create the client objects
-                // documentClient = new DocumentClient(workflowServiceEndpoint.get());
-                // documentClient.registerClientRequestFilter(authenticator);
-                // eventLogClient = new EventLogClient(workflowServiceEndpoint.get());
-                // eventLogClient.registerClientRequestFilter(authenticator);
-                logger.fine("--- process event log....");
+                logger.info("--- process event log (Debug)....");
                 // release dead locks...
                 archiveSyncService.releaseDeadLocks(eventLogClient);
                 // process the eventLog...
@@ -176,11 +113,12 @@ public class SyncScheduler {
                 logger.fine("--- process event log completed.");
             } else {
                 // no valid Authenticator!
-                logger.warning("unable to connect: " + workflowServiceEndpoint);
+                logger.warning("unable to connect: invalid connect configuration!");
             }
 
         } catch (NotFoundException | RestAPIException e) {
             logger.warning("unable to process event log: " + e.getMessage());
+            e.printStackTrace();
             // we need to reset the timer and discard the current JSESSIONID
             restClientHelper.reset();
             timer.cancel();

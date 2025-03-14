@@ -1,5 +1,6 @@
 package org.imixs.archive.core.cassandra;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,13 +23,14 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 /**
- * The ArchiveRemoteService provides a method to load a file form a remote
+ * The ArchiveRemoteService provides a method to load a snapshot or a file form
+ * a remote
  * cassandra archive.
  * <p>
  * The service is called by Imixs-Office-Workflow to load documents from the
  * cassandra archive.
  * 
- * @version 1.2
+ * @version 1.3
  * @author ralph.soika@imixs.com
  */
 @Stateless
@@ -59,7 +61,7 @@ public class ArchiveRemoteService {
      * <p>
      * <code>/archive/md5/{md5}</code>
      * <p>
-     * To activate this mechansim the environment variable ARCHIVE_SERVICE_ENDPOINT
+     * To activate this mechanism the environment variable ARCHIVE_SERVICE_ENDPOINT
      * must be set to a valid endpoint.
      * 
      * @param fileData - fileData object providing the MD5 checksum
@@ -130,6 +132,55 @@ public class ArchiveRemoteService {
                 return null;
             }
         }
+        return null;
+
+    }
+
+    /**
+     * This method loads the snapshot from the cassandra archive by the snaphot id
+     * <p>
+     * <code>/archive/snapshot/{id}</code>
+     * <p>
+     * 
+     * @param fileData - fileData object providing the MD5 checksum
+     * @throws RestAPIException
+     */
+    public List<ItemCollection> loadSnapshotFromArchive(String snapshotID) throws RestAPIException {
+
+        if (snapshotID == null || snapshotID.isEmpty()) {
+            return null;
+        }
+
+        if (!archiveServiceEndpoint.isPresent() || archiveServiceEndpoint.get().isEmpty()) {
+            logger.warning("missing archive service endpoint - verify configuration!");
+            return null;
+        }
+
+        boolean debug = logger.isLoggable(Level.FINE);
+
+        try {
+            DocumentClient documentClient = initDocumentClient();
+            if (documentClient == null) {
+                logger.warning("Unable to initalize document client!");
+            } else {
+                String url = archiveServiceEndpoint.get() + "/archive/snapshot/" + snapshotID;
+
+                List<ItemCollection> remoteSnapshotData = documentClient.getCustomResource(url);
+
+                return remoteSnapshotData;
+            }
+        } catch (ProcessingException e) {
+            String message = null;
+            if (e.getCause() != null) {
+                message = e.getCause().getMessage();
+            } else {
+                message = e.getMessage();
+            }
+            throw new RestAPIException(DocumentClient.class.getSimpleName(),
+                    RestAPIException.RESPONSE_PROCESSING_EXCEPTION,
+                    "error load file by MD5 checksum -> " + message, e);
+        }
+
         return null;
 
     }
