@@ -38,7 +38,6 @@ import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.xml.XMLDataCollectionAdapter;
-import org.imixs.workflow.xml.XMLDocumentAdapter;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -312,7 +311,9 @@ public class ArchiveRestService {
             // default header param
             return Response
                     // Set the status and Put your entity here.
-                    .ok(XMLDocumentAdapter.getDocument(workitem)).build();
+                    .ok(XMLDataCollectionAdapter.getDataCollection(workitem, null))
+                    .build();
+
         }
     }
 
