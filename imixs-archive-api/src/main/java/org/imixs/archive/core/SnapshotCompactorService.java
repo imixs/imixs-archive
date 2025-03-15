@@ -189,6 +189,10 @@ public class SnapshotCompactorService {
                 totalCount = totalCount + processed;
                 totalDeletions = totalDeletions + deletions;
                 logger.info("│   ├── Processed " + totalCount + " snapshots - " + totalDeletions + " deletions");
+                if (processed == 0) {
+                    // no more data
+                    break;
+                }
                 // short break...
                 Thread.sleep(500);
             }

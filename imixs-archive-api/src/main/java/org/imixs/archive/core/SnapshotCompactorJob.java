@@ -93,6 +93,10 @@ public class SnapshotCompactorJob {
 
         // process in one Transaktion
         List<ItemCollection> snapshots = findAllSnapshotsByGracePeriod(compactDate, batchSize);
+        if (snapshots.size() == 0) {
+            // no more data
+            return metaData;
+        }
         metaData.setItemValue("snapshots.processed", snapshots.size());
         int deletions = processSnapshotBatch(snapshots, doDelete);
         metaData.setItemValue("snapshots.deleted", deletions);
@@ -114,7 +118,8 @@ public class SnapshotCompactorJob {
                 snapshotExists = (remoteSnapshot != null && remoteSnapshot.size() > 0);
 
                 if (snapshotExists) {
-                    logger.info("│   │   ├── Snapshot " + id + " exists in archive and will be deleted now...");
+                    logger.info("│   │   ├── Snapshot " + id + " -> " + snapshot.getItemValueDate("$modified")
+                            + " will be deleted now...");
                     if (doDelete) {
                         documentService.remove(snapshot);
                         deletions++;
