@@ -109,6 +109,7 @@ public class SnapshotCompactorJob {
     // @TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
     private int processSnapshotBatch(List<ItemCollection> snapshots, boolean doDelete) {
         int deletions = 0;
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         for (ItemCollection snapshot : snapshots) {
 
             String id = snapshot.getUniqueID();
@@ -116,9 +117,9 @@ public class SnapshotCompactorJob {
             try {
                 List<ItemCollection> remoteSnapshot = archiveRemoteService.loadSnapshotFromArchive(id);
                 snapshotExists = (remoteSnapshot != null && remoteSnapshot.size() > 0);
-
                 if (snapshotExists) {
-                    logger.info("│   │   ├── Snapshot " + id + " -> " + snapshot.getItemValueDate("$modified")
+                    String lastModifiedDate = dateFormat.format(snapshot.getItemValueDate("$modified"));
+                    logger.info("│   │   ├── Snapshot " + id + " -> " + lastModifiedDate
                             + " will be deleted now...");
                     if (doDelete) {
                         documentService.remove(snapshot);
@@ -161,7 +162,7 @@ public class SnapshotCompactorJob {
         String query = "SELECT document FROM Document AS document WHERE "
                 + "(document.type = 'snapshot-workitemarchive' OR document.type = 'snapshot-workitemarchivedeleted'  OR document.type = 'snapshot-workitemdeleted' )"
                 + "  AND document.modified <'" + compactDate
-                + "' ORDER BY document.modified DESC";
+                + "' ORDER BY document.modified ASC";
         return documentService.getDocumentsByQuery(query, maxCount);
     }
 
