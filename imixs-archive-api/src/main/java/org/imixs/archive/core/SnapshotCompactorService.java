@@ -123,9 +123,9 @@ public class SnapshotCompactorService {
             // Registering a non-persistent Timer Service.
             try {
                 logger.info("├── Scheduling SnapshotCompactor:");
-                logger.info("│   ├── grace period=" + compactorGracePeriod + " years ");
-                logger.info("│   ├── initialDelay=" + initialDelay + "sec  interval=" + compactorInterval + "sec...");
-                logger.info("│   ├── interval=" + compactorInterval + " sec...");
+                logger.info("│   ├── grace period=" + compactorGracePeriod + " years");
+                logger.info("│   ├── initialDelay=" + initialDelay + "sec");
+                logger.info("│   ├── interval=" + compactorInterval + " sec");
                 // Registering a non-persistent Timer Service.
                 final TimerConfig timerConfig = new TimerConfig();
                 timerConfig.setInfo("ARCHIVE_SNAPSHOT_COMPACTOR");
