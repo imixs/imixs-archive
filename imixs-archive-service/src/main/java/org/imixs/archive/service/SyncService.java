@@ -133,7 +133,12 @@ public class SyncService {
                 // eventLogService.removeEvent(eventLogEntry.getId());
             }
         }
-        logger.info("Processed " + count + " snapshot events in " + (System.currentTimeMillis() - duration) + "ms");
+        if (count > 0) {
+            logger.info("Processed " + count + " snapshot events in " + (System.currentTimeMillis() - duration) + "ms");
+        } else {
+            // only in debug mode
+            logger.fine("Processed " + count + " snapshot events in " + (System.currentTimeMillis() - duration) + "ms");
+        }
 
     }
 

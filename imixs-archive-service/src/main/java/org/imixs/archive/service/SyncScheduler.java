@@ -105,7 +105,7 @@ public class SyncScheduler {
             // do we have a valid authentication?
             if (documentClient != null) {
                 // yes - create the client objects
-                logger.info("--- process event log (Debug)....");
+                logger.fine("--- process event log (Debug)....");
                 // release dead locks...
                 archiveSyncService.releaseDeadLocks(eventLogClient);
                 // process the eventLog...
