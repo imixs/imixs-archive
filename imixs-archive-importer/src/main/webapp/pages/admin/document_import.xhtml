@@ -36,19 +36,11 @@
 				<!-- ########## Error ########## -->
 				<ui:include src="/error_message.xhtml" />
 
-
-
-
 				<div class="imixs-form">
 					<div class="imixs-header">
 						<h1>Document Importer</h1>
 					</div>
-
-
-
 					<div class="imixs-body">
-
-
 						<div class="imixs-tabs">
 							<ul>
 								<li><a href="#tab-1">Timer Setting</a></li>
@@ -295,30 +287,12 @@
 													</dl>
 												</div>
 											</h:panelGroup> <!-- end of source subform -->
-
-
-
-
 										</f:ajax>
-
-
 									</h:panelGroup>
-
 								</div>
-
 							</div>
-
-
-
-
-
 						</div>
-
-
 					</div>
-
-
-
 
 					<div class="imixs-footer">
 						<h:outputLabel value="#{message.modified}: " />
@@ -326,17 +300,11 @@
 							<f:convertDateTime timeZone="#{message.timeZone}" type="both"
 								pattern="#{message.dateTimePattern}" />
 						</h:outputText>
-
-
 						<br />
-
 						<h:commandButton actionListener="#{documentImportController.saveConfiguration()}"
 							action="/pages/admin/document_import" value="#{message.save}">
 						</h:commandButton>
-
-
 						<h:commandButton value="#{message.close}" action="notes" />
-
 					</div>
 
 				</div>

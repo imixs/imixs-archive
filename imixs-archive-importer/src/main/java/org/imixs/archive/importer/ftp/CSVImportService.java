@@ -54,8 +54,10 @@ import org.imixs.archive.importer.DocumentImportService;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.engine.DocumentService;
+import org.imixs.workflow.engine.WorkflowService;
 import org.imixs.workflow.engine.index.UpdateService;
 import org.imixs.workflow.exceptions.AccessDeniedException;
+import org.imixs.workflow.exceptions.ModelException;
 import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
 import org.imixs.workflow.exceptions.QueryException;
@@ -88,6 +90,9 @@ public class CSVImportService {
 
     @Inject
     DocumentService documentService;
+
+    @Inject
+    WorkflowService workflowService;
 
     @Inject
     DocumentImportService documentImportService;
@@ -125,7 +130,7 @@ public class CSVImportService {
                 documentImportService.logMessage("...invalid selector - .csv file path expected - " + csvSelector,
                         event);
             }
-            documentImportService.logMessage("│   ├── csv selector=" + csvSelector, event);
+            documentImportService.logMessage("├── csv import: " + csvSelector, event);
 
             Properties sourceOptions = documentImportService.getOptionsProperties(event.getSource());
 
@@ -155,6 +160,7 @@ public class CSVImportService {
             if (encoding == null || encoding.isEmpty()) {
                 encoding = "UTF-8";
             }
+
             documentImportService.logMessage("│   ├── encoding=" + encoding, event);
             FileData fileData = null;
             // if no server is given we exit
@@ -170,14 +176,15 @@ public class CSVImportService {
             }
 
             if (fileData != null) {
-                logger.info("│   ├──  ✅ file '" + fileData.getName() + "' successful read - bytes size = "
-                        + fileData.getContent().length);
+                documentImportService
+                        .logMessage("│   ├── ✅ file '" + fileData.getName() + "' successful read ▷ "
+                                + fileData.getContent().length + " bytes", event);
 
                 String lastChecksum = event.getSource().getItemValueString("csv.checksum");
                 // create checksum....
 
                 String newChecksum = fileData.generateMD5();
-                documentImportService.logMessage("...checksum=" + newChecksum, event);
+                documentImportService.logMessage("│   ├── checksum=" + newChecksum, event);
                 if (lastChecksum.isEmpty() || !lastChecksum.equals(newChecksum)) {
                     // read data....
                     InputStream inputStream = new ByteArrayInputStream(fileData.getContent());
@@ -185,8 +192,9 @@ public class CSVImportService {
                     // update checksum
                     event.getSource().setItemValue("csv.checksum", newChecksum);
                     documentImportService.logMessage(log, event);
+                    documentImportService.logMessage("├── ✅ file import completed successful.", event);
                 } else {
-                    documentImportService.logMessage("...no changes '" + fileData.getName() + "'", event);
+                    documentImportService.logMessage("├── ✅ no data changes since last import.", event);
                 }
             } else {
                 documentImportService.logMessage(
@@ -196,7 +204,7 @@ public class CSVImportService {
         } catch (PluginException | NoSuchAlgorithmException | IOException e) {
             logger.severe("Data Error: " + e.getMessage());
             e.printStackTrace();
-            documentImportService.logMessage("... csv import error  : " + e.getMessage(), event);
+            documentImportService.logMessage("├── ⚠️ file import failed: " + e.getMessage(), event);
             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
             return;
         }
@@ -231,7 +239,7 @@ public class CSVImportService {
             }
 
             logger.finest("......read directories ...");
-            documentImportService.logMessage("├── csv import: " + csvSelector, event);
+
             documentImportService.logMessage("│   ├── connecting to FTP server: " + ftpServer, event);
 
             // TLS
@@ -336,7 +344,9 @@ public class CSVImportService {
      * Each imported document will have a unique key in the item 'name' to be used
      * to verify if the entry already exists.
      * <p>
-     * 
+     * Optional a workflow task/event can be defined in the source configuration. In
+     * this case the entity will be processed. Otherwise it will be saved only.
+     * <p>
      * The method returns a log . If an error occurs a plugin exception is thrown
      * 
      * @return ErrorMessage or empty String
@@ -357,6 +367,12 @@ public class CSVImportService {
         int workitemsDeleted = 0;
         int workitemsFailed = 0;
         int blockSize = 0;
+
+        // read Workflow options (optional)
+        String modelVersion = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_MODELVERSION);
+        String workflowGroup = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_WORKFLOWGROUP);
+        int taskID = event.getSource().getItemValueInteger(DocumentImportService.SOURCE_ITEM_TASK);
+        int eventID = event.getSource().getItemValueInteger(DocumentImportService.SOURCE_ITEM_EVENT);
         String csvFileName = event.getSource().getItemValueString("selector");
         if (encoding == null) {
             encoding = "UTF-8";
@@ -367,6 +383,10 @@ public class CSVImportService {
 
             // read first line containing the object type
             String header = in.readLine();
+            if (!header.contains(";")) {
+                throw new PluginException(this.getClass().getName(), IMPORT_ERROR,
+                        "File Format not supported, fields must be separated by ';' ");
+            }
             // String[] header1List = header1.split(";(?=([^\"]*\"[^\"]*\")*[^\"]*$)", 99);
             // header1List = normalizeValueList(header1List);
             List<String> fields = parseFieldList(header);
@@ -386,7 +406,6 @@ public class CSVImportService {
 
             // read content....
             while ((dataLine = in.readLine()) != null) {
-
                 blockSize++;
                 line++;
                 workitemsTotal++;
@@ -412,24 +431,22 @@ public class CSVImportService {
                 // test if entity already exists....
                 ItemCollection oldEntity = findEntityByName(entity.getItemValueString("Name"), type);
                 if (oldEntity == null) {
-                    // create new workitem
-                    documentService.saveByNewTransaction(entity);
+                    processEntity(entity, modelVersion, workflowGroup, taskID, eventID);
                     workitemsImported++;
                 } else {
                     // test if modified....
                     if (!isEqualEntity(oldEntity, entity, fields)) {
                         logger.fine("update existing entity: " + oldEntity.getUniqueID());
-                        // copy all entries from the import into the
-                        // existing entity
+                        // copy all entries from the import into the existing entity
                         oldEntity.replaceAllItems(entity.getAllItems());
-                        documentService.saveByNewTransaction(oldEntity);
+                        processEntity(oldEntity, modelVersion, workflowGroup, taskID, eventID);
                         workitemsUpdated++;
                     }
                 }
 
                 if (blockSize >= 100) {
                     blockSize = 0;
-                    logger.info("..." + csvFileName + ": " + workitemsTotal + " entries read (" + workitemsUpdated
+                    logger.info("│   ├── " + csvFileName + ": " + workitemsTotal + " entries read (" + workitemsUpdated
                             + " updates)");
                     // flush lucene index!
                     indexUpdateService.updateIndex();
@@ -464,6 +481,30 @@ public class CSVImportService {
 
         logger.info(log);
         return log;
+    }
+
+    /**
+     * This method processes an entity with the given workflow metadata. If no
+     * workflow metadata is provided or the processing failed the method performs a
+     * simple save.
+     * 
+     */
+    private void processEntity(ItemCollection entity, String modelVersion, String workflowGroup, int taskID,
+            int eventID) {
+        if (taskID > 0 && eventID > 0) {
+            // process
+            entity.model(modelVersion).workflowGroup(workflowGroup).task(taskID).event(eventID);
+            try {
+                workflowService.processWorkItemByNewTransaction(entity);
+            } catch (AccessDeniedException | ProcessingErrorException | PluginException | ModelException e) {
+                // processing failed so we perform a simple save!
+                logger.warning("Processing failed: " + e.getMessage());
+                documentService.saveByNewTransaction(entity);
+            }
+        } else {
+            // update
+            documentService.saveByNewTransaction(entity);
+        }
     }
 
     /**
