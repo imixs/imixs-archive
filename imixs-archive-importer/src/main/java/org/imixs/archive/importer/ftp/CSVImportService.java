@@ -35,6 +35,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -99,7 +102,6 @@ public class CSVImportService {
         String encoding;
         String type;
         String keyField;
-        FTPClient ftpClient = null;
 
         // check if source is already completed
         if (event.getResult() == DocumentImportEvent.PROCESSING_COMPLETED) {
@@ -114,17 +116,26 @@ public class CSVImportService {
         }
         try {
             String ftpServer = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SERVER);
-            String ftpPort = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_PORT);
-            String ftpUser = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_USER);
-            String ftpPassword = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_PASSWORD);
+
             String csvSelector = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SELECTOR);
+            if (!csvSelector.startsWith("/") && !csvSelector.startsWith("./")) {
+                csvSelector = "/" + csvSelector;
+            }
+            if (!csvSelector.toLowerCase().endsWith(".csv")) {
+                documentImportService.logMessage("...invalid selector - .csv file path expected - " + csvSelector,
+                        event);
+            }
+            documentImportService.logMessage("│   ├── csv selector=" + csvSelector, event);
+
             Properties sourceOptions = documentImportService.getOptionsProperties(event.getSource());
 
             // get type..
             type = sourceOptions.getProperty("type");
             if (type == null || type.isEmpty()) {
-                throw new PluginException(this.getClass().getName(), DATA_ERROR,
-                        "Missing property 'type' to import entities");
+                logger.info("set default type=workitem");
+                type = "workitem";
+                documentImportService.logMessage(
+                        "│   ├── Missing property 'type' to import entities - set to default=workitem", event);
             }
 
             // get key ..
@@ -144,19 +155,74 @@ public class CSVImportService {
             if (encoding == null || encoding.isEmpty()) {
                 encoding = "UTF-8";
             }
+            documentImportService.logMessage("│   ├── encoding=" + encoding, event);
+            FileData fileData = null;
+            // if no server is given we exit
+            if (!ftpServer.isEmpty()) {
+                fileData = importFromFTP(ftpServer, csvSelector, encoding, event);
 
-            if (!csvSelector.startsWith("/") && !csvSelector.startsWith("./")) {
-                csvSelector = "/" + csvSelector;
+            } else {
+                // default try import from local path
+                Path path = Paths.get(csvSelector);
+                String fileName = path.getFileName().toString(); // "meineDatei.csv"
+                byte[] fileContent = Files.readAllBytes(Paths.get(csvSelector));
+                fileData = new FileData(fileName, fileContent, null, null);
             }
-            if (!csvSelector.toLowerCase().endsWith(".csv")) {
-                documentImportService.logMessage("...invalid selector - .csv file path expected - " + csvSelector,
+
+            if (fileData != null) {
+                logger.info("│   ├──  ✅ file '" + fileData.getName() + "' successful read - bytes size = "
+                        + fileData.getContent().length);
+
+                String lastChecksum = event.getSource().getItemValueString("csv.checksum");
+                // create checksum....
+
+                String newChecksum = fileData.generateMD5();
+                documentImportService.logMessage("...checksum=" + newChecksum, event);
+                if (lastChecksum.isEmpty() || !lastChecksum.equals(newChecksum)) {
+                    // read data....
+                    InputStream inputStream = new ByteArrayInputStream(fileData.getContent());
+                    String log = importData(inputStream, encoding, type, keyField, event);
+                    // update checksum
+                    event.getSource().setItemValue("csv.checksum", newChecksum);
+                    documentImportService.logMessage(log, event);
+                } else {
+                    documentImportService.logMessage("...no changes '" + fileData.getName() + "'", event);
+                }
+            } else {
+                documentImportService.logMessage(
+                        "...Warning - invalid file content '" + fileData.getName() + "' - file will be deleted!",
                         event);
             }
+        } catch (PluginException | NoSuchAlgorithmException | IOException e) {
+            logger.severe("Data Error: " + e.getMessage());
+            e.printStackTrace();
+            documentImportService.logMessage("... csv import error  : " + e.getMessage(), event);
+            event.setResult(DocumentImportEvent.PROCESSING_ERROR);
+            return;
+        }
+        // flush index...
+        indexUpdateService.updateIndex();
+        // completed
+        event.setResult(DocumentImportEvent.PROCESSING_COMPLETED);
+    }
 
+    /**
+     * Helper method to import the data source from a FTP server
+     * 
+     * The method returns a byte array with the file raw data.
+     */
+    protected FileData importFromFTP(String ftpServer, String csvSelector, String encoding, DocumentImportEvent event) {
+        FTPClient ftpClient = null;
+        FileData fileData = null;
+
+        try {
+            String ftpPort = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_PORT);
+            String ftpUser = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_USER);
+            String ftpPassword = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_PASSWORD);
             // if no server is given we exit
             if (ftpServer.isEmpty()) {
                 logger.warning("...... no server specified!");
-                return;
+                return null;
             }
 
             if (ftpPort.isEmpty()) {
@@ -165,8 +231,8 @@ public class CSVImportService {
             }
 
             logger.finest("......read directories ...");
-            documentImportService.logMessage("...csv import: " + csvSelector, event);
-            documentImportService.logMessage("...connecting to FTP server: " + ftpServer, event);
+            documentImportService.logMessage("├── csv import: " + csvSelector, event);
+            documentImportService.logMessage("│   ├── connecting to FTP server: " + ftpServer, event);
 
             // TLS
             ftpClient = new FTPSClient("TLS", false);
@@ -175,7 +241,7 @@ public class CSVImportService {
             if (ftpClient.login(ftpUser, ftpPassword) == false) {
                 documentImportService.logMessage("FTP file transfer failed: login failed!", event);
                 event.setResult(DocumentImportEvent.PROCESSING_ERROR);
-                return;
+                return null;
             }
 
             ftpClient.enterLocalPassiveMode();
@@ -215,38 +281,13 @@ public class CSVImportService {
                         // we still can continue as we should already have read the file content...
                     }
 
-                    if (rawData != null && rawData.length > 0) {
-                        logger.finest("......file '" + file.getName() + "' successful read - bytes size = "
-                                + rawData.length);
+                    fileData = new FileData(file.getName(), rawData, null, null);
 
-                        String lastChecksum = event.getSource().getItemValueString("csv.checksum");
-                        // create checksum....
-                        FileData fileData = new FileData(file.getName(), rawData, null, null);
-                        String newChecksum = fileData.generateMD5();
-                        documentImportService.logMessage("...checksum=" + newChecksum, event);
-                        if (lastChecksum.isEmpty() || !lastChecksum.equals(newChecksum)) {
-                            // read data....
-                            InputStream inputStream = new ByteArrayInputStream(rawData);
-                            String log = importData(inputStream, encoding, type, keyField, event);
-                            // update checksum
-                            event.getSource().setItemValue("csv.checksum", newChecksum);
-                            documentImportService.logMessage(log, event);
-                        } else {
-                            documentImportService.logMessage("...no changes '" + file.getName() + "'", event);
-                        }
-
-                    } else {
-                        documentImportService.logMessage(
-                                "...Warning - invalid file content '" + file.getName() + "' - file will be deleted!",
-                                event);
-                    }
-
-                } catch (AccessDeniedException | ProcessingErrorException | NoSuchAlgorithmException
-                        | PluginException e) {
+                } catch (AccessDeniedException | ProcessingErrorException e) {
 
                     documentImportService.logMessage("...FTP import failed: " + e.getMessage(), event);
                     event.setResult(DocumentImportEvent.PROCESSING_ERROR);
-                    return;
+                    return null;
                 }
 
             } else {
@@ -263,14 +304,7 @@ public class CSVImportService {
                         event);
             }
             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
-            return;
-        } catch (PluginException e) {
-            logger.severe("Data Error: " + e.getMessage());
-
-            e.printStackTrace();
-            documentImportService.logMessage("...FTP csv import error  : " + e.getMessage(), event);
-            event.setResult(DocumentImportEvent.PROCESSING_ERROR);
-            return;
+            return null;
 
         } finally {
             // do logout if still connected....
@@ -283,14 +317,11 @@ public class CSVImportService {
             } catch (IOException e) {
                 documentImportService.logMessage("...FTP file transfer failed: " + e.getMessage(), event);
                 event.setResult(DocumentImportEvent.PROCESSING_ERROR);
-                return;
+                return null;
             }
         }
 
-        // flush index...
-        indexUpdateService.updateIndex();
-        // completed
-        event.setResult(DocumentImportEvent.PROCESSING_COMPLETED);
+        return fileData;
 
     }
 
