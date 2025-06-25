@@ -62,6 +62,7 @@ import org.imixs.workflow.exceptions.PluginException;
 import org.imixs.workflow.exceptions.ProcessingErrorException;
 import org.imixs.workflow.exceptions.QueryException;
 
+import jakarta.ejb.EJBException;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
@@ -126,8 +127,8 @@ public class CSVImportService {
             if (!csvSelector.startsWith("/") && !csvSelector.startsWith("./")) {
                 csvSelector = "/" + csvSelector;
             }
-            if (!csvSelector.toLowerCase().endsWith(".csv")) {
-                documentImportService.logMessage("...invalid selector - .csv file path expected - " + csvSelector,
+            if (csvSelector == null || csvSelector.isEmpty() || !csvSelector.toLowerCase().endsWith(".csv")) {
+                documentImportService.logMessage("...invalid selector - .csv file path missing - " + csvSelector,
                         event);
             }
             documentImportService.logMessage("├── csv import: " + csvSelector, event);
@@ -496,7 +497,8 @@ public class CSVImportService {
             entity.model(modelVersion).workflowGroup(workflowGroup).task(taskID).event(eventID);
             try {
                 workflowService.processWorkItemByNewTransaction(entity);
-            } catch (AccessDeniedException | ProcessingErrorException | PluginException | ModelException e) {
+            } catch (EJBException | AccessDeniedException | ProcessingErrorException | PluginException
+                    | ModelException e) {
                 // processing failed so we perform a simple save!
                 logger.warning("Processing failed: " + e.getMessage());
                 documentService.saveByNewTransaction(entity);
