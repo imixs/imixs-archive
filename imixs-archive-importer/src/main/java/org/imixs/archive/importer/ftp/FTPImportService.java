@@ -123,14 +123,14 @@ public class FTPImportService {
         try {
             logger.finest("......read directories ...");
 
-            documentImportService.logMessage("...connecting to FTP server: " + ftpServer, event);
+            documentImportService.logMessage("├── 🗄️ connecting to FTP server: " + ftpServer, event);
 
             // TLS
             ftpClient = new FTPSClient("TLS", false);
             ftpClient.setControlEncoding("UTF-8");
             ftpClient.connect(ftpServer, Integer.parseInt(ftpPort));
             if (ftpClient.login(ftpUser, ftpPassword) == false) {
-                documentImportService.logMessage("FTP file transfer failed: login failed!", event);
+                documentImportService.logMessage("│   ├── ⚠️ FTP file transfer failed: login failed!", event);
                 event.setResult(DocumentImportEvent.PROCESSING_ERROR);
                 return;
             }
@@ -144,20 +144,22 @@ public class FTPImportService {
             boolean bWorkingDir = ftpClient.changeWorkingDirectory(ftpPath);
             if (bWorkingDir == true) {
 
-                documentImportService.logMessage("...working directory: " + ftpClient.printWorkingDirectory(), event);
+                documentImportService.logMessage("│   ├── working directory: " + ftpClient.printWorkingDirectory(),
+                        event);
                 /*
                  * create a new workitem for each document
                  */
                 FTPFile[] allFiles = ftpClient.listFiles();
                 int count = 0;
                 if (allFiles.length > 0) {
-                    documentImportService.logMessage("..." + allFiles.length + " files found ", event);
+                    documentImportService.logMessage("│   ├── " + allFiles.length + " files found ", event);
 
                     for (FTPFile file : allFiles) {
                         // if this is a directory or symlink then we do ignore this entry
                         if (!file.isFile()) {
                             documentImportService.logMessage(
-                                    "...'" + file.getName() + "' is not a valid file, object will be ignored!", event);
+                                    "│   ├── ⚠️ '" + file.getName() + "' is not a valid file, object will be ignored!",
+                                    event);
                             continue;
                         }
                         logger.info("import file " + file.getName() + "...");
@@ -166,14 +168,14 @@ public class FTPImportService {
                             ftpClient.retrieveFile(file.getName(), is);
                             byte[] rawData = is.toByteArray();
                             if (rawData != null && rawData.length > 0) {
-                                logger.finest("......file '" + file.getName() + "' successfull read - bytes size = "
+                                logger.finest("......file '" + file.getName() + "' successful read - bytes size = "
                                         + rawData.length);
                                 // create new workitem
                                 createWorkitem(event.getSource(), file.getName(), rawData);
-                                documentImportService.logMessage("....imported '" + file.getName() + "'", event);
+                                documentImportService.logMessage("│   ├── ☑️ imported '" + file.getName() + "'", event);
                                 count++;
                             } else {
-                                documentImportService.logMessage("...Warning - invalid file content '" + file.getName()
+                                documentImportService.logMessage("│   ├── ⚠️ invalid file content '" + file.getName()
                                         + "' - file will be deleted!", event);
                             }
                             // finally delete the file....
@@ -181,17 +183,18 @@ public class FTPImportService {
                         } catch (AccessDeniedException | ProcessingErrorException | PluginException
                                 | ModelException e) {
 
-                            documentImportService.logMessage("...FTP import failed: " + e.getMessage(), event);
+                            documentImportService.logMessage("│   ├── ⚠️ FTP import failed: " + e.getMessage(), event);
                             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
                             return;
                         }
                     }
-                    documentImportService.logMessage("..." + count + " new files imported.", event);
+                    documentImportService.logMessage("└── ✅ Completed - " + count + " new files imported.", event);
                 } else {
-                    documentImportService.logMessage("...no files found, directory '" + ftpPath + "' is empty", event);
+                    documentImportService.logMessage(
+                            "└── ✅ Completed - no files found, directory '" + ftpPath + "' is empty", event);
                 }
             } else {
-                documentImportService.logMessage("...failed to change into working directory: " + ftpPath, event);
+                documentImportService.logMessage("└── ⚠️ failed to change into working directory: " + ftpPath, event);
             }
 
         } catch (IOException e) {
@@ -211,7 +214,7 @@ public class FTPImportService {
                 ftpClient.logout();
                 ftpClient.disconnect();
             } catch (IOException e) {
-                documentImportService.logMessage("...FTP file transfer failed: " + e.getMessage(), event);
+                documentImportService.logMessage("└── ⚠️ FTP file transfer failed: " + e.getMessage(), event);
                 event.setResult(DocumentImportEvent.PROCESSING_ERROR);
                 return;
             }

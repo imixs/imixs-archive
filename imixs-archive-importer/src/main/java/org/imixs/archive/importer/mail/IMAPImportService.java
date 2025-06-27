@@ -147,12 +147,16 @@ public class IMAPImportService {
 
         if (!"IMAP".equalsIgnoreCase(event.getSource().getItemValueString("type"))) {
             // ignore data source
-            logger.finest("...... type '" + event.getSource().getItemValueString("type") + "' skiped.");
+            logger.finest("...... type '" + event.getSource().getItemValueString("type") + "' skipped.");
             return;
         }
 
         String imapServer = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SERVER);
         String importFolderName = event.getSource().getItemValueString(DocumentImportService.SOURCE_ITEM_SELECTOR);
+
+        documentImportService.logMessage("├── 📬 connecting IMAP server: " + imapServer + " /INBOX/" + importFolderName,
+                event);
+
         Properties sourceOptions = documentImportService.getOptionsProperties(event.getSource());
         Pattern subjectPattern = null;
         String subjectRegex = sourceOptions.getProperty(OPTION_SUBJECT_REGEX, "");
@@ -161,9 +165,9 @@ public class IMAPImportService {
         if (subjectRegex != null && !subjectRegex.trim().isEmpty()) {
             try {
                 subjectPattern = Pattern.compile(subjectRegex);
-                documentImportService.logMessage("...subject.regex = " + subjectRegex, event);
+                documentImportService.logMessage("│   ├── subject.regex = " + subjectRegex, event);
             } catch (PatternSyntaxException e) {
-                documentImportService.logMessage("Error - invalid subject regex: " + e.getMessage(), event);
+                documentImportService.logMessage("│   ├── ⚠️ Error - invalid subject regex: " + e.getMessage(), event);
                 return;
             }
         }
@@ -178,198 +182,64 @@ public class IMAPImportService {
             for (IMAPAuthenticator _imapAuthenticator : this.imapAuthenticators) {
                 // find the matching authenticator....
                 if (authenticatorClass.equals(_imapAuthenticator.getClass().getName())) {
-                    documentImportService.logMessage("...IMAPAuthenticator = " + authenticatorClass, event);
+                    documentImportService.logMessage("│   ├── IMAPAuthenticator = " + authenticatorClass, event);
                     imapAuthenticator = _imapAuthenticator;
                     break;
                 }
             }
             store = imapAuthenticator.openMessageStore(event.getSource(), sourceOptions);
-            documentImportService.logMessage("...connected to IMAP server: " + imapServer + " / " + importFolderName,
+            documentImportService.logMessage("│   ├── ☑️ connection to IMAP server successful",
                     event);
 
             // first we need to open the INBOX...
             inboxFolder = (IMAPFolder) store.getFolder("INBOX");
             // next open the Import Folder
-            IMAPFolder inportFolder = null;
+            IMAPFolder importFolder = null;
             // do we have a custom import folder?
             if (!importFolderName.isEmpty()) {
                 // in case a folder is specified this filder need to be opend from the INBOX
                 // Default folder!
-                inportFolder = (IMAPFolder) inboxFolder.getFolder(importFolderName);
+                importFolder = (IMAPFolder) inboxFolder.getFolder(importFolderName);
             } else {
                 // if not specified it is always the INBOX
-                inportFolder = inboxFolder;
+                importFolder = inboxFolder;
             }
 
-            inportFolder.open(Folder.READ_WRITE);
+            importFolder.open(Folder.READ_WRITE);
 
             // Depending on the option 'detach.mode' attachments will be added to the new
             // workitem.
             String detachOption = sourceOptions.getProperty(OPTION_DETACH_MODE, DETACH_MODE_PDF);
-            documentImportService.logMessage("...detach.mode = " + detachOption, event);
+            documentImportService.logMessage("│   ├── detach.mode = " + detachOption, event);
 
             // open archive folder...
             IMAPFolder archiveFolder = openImapArchive(store, inboxFolder, sourceOptions, event);
 
             // fetches all messages from the INBOX...
-            Message[] messages = inportFolder.getMessages();
-            documentImportService.logMessage("..." + messages.length + " new messages found", event);
-
+            Message[] messages = importFolder.getMessages();
+            documentImportService.logMessage("│   ├── " + messages.length + " messages found", event);
+            int successCount = 0;
+            int errorCount = 0;
             for (Message message : messages) {
-                Address[] fromAddress = null;
-                String subject = null;
-                // if we can not open the mail (messaging Exception) than we simply skipp this
-                // mail
-                // see Issue #175
                 try {
-                    fromAddress = message.getFrom();
-                    subject = message.getSubject();
+                    boolean result = processMessageObject(message, subjectPattern, event, sourceOptions, importFolder,
+                            archiveFolder);
+                    if (result) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
                 } catch (MessagingException me) {
-                    documentImportService.logMessage("...Failed to read message from inbox: " + me.getMessage(), event);
+                    documentImportService.logMessage("│   ├── ⚠️ failed to read message: " +
+                            me.getMessage(), event);
                     continue;
                 }
-
-                if (subject == null || subject.trim().isEmpty()) {
-                    subject = DEFAULT_NO_SUBJECT;
-                }
-                Date sent = message.getSentDate();
-                logger.fine("......received mail from: " + fromAddress[0].toString());
-                logger.fine("......subject = " + subject);
-                // do we have a subject regular expression provided by the options?
-                if (subjectPattern != null) {
-                    if (subject == null || DEFAULT_NO_SUBJECT.equals(subject)) {
-                        // skip this mail
-                        continue;
-                    }
-                    // test if subject matches?
-                    Matcher subjectMatcher = subjectPattern.matcher(subject);
-                    if (subjectMatcher == null) {
-                        logger.finest("matcher is null!");
-                        // skip this mail
-                        continue;
-                    }
-                    if (!subjectMatcher.find()) {
-                        // skip this mail
-                        continue;
-                    }
-                } else {
-                    logger.finest("...no regex pattern mail will be processed...");
-                }
-
-                ItemCollection workitem = createWorkitem(event.getSource());
-                // store message attributes
-                if (fromAddress[0] instanceof InternetAddress) {
-                    InternetAddress internetAddr = (InternetAddress) fromAddress[0];
-                    workitem.setItemValue("mail.from", internetAddr.getAddress());
-                    workitem.setItemValue("mail.from.personal", internetAddr.getPersonal());
-
-                } else {
-                    workitem.setItemValue("mail.from", fromAddress[0].toString());
-                }
-                workitem.setItemValue("mail.subject", subject);
-                workitem.setItemValue("mail.sent", sent);
-
-                if (!DETACH_MODE_NONE.equals(detachOption)) {
-                    // scan for attachments....
-                    // we need to test if the content is a multipart of if is is plain text mail
-                    Object contentObject = message.getContent();
-                    if (contentObject instanceof Multipart) {
-                        // here we are save to cast the content to Mulipart
-                        Multipart multiPart = (Multipart) message.getContent();
-                        for (int i = 0; i < multiPart.getCount(); i++) {
-
-                            BodyPart bodyPart = multiPart.getBodyPart(i);
-                            if (bodyPart instanceof MimeBodyPart) {
-                                MimeBodyPart mimeBodyPart = (MimeBodyPart) multiPart.getBodyPart(i);
-                                if (Part.ATTACHMENT.equalsIgnoreCase(mimeBodyPart.getDisposition())) {
-
-                                    String fileName = mimeBodyPart.getFileName();
-                                    if (fileName == null) {
-                                        logger.warning("...skip detaching file, because of missing filename");
-                                        continue; // skip this attachment
-                                    }
-
-                                    // decode filename (issue #202)
-                                    fileName = MimeUtility.decodeText(fileName);
-
-                                    // detach only add PDF files?
-                                    if (DETACH_MODE_PDF.equals(detachOption)) {
-                                        if (!fileName.toLowerCase().endsWith(".pdf")) {
-                                            continue; // skip this attachment
-                                        }
-                                    }
-                                    // add this attachment
-                                    InputStream input = mimeBodyPart.getInputStream();
-                                    byte[] content = IMAPImportHelper.readAllBytes(input);
-                                    String contentType = mimeBodyPart.getContentType();
-                                    // fix mimeType if application/octet-stream and file extension is .pdf
-                                    // (issue #147)
-                                    if (debug) {
-                                        logger.info("mimetype=" + contentType);
-                                    }
-                                    if (IMAPImportHelper.isMediaTypeOctet(contentType, fileName)
-                                            && fileName.toLowerCase().endsWith(".pdf")) {
-                                        logger.info("...converting mimetype '" + contentType + "' to application/pdf");
-                                        contentType = "application/pdf";
-                                    }
-                                    // strip ; prafixes
-                                    if (contentType.contains(";")) {
-                                        contentType = contentType.substring(0, contentType.indexOf(";"));
-                                    }
-                                    FileData fileData = new FileData(fileName, content, contentType, null);
-                                    workitem.addFileData(fileData);
-                                }
-                            }
-                        }
-                    } else {
-                        // email content if of type plain/text - so we can not extract data...
-                    }
-                }
-
-                // in DETACH_MODE_ALL we attach the mail body as a PDF or HTML file
-                if (DETACH_MODE_ALL.equals(detachOption)) {
-                    // do we have a gotenberg service?
-                    String gotenbergService = sourceOptions.getProperty(OPTION_GOTENBERG_SERVICE);
-                    if (gotenbergService != null && !gotenbergService.isEmpty()) {
-                        try {
-                            logger.info("using gotenbergservice: " + gotenbergService);
-                            mailMessageService.attachPDFMessage(message, workitem, gotenbergService);
-                        } catch (IOException eio) {
-                            // there was a problem to call the gotenberg service - fallback to HTML
-                            documentImportService
-                                    .logMessage(
-                                            "... connectiong to gotenberg service '" + gotenbergService + "' failed: "
-                                                    + eio.getMessage() + " message will be added in HTML format!",
-                                            event);
-                            // attach email as HTML....
-                            mailMessageService.attachHTMLMessage(message, workitem);
-                        }
-                    } else {
-                        // attach the email as HTML....
-                        mailMessageService.attachHTMLMessage(message, workitem);
-                    }
-
-                    // only if OPTION_PRESERVE_ORIGIN=true than attach the origin message!
-                    String preserveOrigin = sourceOptions.getProperty(OPTION_PRESERVE_ORIGIN, "true");
-                    if (preserveOrigin != null && "true".equalsIgnoreCase(preserveOrigin)) {
-                        mailMessageService.attachMessage(message, workitem);
-                    }
-                }
-
-                // attach the full e-mail in case of DETACH_MODE_PDF or DETACH_MODE_NONE
-                if (!DETACH_MODE_ALL.equalsIgnoreCase(detachOption)) {
-                    mailMessageService.attachMessage(message, workitem);
-                }
-
-                // finally process the workitem
-                workitem = workflowService.processWorkItemByNewTransaction(workitem);
-
-                // move message into the archive-folder
-                Message[] messageList = { message };
-                inportFolder.moveMessages(messageList, archiveFolder);
             }
 
-            logger.finest("...completed");
+            documentImportService.logMessage(
+                    "└── ✅ Completed - " + successCount + " messages imported, " + errorCount + " errors",
+                    event);
+
         } catch (AccessDeniedException | ProcessingErrorException | PluginException | ModelException e) {
             documentImportService.logMessage("IMAP import failed: " + e.getMessage(), event);
             event.setResult(DocumentImportEvent.PROCESSING_ERROR);
@@ -380,6 +250,183 @@ public class IMAPImportService {
             return;
         }
 
+    }
+
+    /**
+     * This method processes a single imap message object. The method creates a
+     * workitem and moves the message into the archive folder
+     * 
+     * The method returns true if the message was successfully imported
+     * 
+     * @param message
+     * @param subjectPattern
+     * @param event
+     * @param sourceOptions
+     * @param inportFolder
+     * @param archiveFolder
+     * @throws MessagingException
+     * @throws ModelException
+     * @throws PluginException
+     * @throws ProcessingErrorException
+     * @throws AccessDeniedException
+     * @throws IOException
+     */
+    private boolean processMessageObject(Message message,
+            Pattern subjectPattern,
+            DocumentImportEvent event,
+            Properties sourceOptions,
+            IMAPFolder inportFolder,
+            IMAPFolder archiveFolder) throws MessagingException, AccessDeniedException, ProcessingErrorException,
+            PluginException, ModelException, IOException {
+
+        boolean debug = Boolean.getBoolean(sourceOptions.getProperty(OPTION_DEBUG, "false"));
+        String detachOption = sourceOptions.getProperty(OPTION_DETACH_MODE, DETACH_MODE_PDF);
+        Address[] fromAddress = null;
+        String subject = null;
+        // if we can not open the mail a MessagingException is thrown - we normally skip
+        // this mail in such a case - see Issue #175
+        fromAddress = message.getFrom();
+        subject = message.getSubject();
+
+        if (subject == null || subject.trim().isEmpty()) {
+            subject = DEFAULT_NO_SUBJECT;
+        }
+        Date sent = message.getSentDate();
+        logger.fine("......received mail from: " + fromAddress[0].toString());
+        logger.fine("......subject = " + subject);
+        // do we have a subject regular expression provided by the options?
+        if (subjectPattern != null) {
+            if (subject == null || DEFAULT_NO_SUBJECT.equals(subject)) {
+                // skip this mail
+                return false;
+            }
+            // test if subject matches?
+            Matcher subjectMatcher = subjectPattern.matcher(subject);
+            if (subjectMatcher == null) {
+                logger.finest("matcher is null!");
+                // skip this mail
+                return false;
+            }
+            if (!subjectMatcher.find()) {
+                // skip this mail
+                return false;
+            }
+        } else {
+            logger.finest("...no regex pattern mail will be processed...");
+        }
+
+        ItemCollection workitem = createWorkitem(event.getSource());
+        // store message attributes
+        if (fromAddress[0] instanceof InternetAddress) {
+            InternetAddress internetAddr = (InternetAddress) fromAddress[0];
+            workitem.setItemValue("mail.from", internetAddr.getAddress());
+            workitem.setItemValue("mail.from.personal", internetAddr.getPersonal());
+
+        } else {
+            workitem.setItemValue("mail.from", fromAddress[0].toString());
+        }
+        workitem.setItemValue("mail.subject", subject);
+        workitem.setItemValue("mail.sent", sent);
+
+        if (!DETACH_MODE_NONE.equals(detachOption)) {
+            // scan for attachments....
+            // we need to test if the content is a multipart of if is is plain text mail
+            Object contentObject = message.getContent();
+            if (contentObject instanceof Multipart) {
+                // here we are save to cast the content to Mulipart
+                Multipart multiPart = (Multipart) message.getContent();
+                for (int i = 0; i < multiPart.getCount(); i++) {
+
+                    BodyPart bodyPart = multiPart.getBodyPart(i);
+                    if (bodyPart instanceof MimeBodyPart) {
+                        MimeBodyPart mimeBodyPart = (MimeBodyPart) multiPart.getBodyPart(i);
+                        if (Part.ATTACHMENT.equalsIgnoreCase(mimeBodyPart.getDisposition())) {
+
+                            String fileName = mimeBodyPart.getFileName();
+                            if (fileName == null) {
+                                logger.warning("...skip detaching file, because of missing filename");
+                                continue; // skip this attachment
+                            }
+
+                            // decode filename (issue #202)
+                            fileName = MimeUtility.decodeText(fileName);
+
+                            // detach only add PDF files?
+                            if (DETACH_MODE_PDF.equals(detachOption)) {
+                                if (!fileName.toLowerCase().endsWith(".pdf")) {
+                                    continue; // skip this attachment
+                                }
+                            }
+                            // add this attachment
+                            InputStream input = mimeBodyPart.getInputStream();
+                            byte[] content = IMAPImportHelper.readAllBytes(input);
+                            String contentType = mimeBodyPart.getContentType();
+                            // fix mimeType if application/octet-stream and file extension is .pdf
+                            // (issue #147)
+                            if (debug) {
+                                logger.info("mimetype=" + contentType);
+                            }
+                            if (IMAPImportHelper.isMediaTypeOctet(contentType, fileName)
+                                    && fileName.toLowerCase().endsWith(".pdf")) {
+                                logger.info("...converting mimetype '" + contentType + "' to application/pdf");
+                                contentType = "application/pdf";
+                            }
+                            // strip ; prafixes
+                            if (contentType.contains(";")) {
+                                contentType = contentType.substring(0, contentType.indexOf(";"));
+                            }
+                            FileData fileData = new FileData(fileName, content, contentType, null);
+                            workitem.addFileData(fileData);
+                        }
+                    }
+                }
+            } else {
+                // email content if of type plain/text - so we can not extract data...
+            }
+        }
+
+        // in DETACH_MODE_ALL we attach the mail body as a PDF or HTML file
+        if (DETACH_MODE_ALL.equals(detachOption)) {
+            // do we have a gotenberg service?
+            String gotenbergService = sourceOptions.getProperty(OPTION_GOTENBERG_SERVICE);
+            if (gotenbergService != null && !gotenbergService.isEmpty()) {
+                try {
+                    logger.info("using gotenbergservice: " + gotenbergService);
+                    mailMessageService.attachPDFMessage(message, workitem, gotenbergService);
+                } catch (IOException eio) {
+                    // there was a problem to call the gotenberg service - fallback to HTML
+                    documentImportService
+                            .logMessage(
+                                    "│   ├── connecting to gotenberg service '" + gotenbergService + "' failed: "
+                                            + eio.getMessage() + " message will be added in HTML format!",
+                                    event);
+                    // attach email as HTML....
+                    mailMessageService.attachHTMLMessage(message, workitem);
+                }
+            } else {
+                // attach the email as HTML....
+                mailMessageService.attachHTMLMessage(message, workitem);
+            }
+
+            // only if OPTION_PRESERVE_ORIGIN=true than attach the origin message!
+            String preserveOrigin = sourceOptions.getProperty(OPTION_PRESERVE_ORIGIN, "true");
+            if (preserveOrigin != null && "true".equalsIgnoreCase(preserveOrigin)) {
+                mailMessageService.attachMessage(message, workitem);
+            }
+        }
+
+        // attach the full e-mail in case of DETACH_MODE_PDF or DETACH_MODE_NONE
+        if (!DETACH_MODE_ALL.equalsIgnoreCase(detachOption)) {
+            mailMessageService.attachMessage(message, workitem);
+        }
+
+        // finally process the workitem
+        workitem = workflowService.processWorkItemByNewTransaction(workitem);
+
+        // move message into the archive-folder
+        Message[] messageList = { message };
+        inportFolder.moveMessages(messageList, archiveFolder);
+        return true;
     }
 
     /**
@@ -397,16 +444,16 @@ public class IMAPImportService {
             DocumentImportEvent event) throws MessagingException {
         // open Archive folder
         String imapArchiveFolder = sourceOptions.getProperty(OPTION_ARCHIVE_FOLDER, ARCHIVE_DEFAULT_NAME);
-        documentImportService.logMessage("...archive.folder = " + imapArchiveFolder, event);
+        documentImportService.logMessage("│   ├── archive.folder = " + imapArchiveFolder, event);
         IMAPFolder archive = (IMAPFolder) inbox.getFolder(imapArchiveFolder);
         // if archive folder did not exist create it...
         if (archive.exists() == false) {
             logger.info("...creating folder '" + imapArchiveFolder + "'");
             boolean isCreated = archive.create(Folder.HOLDS_MESSAGES);
             if (isCreated) {
-                logger.info("...folder sucessfull created");
+                logger.info("...folder successful created");
             } else {
-                logger.info("...failed to create new archvie folder!");
+                documentImportService.logMessage("│   ├── ⚠️ Error - failed to create new archive folder!", event);
             }
         }
         archive.open(Folder.READ_WRITE);
