@@ -27,3 +27,10 @@ Optional a data entry can be processed by a workflow event. The process model ca
 - **Event ID** - defines the event ID the entiy will be processed
 
 If the workflow processing failed or not workflow model data is provided the entity will be saved only!
+
+## Local File Import
+
+You can also import files from a local server directory. In this case server/port must be empty.
+In the selector you can specify the full file path on the local server directory.
+
+<img src="screen-000.png" />
