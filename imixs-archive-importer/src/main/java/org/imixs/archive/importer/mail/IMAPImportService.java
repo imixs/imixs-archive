@@ -188,6 +188,10 @@ public class IMAPImportService {
                 }
             }
             store = imapAuthenticator.openMessageStore(event.getSource(), sourceOptions);
+            if (store == null) {
+                documentImportService.logMessage("│   ├── ⚠️ failed to connect to IMAP server.",
+                        event);
+            }
             documentImportService.logMessage("│   ├── ☑️ connection to IMAP server successful",
                     event);
 

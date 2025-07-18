@@ -41,6 +41,7 @@ import javax.net.ssl.HttpsURLConnection;
 
 import org.imixs.archive.importer.DocumentImportService;
 import org.imixs.workflow.ItemCollection;
+import org.imixs.workflow.exceptions.PluginException;
 
 import jakarta.inject.Named;
 import jakarta.json.Json;
@@ -74,6 +75,7 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
      * @return
      * @throws NumberFormatException
      * @throws MessagingException
+     * @throws PluginException
      */
     @SuppressWarnings("unused")
     public Store openMessageStore(ItemCollection sourceConfig, Properties sourceOptions) throws MessagingException {
@@ -135,9 +137,8 @@ public class IMAPOutlookAuthenticator implements IMAPAuthenticator, Serializable
             }
             store = session.getStore("imap");
             store.connect("outlook.office365.com", imapUser, token);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.severe("Failed to connect: " + e.getMessage());
+        } catch (IOException e) {
+            throw new MessagingException("Failed to connect to IMAP Store", e);
         }
         return store;
     }
