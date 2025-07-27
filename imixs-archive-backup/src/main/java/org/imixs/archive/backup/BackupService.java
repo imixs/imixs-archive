@@ -217,7 +217,9 @@ public class BackupService {
                                 if (dataList != null && dataList.size() > 0) {
                                     options = new ItemCollection((Map<String, List<Object>>) dataList.get(0));
                                     if (options != null && options.hasItem("NO_OVERWRITE")) {
-                                        overwrite = !options.getItemValueBoolean("NO_OVERWRITE");
+                                        if (options.getItemValueBoolean("NO_OVERWRITE") == true) {
+                                            overwrite = false;
+                                        }
                                     }
                                 }
                             }
