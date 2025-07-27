@@ -34,6 +34,7 @@ public class BackupApi extends Application {
 
     public static final String TOPIC_BACKUP = "BACKUP";
     public static final String TOPIC_RESTORE = "RESTORE";
+    public static final String TOPIC_FULLBACKUP = "FULLBACKUP";
 
     public static final String ITEM_BACKUPRESTORE = "$backuprestore";
 

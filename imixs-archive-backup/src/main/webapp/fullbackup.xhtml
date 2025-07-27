@@ -1,0 +1,82 @@
+<ui:composition template="/WEB-INF/templates/layout.xhtml" xmlns:faces="jakarta.faces" xmlns:f="jakarta.faces.core"
+	xmlns:h="jakarta.faces.html" xmlns:ui="jakarta.faces.facelets">
+
+	<ui:define name="content">
+		<f:view>
+
+			<div class="header">
+				<h2>
+					<span class="typcn typcn-upload-outline"></span> Imixs Full Backup
+				</h2>
+			</div>
+			<h:form id="connect_form_id">
+
+				<div class="card">
+
+					<p class="help">
+						<span class="typcn typcn-lightbulb"></span> Imixs-Workflow API
+						Endpoint Configuration.
+					</p>
+
+					<div class="imixs-form-section" style="grid-column-start: span 12;">
+
+
+						<table class="imixsdatatable" style="grid-column-start: span 12; margin: 10px 0;">
+							<tr>
+								<td style="width: 25%;">Imixs-Workflow Instance:</td>
+								<td>#{fullBackupController.getInstanceEndpoint()}</td>
+							</tr>
+
+							<tr>
+								<td>Backup Status:</td>
+								<td>#{fullBackupController.getStatus()}</td>
+							</tr>
+
+							<tr>
+								<td>Next Timeout:</td>
+								<td>#{fullBackupController.getNextTimeout()}</td>
+							</tr>
+
+
+							<tr>
+								<td>FTP Host:</td>
+								<td>#{fullBackupController.ftpServer}:#{fullBackupController.ftpPort}</td>
+							</tr>
+
+							<tr>
+								<td>Backup Space:</td>
+								<td>#{fullBackupController.ftpPath}</td>
+							</tr>
+
+						</table>
+					</div>
+
+					<div class="imixs-form-section">
+
+						<span style="grid-column-start: span 8;">
+							<h:commandButton value="Refresh" action="/" />
+							<h:commandButton value="Start" style="background:#4dc24f;"
+								actionListener="#{fullBackupController.start()}"
+								rendered="#{!fullBackupController.connected}" />
+							<h:commandButton value="Stop" style="background: #e84848;"
+								rendered="#{fullBackupController.connected}"
+								actionListener="#{fullBackupController.stop()}" />
+						</span>
+					</div>
+				</div>
+
+				<!-- Message Log -->
+				<div class="card">
+					<h3>
+						<span class="typcn typcn-input-checked"></span> Log
+					</h3>
+					<pre>
+						<ui:repeat var="log" value="#{logController.getLogEntries('FULLBACKUP')}">
+							<h:outputText value="#{log}" /><br />
+						</ui:repeat>
+					</pre>
+				</div>
+			</h:form>
+		</f:view>
+	</ui:define>
+</ui:composition>

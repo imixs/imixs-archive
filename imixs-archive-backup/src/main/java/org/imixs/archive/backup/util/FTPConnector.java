@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPSClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.backup.BackupApi;
@@ -86,22 +87,20 @@ public class FTPConnector {
      * This method transfers a snapshot to a ftp server.
      *
      * @param snapshot
+     * @param overwrite if true, existing files will be overwritten; if false, an
+     *                  exception is thrown if file exists
      * @throws BackupException
      */
-    public void put(ItemCollection snapshot) throws BackupException {
+    public void put(FTPClient ftpClient, ItemCollection snapshot, boolean overwrite) throws BackupException {
         if (!ftpServer.isPresent() || !ftpPath.isPresent()) {
             throw new BackupException(FTP_ERROR,
                     "FTP file transfer failed: no ftp host provided (" + BackupApi.ENV_BACKUP_FTP_HOST + ")!");
         }
-
         String snapshotID = snapshot.getUniqueID();
-
         logger.finest("......snapshotid=" + snapshotID);
         String originUnqiueID = BackupApi.getUniqueIDFromSnapshotID(snapshotID);
-
         logger.finest("......originUnqiueID=" + originUnqiueID);
         byte[] rawData;
-
         rawData = BackupApi.getRawData(snapshot);
         String fileName = originUnqiueID + ".xml";
 
@@ -114,31 +113,36 @@ public class FTPConnector {
         if (!ftpWorkingPath.endsWith("/")) {
             ftpWorkingPath = ftpWorkingPath + "/";
         }
+
         InputStream writer = null;
 
-        FTPClient ftpClient = null;
         try {
             logger.finest("......put " + fileName + " to FTP server: " + ftpServer + "...");
-            ftpClient = getFTPClient();
 
             // verify directories
             if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
                 throw new BackupException(FTP_ERROR, "FTP file transfer failed: missing working directory '"
                         + ftpWorkingPath + "' : " + ftpClient.getReplyString());
             }
-            // test if we have the year as an subdirecory
+
+            // test if we have the year as an subdirectory
             changeWorkingDirectory(ftpClient, new SimpleDateFormat("yyyy").format(created));
             changeWorkingDirectory(ftpClient, new SimpleDateFormat("MM").format(created));
 
+            // Check if file already exists and handle overwrite logic
+            FTPFile[] existingFiles = ftpClient.listFiles(fileName);
+            if (existingFiles.length > 0 && !overwrite) {
+                logger.info("......file " + fileName + " already exists, skipping upload (overwrite=false)");
+                return; // Skip upload if file exists and overwrite is disabled
+            }
+
             // upload file to FTP server.
             writer = new ByteArrayInputStream(rawData);
-
             if (!ftpClient.storeFile(fileName, writer)) {
                 throw new BackupException(FTP_ERROR, "FTP file transfer failed: unable to write '" + ftpWorkingPath
                         + fileName + "' : " + ftpClient.getReplyString());
             }
-
-            logger.finest("...." + ftpWorkingPath + fileName + " transfered successfull to " + ftpServer);
+            logger.finest("...." + ftpWorkingPath + fileName + " transferred successful to " + ftpServer);
 
         } catch (IOException e) {
             throw new BackupException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
@@ -148,14 +152,17 @@ public class FTPConnector {
                 if (writer != null) {
                     writer.close();
                 }
-                if (ftpClient != null) {
-                    ftpClient.logout();
-                    ftpClient.disconnect();
-                }
             } catch (IOException e) {
                 throw new BackupException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
             }
         }
+    }
+
+    /**
+     * Overloaded method for backward compatibility - defaults to overwrite = false
+     */
+    public void put(FTPClient ftpClient, ItemCollection snapshot) throws BackupException {
+        put(ftpClient, snapshot, true);
     }
 
     /**

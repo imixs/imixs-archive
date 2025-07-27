@@ -22,10 +22,13 @@
  *******************************************************************************/
 package org.imixs.archive.backup;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import org.apache.commons.net.ftp.FTPClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.Counter;
 import org.eclipse.microprofile.metrics.Metadata;
@@ -160,7 +163,7 @@ public class BackupService {
      *
      * @throws RestAPIException
      **/
-    @SuppressWarnings("unused")
+    @SuppressWarnings({ "unused", "unchecked" })
     @Timeout
     public void onTimeout(jakarta.ejb.Timer _timer) {
         String topic = null;
@@ -195,49 +198,82 @@ public class BackupService {
             // max 100 entries per iteration
             eventLogClient.setPageSize(100);
             List<ItemCollection> events = eventLogClient.searchEventLog(BackupApi.EVENTLOG_TOPIC_BACKUP);
+            FTPClient ftpClient = null;
 
-            if (events != null && events.size() > 0) {
-                logger.info(" -> " + events.size() + " backup events found...");
-                for (ItemCollection eventLogEntry : events) {
-                    total++;
-                    topic = eventLogEntry.getItemValueString("topic");
-                    id = eventLogEntry.getItemValueString("id");
-                    ref = eventLogEntry.getItemValueString("ref");
-                    try {
-                        // first try to lock the eventLog entry....
-                        eventLogClient.lockEventLogEntry(id);
-                        // pull the snapshotEvent ...
-                        logger.finest("......pull snapshot " + ref + "....");
-                        // eventCache.add(eventLogEntry);
-                        ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
-                        if (snapshot != null) {
-                            ftpConnector.put(snapshot);
-                            // finally remove the event log entry...
-                            eventLogClient.deleteEventLogEntry(id);
-                            success++;
+            try {
+                ftpClient = ftpConnector.getFTPClient();
+                if (events != null && events.size() > 0) {
+                    logger.info(" -> " + events.size() + " backup events found...");
+                    for (ItemCollection eventLogEntry : events) {
+                        total++;
+                        topic = eventLogEntry.getItemValueString("topic");
+                        id = eventLogEntry.getItemValueString("id");
+                        ref = eventLogEntry.getItemValueString("ref");
+                        boolean overwrite = true;
+                        try {
+                            ItemCollection options = null;
+                            if (eventLogEntry.hasItem("data")) {
+                                List<?> dataList = eventLogEntry.getItemValue("data");
+                                if (dataList != null && dataList.size() > 0) {
+                                    options = new ItemCollection((Map<String, List<Object>>) dataList.get(0));
+                                    if (options != null && options.hasItem("NO_OVERWRITE")) {
+                                        overwrite = !options.getItemValueBoolean("NO_OVERWRITE");
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            logger.warning(
+                                    " unable to resolve event log flag 'NO_OVERWRITE' - overwrite will be set to true");
                         }
-                        countMetric(METRIC_EVENTS_PROCESSED);
 
-                    } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
-                        // we also catch EJBExceptions here because we do not want to cancel the
-                        // ManagedScheduledExecutorService
-                        logController.warning(BackupApi.TOPIC_BACKUP, "SnapshotEvent " + id + ": " + e.getMessage());
-                        errors++;
-                        countMetric(METRIC_EVENTS_ERRORS);
+                        try {
+                            // first try to lock the eventLog entry....
+                            eventLogClient.lockEventLogEntry(id);
+                            // pull the snapshotEvent ...
+                            logger.finest("......pull snapshot " + ref + "....");
+                            // eventCache.add(eventLogEntry);
+                            ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
+                            if (snapshot != null) {
+                                ftpConnector.put(ftpClient, snapshot, overwrite);
+                                // finally remove the event log entry...
+                                eventLogClient.deleteEventLogEntry(id);
+                                success++;
+                            }
+                            countMetric(METRIC_EVENTS_PROCESSED);
 
+                        } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
+                            // we also catch EJBExceptions here because we do not want to cancel the
+                            // ManagedScheduledExecutorService
+                            logController.warning(BackupApi.TOPIC_BACKUP,
+                                    "SnapshotEvent " + id + ": " + e.getMessage());
+                            errors++;
+                            countMetric(METRIC_EVENTS_ERRORS);
+
+                        }
                     }
-                }
-                // print log
-                logController.info(BackupApi.TOPIC_BACKUP, success + " snapshots backed up in "
-                        + (System.currentTimeMillis() - duration) + " ms - " + errors + " errors...");
+                    // print log
+                    logController.info(BackupApi.TOPIC_BACKUP, success + " snapshots backed up in "
+                            + (System.currentTimeMillis() - duration) + " ms - " + errors + " errors...");
 
-            } else {
-                logger.info(" -> no backup events found.");
+                } else {
+                    logger.info(" -> no backup events found.");
+                }
+
+            } finally {
+                // close writer...
+                try {
+                    if (ftpClient != null) {
+                        ftpClient.logout();
+                        ftpClient.disconnect();
+                    }
+                } catch (Exception e) {
+
+                }
             }
 
             backupStatusHandler.setStatus(BackupStatusHandler.STATUS_SCHEDULED);
 
-        } catch (InvalidAccessException | EJBException | RestAPIException e) {
+        } catch (InvalidAccessException | EJBException | RestAPIException | BackupException | IOException e) {
             // In case of a exception during processing the event log
             // the timer service will automatically restarted. This is important
             // to resolve restarts of the workflow engine.

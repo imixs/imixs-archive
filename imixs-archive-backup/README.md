@@ -1,20 +1,26 @@
 # Imixs-Archive-Backup
 
-The _Imixs-Archive-Backup Service_ is a microservice to backup the Imixs-Workflow data into an external storage. This backup service is decoupled from the a Imixs-Workflow Instance and can be run in a independent server environment. In this way the _Imixs-Archive-Backup Service_ provides an additional level of protection for your workflow data.
+The Imixs-Archive-Backup Service is a microservice designed to backup Imixs-Workflow data to external storage systems. Operating independently from your primary Imixs-Workflow instance, this service can run on separate hardware or in external clusters, providing robust data protection through physical and logical isolation.
 
-You can run this microservice on different hardware or in a external cluster. If your primary system fails or becomes unavailable, you can still access the backup system to restore your data.
-This backup architecture provides an additional level of security for your data, as it can be configured to store backups in a secure and isolated location. This can be especially important for sensitive or confidential data that you want to protect from unauthorized access.
-The _Imixs-Archive-Backup Service_ provides a recovery mechanism to set up a workflow instance even after a natural disaster or other catastrophic event that has corrupted your primary data.
+## Features
+
+- **Resilience and Availability:** By running independently of your primary system, the backup service ensures data accessibility even when your main workflow instance experiences failures or becomes unavailable.
+
+- **Enhanced Security:** The service supports deployment in secure, isolated environments, making it particularly valuable for protecting sensitive or confidential workflow data from unauthorized access.
+
+- **Disaster Recovery:** The backup architecture enables complete workflow instance restoration following catastrophic events, natural disasters, or primary data corruption, ensuring business continuity.
+
+- **Flexible Deployment:** Deploy the microservice across different hardware configurations or cloud environments to match your specific security and availability requirements.
 
 <img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-backup-screen.png"/>
 
 ## Integration
 
-The _Imixs-Archive-Backup Service_ can be integrated into the Imixs-Archive solution in different ways.
+The _Imixs-Archive-Backup Service_ is based on the [Imixs-Archive-Snapshot API](../imixs-archive-api/README.md) and can be integrated into the Imixs-Archive solution in different ways.
 
 **Backup without Archive**
 
-In case of a simple setup without a Cassandra Archive Service installed, the backup request is generated directly after a new Snapshot Workitem was stored. The snapshot will be backuped and remains in the database.
+In case of a simple setup without a Cassandra Archive Service installed, the backup request is generated directly after a new Snapshot Workitem has been stored. The snapshot will be backuped and remains in the database.
 
 <img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-backup.png"/>
 
@@ -43,7 +49,7 @@ The Backup Service can be run in a container environment. To connect the backup 
 
 To connect a Imixs-Workflow instance with the Backup Service you need to add the Imixs-Archive API as a dependency.
 
-```xml 
+```xml
   <dependency>
    <groupId>org.imixs.workflow</groupId>
    <artifactId>imixs-archive-api</artifactId>
@@ -64,7 +70,7 @@ Imixs-Archive-Backup runs as a self-contained microservice with a modern Web UI 
 
 To build the imixs-admin client manually from sources run the maven command:
 
-mvn clean install
+      $ mvn clean install
 
 The .war file can be deployed into any Jakarta EE Application server.
 
@@ -72,11 +78,11 @@ The .war file can be deployed into any Jakarta EE Application server.
 
 To build the imixs-admin Docker image manually run:
 
-mvn clean install -Pdocker
+      $ mvn clean install -Pdocker
 
 To start it from your local docker environment:
 
-docker-compose up
+      $ docker-compose up
 
 ### Debug
 

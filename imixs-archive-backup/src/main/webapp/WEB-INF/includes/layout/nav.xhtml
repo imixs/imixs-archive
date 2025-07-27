@@ -1,5 +1,4 @@
-<ui:composition xmlns:f="jakarta.faces.core"
-	xmlns:h="jakarta.faces.html" xmlns:ui="jakarta.faces.facelets">
+<ui:composition xmlns:f="jakarta.faces.core" xmlns:h="jakarta.faces.html" xmlns:ui="jakarta.faces.facelets">
 
 	<nav>
 		<h:form>
@@ -11,37 +10,44 @@
 						<a href="#{facesContext.externalContext.requestContextPath}/">
 							<label>#{message['application_title']}</label>
 						</a> <span class="pull-right typcn typcn-th-menu-outline"
-							title="#{message['application_title']}"
-							style="margin-right: 12px; cursor: pointer;"
-							onclick="togglemenu();"></span>							
+							title="#{message['application_title']}" style="margin-right: 12px; cursor: pointer;"
+							onclick="togglemenu();"></span>
 					</h4>
 				</div>
-				
+
 				<ul>
 					<li class="nav-item">
-							<small><label>v#{message['application_build']}</label></small>
-							<span class="typcn typcn-media-record-outline"
-								style="#{backupController.connected?'color:#4dc24f':'color:#dc2929'}"></span>
+						<small><label>v#{message['application_build']}</label></small>
+						<span class="typcn typcn-media-record-outline"
+							style="#{backupController.connected?'color:#4dc24f':'color:#dc2929'}"></span>
 					</li>
 				</ul>
-				<hr /> 
+				<hr />
 				<ul>
-					<li class="nav-item"><h:link
-							outcome="/restore.xhtml">
+					<li class="nav-item">
+						<h:link outcome="/restore.xhtml">
 							<span class="typcn typcn-download-outline"></span>
 							<label>Restore</label>
-						</h:link></li>
+						</h:link>
+					</li>
+
+					<li class="nav-item">
+						<h:link outcome="/fullbackup.xhtml">
+							<span class="typcn typcn-upload-outline"></span>
+							<label>Full Backup</label>
+						</h:link>
+					</li>
 				</ul>
 
 				<ul>
 					<li class="nav-item"><a href="#{backupController.healthEndpoint}" target="health">
 							<span class="typcn typcn-wi-fi"></span>
 							<label>Status</label>
-						</a> 
+						</a>
 					</li>
 					<li class="nav-item"><a href="#{backupController.metricsEndpoint}" target="metrics">
-						<span class="typcn typcn-chart-pie"></span>
-						<label>Metrics</label>
+							<span class="typcn typcn-chart-pie"></span>
+							<label>Metrics</label>
 						</a>
 					</li>
 				</ul>
@@ -51,5 +57,3 @@
 	</nav>
 
 </ui:composition>
-
-

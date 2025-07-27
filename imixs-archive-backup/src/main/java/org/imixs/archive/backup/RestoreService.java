@@ -230,7 +230,7 @@ public class RestoreService {
                             logController.info(BackupApi.TOPIC_RESTORE,
                                     " ⇨ " + ftpFileYear.getName() + "/" + ftpWorkingPath + ": " + verified
                                             + " snapshots verified, " + count + " snapshots imported, " + skipped
-                                            + " snapshots allready existed");
+                                            + " snapshots already existed");
 
                             ftpClient.changeToParentDirectory();
                             if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
@@ -261,9 +261,7 @@ public class RestoreService {
             } catch (BackupException e1) {
 
             }
-
         } finally {
-
             try {
                 // do logout....
                 if (ftpClient != null) {
@@ -274,7 +272,6 @@ public class RestoreService {
                 throw new BackupException("FTP_ERROR", "FTP file transfer failed: " + e.getMessage(), e);
             }
         }
-
     }
 
     /**
@@ -298,7 +295,7 @@ public class RestoreService {
             result = null;
         } catch (RestAPIException e) {
             // should not happen
-            logger.warning("Feails do get document via rest api: " + e.getMessage());
+            logger.warning("Failed do get document via rest api: " + e.getMessage());
         }
         // reset items
         documentClient.setItems(null);

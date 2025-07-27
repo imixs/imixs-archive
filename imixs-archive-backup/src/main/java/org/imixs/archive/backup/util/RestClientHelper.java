@@ -68,6 +68,10 @@ public class RestClientHelper implements Serializable {
 
         // test if we have already an instance
         if (documentClient != null) {
+            // reset paging, size and items
+            documentClient.setPageIndex(0);
+            documentClient.setPageSize(DocumentClient.DEFAULT_PAGE_SIZE);
+            documentClient.setItems(null);
             return documentClient;
         }
         logger.info("RestClientHelper create DocumentClient....");

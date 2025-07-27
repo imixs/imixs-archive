@@ -14,8 +14,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
 /**
- * The RestoreController is used to start and monitor a restore process of the
- * {@link RestoreService}. The controller provides a processing log and shows
+ * The FullBackupController is used to start and monitor a backup process of the
+ * {@link FullBackupService}. The controller provides a processing log and shows
  * the current configuration and progress. This controller does not hold any
  * state.
  *
@@ -24,11 +24,11 @@ import jakarta.inject.Named;
  */
 @Named
 @RequestScoped
-public class RestoreController implements Serializable {
+public class FullBackupController implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private static Logger logger = Logger.getLogger(RestoreController.class.getName());
+    private static Logger logger = Logger.getLogger(FullBackupController.class.getName());
 
     String syncSizeUnit = null;
     ItemCollection metaData = null;
@@ -37,10 +37,10 @@ public class RestoreController implements Serializable {
     LogController logController;
 
     @Inject
-    RestoreStatusHandler restoreStatusHandler;
+    FullBackupStatusHandler fullBackupStatusHandler;
 
     @Inject
-    RestoreService restoreService;
+    FullBackupService fullBackupService;
 
     @Inject
     @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
@@ -59,16 +59,16 @@ public class RestoreController implements Serializable {
     int ftpPort;
 
     public boolean isConnected() {
-        String status = restoreStatusHandler.getStatus();
-        return RestoreStatusHandler.STATUS_RUNNING.equals(status);
+        String status = fullBackupStatusHandler.getStatus();
+        return FullBackupStatusHandler.STATUS_RUNNING.equals(status);
     }
 
     public String getStatus() {
-        return restoreStatusHandler.getStatus();
+        return fullBackupStatusHandler.getStatus();
     }
 
     public Date getNextTimeout() {
-        return restoreStatusHandler.getNextTimeout();
+        return fullBackupStatusHandler.getNextTimeout();
     }
 
     public String getFtpServer() {
@@ -92,9 +92,9 @@ public class RestoreController implements Serializable {
      */
     public void start() {
         try {
-            restoreService.startScheduler();
+            fullBackupService.startScheduler();
         } catch (BackupException e) {
-            logController.warning(BackupApi.TOPIC_RESTORE, e.getMessage());
+            logController.warning(BackupApi.TOPIC_BACKUP, e.getMessage());
         }
     }
 
@@ -102,8 +102,12 @@ public class RestoreController implements Serializable {
      * Initialize a cancel request for the running timer service
      */
     public void stop() {
-
-        restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_CANCELED);
+        try {
+            fullBackupService.stopScheduler(FullBackupStatusHandler.STATUS_CANCELED);
+        } catch (BackupException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
     }
 
