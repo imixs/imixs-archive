@@ -24,30 +24,13 @@ In case of a simple setup without a Cassandra Archive Service installed, the bac
 
 <img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-backup.png"/>
 
-**Backup from a Archive**
+To connect a Imixs-Workflow instance directly with the Backup Service you need to set the environment parameter `backup.service.endpoint` to activate the backup.
 
-In case of using the [Cassandra Archive Service](../imixs-archive-service/README.md) the backup request is generated after the snapshot was successful transferred into the Cassandra cluster. After the snapshot was be backuped successful, the snapshot will be removed form the database. This concept reduces the size of the database as file data is no longer stored in the database but in the Cassandra cluster.
+| Environment Variable    | Description                                   | Example                      |
+| ----------------------- | --------------------------------------------- | ---------------------------- |
+| BACKUP_SERVICE_ENDPOINT | the rest API endpoint of your backup instance | http://imixs-backup:8080/api |
 
-<img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-archive-backup.png"/>
-
-# Configuration
-
-The Backup Service can be run in a container environment. To connect the backup service with your workflow instance the following environment parameters are mandatory:
-
-      WORKFLOW_SERVICE_ENDPOINT: [REST-API-ENDPOINT-OF-WORKFLOW-INSTANCE]
-      WORKFLOW_SERVICE_USER: [BACKUP-USER]
-      WORKFLOW_SERVICE_PASSWORD: [PASSWORD]
-      WORKFLOW_SERVICE_AUTHMETHOD: [AUTHMETHOD]
-
-      BACKUP_FTP_HOST: [FTP-SERVER-ADDRESS]
-      BACKUP_FTP_PATH: [DIRECTORY]
-      BACKUP_FTP_PORT: "21"
-      BACKUP_FTP_USER: [USER]
-      BACKUP_FTP_PASSWORD: [PASSWORD]
-
-**Note:** The BACKUP-USER must have manager access.
-
-To connect a Imixs-Workflow instance with the Backup Service you need to add the Imixs-Archive API as a dependency.
+Also the Imixs-Archive API is a mandatory dependency.
 
 ```xml
   <dependency>
@@ -58,11 +41,54 @@ To connect a Imixs-Workflow instance with the Backup Service you need to add the
   </dependency>
 ```
 
-Next set the environment parameter `backup.service.endpoint` to activate the backup.
+The archive api automatically generates on each save event a new event log entry `snapshot.backup` to trigger the backup.
 
-      BACKUP_SERVICE_ENDPOINT: [REST-API-ENDPOINT-OF-BACKUPSERVICE]
+**Backup from a Archive**
 
-On each save event a new event log entry `snapshot.backup` will be created. The backup Service periodically check this event log entries and stores the corresponding snapshot into the backup space.
+In case of using the [Cassandra Archive Service](../imixs-archive-service/README.md) the backup request is generated after the snapshot was successful transferred into the Cassandra cluster. After the snapshot was be backuped successful, the snapshot will be removed form the database. This concept reduces the size of the database as file data is no longer stored in the database but in the Cassandra cluster.
+
+<img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-archive-backup.png"/>
+
+To connect the Imixs-Archive Service with the Backup Service you need to set the environment parameter `backup.service.endpoint` at the archive service to activate the backup.
+
+| Environment Variable    | Description                                   | Example                      |
+| ----------------------- | --------------------------------------------- | ---------------------------- |
+| BACKUP_SERVICE_ENDPOINT | the rest API endpoint of your backup instance | http://imixs-backup:8080/api |
+
+The archive api automatically generates on each save event a new event log entry `snapshot.backup` to trigger the backup.
+
+### Configuration
+
+The Backup Service can be run in a container environment. To connect the backup service with your workflow instance the following environment parameters are mandatory:
+
+| Environment Variable        | Description                                     | Example                               |
+| --------------------------- | ----------------------------------------------- | ------------------------------------- |
+| WORKFLOW_SERVICE_ENDPOINT   | the rest API endpoint of your workflow instance | http://imixs-office-workflow:8080/api |
+| WORKFLOW_SERVICE_USER       | user id of the backup user                      | can be an system account              |
+| WORKFLOW_SERVICE_PASSWORD   | backup user password                            |
+| WORKFLOW_SERVICE_AUTHMETHOD | Auth method                                     | form                                  |
+| BACKUP_FTP_HOST             | host name of the ftp service                    | ftp.foo.com                           |
+| BACKUP_FTP_PORT             | port number of the ftp service                  | 21                                    |
+| BACKUP_FTP_PATH             | root directory                                  | /my-backups                           |
+| BACKUP_FTP_USER             | ftp user id                                     |                                       |
+| BACKUP_FTP_PASSWORD         | ftp user password                               | user must have manager access         |
+
+The backup Service periodically checks for the event log entries `snapshot.backup` and stores the corresponding snapshot into the backup space.
+
+## Restore
+
+To start a full restore you can use the restore feature. This feature will check each backuped snapshot against the workflow instance. If a backup snapshot does not exists in the workflow instance the restore function will restore the data of this snapshot.
+
+<img src="https://github.com/imixs/imixs-archive/raw/master/docs/restore-01.png"/>
+
+## Full Backup
+
+A backup of a snapshot data is created immediately after the snapshot was created or archived. This is typically the moment when you save data in your workflow instance.
+The backup requests are queued in an event log. This means that even in the situation of a temporary outage of your backup service, the backups will be generated later. If you still require a complete synchronization (e.g., after setting up a new backup system later), you can start a full backup. This transfers all unsaved snapshot data into the backup storage system.
+
+<img src="https://github.com/imixs/imixs-archive/raw/master/docs/fullbackup-01.png"/>
+
+## Backup Mirrors
 
 # Development
 
@@ -84,7 +110,7 @@ To start it from your local docker environment:
 
       $ docker-compose up
 
-### Debug
+## Debug
 
 The docker-compose file automatically enables the wildfly debug port 8787
 
