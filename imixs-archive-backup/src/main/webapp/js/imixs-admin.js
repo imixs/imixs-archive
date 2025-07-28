@@ -5,10 +5,10 @@
 	// on Load Document we check the toggle status
 	document.addEventListener('DOMContentLoaded', function() {
 		// toggle by default
-	    // toggleCookie=getCookie('imixs-admin.toggleStatus');
-	    // if (toggleCookie!='hidden') {
-		// 	togglemenu();
-		// }
+	    toggleCookie=getCookie('imixs-admin.toggleStatus');
+	    if (toggleCookie!='hidden') {
+			togglemenu();
+		}
 	}, false);
 
 	
@@ -28,12 +28,10 @@
 	
 	};
 	
-
 	setCookie = function (cname, cvalue, exdays) {
-	  const d = new Date();
-	  d.setTime(d.getTime() + (exdays*24*60*60*1000));
-	  let expires = "expires="+ d.toUTCString();
-	  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+		const d = new Date();
+		d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+		document.cookie = `${cname}=${cvalue};expires=${d.toUTCString()};path=/;SameSite=Strict`;
 	};
 	
 	getCookie = function (cname) {

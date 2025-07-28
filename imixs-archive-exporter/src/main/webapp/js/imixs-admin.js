@@ -27,15 +27,13 @@
 		toggleState = !toggleState;
 	
 	};
-	
 
 	setCookie = function (cname, cvalue, exdays) {
-	  const d = new Date();
-	  d.setTime(d.getTime() + (exdays*24*60*60*1000));
-	  let expires = "expires="+ d.toUTCString();
-	  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+		const d = new Date();
+		d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+		document.cookie = `${cname}=${cvalue};expires=${d.toUTCString()};path=/;SameSite=Strict`;
 	};
-	
+
 	getCookie = function (cname) {
 	  let name = cname + "=";
 	  let decodedCookie = decodeURIComponent(document.cookie);
