@@ -78,6 +78,31 @@ public class BackupService {
 
     private static Logger logger = Logger.getLogger(BackupService.class.getName());
 
+    public static final String ENV_WORKFLOW_SERVICE_ENDPOINT = "workflow.service.endpoint";
+    public static final String ENV_WORKFLOW_SERVICE_USER = "workflow.service.user";
+    public static final String ENV_WORKFLOW_SERVICE_PASSWORD = "workflow.service.password";
+    public static final String ENV_WORKFLOW_SERVICE_AUTHMETHOD = "workflow.service.authmethod";
+    public static final String ENV_WORKFLOW_SYNC_INTERVAL = "workflow.sync.interval";
+    public static final String ENV_WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
+    public static final String ENV_WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
+
+    public static final String ENV_BACKUP_FTP_HOST = "backup.ftp.host";
+    public static final String ENV_BACKUP_FTP_PATH = "backup.ftp.path";
+    public static final String ENV_BACKUP_FTP_PORT = "backup.ftp.port";
+    public static final String ENV_BACKUP_FTP_USER = "backup.ftp.user";
+    public static final String ENV_BACKUP_FTP_PASSWORD = "backup.ftp.password";
+    public static final String ENV_BACKUP_MIRROR_ID = "backup.mirror.id";
+
+    public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
+    public static final String BACKUP_SYNC_DEADLOCK = "backup.sync.deadlock";
+
+    public static final String TOPIC_BACKUP = "BACKUP";
+    public static final String TOPIC_RESTORE = "RESTORE";
+    public static final String TOPIC_FULLBACKUP = "FULLBACKUP";
+
+    public static final String ITEM_BACKUPRESTORE = "$backuprestore";
+    public final static String SNAPSHOT_RESOURCE = "snapshot/";
+
     @Inject
     LogController logController;
 
@@ -86,36 +111,40 @@ public class BackupService {
 
     // timeout interval in ms
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "10000")
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SYNC_INTERVAL, defaultValue = "10000")
     long interval;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INITIALDELAY, defaultValue = "30000")
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SYNC_INITIALDELAY, defaultValue = "30000")
     long initialDelay;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> workflowServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_AUTHMETHOD)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_AUTHMETHOD)
     Optional<String> workflowServiceAuthMethod;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_USER)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_USER)
     Optional<String> workflowServiceUser;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_PASSWORD)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_PASSWORD)
     Optional<String> workflowServicePassword;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_HOST)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_HOST)
     Optional<String> ftpServer;
+
+    @Inject
+    @ConfigProperty(name = BackupService.ENV_BACKUP_MIRROR_ID)
+    Optional<String> backupMirrorId;
 
     // deadlock timeout interval in ms
     @Inject
-    @ConfigProperty(name = BackupApi.BACKUP_SYNC_DEADLOCK, defaultValue = "60000")
+    @ConfigProperty(name = BACKUP_SYNC_DEADLOCK, defaultValue = "60000")
     long deadLockInterval;
 
     @Resource
@@ -146,10 +175,10 @@ public class BackupService {
             try {
                 startScheduler(true);
             } catch (BackupException e) {
-                logController.warning(BackupApi.TOPIC_BACKUP, "Failed to init scheduler: " + e.getMessage());
+                logController.warning(TOPIC_BACKUP, "Failed to init scheduler: " + e.getMessage());
             }
         } else {
-            logController.warning(BackupApi.TOPIC_BACKUP,
+            logController.warning(TOPIC_BACKUP,
                     "Missing environment param 'WORKFLOW_SERVICE_ENDPOINT' - please verify configuration!");
         }
     }
@@ -180,7 +209,7 @@ public class BackupService {
             DocumentClient documentClient = restClientHelper.createDocumentClient();
             EventLogClient eventLogClient = restClientHelper.createEventLogClient(documentClient);
             if (documentClient == null || eventLogClient == null) {
-                logController.warning(BackupApi.TOPIC_BACKUP,
+                logController.warning(TOPIC_BACKUP,
                         "Unable to connect to workflow instance endpoint - please verify configuration!");
                 try {
                     stopScheduler();
@@ -197,7 +226,7 @@ public class BackupService {
 
             // max 100 entries per iteration
             eventLogClient.setPageSize(100);
-            List<ItemCollection> events = eventLogClient.searchEventLog(BackupApi.EVENTLOG_TOPIC_BACKUP);
+            List<ItemCollection> events = eventLogClient.searchEventLog(getEventLogTopic());
             FTPClient ftpClient = null;
 
             try {
@@ -246,15 +275,14 @@ public class BackupService {
                         } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
                             // we also catch EJBExceptions here because we do not want to cancel the
                             // ManagedScheduledExecutorService
-                            logController.warning(BackupApi.TOPIC_BACKUP,
-                                    "SnapshotEvent " + id + ": " + e.getMessage());
+                            logController.warning(TOPIC_BACKUP, "SnapshotEvent " + id + ": " + e.getMessage());
                             errors++;
                             countMetric(METRIC_EVENTS_ERRORS);
 
                         }
                     }
                     // print log
-                    logController.info(BackupApi.TOPIC_BACKUP, success + " snapshots backed up in "
+                    logController.info(TOPIC_BACKUP, success + " snapshots backed up in "
                             + (System.currentTimeMillis() - duration) + " ms - " + errors + " errors...");
 
                 } else {
@@ -279,11 +307,11 @@ public class BackupService {
             // In case of a exception during processing the event log
             // the timer service will automatically restarted. This is important
             // to resolve restarts of the workflow engine.
-            logController.warning(BackupApi.TOPIC_BACKUP, "processing EventLog failed: " + e.getMessage());
+            logController.warning(TOPIC_BACKUP, "processing EventLog failed: " + e.getMessage());
             try {
                 restartScheduler();
             } catch (BackupException e1) {
-                logController.warning(BackupApi.TOPIC_BACKUP, "Failed to restart backup scheduler: " + e.getMessage());
+                logController.warning(TOPIC_BACKUP, "Failed to restart backup scheduler: " + e.getMessage());
             }
         }
     }
@@ -319,7 +347,21 @@ public class BackupService {
             logger.fine("...no eventLogClient available!");
             return;
         }
-        eventLogClient.releaseDeadLocks(deadLockInterval, BackupApi.EVENTLOG_TOPIC_BACKUP);
+        eventLogClient.releaseDeadLocks(deadLockInterval, getEventLogTopic());
+    }
+
+    /**
+     * This helper method returns the backup topic respecting the optional MirrorID
+     *
+     * @return
+     */
+    public String getEventLogTopic() {
+        String result = EVENTLOG_TOPIC_BACKUP;
+        String mirrorID = backupMirrorId.orElse("");
+        if (!mirrorID.isBlank()) {
+            result = result + "." + mirrorID;
+        }
+        return result;
     }
 
     /**
@@ -353,9 +395,9 @@ public class BackupService {
                 return snapshot;
             }
         } catch (RestAPIException e) {
-            logController.warning(BackupApi.TOPIC_BACKUP, "Snapshot " + ref + " pull failed: " + e.getMessage());
+            logController.warning(TOPIC_BACKUP, "Snapshot " + ref + " pull failed: " + e.getMessage());
             // now we need to remove the batch event
-            logController.warning(BackupApi.TOPIC_BACKUP, "EventLogEntry " + id + " will be removed!");
+            logController.warning(TOPIC_BACKUP, "EventLogEntry " + id + " will be removed!");
             try {
                 eventLogClient.deleteEventLogEntry(id);
             } catch (RestAPIException e1) {
@@ -394,10 +436,10 @@ public class BackupService {
             restClientHelper.reset();
             if (clearLog) {
                 // clear log in case of a normal start
-                logController.reset(BackupApi.TOPIC_BACKUP);
+                logController.reset(TOPIC_BACKUP);
             }
-            logController.info(BackupApi.TOPIC_BACKUP,
-                    "Starting backup scheduler - initalDelay=" + initialDelay + "ms  inverval=" + interval + "ms ....");
+            logController.info(TOPIC_BACKUP, "Starting backup scheduler - initialDelay=" + initialDelay
+                    + "ms  inverval=" + interval + "ms ....");
             // start archive schedulers....
             // Registering a non-persistent Timer Service.
             final TimerConfig timerConfig = new TimerConfig();
@@ -421,13 +463,13 @@ public class BackupService {
         Timer timer = backupStatusHandler.getTimer();
         if (timer != null) {
             try {
-                logController.info(BackupApi.TOPIC_BACKUP, "Stopping the backup scheduler...");
+                logController.info(TOPIC_BACKUP, "Stopping the backup scheduler...");
                 timer.cancel();
             } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
                 throw new BackupException("TIMER_EXCEPTION", "Failed to stop scheduler ", e);
             }
             // update status message
-            logController.info(BackupApi.TOPIC_BACKUP, "Timer stopped. ");
+            logController.info(TOPIC_BACKUP, "Timer stopped. ");
         }
         backupStatusHandler.setStatus(BackupStatusHandler.STATUS_STOPPED);
         return true;

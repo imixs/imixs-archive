@@ -8,18 +8,19 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.RequestScoped;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.ArchiveException;
+import org.imixs.archive.service.SyncService;
 import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.archive.service.cassandra.DataService;
 import org.imixs.archive.service.resync.ResyncService;
 import org.imixs.archive.service.util.MessageService;
 import org.imixs.workflow.ItemCollection;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 /**
  * CID Bean provide cluster configuration.
@@ -44,7 +45,6 @@ public class ClusterDataController implements Serializable {
     @Inject
     DataService dataService;
 
-
     @Inject
     MessageService messageService;
 
@@ -65,15 +65,19 @@ public class ClusterDataController implements Serializable {
     String repClass;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = SyncService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> workflowServiceEndpoint;
+
+    @Inject
+    @ConfigProperty(name = SyncService.ENV_BACKUP_MIRRORS)
+    Optional<String> backupMirrors;
 
     public ClusterDataController() {
         super();
     }
 
     /**
-     * This method initializes a cluster and session obejct.
+     * This method initializes a cluster and session object.
      * 
      * @throws ArchiveException
      * @see {@link ClusterDataController#close()}
@@ -98,7 +102,6 @@ public class ClusterDataController implements Serializable {
         return (clusterService.getSession() != null);
     }
 
-   
     /**
      * returns the last reSync point of the current metaData object
      * 
@@ -146,6 +149,10 @@ public class ClusterDataController implements Serializable {
 
     public String getServiceEndpoint() {
         return workflowServiceEndpoint.get();
+    }
+
+    public String getBackupMirrors() {
+        return backupMirrors.orElse("");
     }
 
     /**

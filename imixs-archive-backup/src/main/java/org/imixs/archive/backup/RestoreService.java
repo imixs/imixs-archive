@@ -79,23 +79,23 @@ public class RestoreService {
 
     // timeout interval in ms
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "60000")
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SYNC_INTERVAL, defaultValue = "60000")
     long interval;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INITIALDELAY, defaultValue = "30000")
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SYNC_INITIALDELAY, defaultValue = "30000")
     long initialDelay;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> workflowServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PATH)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PATH)
     Optional<String> ftpPath;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_HOST)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_HOST)
     Optional<String> ftpServer;
 
     @Resource
@@ -113,7 +113,7 @@ public class RestoreService {
     @PostConstruct
     public void init() {
         if (!workflowServiceEndpoint.isPresent()) {
-            logController.warning(BackupApi.TOPIC_RESTORE,
+            logController.warning(BackupService.TOPIC_RESTORE,
                     "Missing environment param 'WORKFLOW_SERVICE_ENDPOINT' - please verify configuration!");
         }
     }
@@ -147,7 +147,7 @@ public class RestoreService {
             DocumentClient documentClient = restClientHelper.createDocumentClient();
 
             if (documentClient == null) {
-                logController.warning(BackupApi.TOPIC_RESTORE,
+                logController.warning(BackupService.TOPIC_RESTORE,
                         "Unable to connect to workflow instance endpoint - please verify configuration!");
                 try {
                     stopScheduler();
@@ -158,7 +158,7 @@ public class RestoreService {
 
             restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_RUNNING);
 
-            logController.info(BackupApi.TOPIC_RESTORE, "Starting import from " + ftpServer.get() + "...");
+            logController.info(BackupService.TOPIC_RESTORE, "Starting import from " + ftpServer.get() + "...");
 
             ftpClient = ftpConnector.getFTPClient();
 
@@ -199,7 +199,7 @@ public class RestoreService {
                                                 + "' : " + ftpClient.getReplyString());
                             }
 
-                            logController.info(BackupApi.TOPIC_RESTORE,
+                            logController.info(BackupService.TOPIC_RESTORE,
                                     " ⇨ import: " + ftpFileYear.getName() + "/" + ftpWorkingPath + " ...");
                             // read all files....
                             int count = 0;
@@ -227,7 +227,7 @@ public class RestoreService {
                                 }
                             }
 
-                            logController.info(BackupApi.TOPIC_RESTORE,
+                            logController.info(BackupService.TOPIC_RESTORE,
                                     " ⇨ " + ftpFileYear.getName() + "/" + ftpWorkingPath + ": " + verified
                                             + " snapshots verified, " + count + " snapshots imported, " + skipped
                                             + " snapshots already existed");
@@ -246,7 +246,7 @@ public class RestoreService {
                 ftpClient.changeToParentDirectory();
             }
 
-            logController.info(BackupApi.TOPIC_RESTORE, "Restore completed!");
+            logController.info(BackupService.TOPIC_RESTORE, "Restore completed!");
 
             stopScheduler();
 
@@ -255,7 +255,7 @@ public class RestoreService {
         } catch (InvalidAccessException | EJBException | IOException | RestAPIException e) {
             // we also catch EJBExceptions here because we do not want to cancel the
             // ManagedScheduledExecutorService
-            logController.warning(BackupApi.TOPIC_RESTORE, "restore failed: " + e.getMessage());
+            logController.warning(BackupService.TOPIC_RESTORE, "restore failed: " + e.getMessage());
             try {
                 stopScheduler();
             } catch (BackupException e1) {
@@ -315,11 +315,11 @@ public class RestoreService {
      */
     private void restoreSnapshot(DocumentClient documentClient, ItemCollection snapshot) throws BackupException {
 
-        String url = BackupApi.SNAPSHOT_RESOURCE;
+        String url = BackupService.SNAPSHOT_RESOURCE;
         logger.finest("...... post data: " + url + "....");
         try {
             // mark snapshot to indicate that a new backup should be skipped.
-            snapshot.setItemValue(BackupApi.ITEM_BACKUPRESTORE, new Date());
+            snapshot.setItemValue(BackupService.ITEM_BACKUPRESTORE, new Date());
             documentClient.postXMLDocument(url, XMLDocumentAdapter.getDocument(snapshot));
         } catch (RestAPIException e) {
             String errorMessage = "...failed to restoreSnapshot: " + e.getMessage();
@@ -339,8 +339,8 @@ public class RestoreService {
     public void startScheduler() throws BackupException {
         try {
             restClientHelper.reset();
-            logController.reset(BackupApi.TOPIC_RESTORE);
-            logController.info(BackupApi.TOPIC_RESTORE,
+            logController.reset(BackupService.TOPIC_RESTORE);
+            logController.info(BackupService.TOPIC_RESTORE,
                     "Starting restore scheduler - initalDelay=0ms  inverval=" + interval + "ms ....");
             // start archive schedulers....
             // Registering a non-persistent Timer Service.
@@ -366,13 +366,13 @@ public class RestoreService {
         Timer timer = restoreStatusHandler.getTimer();
         if (timer != null) {
             try {
-                logController.info(BackupApi.TOPIC_RESTORE, "Stopping the restore scheduler...");
+                logController.info(BackupService.TOPIC_RESTORE, "Stopping the restore scheduler...");
                 timer.cancel();
             } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
                 throw new BackupException("TIMER_EXCEPTION", "Failed to stop scheduler ", e);
             }
             // update status message
-            logController.info(BackupApi.TOPIC_RESTORE, "Timer stopped. ");
+            logController.info(BackupService.TOPIC_RESTORE, "Timer stopped. ");
         }
         return true;
     }

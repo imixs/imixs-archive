@@ -39,22 +39,6 @@ import jakarta.ws.rs.core.Application;
 @ApplicationPath("api")
 public class ImixsArchiveApp extends Application {
 
-    // event log topics
-    public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
-    public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
-    public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
-    public static final String ITEM_BACKUPRESTORE = "$backuprestore";
-
-    // rest service endpoint
-    public static final String WORKFLOW_SERVICE_ENDPOINT = "workflow.service.endpoint";
-    public static final String WORKFLOW_SERVICE_USER = "workflow.service.user";
-    public static final String WORKFLOW_SERVICE_PASSWORD = "workflow.service.password";
-    public static final String WORKFLOW_SERVICE_AUTHMETHOD = "workflow.service.authmethod";
-    public static final String WORKFLOW_SYNC_INTERVAL = "workflow.sync.interval";
-    public static final String WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
-    public static final String WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
-    public static final String BACKUP_SERVICE_ENDPOINT = "backup.service.endpoint";
-
     public ImixsArchiveApp() {
         super();
     }

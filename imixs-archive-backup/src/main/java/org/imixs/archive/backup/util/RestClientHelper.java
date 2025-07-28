@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.backup.BackupApi;
+import org.imixs.archive.backup.BackupService;
 import org.imixs.melman.BasicAuthenticator;
 import org.imixs.melman.CookieAuthenticator;
 import org.imixs.melman.DocumentClient;
@@ -38,19 +38,19 @@ public class RestClientHelper implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> instanceEndpoint;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_USER)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_USER)
     Optional<String> instanceUser;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_PASSWORD)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_PASSWORD)
     Optional<String> instancePassword;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_AUTHMETHOD)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_AUTHMETHOD)
     Optional<String> instanceAuthmethod;
 
     DocumentClient documentClient = null;

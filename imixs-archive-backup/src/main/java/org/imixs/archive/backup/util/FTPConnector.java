@@ -39,6 +39,7 @@ import org.apache.commons.net.ftp.FTPSClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.backup.BackupApi;
 import org.imixs.archive.backup.BackupException;
+import org.imixs.archive.backup.BackupService;
 import org.imixs.workflow.ItemCollection;
 import org.imixs.workflow.WorkflowKernel;
 import org.imixs.workflow.xml.XMLDocumentAdapter;
@@ -64,23 +65,23 @@ public class FTPConnector {
     private static Logger logger = Logger.getLogger(FTPConnector.class.getName());
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_HOST)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_HOST)
     Optional<String> ftpServer;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PATH)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PATH)
     Optional<String> ftpPath;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PORT)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PORT)
     Optional<Integer> ftpPort;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_USER)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_USER)
     Optional<String> ftpUser;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PASSWORD)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PASSWORD)
     Optional<String> ftpPassword;
 
     /**
@@ -94,7 +95,7 @@ public class FTPConnector {
     public void put(FTPClient ftpClient, ItemCollection snapshot, boolean overwrite) throws BackupException {
         if (!ftpServer.isPresent() || !ftpPath.isPresent()) {
             throw new BackupException(FTP_ERROR,
-                    "FTP file transfer failed: no ftp host provided (" + BackupApi.ENV_BACKUP_FTP_HOST + ")!");
+                    "FTP file transfer failed: no ftp host provided (" + BackupService.ENV_BACKUP_FTP_HOST + ")!");
         }
         String snapshotID = snapshot.getUniqueID();
         logger.finest("......snapshotid=" + snapshotID);

@@ -84,12 +84,16 @@ public class FullBackupService {
     static long interval = 5000;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INITIALDELAY, defaultValue = "30000")
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SYNC_INITIALDELAY, defaultValue = "30000")
     long initialDelay;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> workflowServiceEndpoint;
+
+    @Inject
+    @ConfigProperty(name = BackupService.ENV_BACKUP_MIRROR_ID)
+    Optional<String> backupMirrorId;
 
     @Resource
     TimerService timerService;
@@ -106,7 +110,7 @@ public class FullBackupService {
     @PostConstruct
     public void init() {
         if (!workflowServiceEndpoint.isPresent()) {
-            logController.warning(BackupApi.TOPIC_FULLBACKUP,
+            logController.warning(BackupService.TOPIC_FULLBACKUP,
                     "Missing environment param 'WORKFLOW_SERVICE_ENDPOINT' - please verify configuration!");
         }
     }
@@ -142,7 +146,7 @@ public class FullBackupService {
             DocumentClient documentClient = restClientHelper.createDocumentClient();
             EventLogClient eventLogClient = restClientHelper.createEventLogClient(documentClient);
             if (documentClient == null || eventLogClient == null) {
-                logController.warning(BackupApi.TOPIC_FULLBACKUP,
+                logController.warning(BackupService.TOPIC_FULLBACKUP,
                         "│   ├── Unable to connect to workflow instance endpoint - please verify configuration!");
                 try {
                     stopScheduler(FullBackupStatusHandler.STATUS_CANCELED);
@@ -153,7 +157,8 @@ public class FullBackupService {
 
             fullBackupStatusHandler.setStatus(FullBackupStatusHandler.STATUS_RUNNING);
 
-            logController.info(BackupApi.TOPIC_FULLBACKUP, "│   ├── partial backup started from " + syncPoint + "...");
+            logController.info(BackupService.TOPIC_FULLBACKUP,
+                    "│   ├── partial backup started from " + syncPoint + "...");
 
             // find the oldest workitem to start with...
             documentClient.setPageSize(100);
@@ -170,7 +175,7 @@ public class FullBackupService {
             logger.fine("Found " + result.size() + " itemCollections");
 
             if (result.size() == 0 || result.size() == 1) { // skip last entry
-                logController.info(BackupApi.TOPIC_FULLBACKUP, "├── FullBackup completed no more data found");
+                logController.info(BackupService.TOPIC_FULLBACKUP, "├── FullBackup completed no more data found");
                 stopScheduler(FullBackupStatusHandler.STATUS_STOPPED);
                 return;
             }
@@ -185,13 +190,13 @@ public class FullBackupService {
                         total++;
                         ItemCollection options = new ItemCollection();
                         options.setItemValue("NO_OVERWRITE", true);
-                        eventLogClient.createEventLogEntry(EVENTLOG_TOPIC_FULLBACKUP, snapshotID, options);
+                        eventLogClient.createEventLogEntry(getEventLogTopic(), snapshotID, options);
                     }
                     syncPoint = created;
 
                 }
                 fullBackupStatusHandler.setSyncPoint(syncPoint);
-                logController.info(BackupApi.TOPIC_FULLBACKUP, "│   ├── partial backup completed - " + total
+                logController.info(BackupService.TOPIC_FULLBACKUP, "│   ├── partial backup completed - " + total
                         + " backup requests created, next SyncPoint=" + syncPoint);
             } finally {
                 // close writer...
@@ -208,7 +213,7 @@ public class FullBackupService {
         } catch (InvalidAccessException | EJBException | IOException | RestAPIException e) {
             // we also catch EJBExceptions here because we do not want to cancel the
             // ManagedScheduledExecutorService
-            logController.warning(BackupApi.TOPIC_FULLBACKUP, "FullBackup failed: " + e.getMessage());
+            logController.warning(BackupService.TOPIC_FULLBACKUP, "FullBackup failed: " + e.getMessage());
             try {
                 stopScheduler(FullBackupStatusHandler.STATUS_CANCELED);
 
@@ -218,6 +223,20 @@ public class FullBackupService {
         } finally {
 
         }
+    }
+
+    /**
+     * This helper method returns the backup topic respecting the optional MirrorID
+     *
+     * @return
+     */
+    public String getEventLogTopic() {
+        String result = EVENTLOG_TOPIC_FULLBACKUP;
+        String mirrorID = backupMirrorId.orElse("");
+        if (!mirrorID.isBlank()) {
+            result = result + "." + mirrorID;
+        }
+        return result;
     }
 
     /**
@@ -231,8 +250,8 @@ public class FullBackupService {
     public void startScheduler() throws BackupException {
         try {
             restClientHelper.reset();
-            logController.reset(BackupApi.TOPIC_FULLBACKUP);
-            logController.info(BackupApi.TOPIC_FULLBACKUP,
+            logController.reset(BackupService.TOPIC_FULLBACKUP);
+            logController.info(BackupService.TOPIC_FULLBACKUP,
                     "├── Starting FullBackup scheduler - initalDelay=0ms  inverval=" + interval + "ms ....");
             // start archive schedulers....
             // Registering a non-persistent Timer Service.
@@ -260,14 +279,14 @@ public class FullBackupService {
         Timer timer = fullBackupStatusHandler.getTimer();
         if (timer != null) {
             try {
-                logController.info(BackupApi.TOPIC_FULLBACKUP, "└── Stopping the FullBackup scheduler...");
+                logController.info(BackupService.TOPIC_FULLBACKUP, "└── Stopping the FullBackup scheduler...");
                 timer.cancel();
                 fullBackupStatusHandler.setStatus(status);
             } catch (IllegalArgumentException | IllegalStateException | EJBException e) {
                 throw new BackupException("TIMER_EXCEPTION", "Failed to stop scheduler ", e);
             }
             // update status message
-            logController.info(BackupApi.TOPIC_FULLBACKUP, "Timer stopped. ");
+            logController.info(BackupService.TOPIC_FULLBACKUP, "Timer stopped. ");
         }
         return true;
     }

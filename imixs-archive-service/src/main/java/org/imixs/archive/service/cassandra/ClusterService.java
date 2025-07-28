@@ -68,15 +68,8 @@ public class ClusterService {
     public static final String ENV_ARCHIVE_CLUSTER_SSL_TRUSTSTOREPASSWORD = "ARCHIVE_CLUSTER_SSL_TRUSTSTOREPASSWORD";
     public static final String ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPATH = "ARCHIVE_CLUSTER_SSL_KEYSTOREPATH";
     public static final String ENV_ARCHIVE_CLUSTER_SSL_KEYSTOREPASSWORD = "ARCHIVE_CLUSTER_SSL_KEYSTOREPASSWORD";
-
     public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_FACTOR = "ARCHIVE_CLUSTER_REPLICATION_FACTOR";
     public static final String ENV_ARCHIVE_CLUSTER_REPLICATION_CLASS = "ARCHIVE_CLUSTER_REPLICATION_CLASS";
-
-    // workflow rest service endpoint
-    public static final String ENV_WORKFLOW_SERVICE_ENDPOINT = "WORKFLOW_SERVICE_ENDPOINT";
-    public static final String ENV_WORKFLOW_SERVICE_USER = "WORKFLOW_SERVICE_USER";
-    public static final String ENV_WORKFLOW_SERVICE_PASSWORD = "WORKFLOW_SERVICE_PASSWORD";
-    public static final String ENV_WORKFLOW_SERVICE_AUTHMETHOD = "WORKFLOW_SERVICE_AUTHMETHOD";
 
     // archive table schemas
     public static final String TABLE_SCHEMA_SNAPSHOTS = "CREATE TABLE IF NOT EXISTS snapshots (snapshot text, data blob, PRIMARY KEY (snapshot))";
@@ -283,7 +276,8 @@ public class ClusterService {
         TrustManagerFactory tmf = null;
         if (truststorePath.isPresent() && !truststorePath.get().isEmpty()) {
             KeyStore tks = KeyStore.getInstance("JKS");
-            tks.load((InputStream) new FileInputStream(new File(truststorePath.get())), truststorePwd.get().toCharArray());
+            tks.load((InputStream) new FileInputStream(new File(truststorePath.get())),
+                    truststorePwd.get().toCharArray());
             tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(tks);
         } else {

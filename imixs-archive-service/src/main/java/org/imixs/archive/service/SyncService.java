@@ -1,9 +1,11 @@
 package org.imixs.archive.service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.service.cassandra.DataService;
@@ -37,30 +39,51 @@ import jakarta.inject.Inject;
 @LocalBean
 public class SyncService {
 
+    // event log topics
+    public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
+    public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
+    public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
+    public static final String ITEM_BACKUPRESTORE = "$backuprestore";
+
+    // rest service endpoint
+    public static final String ENV_WORKFLOW_SERVICE_ENDPOINT = "workflow.service.endpoint";
+    public static final String ENV_WORKFLOW_SERVICE_USER = "workflow.service.user";
+    public static final String ENV_WORKFLOW_SERVICE_PASSWORD = "workflow.service.password";
+    public static final String ENV_WORKFLOW_SERVICE_AUTHMETHOD = "workflow.service.authmethod";
+    public static final String ENV_WORKFLOW_SYNC_INTERVAL = "workflow.sync.interval";
+    public static final String ENV_WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
+    public static final String ENV_WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
+    public static final String ENV_BACKUP_SERVICE_ENDPOINT = "backup.service.endpoint";
+    public static final String ENV_BACKUP_MIRRORS = "backup.mirrors";
+
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> workflowServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_USER)
+    @ConfigProperty(name = ENV_WORKFLOW_SERVICE_USER)
     Optional<String> workflowServiceUser;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_PASSWORD)
+    @ConfigProperty(name = ENV_WORKFLOW_SERVICE_PASSWORD)
     Optional<String> workflowServicePassword;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_AUTHMETHOD)
+    @ConfigProperty(name = ENV_WORKFLOW_SERVICE_AUTHMETHOD)
     Optional<String> workflowServiceAuthMethod;
 
     // deadlock timeout interval in ms
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_DEADLOCK, defaultValue = "60000")
+    @ConfigProperty(name = ENV_WORKFLOW_SYNC_DEADLOCK, defaultValue = "60000")
     long deadLockInterval;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.BACKUP_SERVICE_ENDPOINT)
+    @ConfigProperty(name = ENV_BACKUP_SERVICE_ENDPOINT)
     Optional<String> backupServiceEndpoint;
+
+    @Inject
+    @ConfigProperty(name = ENV_BACKUP_MIRRORS)
+    Optional<String> backupMirrors;
 
     @Inject
     DataService dataService;
@@ -91,8 +114,8 @@ public class SyncService {
 
         // max 100 entries per iteration
         eventLogClient.setPageSize(100);
-        List<ItemCollection> events = eventLogClient.searchEventLog(ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
-                ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
+        List<ItemCollection> events = eventLogClient.searchEventLog(EVENTLOG_TOPIC_ADD,
+                EVENTLOG_TOPIC_REMOVE);
 
         for (ItemCollection eventLogEntry : events) {
             topic = eventLogEntry.getItemValueString("topic");
@@ -103,12 +126,12 @@ public class SyncService {
                 eventLogClient.lockEventLogEntry(id);
 
                 // pull the snapshotEvent only if not just qeued...
-                if (topic.startsWith(ImixsArchiveApp.EVENTLOG_TOPIC_ADD)) {
+                if (topic.startsWith(EVENTLOG_TOPIC_ADD)) {
                     logger.finest("......pull snapshot " + ref + "....");
                     snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
                 }
 
-                if (topic.startsWith(ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE)) {
+                if (topic.startsWith(EVENTLOG_TOPIC_REMOVE)) {
                     logger.info("Remove Snapshot not yet implemented");
                 }
                 // finally remove the event log entry...
@@ -117,9 +140,20 @@ public class SyncService {
                 // finally write a backup event log entry if a BackupService is available...
                 if (backupServiceEndpoint.isPresent() && !backupServiceEndpoint.get().isEmpty()) {
                     // we skip this event if the snapshot is from a restore....
-                    if (snapshot != null && !snapshot.hasItem(ImixsArchiveApp.ITEM_BACKUPRESTORE)) {
-                        logger.finest("......create event log entry " + ImixsArchiveApp.EVENTLOG_TOPIC_BACKUP);
-                        eventLogClient.createEventLogEntry(ImixsArchiveApp.EVENTLOG_TOPIC_BACKUP, ref, null);
+                    if (snapshot != null && !snapshot.hasItem(ITEM_BACKUPRESTORE)) {
+                        logger.finest("......create event log entry " + EVENTLOG_TOPIC_BACKUP);
+                        eventLogClient.createEventLogEntry(EVENTLOG_TOPIC_BACKUP, ref, null);
+                        // create additional events for each backup mirror if defined
+                        String mirrors = backupMirrors.orElse("");
+                        if (!mirrors.isBlank()) {
+                            List<String> mirrorList = Arrays.stream(mirrors.split(","))
+                                    .map(String::trim)
+                                    .filter(s -> !s.isEmpty())
+                                    .collect(Collectors.toList());
+                            for (String mirrorID : mirrorList) {
+                                eventLogClient.createEventLogEntry(EVENTLOG_TOPIC_BACKUP + "." + mirrorID, ref, null);
+                            }
+                        }
                     }
                 }
                 count++;
@@ -157,8 +191,8 @@ public class SyncService {
             logger.warning("...no eventLogClient available!");
             return;
         }
-        eventLogClient.releaseDeadLocks(deadLockInterval, ImixsArchiveApp.EVENTLOG_TOPIC_ADD,
-                ImixsArchiveApp.EVENTLOG_TOPIC_REMOVE);
+        eventLogClient.releaseDeadLocks(deadLockInterval, EVENTLOG_TOPIC_ADD,
+                EVENTLOG_TOPIC_REMOVE);
     }
 
     /**

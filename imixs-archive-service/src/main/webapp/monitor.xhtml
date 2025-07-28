@@ -1,11 +1,7 @@
-<ui:composition xmlns="http://www.w3.org/1999/xhtml"
-	xmlns:f="http://xmlns.jcp.org/jsf/core"
-	xmlns:h="http://xmlns.jcp.org/jsf/html"
-	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
-	xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-	xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
-	xmlns:fn="http://xmlns.jcp.org/jsp/jstl/functions"
-	template="/layout/template.xhtml">
+<ui:composition xmlns="http://www.w3.org/1999/xhtml" xmlns:f="http://xmlns.jcp.org/jsf/core"
+	xmlns:h="http://xmlns.jcp.org/jsf/html" xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
+	xmlns:ui="http://xmlns.jcp.org/jsf/facelets" xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
+	xmlns:fn="http://xmlns.jcp.org/jsp/jstl/functions" template="/layout/template.xhtml">
 
 
 	<ui:define name="content">
@@ -29,13 +25,10 @@
 									<td style="width: 25%;">Cluster Contact Points:</td>
 									<td>#{clusterDataController.contactPoints}</td>
 								</tr>
-
 								<tr>
 									<td>KeySpace:</td>
 									<td>#{clusterDataController.keySpace}</td>
 								</tr>
-
-
 								<tr>
 									<td>Replication Factor:</td>
 									<td>#{clusterDataController.replicationFactor}</td>
@@ -44,25 +37,28 @@
 									<td>Replication Strategy:</td>
 									<td>#{clusterDataController.replicationClass}</td>
 								</tr>
-
-
 								<tr>
 									<td>Connecton Status:</td>
-									<td><ui:fragment
-											rendered="#{clusterDataController.connected}">
-							OK <span class="typcn typcn-media-record"
+									<td>
+										<ui:fragment rendered="#{clusterDataController.connected}">
+											OK <span class="typcn typcn-media-record"
 												style="font-size: 1.3em; color: #5c9e5c;"></span>
-										</ui:fragment> <ui:fragment rendered="#{!clusterDataController.connected}">
-							Failed <span class="typcn typcn-media-record"
+										</ui:fragment>
+										<ui:fragment rendered="#{!clusterDataController.connected}">
+											Failed <span class="typcn typcn-media-record"
 												style="font-size: 1.3em; color: #e84848;"></span>
-										</ui:fragment></td>
+										</ui:fragment>
+									</td>
 								</tr>
 
 								<tr>
 									<td style="width: 25%;">Endpoint:</td>
 									<td>#{clusterDataController.serviceEndpoint}</td>
 								</tr>
-
+								<tr>
+									<td>Backup Mirrors:</td>
+									<td>#{clusterDataController.backupMirrors}</td>
+								</tr>
 							</table>
 
 
@@ -70,16 +66,14 @@
 							<!-- html -->
 							<a target="_blank" class="button" href="/api/archive/metadata">Metadata</a>
 							<!-- xml -->
-							<a target="_blank" class="button"
-								href="/api/archive/metadata?format=xml">Metadata XML</a>
+							<a target="_blank" class="button" href="/api/archive/metadata?format=xml">Metadata XML</a>
 							<!-- json -->
-							<a target="_blank" class="button"
-								href="/api/archive/metadata?format=json">Metadata JSON</a>
+							<a target="_blank" class="button" href="/api/archive/metadata?format=json">Metadata JSON</a>
 
 						</div>
 					</div>
 				</div>
-				
+
 
 			</div>
 		</h:form>

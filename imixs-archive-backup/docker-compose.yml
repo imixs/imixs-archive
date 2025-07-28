@@ -1,6 +1,5 @@
 version: "3"
 services:
-
   imixsbackup-app:
     #image: imixs/imixs-archive-backup:2.4.0
     image: imixs/imixs-archive-backup:latest
@@ -9,22 +8,19 @@ services:
       DEBUG: "true"
 
       # EXAMPLE SETUP
-      WORKFLOW_SERVICE_ENDPOINT: "http://app:8080/api"      
+      WORKFLOW_SERVICE_ENDPOINT: "http://app:8080/api"
       WORKFLOW_SERVICE_USER: test
       WORKFLOW_SERVICE_PASSWORD: ""
       WORKFLOW_SERVICE_AUTHMETHOD: "form"
-      
+
       BACKUP_FTP_HOST: "ftp.storage.foo"
       BACKUP_FTP_PATH: "/test/"
       BACKUP_FTP_PORT: "21"
       BACKUP_FTP_USER: ""
-      BACKUP_FTP_PASSWORD: ""      
+      BACKUP_FTP_PASSWORD: ""
+      BACKUP_MIRROR_ID: "AGL-Mirror"
     ports:
       - "8080:8080"
-      - "8787:8787"   
+      - "8787:8787"
     volumes:
       - ./docker/deployments:/opt/jboss/wildfly/standalone/deployments/
- 
-
-    
- 

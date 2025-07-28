@@ -90,6 +90,22 @@ The backup requests are queued in an event log. This means that even in the situ
 
 ## Backup Mirrors
 
+You can install more than one backup service to achieve higher availability and backup data to different environments. In this case, you can define so-called backup mirrors. A backup mirror is automatically included in the backup process and operates independently of the main backup service.
+
+Add the mirror IDs to your backup service configuration
+
+| Environment Variable | Description                                                      | Example                              |
+| -------------------- | ---------------------------------------------------------------- | ------------------------------------ |
+| BACKUP_MIRRORS       | List of IDs for optional backup mirror systems (comma separated) | backup-mirror-001, backup-mirror-002 |
+
+You can setup the backup mirror service analog to the main backup service as described in the section 'Configuration'. Just add the backup mirror ID to your mirror instance
+
+| Environment Variable | Description                         | Example           |
+| -------------------- | ----------------------------------- | ----------------- |
+| BACKUP_MIRROR_ID     | The unique ID of this backup mirror | backup-mirror-001 |
+
+The backup mirror will automatically be synchronized during the normal backup events.
+
 # Development
 
 Imixs-Archive-Backup runs as a self-contained microservice with a modern Web UI based on JDK 11 and Jakarta EE Faces 4.0. The client interacts with the Imixs-Workflow Engine via the Imixs-Rest API and the [Imixs-Melman library](https://github.com/imixs/imixs-melman).

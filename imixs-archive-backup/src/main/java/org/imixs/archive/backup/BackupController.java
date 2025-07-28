@@ -33,7 +33,7 @@ public class BackupController implements Serializable {
     private static final long serialVersionUID = 7027147503119012594L;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> instanceEndpoint;
 
     @Inject
@@ -49,21 +49,25 @@ public class BackupController implements Serializable {
     MetricRegistry metricRegistry;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_HOST)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_HOST)
     Optional<String> ftpServer;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PATH)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PATH)
     Optional<String> ftpPath;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PORT, defaultValue = "21")
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PORT, defaultValue = "21")
     int ftpPort;
 
     // timeout interval in ms
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
     long interval;
+
+    @Inject
+    @ConfigProperty(name = BackupService.ENV_BACKUP_MIRROR_ID)
+    Optional<String> backupMirrorId;
 
     @SuppressWarnings("unused")
     private static Logger logger = Logger.getLogger(BackupController.class.getName());
@@ -107,6 +111,10 @@ public class BackupController implements Serializable {
         return ftpPath.orElse("");
     }
 
+    public String getBackupMirrorId() {
+        return backupMirrorId.orElse("");
+    }
+
     public int getFtpPort() {
         return ftpPort;
     }
@@ -126,7 +134,7 @@ public class BackupController implements Serializable {
         try {
             backupService.startScheduler(true);
         } catch (BackupException e) {
-            logController.warning(BackupApi.TOPIC_BACKUP, e.getMessage());
+            logController.warning(BackupService.TOPIC_BACKUP, e.getMessage());
         }
     }
 
@@ -137,7 +145,7 @@ public class BackupController implements Serializable {
         try {
             backupService.stopScheduler();
         } catch (BackupException e) {
-            logController.warning(BackupApi.TOPIC_BACKUP, e.getMessage());
+            logController.warning(BackupService.TOPIC_BACKUP, e.getMessage());
         }
     }
 

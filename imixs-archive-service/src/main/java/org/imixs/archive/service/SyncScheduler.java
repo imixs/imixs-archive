@@ -39,15 +39,15 @@ public class SyncScheduler {
 
     // timeout interval in ms
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_INTERVAL, defaultValue = "5000")
+    @ConfigProperty(name = SyncService.ENV_WORKFLOW_SYNC_INTERVAL, defaultValue = "5000")
     long interval;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SYNC_INITIALDELAY, defaultValue = "30000")
+    @ConfigProperty(name = SyncService.ENV_WORKFLOW_SYNC_INITIALDELAY, defaultValue = "30000")
     long initialDelay;
 
     @Inject
-    @ConfigProperty(name = ImixsArchiveApp.WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = SyncService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> workflowServiceEndpoint;
 
     @Inject

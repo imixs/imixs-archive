@@ -43,19 +43,19 @@ public class FullBackupController implements Serializable {
     FullBackupService fullBackupService;
 
     @Inject
-    @ConfigProperty(name = BackupApi.WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> instanceEndpoint;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_HOST)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_HOST)
     Optional<String> ftpServer;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PATH)
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PATH)
     Optional<String> ftpPath;
 
     @Inject
-    @ConfigProperty(name = BackupApi.ENV_BACKUP_FTP_PORT, defaultValue = "21")
+    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PORT, defaultValue = "21")
     int ftpPort;
 
     public boolean isConnected() {
@@ -94,7 +94,7 @@ public class FullBackupController implements Serializable {
         try {
             fullBackupService.startScheduler();
         } catch (BackupException e) {
-            logController.warning(BackupApi.TOPIC_BACKUP, e.getMessage());
+            logController.warning(BackupService.TOPIC_BACKUP, e.getMessage());
         }
     }
 

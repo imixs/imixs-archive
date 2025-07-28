@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.service.cassandra.ClusterService;
 import org.imixs.melman.DocumentClient;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.ItemCollection;
@@ -56,19 +55,19 @@ public class RemoteAPIService {
     private static Logger logger = Logger.getLogger(RemoteAPIService.class.getName());
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = SyncService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> workflowServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_USER)
+    @ConfigProperty(name = SyncService.ENV_WORKFLOW_SERVICE_USER)
     Optional<String> workflowServiceUser;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_PASSWORD)
+    @ConfigProperty(name = SyncService.ENV_WORKFLOW_SERVICE_PASSWORD)
     Optional<String> workflowServicePassword;
 
     @Inject
-    @ConfigProperty(name = ClusterService.ENV_WORKFLOW_SERVICE_AUTHMETHOD)
+    @ConfigProperty(name = SyncService.ENV_WORKFLOW_SERVICE_AUTHMETHOD)
     Optional<String> workflowServiceAuthMethod;
 
     /**
