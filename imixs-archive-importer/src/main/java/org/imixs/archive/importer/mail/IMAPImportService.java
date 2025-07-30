@@ -365,20 +365,7 @@ public class IMAPImportService {
                             InputStream input = mimeBodyPart.getInputStream();
                             byte[] content = IMAPImportHelper.readAllBytes(input);
                             String contentType = mimeBodyPart.getContentType();
-                            // fix mimeType if application/octet-stream and file extension is .pdf
-                            // (issue #147)
-                            if (debug) {
-                                logger.info("mimetype=" + contentType);
-                            }
-                            if (IMAPImportHelper.isMediaTypeOctet(contentType, fileName)
-                                    && fileName.toLowerCase().endsWith(".pdf")) {
-                                logger.info("...converting mimetype '" + contentType + "' to application/pdf");
-                                contentType = "application/pdf";
-                            }
-                            // strip ; prafixes
-                            if (contentType.contains(";")) {
-                                contentType = contentType.substring(0, contentType.indexOf(";"));
-                            }
+                            contentType = IMAPImportHelper.fixContentType(contentType, fileName, debug);
                             FileData fileData = new FileData(fileName, content, contentType, null);
                             workitem.addFileData(fileData);
                         }

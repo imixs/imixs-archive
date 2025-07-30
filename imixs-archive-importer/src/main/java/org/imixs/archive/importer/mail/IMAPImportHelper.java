@@ -108,4 +108,57 @@ public class IMAPImportHelper {
         }
     }
 
+    /**
+     * Fixes malformed MIME content types in file attachments.
+     * 
+     * Some email clients or servers generate incorrect MIME types with invalid
+     * characters (dots, spaces) around the slash separator. This method cleans
+     * up these common formatting errors to ensure proper content type recognition.
+     *
+     * Common fixes applied:
+     * - application/.pdf → application/pdf
+     * - text /html → text/html
+     * - image. /jpeg → image/jpeg
+     * - application . /pdf → application/pdf
+     *
+     * The method also converts 'application/octet-stream' into 'application/pdf' if
+     * the file is a pdf file.
+     * 
+     * prefixes will be striped automatically.
+     * 
+     * @param snapshot the ItemCollection containing FileData objects to fix
+     */
+    public static String fixContentType(String contentType, String fileName, boolean debug) {
+
+        if (contentType == null || contentType.isEmpty()) {
+            // no op
+            return contentType;
+        }
+
+        // Remove invalid characters (dots and spaces) around the slash separator
+        // Regex pattern: [\\s.]* matches zero or more spaces or dots
+        String fixedContentType = contentType.replaceAll("[\\s.]*(/)[\\s.]*", "$1");
+        if (!contentType.equals(fixedContentType)) {
+            // Optional: Log the fix for debugging
+            logger.info("...fixed content type: '" + contentType + "' -> '" + fixedContentType + "'");
+            contentType = fixedContentType;
+        }
+
+        // fix mimeType if application/octet-stream and file extension is .pdf
+        // (issue #147)
+        if (IMAPImportHelper.isMediaTypeOctet(contentType, fileName)
+                && fileName.toLowerCase().endsWith(".pdf")) {
+            logger.info("...converting mimetype '" + contentType + "' to application/pdf");
+            contentType = "application/pdf";
+        }
+        // strip ; prefixes
+        if (contentType.contains(";")) {
+            contentType = contentType.substring(0, contentType.indexOf(";"));
+        }
+
+        if (debug) {
+            logger.info("mimetype=" + contentType);
+        }
+        return contentType;
+    }
 }
