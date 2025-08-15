@@ -49,10 +49,10 @@ import jakarta.inject.Inject;
 public class DocumentImportScheduler implements Scheduler {
 
     public static final String DOCUMENT_IMPORTER_NAME = "DOCUMENT_IMPORTER";
-  
+
     @EJB
     DocumentImportService documentImportService;
-    
+
     @Inject
     protected Event<DocumentImportEvent> importEvents;
 
@@ -64,7 +64,6 @@ public class DocumentImportScheduler implements Scheduler {
      * process the source. If a event returns PROCESSING_RESULT_COMPLETED = 1 than
      * no more events will be fired for this source.
      * 
-     * 
      * @param timer
      * @throws SchedulerException
      * @throws QueryException
@@ -73,10 +72,13 @@ public class DocumentImportScheduler implements Scheduler {
     public ItemCollection run(ItemCollection configuration) throws SchedulerException {
 
         if (importEvents != null) {
+            // disable snapshot
+            configuration.setItemValue("$nosnapshot", true);
             // load all sources
             List<ItemCollection> sources = documentImportService.loadSourcesFromConfiguration(configuration);
             if (sources.size() > 0) {
-                documentImportService.logMessage("Document import starting - " + sources.size() + " sources found...", configuration);
+                documentImportService.logMessage("Document import starting - " + sources.size() + " sources found...",
+                        configuration);
                 for (ItemCollection source : sources) {
                     // Finally fire the DocumentImportEvent. This allows CDI Observers to process
                     // the import
@@ -88,7 +90,7 @@ public class DocumentImportScheduler implements Scheduler {
                         logger.severe("...Document Import Error");
                     }
                 }
-                
+
                 // update sources (a CDI bean may have added new data....)
                 // convert the option ItemCollection elements into a List of Map
                 List<Map> mapItemList = new ArrayList<Map>();
@@ -97,8 +99,7 @@ public class DocumentImportScheduler implements Scheduler {
                     mapItemList.add(orderItem.getAllItems());
                 }
                 configuration.replaceItemValue(DocumentImportService.ITEM_SOURCES, mapItemList);
-            
-                
+
                 documentImportService.logMessage("Document import completed.", configuration);
             } else {
                 documentImportService.logMessage("No sources defined.", configuration);
@@ -108,5 +109,4 @@ public class DocumentImportScheduler implements Scheduler {
         return configuration;
     }
 
-   
 }

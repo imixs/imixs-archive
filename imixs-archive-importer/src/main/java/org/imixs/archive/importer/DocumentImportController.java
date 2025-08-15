@@ -117,6 +117,8 @@ public class DocumentImportController extends SchedulerController {
             config.replaceItemValue(DocumentImportService.ITEM_SOURCES, mapItemList);
         }
 
+        // disable snapshot
+        config.setItemValue("$nosnapshot", true);
         super.saveConfiguration();
     }
 
@@ -167,8 +169,8 @@ public class DocumentImportController extends SchedulerController {
      */
     public void selectSource(int index) {
         if (sources != null) {
-            if (index>sources.size()) {
-                index=sources.size()-1;
+            if (index > sources.size()) {
+                index = sources.size() - 1;
             }
             source = sources.get(index);
         }
@@ -181,8 +183,8 @@ public class DocumentImportController extends SchedulerController {
      */
     public void removeSource(int index) {
         if (sources != null) {
-            if (index>sources.size()) {
-                index=sources.size()-1;
+            if (index > sources.size()) {
+                index = sources.size() - 1;
             }
             sources.remove(index);
         }
