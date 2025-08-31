@@ -87,7 +87,6 @@
 		<org.imixs.melman.version>2.1.0</org.imixs.melman.version>
 		<apache.pdfbox.version>2.0.21</apache.pdfbox.version>
 		<microprofile.version>6.0</microprofile.version>
-		<microprofile-metrics.version>4.0</microprofile-metrics.version>
 		<!-- test dependencies -->
 		<junit.jupiter.version>5.9.2</junit.jupiter.version>
 		<mockito.version>5.8.0</mockito.version>

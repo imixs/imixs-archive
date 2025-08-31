@@ -30,9 +30,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.metrics.MetricRegistry;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.RegistryType;
 import org.imixs.archive.export.ExportApi;
 import org.imixs.archive.export.ExportException;
 import org.imixs.archive.export.util.RestClientHelper;
@@ -136,10 +133,6 @@ public class SchedulerService {
     ExportStatusHandler exportStatusHandler;
 
     @Inject
-    @RegistryType(type = MetricRegistry.Type.APPLICATION)
-    MetricRegistry metricRegistry;
-
-    @Inject
     LogService logService;
 
     @PostConstruct
@@ -185,17 +178,10 @@ public class SchedulerService {
      * Each eventLogEntry is locked to guaranty exclusive processing.
      *
      *
-     * The metric generated :
-     *
-     * executions count: count of method executions processing Time:
-     * application_org_imixs_archive_export_SchedulerService_executions_total event
-     * count: error count:
-     * application_org_imixs_archive_export_SchedulerService_errors_total
      *
      *
      * @throws RestAPIException
      **/
-    @Counted(name = "executions", description = "Counting the invocations of export service", displayName = "executions")
     @SuppressWarnings("unchecked")
     @Timeout
     public void onTimeout(jakarta.ejb.Timer _timer) {
@@ -215,7 +201,6 @@ public class SchedulerService {
                     stopScheduler();
                 } catch (ExportException e) {
                 }
-                metricRegistry.counter("errors").inc();
                 return;
             }
 
@@ -270,12 +255,10 @@ public class SchedulerService {
 
                     // finally remove the event log entry...
                     eventLogClient.deleteEventLogEntry(id);
-                    metricRegistry.counter("org_imixs_archive_export_services_SchedulerService_events").inc();
                 } catch (InvalidAccessException | EJBException | ExportException | RestAPIException e) {
                     // we also catch EJBExceptions here because we do not want to cancel the
                     // ManagedScheduledExecutorService
                     logService.warning("ExportEvent " + id + " failed: " + e.getMessage());
-                    metricRegistry.counter("org_imixs_archive_export_SchedulerService_errors").inc();
                     errors++;
                     // release lock
                     eventLogClient.unlockEventLogEntry(id);
@@ -291,7 +274,6 @@ public class SchedulerService {
 
         } catch (InvalidAccessException | EJBException | RestAPIException e) {
             logService.severe("processing EventLog failed: " + e.getMessage());
-            metricRegistry.counter("org_imixs_archive_export_SchedulerService_errors").inc();
         }
     }
 
