@@ -102,12 +102,13 @@ public class RestClientHelper implements Serializable {
                 documentClient.registerClientRequestFilter(jwtAuth);
             }
 
-            if ("KEYCLOAK".equalsIgnoreCase(auttype)) {
-                KeycloakAuthenticator keycloakAuth = new KeycloakAuthenticator(instanceEndpoint.orElse(""),
-                        instanceUser.orElse(""),
-                        instancePassword.orElse(""));
-                documentClient.registerClientRequestFilter(keycloakAuth);
-            }
+            // if ("KEYCLOAK".equalsIgnoreCase(auttype)) {
+            // KeycloakAuthenticator keycloakAuth = new
+            // KeycloakAuthenticator(instanceEndpoint.orElse(""),
+            // instanceUser.orElse(""),
+            // instancePassword.orElse(""));
+            // documentClient.registerClientRequestFilter(keycloakAuth);
+            // }
         }
 
         return documentClient;
