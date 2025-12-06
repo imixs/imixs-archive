@@ -157,37 +157,4 @@ public class RemoteAPIService {
 
     }
 
-    /**
-     * Helper method to initalize a Melman Workflow Client based on the current
-     * archive configuration.
-     * 
-     * @throws RestAPIException
-     */
-    // DocumentClient initWorkflowClient() throws RestAPIException {
-
-    // logger.finest("...... WORKFLOW_SERVICE_ENDPOINT = " +
-    // workflowServiceEndpoint);
-
-    // DocumentClient documentClient = new
-    // DocumentClient(workflowServiceEndpoint.get());
-
-    // // Test authentication method
-    // if ("Form".equalsIgnoreCase(workflowServiceAuthMethod.get())) {
-    // // default basic authenticator
-    // FormAuthenticator formAuth = new
-    // FormAuthenticator(workflowServiceEndpoint.get(), workflowServiceUser.get(),
-    // workflowServicePassword.get());
-    // // register the authenticator
-    // documentClient.registerClientRequestFilter(formAuth);
-
-    // } else {
-    // // default basic authenticator
-    // BasicAuthenticator basicAuth = new
-    // BasicAuthenticator(workflowServiceUser.get(),
-    // workflowServicePassword.get());
-    // // register the authenticator
-    // documentClient.registerClientRequestFilter(basicAuth);
-    // }
-    // return documentClient;
-    // }
 }

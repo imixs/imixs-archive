@@ -50,27 +50,17 @@ public class SyncService {
     public static final String ENV_WORKFLOW_SERVICE_USER = "workflow.service.user";
     public static final String ENV_WORKFLOW_SERVICE_PASSWORD = "workflow.service.password";
     public static final String ENV_WORKFLOW_SERVICE_AUTHMETHOD = "workflow.service.authmethod";
+
+    // OIDC
+    public static final String ENV_OIDC_AUTH_ENDPOINT = "oidc.auth.endpoint";
+    public static final String ENV_OIDC_AUTH_CLIENT_ID = "oidc.auth.client.id";
+    public static final String ENV_OIDC_AUTH_CLIENT_SECRET = "oidc.auth.client.secret";
+
     public static final String ENV_WORKFLOW_SYNC_INTERVAL = "workflow.sync.interval";
     public static final String ENV_WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
     public static final String ENV_WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
     public static final String ENV_BACKUP_SERVICE_ENDPOINT = "backup.service.endpoint";
     public static final String ENV_BACKUP_MIRRORS = "backup.mirrors";
-
-    @Inject
-    @ConfigProperty(name = ENV_WORKFLOW_SERVICE_ENDPOINT)
-    Optional<String> workflowServiceEndpoint;
-
-    @Inject
-    @ConfigProperty(name = ENV_WORKFLOW_SERVICE_USER)
-    Optional<String> workflowServiceUser;
-
-    @Inject
-    @ConfigProperty(name = ENV_WORKFLOW_SERVICE_PASSWORD)
-    Optional<String> workflowServicePassword;
-
-    @Inject
-    @ConfigProperty(name = ENV_WORKFLOW_SERVICE_AUTHMETHOD)
-    Optional<String> workflowServiceAuthMethod;
 
     // deadlock timeout interval in ms
     @Inject

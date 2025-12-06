@@ -99,7 +99,7 @@ public class SnapshotRestService implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT)
+    @ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_ENDPOINT)
     Optional<String> archiveServiceEndpoint;
 
     @jakarta.ws.rs.core.Context

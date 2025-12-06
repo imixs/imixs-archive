@@ -146,13 +146,18 @@ public class SnapshotService {
     public static final String PROPERTY_SNAPSHOT_OVERWRITEFILECONTENT = "snapshot.overwriteFileContent";
 
     // rest service endpoint
-    public static final String ARCHIVE_SERVICE_ENDPOINT = "archive.service.endpoint";
-    public static final String ARCHIVE_SERVICE_INTERVAL = "archive.service.interval";
-    public static final String ARCHIVE_SERVICE_DEADLOCK = "archive.service.deadlock";
-    public static final String ARCHIVE_SERVICE_USER = "archive.service.user";
-    public static final String ARCHIVE_SERVICE_PASSWORD = "archive.service.password";
-    public static final String ARCHIVE_SERVICE_AUTHMETHOD = "archive.service.authmethod";
-    public static final String BACKUP_SERVICE_ENDPOINT = "backup.service.endpoint";
+    public static final String ENV_ARCHIVE_SERVICE_ENDPOINT = "archive.service.endpoint";
+    public static final String ENV_ARCHIVE_SERVICE_INTERVAL = "archive.service.interval";
+    public static final String ENV_ARCHIVE_SERVICE_DEADLOCK = "archive.service.deadlock";
+    public static final String ENV_ARCHIVE_SERVICE_USER = "archive.service.user";
+    public static final String ENV_ARCHIVE_SERVICE_PASSWORD = "archive.service.password";
+    public static final String ENV_ARCHIVE_SERVICE_AUTHMETHOD = "archive.service.authmethod";
+    public static final String ENV_BACKUP_SERVICE_ENDPOINT = "backup.service.endpoint";
+
+    // OIDC
+    public static final String ENV_OIDC_AUTH_ENDPOINT = "oidc.auth.endpoint";
+    public static final String ENV_OIDC_AUTH_CLIENT_ID = "oidc.auth.client.id";
+    public static final String ENV_OIDC_AUTH_CLIENT_SECRET = "oidc.auth.client.secret";
 
     public static final String EVENTLOG_TOPIC_ADD = "snapshot.add";
     public static final String EVENTLOG_TOPIC_REMOVE = "snapshot.remove";
@@ -185,11 +190,11 @@ public class SnapshotService {
     int iSnapshotHistory;
 
     @Inject
-    @ConfigProperty(name = ARCHIVE_SERVICE_ENDPOINT)
+    @ConfigProperty(name = ENV_ARCHIVE_SERVICE_ENDPOINT)
     Optional<String> archiveServiceEndpoint;
 
     @Inject
-    @ConfigProperty(name = BACKUP_SERVICE_ENDPOINT)
+    @ConfigProperty(name = ENV_BACKUP_SERVICE_ENDPOINT)
     Optional<String> backupServiceEndpoint;
 
     private static Logger logger = Logger.getLogger(SnapshotService.class.getName());
@@ -426,10 +431,10 @@ public class SnapshotService {
     }
 
     /**
-     * This method loads the snapshot for a given origin workItem.
-     * The method first tries to load the snapshot data directly form the
-     * documentService. If the snapshot was already removed from the database the
-     * service calls the Cassandra cluster to load the data.
+     * This method loads the snapshot for a given origin workItem. The method first
+     * tries to load the snapshot data directly form the documentService. If the
+     * snapshot was already removed from the database the service calls the
+     * Cassandra cluster to load the data.
      * 
      * @param workitem
      * @return ItemCollection - snapshot object if found

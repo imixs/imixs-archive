@@ -86,6 +86,11 @@ public class BackupService {
     public static final String ENV_WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
     public static final String ENV_WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
 
+    // OIDC
+    public static final String ENV_OIDC_AUTH_ENDPOINT = "oidc.auth.endpoint";
+    public static final String ENV_OIDC_AUTH_CLIENT_ID = "oidc.auth.client.id";
+    public static final String ENV_OIDC_AUTH_CLIENT_SECRET = "oidc.auth.client.secret";
+
     public static final String ENV_BACKUP_FTP_HOST = "backup.ftp.host";
     public static final String ENV_BACKUP_FTP_PATH = "backup.ftp.path";
     public static final String ENV_BACKUP_FTP_PORT = "backup.ftp.port";

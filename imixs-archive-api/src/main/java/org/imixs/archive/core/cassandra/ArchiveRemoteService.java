@@ -7,9 +7,8 @@ import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.core.SnapshotService;
-import org.imixs.melman.BasicAuthenticator;
+import org.imixs.archive.core.util.RestClientHelper;
 import org.imixs.melman.DocumentClient;
-import org.imixs.melman.FormAuthenticator;
 import org.imixs.melman.RestAPIException;
 import org.imixs.workflow.FileData;
 import org.imixs.workflow.ItemCollection;
@@ -37,20 +36,23 @@ import jakarta.ws.rs.core.Response;
 public class ArchiveRemoteService {
 
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT)
+    @ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_ENDPOINT)
     Optional<String> archiveServiceEndpoint;
 
-    @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_USER)
-    Optional<String> archiveServiceUser;
+    // @Inject
+    // @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_USER)
+    // Optional<String> archiveServiceUser;
+
+    // @Inject
+    // @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_PASSWORD)
+    // Optional<String> archiveServicePassword;
+
+    // @Inject
+    // @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_AUTHMETHOD)
+    // Optional<String> archiveServiceAuthMethod;
 
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_PASSWORD)
-    Optional<String> archiveServicePassword;
-
-    @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_AUTHMETHOD)
-    Optional<String> archiveServiceAuthMethod;
+    RestClientHelper restClientHelper;
 
     private static Logger logger = Logger.getLogger(ArchiveRemoteService.class.getName());
 
@@ -86,7 +88,7 @@ public class ArchiveRemoteService {
             if (!md5.isEmpty()) {
 
                 try {
-                    DocumentClient documentClient = initDocumentClient();
+                    DocumentClient documentClient = restClientHelper.createDocumentClient();
                     if (documentClient == null) {
                         logger.warning("Unable to initialize document client!");
                     } else {
@@ -155,7 +157,7 @@ public class ArchiveRemoteService {
         }
 
         try {
-            DocumentClient documentClient = initDocumentClient();
+            DocumentClient documentClient = restClientHelper.createDocumentClient();
             if (documentClient == null) {
                 logger.warning("Unable to initialize document client!");
             } else {
@@ -181,40 +183,4 @@ public class ArchiveRemoteService {
 
     }
 
-    /**
-     * Helper method to initalize a Melman Workflow Client based on the current
-     * archive configuration.
-     * 
-     * @throws RestAPIException
-     */
-    private DocumentClient initDocumentClient() throws RestAPIException {
-        boolean debug = logger.isLoggable(Level.FINE);
-        DocumentClient documentClient = new DocumentClient(archiveServiceEndpoint.get());
-        // test if authentication is needed?
-        if (archiveServiceAuthMethod.isPresent()) {
-            // Test authentication method
-            if ("form".equalsIgnoreCase(archiveServiceAuthMethod.get())) {
-                if (debug) {
-                    logger.finest("......Form Based authentication");
-                }
-                // form authenticator
-                FormAuthenticator formAuth = new FormAuthenticator(archiveServiceEndpoint.get(),
-                        archiveServiceUser.get(), archiveServicePassword.get());
-                // register the authenticator
-                documentClient.registerClientRequestFilter(formAuth);
-            }
-            if ("basic".equalsIgnoreCase(archiveServiceAuthMethod.get())) {
-                if (debug) {
-                    logger.finest("......Basic authentication");
-                }
-                // basic authenticator
-                BasicAuthenticator basicAuth = new BasicAuthenticator(archiveServiceUser.get(),
-                        archiveServicePassword.get());
-                // register the authenticator
-                documentClient.registerClientRequestFilter(basicAuth);
-            }
-        }
-
-        return documentClient;
-    }
 }

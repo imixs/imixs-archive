@@ -108,7 +108,7 @@ public class SnapshotCompactorService {
     long initialDelay;
 
     @Inject
-    @ConfigProperty(name = SnapshotService.ARCHIVE_SERVICE_ENDPOINT)
+    @ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_ENDPOINT)
     Optional<String> archiveServiceEndpoint;
 
     @Resource

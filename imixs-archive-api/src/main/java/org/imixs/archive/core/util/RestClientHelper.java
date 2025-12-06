@@ -1,4 +1,4 @@
-package org.imixs.archive.backup.util;
+package org.imixs.archive.core.util;
 
 import java.io.Serializable;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.backup.BackupService;
+import org.imixs.archive.core.SnapshotService;
 import org.imixs.melman.BasicAuthenticator;
 import org.imixs.melman.CookieAuthenticator;
 import org.imixs.melman.DocumentClient;
@@ -39,31 +39,31 @@ public class RestClientHelper implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Inject
-    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_ENDPOINT)
+    @ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_ENDPOINT)
     Optional<String> instanceEndpoint;
 
     @Inject
-    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_USER)
+    @ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_USER)
     Optional<String> instanceUser;
 
     @Inject
-    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_PASSWORD)
+    @ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_PASSWORD)
     Optional<String> instancePassword;
 
     @Inject
-    @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_AUTHMETHOD)
+    @ConfigProperty(name = SnapshotService.ENV_ARCHIVE_SERVICE_AUTHMETHOD)
     Optional<String> instanceAuthmethod;
 
     @Inject
-    @ConfigProperty(name = BackupService.ENV_OIDC_AUTH_ENDPOINT)
+    @ConfigProperty(name = SnapshotService.ENV_OIDC_AUTH_ENDPOINT)
     Optional<String> oidcAuthEndpoint;
 
     @Inject
-    @ConfigProperty(name = BackupService.ENV_OIDC_AUTH_CLIENT_ID)
+    @ConfigProperty(name = SnapshotService.ENV_OIDC_AUTH_CLIENT_ID)
     Optional<String> oidcAuthClientId;
 
     @Inject
-    @ConfigProperty(name = BackupService.ENV_OIDC_AUTH_CLIENT_SECRET)
+    @ConfigProperty(name = SnapshotService.ENV_OIDC_AUTH_CLIENT_SECRET)
     Optional<String> oidcAuthClientSecret;
 
     DocumentClient documentClient = null;
@@ -116,8 +116,11 @@ public class RestClientHelper implements Serializable {
             }
 
             if ("OIDC".equalsIgnoreCase(auttype)) {
-                OIDCAuthenticator keycloakAuth = new OIDCAuthenticator(oidcAuthEndpoint.orElse(""),
-                        oidcAuthClientId.orElse(""), oidcAuthClientSecret.orElse(""), instanceUser.orElse(""),
+                OIDCAuthenticator keycloakAuth = new OIDCAuthenticator(
+                        oidcAuthEndpoint.orElse(""),
+                        oidcAuthClientId.orElse(""),
+                        oidcAuthClientSecret.orElse(""),
+                        instanceUser.orElse(""),
                         instancePassword.orElse(""));
                 documentClient.registerClientRequestFilter(keycloakAuth);
             }

@@ -13,6 +13,7 @@ import org.imixs.melman.DocumentClient;
 import org.imixs.melman.EventLogClient;
 import org.imixs.melman.FormAuthenticator;
 import org.imixs.melman.JWTAuthenticator;
+import org.imixs.melman.OIDCAuthenticator;
 import org.imixs.melman.RestAPIException;
 import org.imixs.melman.WorkflowClient;
 
@@ -52,6 +53,18 @@ public class RestClientHelper implements Serializable {
     @Inject
     @ConfigProperty(name = SyncService.ENV_WORKFLOW_SERVICE_AUTHMETHOD)
     Optional<String> instanceAuthmethod;
+
+    @Inject
+    @ConfigProperty(name = SyncService.ENV_OIDC_AUTH_ENDPOINT)
+    Optional<String> oidcAuthEndpoint;
+
+    @Inject
+    @ConfigProperty(name = SyncService.ENV_OIDC_AUTH_CLIENT_ID)
+    Optional<String> oidcAuthClientId;
+
+    @Inject
+    @ConfigProperty(name = SyncService.ENV_OIDC_AUTH_CLIENT_SECRET)
+    Optional<String> oidcAuthClientSecret;
 
     DocumentClient documentClient = null;
     EventLogClient eventLogClient = null;
@@ -102,13 +115,15 @@ public class RestClientHelper implements Serializable {
                 documentClient.registerClientRequestFilter(jwtAuth);
             }
 
-            // if ("KEYCLOAK".equalsIgnoreCase(auttype)) {
-            // KeycloakAuthenticator keycloakAuth = new
-            // KeycloakAuthenticator(instanceEndpoint.orElse(""),
-            // instanceUser.orElse(""),
-            // instancePassword.orElse(""));
-            // documentClient.registerClientRequestFilter(keycloakAuth);
-            // }
+            if ("OIDC".equalsIgnoreCase(auttype)) {
+                OIDCAuthenticator keycloakAuth = new OIDCAuthenticator(
+                        oidcAuthEndpoint.orElse(""),
+                        oidcAuthClientId.orElse(""),
+                        oidcAuthClientSecret.orElse(""),
+                        instanceUser.orElse(""),
+                        instancePassword.orElse(""));
+                documentClient.registerClientRequestFilter(keycloakAuth);
+            }
         }
 
         return documentClient;
