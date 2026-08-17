@@ -88,6 +88,10 @@ public class FullBackupService {
     long initialDelay;
 
     @Inject
+    @ConfigProperty(name = "workflow.rest.jpql.doubledecode.workaround", defaultValue = "false")
+    boolean jpqlDoubleDecodeWorkaround;
+
+    @Inject
     @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> workflowServiceEndpoint;
 
@@ -169,11 +173,20 @@ public class FullBackupService {
                     + "'}) " + " AND (document.type IS NULL OR document.type NOT LIKE 'snapshot-%') "
                     + " ORDER BY document.created ASC";
 
+            // Workaround for a double-decoding bug in the workflow instance's REST endpoint
+            // (findDocumentsByJPQL): the endpoint decodes the path parameter twice - once
+            // implicitly via @PathParam, once manually via URLDecoder.decode(). A literal
+            // '%' character must therefore survive the first decode still in encoded form.
+            // Can be disabled via config once the server-side bug is fixed v6.2.8-SNAPSHOT.
+            if (jpqlDoubleDecodeWorkaround) {
+                jqpl = jqpl.replace("%", "%25");
+            }
+
             // AND (document.type IS NULL OR document.type NOT LIKE 'snapshot-%')
             documentClient.setItems("type,$created,$uniqueid,$snapshotid");
             List<ItemCollection> result = documentClient.queryDocuments(jqpl);
-            logger.fine("Query: " + jqpl);
-            logger.fine("Found " + result.size() + " itemCollections");
+            // logController.info(BackupService.TOPIC_FULLBACKUP, "│ ├── query: " + jqpl);
+            logController.info(BackupService.TOPIC_FULLBACKUP, "│   ├── adding " + result.size() + " backup requests");
 
             // reset items
             documentClient.setItems(null);

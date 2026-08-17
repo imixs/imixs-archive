@@ -100,6 +100,37 @@ If you do not use the Imixs-Archive Service and connect the Backup Service direc
 
 If you run an Imixs-Archive Service, the archive api automatically generates on each save event a new event log entry `snapshot.backup` to trigger the backup and no direct connection is needed for this kind of setup. See chapter _Backup without Archive_.
 
+#### FullBackupService - JPQL Double-Decode Workaround
+
+The `FullBackupService` queries the workflow instance via a JPQL statement against the
+`/documents/jpql/{query}` REST endpoint. Versions of Imixs-Workflow **prior to 6.2.8** contain a
+double-decoding bug in this endpoint (see
+[imixs/imixs-workflow#978](https://github.com/imixs/imixs-workflow/issues/978)): the `{query}`
+path parameter is decoded twice - once implicitly by JAX-RS via `@PathParam`, and once again
+manually inside the endpoint implementation. As a result, a literal `%` character in the JPQL
+statement (e.g. from a `LIKE 'snapshot-%'` clause) gets misinterpreted on the second decode and
+causes the query to silently fail (no results, no visible error).
+
+If you are running Imixs-Workflow **< 6.2.8**, `FullBackupService` can pre-escape the `%`
+character before sending the request, so it survives both decode steps correctly. This behavior
+is controlled by:
+
+    WORKFLOW_REST_JPQL_DOUBLEDECODE_WORKAROUND=true|false
+
+| Imixs-Workflow Version            | Required Setting                |
+| --------------------------------- | ------------------------------- |
+| **>= 6.2.8** (bug fixed, default) | `false` (default)               |
+| **< 6.2.8** (bug present)         | `true` - must be set explicitly |
+
+**IMPORTANT:** Setting this incorrectly for your Imixs-Workflow version will cause the JPQL query
+in `FullBackupService` to silently return no results:
+
+- `false` against a buggy server (< 6.2.8) → the `%` hits the double-decode bug and the query breaks.
+- `true` against a fixed server (>= 6.2.8) → the `%` gets escaped twice and the query breaks.
+
+The default is `false`, matching current Imixs-Workflow releases. If you are still running a
+version older than 6.2.8, you must explicitly set this property to `true`.
+
 ## Restore
 
 To start a full restore you can use the restore feature. This feature will check each backuped snapshot against the workflow instance. If a backup snapshot does not exists in the workflow instance the restore function will restore the data of this snapshot.
