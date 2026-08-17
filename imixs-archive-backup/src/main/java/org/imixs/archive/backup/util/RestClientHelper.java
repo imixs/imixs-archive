@@ -3,6 +3,7 @@ package org.imixs.archive.backup.util;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -66,6 +67,15 @@ public class RestClientHelper implements Serializable {
     @ConfigProperty(name = BackupService.ENV_OIDC_AUTH_CLIENT_SECRET)
     Optional<String> oidcAuthClientSecret;
 
+    // connect-/read-timeout in seconds for the underlying melman rest client
+    @Inject
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_REST_CONNECT_TIMEOUT, defaultValue = "10")
+    long restConnectTimeout;
+
+    @Inject
+    @ConfigProperty(name = BackupService.ENV_WORKFLOW_REST_READ_TIMEOUT, defaultValue = "300")
+    long restReadTimeout;
+
     DocumentClient documentClient = null;
     EventLogClient eventLogClient = null;
 
@@ -87,6 +97,12 @@ public class RestClientHelper implements Serializable {
         if (instanceEndpoint.isPresent()) {
 
             documentClient = new WorkflowClient(instanceEndpoint.get());
+
+            // apply configured timeouts to prevent indefinite blocking on unresponsive
+            // endpoints
+            documentClient.setConnectTimeout(restConnectTimeout, TimeUnit.SECONDS);
+            documentClient.setReadTimeout(restReadTimeout, TimeUnit.SECONDS);
+
             String auttype = instanceAuthmethod.orElse("BASIC").toUpperCase();
             logger.info("│   ├── auth type=" + auttype);
             if ("BASIC".equals(auttype)) {

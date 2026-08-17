@@ -86,6 +86,10 @@ public class BackupService {
     public static final String ENV_WORKFLOW_SYNC_INITIALDELAY = "workflow.sync.initialdelay";
     public static final String ENV_WORKFLOW_SYNC_DEADLOCK = "workflow.sync.deadlock";
 
+    // REST client
+    public static final String ENV_WORKFLOW_REST_CONNECT_TIMEOUT = "workflow.rest.connecttimeout";
+    public static final String ENV_WORKFLOW_REST_READ_TIMEOUT = "workflow.rest.readtimeout";
+
     // OIDC
     public static final String ENV_OIDC_AUTH_ENDPOINT = "oidc.auth.endpoint";
     public static final String ENV_OIDC_AUTH_CLIENT_ID = "oidc.auth.client.id";
@@ -401,15 +405,25 @@ public class BackupService {
                 return snapshot;
             }
         } catch (RestAPIException e) {
-            logController.warning(TOPIC_BACKUP, "Snapshot " + ref + " pull failed: " + e.getMessage());
-            // now we need to remove the batch event
-            logController.warning(TOPIC_BACKUP, "EventLogEntry " + id + " will be removed!");
-            try {
-                eventLogClient.deleteEventLogEntry(id);
-            } catch (RestAPIException e1) {
-                throw new BackupException("REMOTE_EXCEPTION", "Unable to delete eventLogEntry: " + id, e1);
-            }
+            Throwable cause = e.getCause();
 
+            if (cause instanceof jakarta.ws.rs.NotFoundException) {
+                // snapshot no longer exists on the workflow instance -> safe to remove the
+                // event log entry
+                logController.warning(TOPIC_BACKUP,
+                        "Snapshot " + ref + " no longer exists - removing EventLogEntry " + id);
+                try {
+                    eventLogClient.deleteEventLogEntry(id);
+                } catch (RestAPIException e1) {
+                    throw new BackupException("REMOTE_EXCEPTION", "Unable to delete eventLogEntry: " + id, e1);
+                }
+            } else {
+                // technical error (e.g. timeout, connection issue) -> keep the event log entry
+                // so it will be retried
+                logController.warning(TOPIC_BACKUP,
+                        "Snapshot " + ref + " pull failed (will be retried): " + e.getMessage());
+                throw new BackupException("REMOTE_EXCEPTION", "Failed to pull Snapshot " + ref, e);
+            }
         } catch (RuntimeException e) {
             // can occur in rare cases on the ejb container
             throw new BackupException("REMOTE_EXCEPTION", "Failed to pull Snapshot " + ref + " -> " + e.getMessage(),
