@@ -49,13 +49,29 @@ In case of using the [Cassandra Archive Service](../imixs-archive-service/README
 
 <img src="https://github.com/imixs/imixs-archive/raw/master/docs/imixs-archive-backup.png"/>
 
-To connect the Imixs-Archive Service with the Backup Service you need to set the environment parameter `backup.service.endpoint` at the archive service to activate the backup.
+The service can be started as a docker container. See the following docker compose example:
 
-| Environment Variable    | Description                                   | Example                      |
-| ----------------------- | --------------------------------------------- | ---------------------------- |
-| BACKUP_SERVICE_ENDPOINT | the rest API endpoint of your backup instance | http://imixs-backup:8080/api |
-
-The archive api automatically generates on each save event a new event log entry `snapshot.backup` to trigger the backup.
+```yaml
+version: "3.6"
+services:
+  backup:
+    image: imixs/imixs-archive-backup:latest
+    environment:
+      TZ: "Europe/Berlin"
+      WORKFLOW_SERVICE_ENDPOINT: "https://imixs-office-workflow/api/"
+      WORKFLOW_SERVICE_USER: "backup-service"
+      WORKFLOW_SERVICE_PASSWORD: "......."
+      WORKFLOW_SERVICE_AUTHMETHOD: "form"
+      BACKUP_FTP_HOST: "xxxx.foo.com"
+      BACKUP_FTP_PATH: "/my-backup"
+      BACKUP_FTP_PORT: "21"
+      BACKUP_FTP_USER: "xxxx"
+      BACKUP_FTP_PASSWORD: "......"
+      # Optional Mirror ID
+      # BACKUP_MIRROR_ID: "backup-mirror-local"
+    ports:
+      - "8084:8080"
+```
 
 ### Configuration
 
@@ -74,6 +90,15 @@ The Backup Service can be run in a container environment. To connect the backup 
 | BACKUP_FTP_PASSWORD         | ftp user password                               | user must have manager access         |
 
 The backup Service periodically checks for the event log entries `snapshot.backup` and stores the corresponding snapshot into the backup space.
+
+**Note:**
+If you do not use the Imixs-Archive Service and connect the Backup Service directly with your Imixs-Workflow instance you need to set the environment parameter `backup.service.endpoint` to activate the backup.
+
+| Environment Variable    | Description                                   | Example                      |
+| ----------------------- | --------------------------------------------- | ---------------------------- |
+| BACKUP_SERVICE_ENDPOINT | the rest API endpoint of your backup instance | http://imixs-backup:8080/api |
+
+If you run an Imixs-Archive Service, the archive api automatically generates on each save event a new event log entry `snapshot.backup` to trigger the backup and no direct connection is needed for this kind of setup. See chapter _Backup without Archive_.
 
 ## Restore
 
