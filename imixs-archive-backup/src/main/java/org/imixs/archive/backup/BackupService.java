@@ -393,7 +393,8 @@ public class BackupService {
             logger.fine("......pullSnapshot ref " + ref + "...");
             // lookup the snapshot...
             ItemCollection snapshot;
-
+            // reset items
+            documentClient.setItems(null);
             snapshot = documentClient.getDocument(ref);
             if (snapshot != null) {
                 logger.fine("...write snapshot into backup store...");
