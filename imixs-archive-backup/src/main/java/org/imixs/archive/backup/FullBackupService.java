@@ -156,7 +156,6 @@ public class FullBackupService {
             }
 
             fullBackupStatusHandler.setStatus(FullBackupStatusHandler.STATUS_RUNNING);
-
             logController.info(BackupService.TOPIC_FULLBACKUP,
                     "│   ├── partial backup started from " + syncPoint + "...");
 
@@ -166,14 +165,18 @@ public class FullBackupService {
 
             SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             String timestamp = formatter.format(syncPoint);
+            String jqpl = "SELECT document FROM Document AS document " + " WHERE (document.created > {ts '" + timestamp
+                    + "'}) " + " AND (document.type IS NULL OR document.type NOT LIKE 'snapshot-%') "
+                    + " ORDER BY document.created ASC";
 
-            String jqpl = "SELECT document FROM Document AS document WHERE document.created > {ts '" + timestamp
-                    + "'} ORDER BY document.created ASC";
+            // AND (document.type IS NULL OR document.type NOT LIKE 'snapshot-%')
             documentClient.setItems("type,$created,$uniqueid,$snapshotid");
             List<ItemCollection> result = documentClient.queryDocuments(jqpl);
             logger.fine("Query: " + jqpl);
             logger.fine("Found " + result.size() + " itemCollections");
 
+            // reset items
+            documentClient.setItems(null);
             if (result.size() == 0 || result.size() == 1) { // skip last entry
                 logController.info(BackupService.TOPIC_FULLBACKUP, "├── FullBackup completed no more data found");
                 stopScheduler(FullBackupStatusHandler.STATUS_STOPPED);
