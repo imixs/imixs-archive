@@ -186,7 +186,8 @@ public class FullBackupService {
             documentClient.setItems("type,$created,$uniqueid,$snapshotid");
             List<ItemCollection> result = documentClient.queryDocuments(jqpl);
             // logController.info(BackupService.TOPIC_FULLBACKUP, "│ ├── query: " + jqpl);
-            logController.info(BackupService.TOPIC_FULLBACKUP, "│   ├── adding " + result.size() + " backup requests");
+            logController.info(BackupService.TOPIC_FULLBACKUP,
+                    "│   ├── adding " + result.size() + " new backup requests for timestamp " + timestamp);
 
             // reset items
             documentClient.setItems(null);
