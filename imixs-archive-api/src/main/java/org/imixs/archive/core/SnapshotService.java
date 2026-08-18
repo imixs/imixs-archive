@@ -583,8 +583,14 @@ public class SnapshotService {
                         if (debug) {
                             logger.fine("copy file content '" + fileName + "' from: " + source.getUniqueID());
                         }
+                        // target.addFileData(new FileData(fileName, oldFileData.getContent(),
+                        // oldFileData.getContentType(), oldFileData.getAttributes()));
+
+                        // Here we copy the old content but the new attributes which maybe have changed
+                        // (e.g. new ocr text)
                         target.addFileData(new FileData(fileName, oldFileData.getContent(),
-                                oldFileData.getContentType(), oldFileData.getAttributes()));
+                                fileData.getContentType(), fileData.getAttributes()));
+
                     } else {
                         // if the file data is a link/url we did not find content
                         if (fileName.matches(REGEX_URL_PATTERN)) {
