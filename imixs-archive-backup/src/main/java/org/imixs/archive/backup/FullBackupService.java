@@ -167,7 +167,9 @@ public class FullBackupService {
             documentClient.setPageSize(100);
             documentClient.setPageIndex(0);
 
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            // Include milliseconds to preserve full timestamp precision in the JPQL
+            // comparison
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
             String timestamp = formatter.format(syncPoint);
             String jqpl = "SELECT document FROM Document AS document " + " WHERE (document.created > {ts '" + timestamp
                     + "'}) " + " AND (document.type IS NULL OR document.type NOT LIKE 'snapshot-%') "
