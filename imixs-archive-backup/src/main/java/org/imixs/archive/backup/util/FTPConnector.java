@@ -127,8 +127,7 @@ public class FTPConnector {
             }
 
             // test if we have the year as an subdirectory
-            changeWorkingDirectory(ftpClient, new SimpleDateFormat("yyyy").format(created));
-            changeWorkingDirectory(ftpClient, new SimpleDateFormat("MM").format(created));
+            changeWorkingDirectory(ftpClient, new SimpleDateFormat("yyyy/MM").format(created));
 
             // Check if file already exists and handle overwrite logic
             FTPFile[] existingFiles = ftpClient.listFiles(fileName);
