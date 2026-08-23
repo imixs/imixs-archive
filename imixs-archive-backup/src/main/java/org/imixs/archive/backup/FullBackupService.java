@@ -29,9 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import org.apache.commons.net.ftp.FTPSClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.backup.util.FTPConnector;
 import org.imixs.archive.backup.util.LogController;
 import org.imixs.archive.backup.util.RestClientHelper;
 import org.imixs.melman.DocumentClient;
@@ -104,9 +102,6 @@ public class FullBackupService {
 
     @Inject
     RestClientHelper restClientHelper;
-
-    @Inject
-    FTPConnector ftpConnector;
 
     @Inject
     FullBackupStatusHandler fullBackupStatusHandler;
@@ -198,9 +193,8 @@ public class FullBackupService {
                 stopScheduler(FullBackupStatusHandler.STATUS_STOPPED);
                 return;
             }
-            FTPSClient ftpClient = null;
+           
             try {
-                ftpClient = ftpConnector.getFTPClient();
                 for (ItemCollection data : result) {
                     Date created = data.getItemValueDate(WorkflowKernel.CREATED);
                     String snapshotID = data.getItemValueString("$snapshotid");
@@ -217,16 +211,6 @@ public class FullBackupService {
                 fullBackupStatusHandler.setSyncPoint(syncPoint);
                 logController.info(BackupService.TOPIC_FULLBACKUP, "│   ├── partial backup completed - " + total
                         + " backup requests created, next SyncPoint=" + syncPoint);
-            } finally {
-                // close writer...
-                try {
-                    if (ftpClient != null) {
-                        ftpClient.logout();
-                        ftpClient.disconnect();
-                    }
-                } catch (Exception e) {
-
-                }
             }
 
         } catch (InvalidAccessException | EJBException | IOException | RestAPIException e) {
