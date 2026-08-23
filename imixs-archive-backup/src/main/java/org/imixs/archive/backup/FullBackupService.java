@@ -193,25 +193,23 @@ public class FullBackupService {
                 stopScheduler(FullBackupStatusHandler.STATUS_STOPPED);
                 return;
             }
-           
-            try {
-                for (ItemCollection data : result) {
-                    Date created = data.getItemValueDate(WorkflowKernel.CREATED);
-                    String snapshotID = data.getItemValueString("$snapshotid");
-                    if (!snapshotID.isEmpty()) {
-                        logger.fine("...create backup request for snapshot id=" + snapshotID);
-                        total++;
-                        ItemCollection options = new ItemCollection();
-                        options.setItemValue("NO_OVERWRITE", true);
-                        eventLogClient.createEventLogEntry(getEventLogTopic(), snapshotID, options);
-                    }
-                    syncPoint = created;
 
+            for (ItemCollection data : result) {
+                Date created = data.getItemValueDate(WorkflowKernel.CREATED);
+                String snapshotID = data.getItemValueString("$snapshotid");
+                if (!snapshotID.isEmpty()) {
+                    logger.fine("...create backup request for snapshot id=" + snapshotID);
+                    total++;
+                    ItemCollection options = new ItemCollection();
+                    options.setItemValue("NO_OVERWRITE", true);
+                    eventLogClient.createEventLogEntry(getEventLogTopic(), snapshotID, options);
                 }
-                fullBackupStatusHandler.setSyncPoint(syncPoint);
-                logController.info(BackupService.TOPIC_FULLBACKUP, "│   ├── partial backup completed - " + total
-                        + " backup requests created, next SyncPoint=" + syncPoint);
+                syncPoint = created;
+
             }
+            fullBackupStatusHandler.setSyncPoint(syncPoint);
+            logController.info(BackupService.TOPIC_FULLBACKUP, "│   ├── partial backup completed - " + total
+                    + " backup requests created, next SyncPoint=" + syncPoint);
 
         } catch (InvalidAccessException | EJBException | IOException | RestAPIException e) {
             // we also catch EJBExceptions here because we do not want to cancel the
@@ -223,8 +221,6 @@ public class FullBackupService {
             } catch (BackupException e1) {
 
             }
-        } finally {
-
         }
     }
 
