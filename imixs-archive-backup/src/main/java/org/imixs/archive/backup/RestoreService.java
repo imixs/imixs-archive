@@ -23,6 +23,9 @@
 package org.imixs.archive.backup;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -140,6 +143,12 @@ public class RestoreService {
         int errors = 0;
         FTPSClient ftpClient = null;
 
+        // overall statistics across all months
+        int totalMonths = 0;
+        int totalVerified = 0;
+        int totalImported = 0;
+        int totalSkipped = 0;
+
         try {
             restoreStatusHandler.setTimer(_timer);
 
@@ -179,6 +188,7 @@ public class RestoreService {
             // check subdirectories.....
             String ftpWorkingPath = "";
             FTPFile[] directoryListYears = ftpClient.listDirectories();
+            Arrays.sort(directoryListYears, Comparator.comparing(FTPFile::getName));
 
             for (FTPFile ftpFileYear : directoryListYears) {
                 if (ftpFileYear.isDirectory()) {
@@ -190,6 +200,7 @@ public class RestoreService {
                     }
                     // now switch to Month....
                     FTPFile[] directoryListMonths = ftpClient.listDirectories();
+                    Arrays.sort(directoryListMonths, Comparator.comparing(FTPFile::getName));
                     for (FTPFile ftpFileMonth : directoryListMonths) {
                         if (ftpFileMonth.isDirectory()) {
                             ftpWorkingPath = ftpFileMonth.getName();
@@ -199,8 +210,6 @@ public class RestoreService {
                                                 + "' : " + ftpClient.getReplyString());
                             }
 
-                            logController.info(BackupService.TOPIC_RESTORE,
-                                    " ⇨ import: " + ftpFileYear.getName() + "/" + ftpWorkingPath + " ...");
                             // read all files....
                             int count = 0;
                             int verified = 0;
@@ -215,22 +224,30 @@ public class RestoreService {
                                         if (!existSnapshot(documentClient, snapshot)) {
                                             // restore data
                                             restoreSnapshot(documentClient, snapshot);
+                                            // force refresh of lucene index!
+                                            refreshLuceneIndex(documentClient);
                                             count++;
                                         } else {
                                             // this snapshot already exists in the current workflow instance
                                             skipped++;
                                         }
                                     }
+
                                 }
                                 if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
                                     break;
                                 }
                             }
 
+                            // update overall statistics
+                            totalMonths++;
+                            totalVerified += verified;
+                            totalImported += count;
+                            totalSkipped += skipped;
+
                             logController.info(BackupService.TOPIC_RESTORE,
-                                    " ⇨ " + ftpFileYear.getName() + "/" + ftpWorkingPath + ": " + verified
-                                            + " snapshots verified, " + count + " snapshots imported, " + skipped
-                                            + " snapshots already existed");
+                                    String.format(" ⇨ [%d] %s/%s: %d verified, %d imported, %d skipped", totalMonths,
+                                            ftpFileYear.getName(), ftpWorkingPath, verified, count, skipped));
 
                             ftpClient.changeToParentDirectory();
                             if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
@@ -246,7 +263,9 @@ public class RestoreService {
                 ftpClient.changeToParentDirectory();
             }
 
-            logController.info(BackupService.TOPIC_RESTORE, "Restore completed!");
+            logController.info(BackupService.TOPIC_RESTORE,
+                    String.format("Restore completed! %d months processed, %d verified, %d imported, %d skipped",
+                            totalMonths, totalVerified, totalImported, totalSkipped));
 
             stopScheduler();
 
@@ -255,7 +274,9 @@ public class RestoreService {
         } catch (InvalidAccessException | EJBException | IOException | RestAPIException e) {
             // we also catch EJBExceptions here because we do not want to cancel the
             // ManagedScheduledExecutorService
-            logController.warning(BackupService.TOPIC_RESTORE, "restore failed: " + e.getMessage());
+            logController.warning(BackupService.TOPIC_RESTORE,
+                    String.format("restore failed after %d months (%d verified, %d imported, %d skipped): %s",
+                            totalMonths, totalVerified, totalImported, totalSkipped, e.getMessage()));
             try {
                 stopScheduler();
             } catch (BackupException e1) {
@@ -272,6 +293,25 @@ public class RestoreService {
                 throw new BackupException("FTP_ERROR", "FTP file transfer failed: " + e.getMessage(), e);
             }
         }
+    }
+
+    /**
+     * Helper method to force a refresh of the deprecated lucene index!
+     */
+    private void refreshLuceneIndex(DocumentClient documentClient) {
+        try { // refresh lucene index!
+            int oldPageSize = documentClient.getPageSize();
+            int oldPageIndex = documentClient.getPageIndex();
+            documentClient.setPageIndex(0);
+            documentClient.setPageSize(1);
+            documentClient.searchDocuments("(type:workitem)");
+            // restore settigns
+            documentClient.setPageIndex(oldPageIndex);
+            documentClient.setPageSize(oldPageSize);
+        } catch (RestAPIException | UnsupportedEncodingException e) {
+            logger.warning("Failed to refreshLuceneIndex : " + e.getMessage());
+        }
+
     }
 
     /**
