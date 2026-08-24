@@ -290,12 +290,9 @@ public class RestoreService {
         ItemCollection result = null;
         try {
             result = documentClient.getDocument(snapshot.getUniqueID());
-        } catch (NotFoundException e) {
+        } catch (NotFoundException | RestAPIException e) {
             // document not found
             result = null;
-        } catch (RestAPIException e) {
-            // should not happen
-            logger.warning("Failed do get document via rest api: " + e.getMessage());
         }
         // reset items
         documentClient.setItems(null);
