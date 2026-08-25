@@ -18,7 +18,9 @@ services:
       BACKUP_FTP_PORT: "21"
       BACKUP_FTP_USER: ""
       BACKUP_FTP_PASSWORD: ""
-      BACKUP_MIRROR_ID: "AGL-Mirror"
+      BACKUP_MIRROR_ID: "MY-Mirror"
+
+      METRICS_ENABLED: "true"
     ports:
       - "8080:8080"
       - "8787:8787"

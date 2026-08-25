@@ -2,16 +2,11 @@ package org.imixs.archive.backup;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.Map;
 import java.util.Optional;
-import java.util.SortedMap;
 import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.metrics.Counter;
-import org.eclipse.microprofile.metrics.MetricID;
-import org.eclipse.microprofile.metrics.MetricRegistry;
-import org.eclipse.microprofile.metrics.annotation.RegistryScope;
+import org.imixs.archive.backup.metrics.MetricService;
 import org.imixs.archive.backup.util.LogController;
 
 import jakarta.enterprise.context.RequestScoped;
@@ -45,10 +40,6 @@ public class BackupController implements Serializable {
     String metricsEndpoint;
 
     @Inject
-    @RegistryScope(scope = MetricRegistry.APPLICATION_SCOPE)
-    MetricRegistry metricRegistry;
-
-    @Inject
     @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_HOST)
     Optional<String> ftpServer;
 
@@ -74,6 +65,9 @@ public class BackupController implements Serializable {
 
     @Inject
     BackupService backupService;
+
+    @Inject
+    MetricService metricService;
 
     @Inject
     LogController logController;
@@ -155,16 +149,16 @@ public class BackupController implements Serializable {
      * @return
      */
     public long getCounterByName(String name) {
-        // find counter by name
-        SortedMap<MetricID, Counter> allCounters = metricRegistry.getCounters();
-        for (Map.Entry<MetricID, Counter> entry : allCounters.entrySet()) {
-
-            MetricID metricID = entry.getKey();
-            if (metricID.getName().endsWith(name)) {
-                return entry.getValue().getCount();
-            }
-        }
-        logger.fine("Metric Counter : " + name + " not found!");
-        return 0;
+        return metricService.getCounterByName(name);
     }
+
+    /**
+     * This method returns the current value of a registered gauge metric by name
+     *
+     * @return
+     */
+    public long getGaugeByName(String name) {
+        return metricService.getGaugeByName(name);
+    }
+
 }

@@ -1,117 +1,139 @@
-<ui:composition template="/WEB-INF/templates/layout.xhtml" xmlns:faces="jakarta.faces" xmlns:f="jakarta.faces.core"
-	xmlns:h="jakarta.faces.html" xmlns:ui="jakarta.faces.facelets">
+<ui:composition
+  template="/WEB-INF/templates/layout.xhtml"
+  xmlns:faces="jakarta.faces"
+  xmlns:f="jakarta.faces.core"
+  xmlns:h="jakarta.faces.html"
+  xmlns:ui="jakarta.faces.facelets"
+>
+  <ui:define name="content">
+    <f:view>
+      <h:form id="connect_form_id">
+        <section>
+          <div class="card" style="grid-column-start: span 12; min-height: 0px">
+            <h1 style="line-height: 0">
+              <span class="typcn typcn-cloud-storage-outline"></span>
+              Imixs Backup Service
+              <h:outputText rendered="#{!empty backupController.backupMirrorId}" value=": #{backupController.backupMirrorId}" />
+            </h1>
+          </div>
+        </section>
 
-	<ui:define name="content">
-		<f:view>
-			<h:form id="connect_form_id">
-				<section class="" style="">
-					<div class="card" style="grid-column-start: span 12;min-height: 0px;">
-						<h1 style="line-height: 0;">
-							<span class="typcn typcn-cloud-storage-outline"></span> Imixs Backup Service
-							<h:outputText rendered="#{!empty backupController.backupMirrorId}"
-								value=": #{backupController.backupMirrorId}" />
-						</h1>
-					</div>
-				</section>
+        <section>
+          <div class="card" style="grid-column-start: span 12">
+            <p class="help">
+              <span class="typcn typcn-lightbulb"></span>
+              Imixs-Workflow API Endpoint Configuration.
+            </p>
+            <div class="imixs-form-section" style="grid-column-start: span 12">
+              <table class="imixsdatatable" style="grid-column-start: span 12; margin: 10px 0">
+                <tr>
+                  <td style="width: 25%">Imixs-Workflow Instance:</td>
+                  <td>#{backupController.getInstanceEndpoint()}</td>
+                </tr>
+                <tr>
+                  <td>Backup Status:</td>
+                  <td>
+                    #{backupController.getStatus()}
+                    <ui:fragment rendered="#{backupController.isConnected()}">
+                      <span class="typcn typcn-media-record" style="font-size: 1.3em; color: #5c9e5c"></span>
+                    </ui:fragment>
+                    <ui:fragment rendered="#{!backupController.isConnected()}">
+                      <span class="typcn typcn-media-record" style="font-size: 1.3em; color: #e84848"></span>
+                    </ui:fragment>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Interval:</td>
+                  <td>#{backupController.getInterval()} ms</td>
+                </tr>
+                <tr>
+                  <td>Next Timeout:</td>
+                  <td>#{backupController.getNextTimeout()}</td>
+                </tr>
+                <tr>
+                  <td>FTP Host:</td>
+                  <td>#{backupController.ftpServer}:#{backupController.ftpPort}</td>
+                </tr>
+                <tr>
+                  <td>Backup Space:</td>
+                  <td>#{backupController.ftpPath}</td>
+                </tr>
+                <tr>
+                  <td>Backup Mirror ID:</td>
+                  <td>#{backupController.backupMirrorId}</td>
+                </tr>
+              </table>
+            </div>
 
-				<section class="" style="">
-					<div class="card" style="grid-column-start: span 12;">
-						<p class="help">
-							<span class="typcn typcn-lightbulb"></span> Imixs-Workflow API
-							Endpoint Configuration.
-						</p>
-						<div class="imixs-form-section" style="grid-column-start: span 12;">
-							<table class="imixsdatatable" style="grid-column-start: span 12; margin: 10px 0;">
-								<tr>
-									<td style="width: 25%;">Imixs-Workflow Instance:</td>
-									<td>#{backupController.getInstanceEndpoint()}</td>
-								</tr>
-								<tr>
-									<td>Backup Status:</td>
-									<td>#{backupController.getStatus()} <ui:fragment
-											rendered="#{backupController.isConnected()}">
-											<span class="typcn typcn-media-record"
-												style="font-size: 1.3em; color: #5c9e5c;"></span>
-										</ui:fragment>
-										<ui:fragment rendered="#{!backupController.isConnected()}">
-											<span class="typcn typcn-media-record"
-												style="font-size: 1.3em; color: #e84848;"></span>
-										</ui:fragment>
+            <div class="imixs-form-section">
+              <span style="grid-column-start: span 8">
+                <h:commandButton value="Refresh" action="/" />
+                <h:commandButton
+                  value="Start"
+                  style="background: #4dc24f"
+                  actionListener="#{backupController.start()}"
+                  rendered="#{!backupController.connected}"
+                />
+                <h:commandButton
+                  value="Stop"
+                  style="background: #e84848"
+                  rendered="#{backupController.connected}"
+                  actionListener="#{backupController.stop()}"
+                />
+              </span>
+            </div>
+          </div>
+        </section>
 
-									</td>
-								</tr>
-								<tr>
-									<td>Interval:</td>
-									<td>#{backupController.getInterval()} ms</td>
-								</tr>
-								<tr>
-									<td>Next Timeout:</td>
-									<td>#{backupController.getNextTimeout()}</td>
-								</tr>
-								<tr>
-									<td>FTP Host:</td>
-									<td>#{backupController.ftpServer}:#{backupController.ftpPort}</td>
-								</tr>
-								<tr>
-									<td>Backup Space:</td>
-									<td>#{backupController.ftpPath}</td>
-								</tr>
-								<tr>
-									<td>Backup Mirror ID:</td>
-									<td>#{backupController.backupMirrorId}</td>
-								</tr>
-							</table>
-						</div>
+        <!-- Metrics -->
+        <section class="">
+          <!-- open events -->
+          <div class="card" style="grid-column-start: span 4">
+            <ui:param name="countunprocessed" value="#{backupController.getGaugeByName('backup_events_unprocessed')}" />
+            <h1 class="lead">
+              <ui:fragment rendered="#{countunprocessed eq 0}">
+                <span style="color: #5c9e5c">#{countunprocessed} Open</span>
+              </ui:fragment>
+              <ui:fragment rendered="#{countunprocessed lt 0}">
+                <span style="color: #555">Initalizing...</span>
+              </ui:fragment>
+              <ui:fragment rendered="#{countunprocessed gt 0}">
+                <span style="color: #FCB802">#{countunprocessed} Open</span>
+              </ui:fragment>
+            </h1>
+            <p class="lead">Total Number of unprocessed backup events.</p>
+          </div>
 
-						<div class="imixs-form-section">
-							<span style="grid-column-start: span 8;">
-								<h:commandButton value="Refresh" action="/" />
-								<h:commandButton value="Start" style="background:#4dc24f;"
-									actionListener="#{backupController.start()}"
-									rendered="#{!backupController.connected}" />
-								<h:commandButton value="Stop" style="background: #e84848;"
-									rendered="#{backupController.connected}"
-									actionListener="#{backupController.stop()}" />
-							</span>
-						</div>
-					</div>
+          <!-- processed events -->
+          <div class="card" style="grid-column-start: span 4">
+            <h1 class="lead">#{backupController.getCounterByName('backup_events_processed')} Processed</h1>
+            <p class="lead">Total Number of processed backup events since last start.</p>
+          </div>
 
-				</section>
+          <!-- errors -->
+          <div class="card" style="grid-column-start: span 4">
+            <h1 class="lead">
+              <span style="#{(backupController.getCounterByName('backup_events_errors')>0)?'color: #e84848;': &quot;&quot;}">
+                #{backupController.getCounterByName('backup_events_errors')} Errors
+              </span>
+            </h1>
+            <p class="lead">Total backup errros since last start.</p>
+          </div>
+        </section>
 
-				<!-- Metrics -->
-				<section class="" style="">
-					<div class="card" style="grid-column-start: span 7;">
-
-						<h1 class="lead">
-							#{backupController.getCounterByName('backup_events_processed')} Events
-						</h1>
-						<p class="lead">
-							Total Number of processed backup events since last start.</p>
-					</div>
-					<div class="card" style="grid-column-start: span 5;">
-						<h1 class="lead">
-							<span
-								style="#{(backupController.getCounterByName('backup_events_errors')>0)?'color: #e84848;':''}">#{backupController.getCounterByName('backup_events_errors')}
-								Errors</span>
-						</h1>
-						<p class="lead">
-							Total backup errros since last start.</p>
-
-					</div>
-				</section>
-
-				<!-- Message Log -->
-				<div class="card">
-					<h3>
-						<span class="typcn typcn-input-checked"></span> Log
-					</h3>
-					<pre>
-						<ui:repeat var="log" value="#{logController.getLogEntries('BACKUP')}">
-							<h:outputText value="#{log}" /><br />
-						</ui:repeat>		
-					</pre>
-				</div>
-			</h:form>
-		</f:view>
-	</ui:define>
+        <!-- Message Log -->
+        <div class="card">
+          <h3>
+            <span class="typcn typcn-input-checked"></span>
+            Log
+          </h3>
+          <pre>
+			<ui:repeat var="log" value="#{logController.getLogEntries('BACKUP')}">
+				<h:outputText value="#{log}" /><br />
+			</ui:repeat>		
+			</pre>
+        </div>
+      </h:form>
+    </f:view>
+  </ui:define>
 </ui:composition>

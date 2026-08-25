@@ -30,10 +30,7 @@ import java.util.logging.Logger;
 
 import org.apache.commons.net.ftp.FTPClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.metrics.Counter;
-import org.eclipse.microprofile.metrics.Metadata;
-import org.eclipse.microprofile.metrics.MetricRegistry;
-import org.eclipse.microprofile.metrics.annotation.RegistryScope;
+import org.imixs.archive.backup.metrics.MetricService;
 import org.imixs.archive.backup.util.FTPConnector;
 import org.imixs.archive.backup.util.LogController;
 import org.imixs.archive.backup.util.RestClientHelper;
@@ -169,14 +166,16 @@ public class BackupService {
     BackupStatusHandler backupStatusHandler;
 
     @Inject
-    @RegistryScope(scope = MetricRegistry.APPLICATION_SCOPE)
-    MetricRegistry metricRegistry;
+    MetricService metricService;
 
     DocumentClient documentClient = null;
     EventLogClient eventLogClient = null;
 
     @PostConstruct
     public void init() {
+
+        metricService.init();
+
         // init timer....
         if (workflowServiceEndpoint.isPresent()) {
             logger.info("init BackupService endpoint: " + workflowServiceEndpoint.get().toString());
@@ -213,13 +212,13 @@ public class BackupService {
         long duration = System.currentTimeMillis();
         try {
             backupStatusHandler.setTimer(_timer);
-            logger.info("Processing backup events...");
+            logger.info("├── Processing backup events...");
             // init rest clients....
             DocumentClient documentClient = restClientHelper.createDocumentClient();
             EventLogClient eventLogClient = restClientHelper.createEventLogClient(documentClient);
             if (documentClient == null || eventLogClient == null) {
                 logController.warning(TOPIC_BACKUP,
-                        "Unable to connect to workflow instance endpoint - please verify configuration!");
+                        "├── Unable to connect to workflow instance endpoint - verify configuration!");
                 try {
                     stopScheduler();
                 } catch (BackupException e) {
@@ -233,15 +232,20 @@ public class BackupService {
             // release dead locks...
             releaseDeadLocks(eventLogClient);
 
+            // total unprocessed metrics
+            long totalUnprocessed = eventLogClient.countEventLogEntries(getEventLogTopic());
+            metricService.setUnprocessedEventLogEntries(totalUnprocessed);
+
             // max 100 entries per iteration
             eventLogClient.setPageSize(100);
             List<ItemCollection> events = eventLogClient.searchEventLog(getEventLogTopic());
             FTPClient ftpClient = null;
-
+            logger.info("│   ├── connecting ftp storage...");
             try {
                 ftpClient = ftpConnector.getFTPClient();
+                logger.fine("│   ├── ftp connection ok");
                 if (events != null && events.size() > 0) {
-                    logger.info(" -> " + events.size() + " backup events found...");
+                    logger.info("│   ├──  -> " + events.size() + " backup events found...");
                     for (ItemCollection eventLogEntry : events) {
                         total++;
                         topic = eventLogEntry.getItemValueString("topic");
@@ -279,14 +283,14 @@ public class BackupService {
                                 eventLogClient.deleteEventLogEntry(id);
                                 success++;
                             }
-                            countMetric(METRIC_EVENTS_PROCESSED);
+                            metricService.countMetric(METRIC_EVENTS_PROCESSED);
 
                         } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
                             // we also catch EJBExceptions here because we do not want to cancel the
                             // ManagedScheduledExecutorService
                             logController.warning(TOPIC_BACKUP, "SnapshotEvent " + id + ": " + e.getMessage());
                             errors++;
-                            countMetric(METRIC_EVENTS_ERRORS);
+                            metricService.countMetric(METRIC_EVENTS_ERRORS);
 
                         }
                     }
@@ -295,7 +299,7 @@ public class BackupService {
                             + (System.currentTimeMillis() - duration) + " ms - " + errors + " errors...");
 
                 } else {
-                    logger.info(" -> no backup events found.");
+                    logger.info("│   ├── -> no backup events found.");
                 }
 
             } finally {
@@ -306,7 +310,6 @@ public class BackupService {
                         ftpClient.disconnect();
                     }
                 } catch (Exception e) {
-
                 }
             }
 
@@ -317,6 +320,7 @@ public class BackupService {
             // the timer service will automatically restarted. This is important
             // to resolve restarts of the workflow engine.
             logController.warning(TOPIC_BACKUP, "processing EventLog failed: " + e.getMessage());
+            e.printStackTrace();
             try {
                 restartScheduler();
             } catch (BackupException e1) {
@@ -325,20 +329,21 @@ public class BackupService {
         }
     }
 
-    /**
-     * Helper method to create a counter and inc the coutner
-     *
-     * @param name
-     */
-    private void countMetric(String name) {
+    public long getUnprocessedEventLogEntries() {
+
+        long result = -1;
         try {
-            Metadata metadata = Metadata.builder().withName(name)
-                    .withDescription("Imixs-Backup Service - processed backup events").build();
-            Counter counter = metricRegistry.counter(metadata);
-            counter.inc();
-        } catch (Exception e) {
-            logger.severe("Unable to create metrics for ' " + name + "'");
+            DocumentClient documentClient = restClientHelper.createDocumentClient();
+            EventLogClient eventLogClient = restClientHelper.createEventLogClient(documentClient);
+            logger.info("count event log entries: " + getEventLogTopic());
+            result = eventLogClient.countEventLogEntries(getEventLogTopic());
+
+        } catch (RestAPIException e) {
+            logController.warning(TOPIC_BACKUP, "Failed to count unprocessed event log: " + e.getMessage());
         }
+
+        return result;
+
     }
 
     /**
