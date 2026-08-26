@@ -63,7 +63,7 @@ public class MetricService {
     private MeterRegistry meterRegistry;
 
     @Inject
-    @ConfigProperty(name = "metrics.enabled", defaultValue = "false")
+    @ConfigProperty(name = "metrics.enabled", defaultValue = "true")
     private boolean metricsEnabled;
 
     // Cache for Counter instances to avoid re-registering meters on every call
