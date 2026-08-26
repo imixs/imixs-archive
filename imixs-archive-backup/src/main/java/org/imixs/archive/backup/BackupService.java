@@ -282,6 +282,8 @@ public class BackupService {
                                 // finally remove the event log entry...
                                 eventLogClient.deleteEventLogEntry(id);
                                 success++;
+                                totalUnprocessed--;
+                                metricService.setUnprocessedEventLogEntries(totalUnprocessed);
                             }
                             metricService.countMetric(METRIC_EVENTS_PROCESSED);
 
@@ -291,7 +293,13 @@ public class BackupService {
                             logController.warning(TOPIC_BACKUP, "SnapshotEvent " + id + ": " + e.getMessage());
                             errors++;
                             metricService.countMetric(METRIC_EVENTS_ERRORS);
-
+                            // release the lock so the entry is retried on the next timer tick
+                            try {
+                                eventLogClient.unlockEventLogEntry(id);
+                            } catch (RestAPIException e1) {
+                                logController.warning(TOPIC_BACKUP,
+                                        "SnapshotEvent " + id + ": failed to release lock: " + e1.getMessage());
+                            }
                         }
                     }
                     // print log
