@@ -217,21 +217,36 @@ public class FTPConnector {
     }
 
     /**
-     * This method changes the current working sub-directy. If no corresponding
-     * directory exits the method creats one.
+     * This method changes the current working sub-directory. If the directory does
+     * not exist (including any missing parent segments), it is created step by
+     * step.
      *
      * @throws BackupException
      */
     private void changeWorkingDirectory(FTPClient ftpClient, String subDirectory) throws BackupException {
-        // test if we have the subdreictory
         try {
-            if (!ftpClient.changeWorkingDirectory(subDirectory)) {
-                // try to creat it....
-                if (!ftpClient.makeDirectory(subDirectory)) {
-                    throw new BackupException(FTP_ERROR, "FTP Error: unable to create sub-directory '" + subDirectory
-                            + "' : " + ftpClient.getReplyString());
+            // Try the fast path first - maybe the full path already exists
+            if (ftpClient.changeWorkingDirectory(subDirectory)) {
+                return;
+            }
+
+            // Split the path into single segments (e.g. "2022/10" -> ["2022", "10"])
+            String[] segments = subDirectory.split("/");
+            for (String segment : segments) {
+                if (segment.isEmpty()) {
+                    continue;
                 }
-                ftpClient.changeWorkingDirectory(subDirectory);
+                if (!ftpClient.changeWorkingDirectory(segment)) {
+                    // Segment does not exist yet -> create it
+                    if (!ftpClient.makeDirectory(segment)) {
+                        throw new BackupException(FTP_ERROR, "FTP Error: unable to create sub-directory '" + segment
+                                + "' : " + ftpClient.getReplyString());
+                    }
+                    if (!ftpClient.changeWorkingDirectory(segment)) {
+                        throw new BackupException(FTP_ERROR, "FTP Error: unable to enter sub-directory '" + segment
+                                + "' : " + ftpClient.getReplyString());
+                    }
+                }
             }
         } catch (IOException e) {
             throw new BackupException(FTP_ERROR, "FTP file transfer failed: " + e.getMessage(), e);
