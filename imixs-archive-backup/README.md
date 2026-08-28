@@ -137,6 +137,8 @@ To start a full restore you can use the restore feature. This feature will check
 
 <img src="https://github.com/imixs/imixs-archive/raw/master/docs/restore-01.png"/>
 
+You can find a detailed description how to setup a independent backup service [here](RESTORE.md)
+
 ## Full Backup
 
 A backup of a snapshot data is created immediately after the snapshot was created or archived. This is typically the moment when you save data in your workflow instance.
