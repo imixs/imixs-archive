@@ -90,7 +90,7 @@ The synchronization between a Imixs-Archive Service and a Imixs-Workflow Instanc
 
 The Imixs-Archive Service polls the snapshot EventLog entries on a scheduled basis and pulls the snappshot data.
 
-## Overwrite File File Data
+## Overwrite File Data
 
 The environment variable SNAPSHOT_OVERWRITEFILECONTENT can be used to protect existing file data to be overwritten. If the environment variable is set to 'false', than in case a file with the same name already exits, will be 'archived' with a time-stamp-sufix:
 
@@ -103,6 +103,29 @@ If the environment variable SNAPSHOT_OVERWRITEFILECONTENT is not set then it def
 ### Temporary overwriting of File Data
 
 During the processing life cycle this mechanism can be overwritten by providing the temporarily item '$snapshot.overwriteFileContent' with a list of filenames to be overwritten even if the environment variable is set to false. The item will automatically be cleared during the processing life cycle.
+
+# Split & Join Integration
+
+The Imixs-Workflow engine provides the core plugin `org.imixs.workflow.engine.plugins.SplitAndJoinPlugin`
+to split a process instance into one or more sub-process instances (see [Split & Join](https://www.imixs.org/doc/engine/plugins/splitandjoinplugin.html)).
+
+When file attachments are copied into a newly created sub-process instance, the core `SplitAndJoinPlugin` only copies the plain `FileData` object (name, contentType, content). It does **not** preserve the additional metadata introduced by Imixs-Archive, such as
+
+- $created / $creator
+- md5checksum
+- txtcomment
+- text (OCR content, see imixs-archive-documents)
+
+For this reason, Imixs-Archive provides an extension of the core plugin:
+
+    org.imixs.archive.plugins.SplitAndJoinPlugin
+
+This plugin overrides the copy behavior for `FileData` objects so that all archive-specific
+file metadata and the archived content is correctly transferred to a sub-process instance during a `subprocess_create`
+or `subprocess_update` operation.
+
+**Note:** If your application uses the Imixs-Archive technology together with the Split & Join functionality, always configure `org.imixs.archive.plugins.SplitAndJoinPlugin` instead of the core `org.imixs.workflow.engine.plugins.SplitAndJoinPlugin` in your BPMN model. Otherwise file
+metadata (e.g. OCR text or checksums) will be lost when a sub-process instance is created or updated.
 
 # How to Calculate the Size of a Imixs-Archive System?
 
