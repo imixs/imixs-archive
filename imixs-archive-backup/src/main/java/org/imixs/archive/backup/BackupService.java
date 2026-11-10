@@ -49,8 +49,6 @@ import jakarta.ejb.Timeout;
 import jakarta.ejb.Timer;
 import jakarta.ejb.TimerConfig;
 import jakarta.ejb.TimerService;
-import jakarta.ejb.TransactionAttribute;
-import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Inject;
 
 /**
@@ -168,9 +166,6 @@ public class BackupService {
     @Inject
     MetricService metricService;
 
-    DocumentClient documentClient = null;
-    EventLogClient eventLogClient = null;
-
     @PostConstruct
     public void init() {
 
@@ -239,12 +234,16 @@ public class BackupService {
             // max 100 entries per iteration
             eventLogClient.setPageSize(100);
             List<ItemCollection> events = eventLogClient.searchEventLog(getEventLogTopic());
-            FTPClient ftpClient = null;
-            logger.info("│   ├── connecting ftp storage...");
-            try {
-                ftpClient = ftpConnector.getFTPClient();
-                logger.fine("│   ├── ftp connection ok");
-                if (events != null && events.size() > 0) {
+
+            if (events == null || events.isEmpty()) {
+                // nothing to do - avoid an unnecessary ftp login on each timer tick
+                logger.info("│   ├── -> no backup events found.");
+            } else {
+                FTPClient ftpClient = null;
+                logger.info("│   ├── connecting ftp storage...");
+                try {
+                    ftpClient = ftpConnector.getFTPClient();
+                    logger.fine("│   ├── ftp connection ok");
                     logger.info("│   ├──  -> " + events.size() + " backup events found...");
                     for (ItemCollection eventLogEntry : events) {
                         total++;
@@ -270,12 +269,15 @@ public class BackupService {
                                     " unable to resolve event log flag 'NO_OVERWRITE' - overwrite will be set to true");
                         }
 
+                        // track if this instance holds the lock, so we never release a lock
+                        // owned by another backup instance
+                        boolean locked = false;
                         try {
                             // first try to lock the eventLog entry....
                             eventLogClient.lockEventLogEntry(id);
+                            locked = true;
                             // pull the snapshotEvent ...
                             logger.finest("......pull snapshot " + ref + "....");
-                            // eventCache.add(eventLogEntry);
                             ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
                             if (snapshot != null) {
                                 ftpConnector.put(ftpClient, snapshot, overwrite);
@@ -293,12 +295,14 @@ public class BackupService {
                             logController.warning(TOPIC_BACKUP, "SnapshotEvent " + id + ": " + e.getMessage());
                             errors++;
                             metricService.countMetric(METRIC_EVENTS_ERRORS);
-                            // release the lock so the entry is retried on the next timer tick
-                            try {
-                                eventLogClient.unlockEventLogEntry(id);
-                            } catch (RestAPIException e1) {
-                                logController.warning(TOPIC_BACKUP,
-                                        "SnapshotEvent " + id + ": failed to release lock: " + e1.getMessage());
+                            // release our own lock so the entry is retried on the next timer tick
+                            if (locked) {
+                                try {
+                                    eventLogClient.unlockEventLogEntry(id);
+                                } catch (RestAPIException e1) {
+                                    logController.warning(TOPIC_BACKUP,
+                                            "SnapshotEvent " + id + ": failed to release lock: " + e1.getMessage());
+                                }
                             }
                         }
                     }
@@ -306,18 +310,15 @@ public class BackupService {
                     logController.info(TOPIC_BACKUP, success + " snapshots backed up in "
                             + (System.currentTimeMillis() - duration) + " ms - " + errors + " errors...");
 
-                } else {
-                    logger.info("│   ├── -> no backup events found.");
-                }
-
-            } finally {
-                // close writer...
-                try {
-                    if (ftpClient != null) {
-                        ftpClient.logout();
-                        ftpClient.disconnect();
+                } finally {
+                    // close ftp connection...
+                    try {
+                        if (ftpClient != null) {
+                            ftpClient.logout();
+                            ftpClient.disconnect();
+                        }
+                    } catch (Exception e) {
                     }
-                } catch (Exception e) {
                 }
             }
 
@@ -332,7 +333,7 @@ public class BackupService {
             try {
                 restartScheduler();
             } catch (BackupException e1) {
-                logController.warning(TOPIC_BACKUP, "Failed to restart backup scheduler: " + e.getMessage());
+                logController.warning(TOPIC_BACKUP, "Failed to restart backup scheduler: " + e1.getMessage());
             }
         }
     }
@@ -355,14 +356,12 @@ public class BackupService {
     }
 
     /**
-     * Asynchronous method to release dead locks
+     * Releases dead locks of event log entries older than the configured
+     * deadLockInterval.
      *
      * @param eventLogClient
-     * @param deadLockInterval
-     * @param topic
      * @throws RestAPIException
      */
-    @TransactionAttribute(value = TransactionAttributeType.REQUIRES_NEW)
     public void releaseDeadLocks(EventLogClient eventLogClient) throws RestAPIException {
         if (eventLogClient == null) {
             // no client object
