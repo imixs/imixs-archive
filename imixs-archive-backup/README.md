@@ -91,6 +91,51 @@ The Backup Service can be run in a container environment. To connect the backup 
 
 The backup Service periodically checks for the event log entries `snapshot.backup` and stores the corresponding snapshot into the backup space.
 
+### Local File System Storage
+
+As an alternative to a FTP server, the backup can be written directly into the local file system - e.g. a NAS volume mounted into the container. This allows a fully decoupled backup without the need of a separate FTP service.
+
+| Environment Variable | Description                              | Example  |
+| -------------------- | ---------------------------------------- | -------- |
+| BACKUP_LOCAL_PATH    | root directory of the local backup space | /backups |
+
+The directory layout is identical to the FTP storage (`{root}/yyyy/MM/{uniqueid}.xml`), so a backup space can be moved between FTP and local storage at any time. Restore and Full Backup work the same way for both storage types.
+
+**FTP storage and local storage are strictly mutually exclusive:**
+
+| BACKUP_FTP_HOST | BACKUP_FTP_PATH | BACKUP_LOCAL_PATH | Result                 |
+| --------------- | --------------- | ----------------- | ---------------------- |
+| set             | set             | -                 | FTP storage            |
+| -               | -               | set               | Local storage          |
+| set             | -               | -                 | Error - missing path   |
+| any             | any             | set + FTP var set | Error - mixed config   |
+| -               | -               | -                 | Error - no storage set |
+
+On an invalid configuration the backup scheduler is not started and the error is shown in the Web UI. This ensures that a misspelled FTP variable never silently switches the backup into the local file system.
+
+**Important:** The root directory `BACKUP_LOCAL_PATH` must already exist - it is never created automatically. Only the sub directories `yyyy/MM` are created. If the backup volume is not mounted, the backup fails with an error instead of writing into the container file system. Backup files are first written into a hidden temp file and then renamed, so no incomplete backup files remain after a crash or power loss.
+
+Example:
+
+```yaml
+services:
+  backup:
+    image: imixs/imixs-archive-backup:latest
+    environment:
+      TZ: "Europe/Berlin"
+      WORKFLOW_SERVICE_ENDPOINT: "https://imixs-office-workflow/api/"
+      WORKFLOW_SERVICE_USER: "backup-service"
+      WORKFLOW_SERVICE_PASSWORD: "......."
+      WORKFLOW_SERVICE_AUTHMETHOD: "form"
+      BACKUP_LOCAL_PATH: "/backups"
+    volumes:
+      - /mnt/nas/imixs-backup:/backups
+    ports:
+      - "8084:8080"
+```
+
+Make sure the container user has write access to the mounted volume.
+
 **Note:**
 If you do not use the Imixs-Archive Service and connect the Backup Service directly with your Imixs-Workflow instance you need to set the environment parameter `backup.service.endpoint` to activate the backup.
 

@@ -38,15 +38,33 @@
 							</tr>
 
 
-							<tr>
-								<td>FTP Host:</td>
-								<td>#{fullBackupController.ftpServer}:#{fullBackupController.ftpPort}</td>
-							</tr>
-
-							<tr>
-								<td>Backup Space:</td>
-								<td>#{fullBackupController.ftpPath}</td>
-							</tr>
+							<!-- Backup storage: FTP or local file system -->
+							<ui:fragment rendered="#{backupController.ftpMode}">
+								<tr>
+									<td>FTP Host:</td>
+									<td>#{backupController.ftpServer}:#{backupController.ftpPort}</td>
+								</tr>
+								<tr>
+									<td>Backup Space:</td>
+									<td>#{backupController.ftpPath}</td>
+								</tr>
+							</ui:fragment>
+							<ui:fragment rendered="#{backupController.localMode}">
+								<tr>
+									<td>Storage:</td>
+									<td>Local file system</td>
+								</tr>
+								<tr>
+									<td>Backup Space:</td>
+									<td>#{backupController.localPath}</td>
+								</tr>
+							</ui:fragment>
+							<ui:fragment rendered="#{not empty backupController.storageConfigError}">
+								<tr>
+									<td>Storage:</td>
+									<td style="color: #e84848">#{backupController.storageConfigError}</td>
+								</tr>
+							</ui:fragment>
 
 						</table>
 					</div>

@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.backup.metrics.MetricService;
+import org.imixs.archive.backup.util.BackupStoreFactory;
 import org.imixs.archive.backup.util.LogController;
 
 import jakarta.enterprise.context.RequestScoped;
@@ -51,6 +52,10 @@ public class BackupController implements Serializable {
     @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PORT, defaultValue = "21")
     int ftpPort;
 
+    @Inject
+    @ConfigProperty(name = BackupService.ENV_BACKUP_LOCAL_PATH)
+    Optional<String> localPath;
+
     // timeout interval in ms
     @Inject
     @ConfigProperty(name = BackupService.ENV_WORKFLOW_SYNC_INTERVAL, defaultValue = "1000")
@@ -74,6 +79,9 @@ public class BackupController implements Serializable {
 
     @Inject
     BackupStatusHandler backupStatusHandler;
+
+    @Inject
+    BackupStoreFactory backupStoreFactory;
 
     public String getHealthEndpoint() {
         return healthEndpoint;
@@ -111,6 +119,33 @@ public class BackupController implements Serializable {
 
     public int getFtpPort() {
         return ftpPort;
+    }
+
+    public String getLocalPath() {
+        return localPath.orElse("");
+    }
+
+    /**
+     * Returns true if the storage configuration is valid and uses the FTP storage
+     */
+    public boolean isFtpMode() {
+        return BackupStoreFactory.MODE_FTP.equals(backupStoreFactory.getMode());
+    }
+
+    /**
+     * Returns true if the storage configuration is valid and uses the local file
+     * system storage
+     */
+    public boolean isLocalMode() {
+        return BackupStoreFactory.MODE_LOCAL.equals(backupStoreFactory.getMode());
+    }
+
+    /**
+     * Returns the storage configuration error or an empty string if the
+     * configuration is valid
+     */
+    public String getStorageConfigError() {
+        return backupStoreFactory.getConfigError();
     }
 
     public String getInstanceEndpoint() {

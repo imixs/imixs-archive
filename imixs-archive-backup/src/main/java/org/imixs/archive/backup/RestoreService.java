@@ -22,18 +22,14 @@
  *******************************************************************************/
 package org.imixs.archive.backup;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPSClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.imixs.archive.backup.util.FTPConnector;
+import org.imixs.archive.backup.util.BackupStore;
+import org.imixs.archive.backup.util.BackupStoreFactory;
 import org.imixs.archive.backup.util.LogController;
 import org.imixs.archive.backup.util.RestClientHelper;
 import org.imixs.melman.DocumentClient;
@@ -55,8 +51,8 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 
 /**
- * The RestoreService imports the workflow data from a FTP storage into a
- * Imixs-Workflow instance.
+ * The RestoreService imports the workflow data from a backup storage (FTP
+ * server or local file system) into a Imixs-Workflow instance.
  *
  * The service class runs a TimerService based on the given scheduler
  * configuration.
@@ -93,19 +89,11 @@ public class RestoreService {
     @ConfigProperty(name = BackupService.ENV_WORKFLOW_SERVICE_ENDPOINT)
     Optional<String> workflowServiceEndpoint;
 
-    @Inject
-    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_PATH)
-    Optional<String> ftpPath;
-
-    @Inject
-    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_HOST)
-    Optional<String> ftpServer;
-
     @Resource
     TimerService timerService;
 
     @Inject
-    FTPConnector ftpConnector;
+    BackupStoreFactory backupStoreFactory;
 
     @Inject
     RestClientHelper restClientHelper;
@@ -141,7 +129,7 @@ public class RestoreService {
         int total = 0;
         int success = 0;
         int errors = 0;
-        FTPSClient ftpClient = null;
+        BackupStore backupStore = null;
 
         // overall statistics across all months
         int totalMonths = 0;
@@ -167,100 +155,59 @@ public class RestoreService {
 
             restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_RUNNING);
 
-            logController.info(BackupService.TOPIC_RESTORE, "Starting import from " + ftpServer.get() + "...");
+            logController.info(BackupService.TOPIC_RESTORE,
+                    "Starting import from " + backupStoreFactory.getStorageDescription() + "...");
 
-            ftpClient = ftpConnector.getFTPClient();
+            // open the backup storage (FTP or local file system)
+            backupStore = backupStoreFactory.openStore();
 
-            // verify directories
-            String ftpRootPath = ftpPath.orElse("/");
-            if (!ftpRootPath.startsWith("/")) {
-                ftpRootPath = "/" + ftpRootPath;
-            }
-            if (!ftpRootPath.endsWith("/")) {
-                ftpRootPath = ftpRootPath + "/";
-            }
+            // iterate over all years (yyyy) and months (MM) sorted by name
+            for (String year : backupStore.listDirectories("")) {
+                for (String month : backupStore.listDirectories(year)) {
+                    String monthPath = year + "/" + month;
 
-            if (!ftpClient.changeWorkingDirectory(ftpRootPath)) {
-                throw new BackupException("REMOTE_EXCEPTION", "FTP file transfer failed: missing workfing directory '"
-                        + ftpRootPath + "' : " + ftpClient.getReplyString());
-            }
-
-            // check subdirectories.....
-            String ftpWorkingPath = "";
-            FTPFile[] directoryListYears = ftpClient.listDirectories();
-            Arrays.sort(directoryListYears, Comparator.comparing(FTPFile::getName));
-
-            for (FTPFile ftpFileYear : directoryListYears) {
-                if (ftpFileYear.isDirectory()) {
-                    ftpWorkingPath = ftpFileYear.getName();
-                    if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
-                        throw new BackupException("REMOTE_EXCEPTION",
-                                "FTP file transfer failed: missing working directory '" + ftpWorkingPath + "' : "
-                                        + ftpClient.getReplyString());
-                    }
-                    // now switch to Month....
-                    FTPFile[] directoryListMonths = ftpClient.listDirectories();
-                    Arrays.sort(directoryListMonths, Comparator.comparing(FTPFile::getName));
-                    for (FTPFile ftpFileMonth : directoryListMonths) {
-                        if (ftpFileMonth.isDirectory()) {
-                            ftpWorkingPath = ftpFileMonth.getName();
-                            if (!ftpClient.changeWorkingDirectory(ftpWorkingPath)) {
-                                throw new BackupException("REMOTE_EXCEPTION",
-                                        "FTP file transfer failed: missing working directory '" + ftpWorkingPath
-                                                + "' : " + ftpClient.getReplyString());
+                    // read all files....
+                    int count = 0;
+                    int verified = 0;
+                    int skipped = 0;
+                    for (String fileName : backupStore.listFiles(monthPath)) {
+                        ItemCollection snapshot = backupStore.get(monthPath + "/" + fileName);
+                        if (snapshot != null) {
+                            verified++;
+                            // verify if this snapshot exists?
+                            if (!existSnapshot(documentClient, snapshot)) {
+                                // restore data
+                                restoreSnapshot(documentClient, snapshot);
+                                // force refresh of lucene index!
+                                refreshLuceneIndex(documentClient);
+                                count++;
+                            } else {
+                                // this snapshot already exists in the current workflow instance
+                                skipped++;
                             }
-
-                            // read all files....
-                            int count = 0;
-                            int verified = 0;
-                            int skipped = 0;
-                            FTPFile[] importFiles = ftpClient.listFiles();
-                            for (FTPFile importFile : importFiles) {
-                                if (importFile.isFile()) {
-                                    ItemCollection snapshot = ftpConnector.get(ftpClient, importFile.getName());
-                                    if (snapshot != null) {
-                                        verified++;
-                                        // verify if this snapshot exists?
-                                        if (!existSnapshot(documentClient, snapshot)) {
-                                            // restore data
-                                            restoreSnapshot(documentClient, snapshot);
-                                            // force refresh of lucene index!
-                                            refreshLuceneIndex(documentClient);
-                                            count++;
-                                        } else {
-                                            // this snapshot already exists in the current workflow instance
-                                            skipped++;
-                                        }
-                                    }
-
-                                }
-                                if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
-                                    break;
-                                }
-                            }
-
-                            // update overall statistics
-                            totalMonths++;
-                            totalVerified += verified;
-                            totalImported += count;
-                            totalSkipped += skipped;
-
-                            logController.info(BackupService.TOPIC_RESTORE,
-                                    String.format(" ⇨ [%d] %s/%s: %d verified, %d imported, %d skipped", totalMonths,
-                                            ftpFileYear.getName(), ftpWorkingPath, verified, count, skipped));
-
-                            ftpClient.changeToParentDirectory();
-                            if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
-                                break;
-                            }
+                        }
+                        if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
+                            break;
                         }
                     }
 
+                    // update overall statistics
+                    totalMonths++;
+                    totalVerified += verified;
+                    totalImported += count;
+                    totalSkipped += skipped;
+
+                    logController.info(BackupService.TOPIC_RESTORE,
+                            String.format(" ⇨ [%d] %s: %d verified, %d imported, %d skipped", totalMonths,
+                                    monthPath, verified, count, skipped));
+
+                    if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
+                        break;
+                    }
                 }
                 if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
                     break;
                 }
-                ftpClient.changeToParentDirectory();
             }
 
             logController.info(BackupService.TOPIC_RESTORE,
@@ -271,7 +218,7 @@ public class RestoreService {
 
             restoreStatusHandler.setStatus(RestoreStatusHandler.STATUS_STOPPED);
 
-        } catch (InvalidAccessException | EJBException | IOException | RestAPIException e) {
+        } catch (InvalidAccessException | EJBException | BackupException | RestAPIException e) {
             // we also catch EJBExceptions here because we do not want to cancel the
             // ManagedScheduledExecutorService
             logController.warning(BackupService.TOPIC_RESTORE,
@@ -283,14 +230,9 @@ public class RestoreService {
 
             }
         } finally {
-            try {
-                // do logout....
-                if (ftpClient != null) {
-                    ftpClient.logout();
-                    ftpClient.disconnect();
-                }
-            } catch (IOException e) {
-                throw new BackupException("FTP_ERROR", "FTP file transfer failed: " + e.getMessage(), e);
+            // close the backup storage (e.g. ftp logout)
+            if (backupStore != null) {
+                backupStore.close();
             }
         }
     }
@@ -374,9 +316,11 @@ public class RestoreService {
      * @throws BackupException
      */
     public void startScheduler() throws BackupException {
+        logController.reset(BackupService.TOPIC_RESTORE);
+        // verify the storage configuration before the restore is started
+        backupStoreFactory.validateConfig();
         try {
             restClientHelper.reset();
-            logController.reset(BackupService.TOPIC_RESTORE);
             logController.info(BackupService.TOPIC_RESTORE,
                     "Starting restore scheduler - initalDelay=0ms  inverval=" + interval + "ms ....");
             // start archive schedulers....

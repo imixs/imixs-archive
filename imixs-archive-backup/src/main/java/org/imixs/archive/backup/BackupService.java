@@ -22,16 +22,15 @@
  *******************************************************************************/
 package org.imixs.archive.backup;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import org.apache.commons.net.ftp.FTPClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.imixs.archive.backup.metrics.MetricService;
-import org.imixs.archive.backup.util.FTPConnector;
+import org.imixs.archive.backup.util.BackupStore;
+import org.imixs.archive.backup.util.BackupStoreFactory;
 import org.imixs.archive.backup.util.LogController;
 import org.imixs.archive.backup.util.RestClientHelper;
 import org.imixs.melman.DocumentClient;
@@ -53,8 +52,9 @@ import jakarta.inject.Inject;
 
 /**
  * The BackupService exports the workflow data from a Imixs-Workflow instance
- * into a FTP storage. The service class runs a TimerService based on the given
- * scheduler configuration.
+ * into a backup storage (FTP server or local file system - see
+ * {@link BackupStoreFactory}). The service class runs a TimerService based on
+ * the given scheduler configuration.
  * <p>
  * The service automatically starts during deployment.
  * <p>
@@ -96,6 +96,8 @@ public class BackupService {
     public static final String ENV_BACKUP_FTP_USER = "backup.ftp.user";
     public static final String ENV_BACKUP_FTP_PASSWORD = "backup.ftp.password";
     public static final String ENV_BACKUP_MIRROR_ID = "backup.mirror.id";
+    // local file system storage - mutually exclusive with the FTP storage
+    public static final String ENV_BACKUP_LOCAL_PATH = "backup.local.path";
 
     public static final String EVENTLOG_TOPIC_BACKUP = "snapshot.backup";
     public static final String BACKUP_SYNC_DEADLOCK = "backup.sync.deadlock";
@@ -139,10 +141,6 @@ public class BackupService {
     Optional<String> workflowServicePassword;
 
     @Inject
-    @ConfigProperty(name = BackupService.ENV_BACKUP_FTP_HOST)
-    Optional<String> ftpServer;
-
-    @Inject
     @ConfigProperty(name = BackupService.ENV_BACKUP_MIRROR_ID)
     Optional<String> backupMirrorId;
 
@@ -155,7 +153,7 @@ public class BackupService {
     TimerService timerService;
 
     @Inject
-    FTPConnector ftpConnector;
+    BackupStoreFactory backupStoreFactory;
 
     @Inject
     RestClientHelper restClientHelper;
@@ -236,14 +234,13 @@ public class BackupService {
             List<ItemCollection> events = eventLogClient.searchEventLog(getEventLogTopic());
 
             if (events == null || events.isEmpty()) {
-                // nothing to do - avoid an unnecessary ftp login on each timer tick
+                // nothing to do - avoid an unnecessary storage connection on each timer tick
                 logger.info("│   ├── -> no backup events found.");
             } else {
-                FTPClient ftpClient = null;
-                logger.info("│   ├── connecting ftp storage...");
-                try {
-                    ftpClient = ftpConnector.getFTPClient();
-                    logger.fine("│   ├── ftp connection ok");
+                logger.info("│   ├── connecting backup storage...");
+                // the store is closed automatically (e.g. ftp logout)
+                try (BackupStore backupStore = backupStoreFactory.openStore()) {
+                    logger.fine("│   ├── backup storage connection ok");
                     logger.info("│   ├──  -> " + events.size() + " backup events found...");
                     for (ItemCollection eventLogEntry : events) {
                         total++;
@@ -280,7 +277,7 @@ public class BackupService {
                             logger.finest("......pull snapshot " + ref + "....");
                             ItemCollection snapshot = pullSnapshot(eventLogEntry, documentClient, eventLogClient);
                             if (snapshot != null) {
-                                ftpConnector.put(ftpClient, snapshot, overwrite);
+                                backupStore.put(snapshot, overwrite);
                                 // finally remove the event log entry...
                                 eventLogClient.deleteEventLogEntry(id);
                                 success++;
@@ -309,22 +306,12 @@ public class BackupService {
                     // print log
                     logController.info(TOPIC_BACKUP, success + " snapshots backed up in "
                             + (System.currentTimeMillis() - duration) + " ms - " + errors + " errors...");
-
-                } finally {
-                    // close ftp connection...
-                    try {
-                        if (ftpClient != null) {
-                            ftpClient.logout();
-                            ftpClient.disconnect();
-                        }
-                    } catch (Exception e) {
-                    }
                 }
             }
 
             backupStatusHandler.setStatus(BackupStatusHandler.STATUS_SCHEDULED);
 
-        } catch (InvalidAccessException | EJBException | RestAPIException | BackupException | IOException e) {
+        } catch (InvalidAccessException | EJBException | RestAPIException | BackupException e) {
             // In case of a exception during processing the event log
             // the timer service will automatically restarted. This is important
             // to resolve restarts of the workflow engine.
@@ -464,12 +451,22 @@ public class BackupService {
      * @throws BackupException
      */
     public void startScheduler(boolean clearLog) throws BackupException {
+        if (clearLog) {
+            // clear log in case of a normal start
+            logController.reset(TOPIC_BACKUP);
+        }
+        // verify the storage configuration (FTP and local storage are mutually
+        // exclusive) - the scheduler is not started on an invalid configuration
+        try {
+            String mode = backupStoreFactory.validateConfig();
+            logController.info(TOPIC_BACKUP,
+                    "Backup storage: " + mode + " (" + backupStoreFactory.getStorageDescription() + ")");
+        } catch (BackupException e) {
+            backupStatusHandler.setStatus(BackupStatusHandler.STATUS_STOPPED);
+            throw e;
+        }
         try {
             restClientHelper.reset();
-            if (clearLog) {
-                // clear log in case of a normal start
-                logController.reset(TOPIC_BACKUP);
-            }
             logController.info(TOPIC_BACKUP, "Starting backup scheduler - initialDelay=" + initialDelay
                     + "ms  inverval=" + interval + "ms ....");
             // start archive schedulers....
