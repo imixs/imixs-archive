@@ -103,8 +103,8 @@ public class LocalBackupStore implements BackupStore {
             }
 
             // write into a temp file and force the data to disk
-            try (FileChannel channel = FileChannel.open(tempFile, StandardOpenOption.CREATE,
-                    StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            try (FileChannel channel = FileChannel.open(tempFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+                    StandardOpenOption.TRUNCATE_EXISTING)) {
                 ByteBuffer buffer = ByteBuffer.wrap(rawData);
                 while (buffer.hasRemaining()) {
                     channel.write(buffer);
@@ -114,8 +114,7 @@ public class LocalBackupStore implements BackupStore {
 
             // move the temp file to the final name
             try {
-                Files.move(tempFile, targetFile, StandardCopyOption.ATOMIC_MOVE,
-                        StandardCopyOption.REPLACE_EXISTING);
+                Files.move(tempFile, targetFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException e) {
                 Files.move(tempFile, targetFile, StandardCopyOption.REPLACE_EXISTING);
             }
@@ -166,9 +165,7 @@ public class LocalBackupStore implements BackupStore {
         Path dir = resolve(path);
         try (Stream<Path> stream = Files.list(dir)) {
             return stream.filter(p -> directories ? Files.isDirectory(p) : Files.isRegularFile(p))
-                    .map(p -> p.getFileName().toString())
-                    .filter(name -> !name.startsWith("."))
-                    .sorted()
+                    .map(p -> p.getFileName().toString()).filter(name -> !name.startsWith(".")).sorted()
                     .collect(Collectors.toList());
         } catch (IOException e) {
             throw new BackupException(LOCAL_ERROR, "Local list failed for '" + dir + "': " + e.getMessage(), e);

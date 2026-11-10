@@ -73,8 +73,7 @@ public class BackupStoreFactory {
         }
         if (ftpHostSet) {
             if (!ftpPathSet) {
-                throw new BackupException(CONFIG_ERROR,
-                        "Invalid storage configuration: BACKUP_FTP_PATH is missing!");
+                throw new BackupException(CONFIG_ERROR, "Invalid storage configuration: BACKUP_FTP_PATH is missing!");
             }
             return MODE_FTP;
         }

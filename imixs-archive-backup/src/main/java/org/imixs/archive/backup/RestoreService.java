@@ -198,8 +198,8 @@ public class RestoreService {
                     totalSkipped += skipped;
 
                     logController.info(BackupService.TOPIC_RESTORE,
-                            String.format(" ⇨ [%d] %s: %d verified, %d imported, %d skipped", totalMonths,
-                                    monthPath, verified, count, skipped));
+                            String.format(" ⇨ [%d] %s: %d verified, %d imported, %d skipped", totalMonths, monthPath,
+                                    verified, count, skipped));
 
                     if (RestoreStatusHandler.STATUS_CANCELED.equals(restoreStatusHandler.getStatus())) {
                         break;
